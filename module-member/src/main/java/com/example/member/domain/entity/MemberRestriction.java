@@ -1,0 +1,107 @@
+package com.example.member.domain.entity;
+
+import com.example.member.domain.enumtype.RestrictionType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import java.time.LocalDateTime;
+import java.util.Objects;
+import java.util.UUID;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@Entity
+@Table(name = "member_restriction")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class MemberRestriction {
+
+    @Id
+    @Column(name = "restriction_id", nullable = false, updatable = false)
+    private UUID restrictionId;
+
+    @Column(name = "member_id", nullable = false)
+    private UUID memberId;
+
+    @Column(name = "admin_id", nullable = false)
+    private UUID adminId;
+
+    @Column(name = "reason", nullable = false)
+    private String reason;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "restriction_type", nullable = false)
+    private RestrictionType restrictionType;
+
+    @Column(name = "duration_hours", nullable = false)
+    private LocalDateTime durationHours;
+
+    @Column(name = "end_at", nullable = false)
+    private LocalDateTime endAt;
+
+    @Column(name = "is_active", nullable = false)
+    private boolean active;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    private MemberRestriction(
+            UUID restrictionId,
+            UUID memberId,
+            UUID adminId,
+            String reason,
+            RestrictionType restrictionType,
+            LocalDateTime durationHours,
+            LocalDateTime endAt,
+            boolean active,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt
+    ) {
+        this.restrictionId = Objects.requireNonNull(restrictionId);
+        this.memberId = Objects.requireNonNull(memberId);
+        this.adminId = Objects.requireNonNull(adminId);
+        this.reason = Objects.requireNonNull(reason);
+        this.restrictionType = Objects.requireNonNull(restrictionType);
+        this.durationHours = Objects.requireNonNull(durationHours);
+        this.endAt = Objects.requireNonNull(endAt);
+        this.active = active;
+        this.createdAt = Objects.requireNonNull(createdAt);
+        this.updatedAt = updatedAt;
+    }
+
+    public static MemberRestriction create(
+            UUID restrictionId,
+            UUID memberId,
+            UUID adminId,
+            String reason,
+            RestrictionType restrictionType,
+            LocalDateTime durationHours,
+            LocalDateTime endAt,
+            LocalDateTime createdAt
+    ) {
+        return new MemberRestriction(
+                restrictionId,
+                memberId,
+                adminId,
+                reason,
+                restrictionType,
+                durationHours,
+                endAt,
+                true,
+                createdAt,
+                createdAt
+        );
+    }
+
+    public void deactivate(LocalDateTime updatedAt) {
+        this.active = false;
+        this.updatedAt = Objects.requireNonNull(updatedAt);
+    }
+}
