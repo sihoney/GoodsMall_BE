@@ -1,1 +1,3 @@
-rootProject.name = 'goods-commerce'
+rootProject.name = 'goods-mall'
+
+include 'module-common'
