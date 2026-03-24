@@ -17,7 +17,7 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
-@Table(name = "escrow")
+@Table(name = "escrow", schema = "payment")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Escrow {
 
