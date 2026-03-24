@@ -42,3 +42,8 @@ bin/
 .env
 
 docs/
+
+### setting ###
+**/src/main/resources/application-local.yml
+**/src/main/resources/application-dev.yml
+goods-api/src/main/resources/application-local.yml
