@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/payments/charges")
+@RequestMapping("/api/payments")
 public class PaymentController {
 
 	private final ChargeCreateUseCase chargeCreateUseCase;
@@ -32,7 +32,7 @@ public class PaymentController {
 		this.chargeConfirmUseCase = chargeConfirmUseCase;
 	}
 
-	@PostMapping
+	@PostMapping("/charge")
 	public ChargeCreateResponse createCharge(
 			@RequestHeader("X-Member-Id") UUID memberId,
 			@Valid @RequestBody ChargeCreateRequest request
