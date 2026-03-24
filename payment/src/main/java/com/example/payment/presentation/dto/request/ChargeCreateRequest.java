@@ -1,9 +1,11 @@
 package com.example.payment.presentation.dto.request;
 
-import com.example.payment.domain.enumtype.PgProvider;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 
 public record ChargeCreateRequest(
-        Long amount,
-        PgProvider pgProvider
+        @NotNull(message = "amount is required.")
+        @Positive(message = "amount must be positive.")
+        Long amount
 ) {
 }
