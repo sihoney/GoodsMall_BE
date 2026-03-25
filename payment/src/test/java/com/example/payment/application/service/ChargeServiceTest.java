@@ -7,13 +7,16 @@ import com.example.payment.application.dto.ChargeCreateResult;
 import com.example.payment.application.dto.ChargeRefundCommand;
 import com.example.payment.application.dto.ChargeRefundResult;
 import com.example.payment.domain.entity.Charge;
+import com.example.payment.domain.entity.ChargeRefund;
 import com.example.payment.domain.entity.Wallet;
+import com.example.payment.domain.enumtype.ChargeRefundStatus;
 import com.example.payment.domain.enumtype.ChargeStatus;
 import com.example.payment.domain.enumtype.PgProvider;
 import com.example.payment.domain.exception.ChargeNotFoundException;
 import com.example.payment.domain.exception.ChargeStateException;
 import com.example.payment.domain.exception.InvalidChargeRequestException;
 import com.example.payment.domain.exception.PaymentGatewayException;
+import com.example.payment.domain.repository.ChargeRefundRepository;
 import com.example.payment.domain.repository.ChargeRepository;
 import com.example.payment.domain.repository.WalletRepository;
 import com.example.payment.domain.repository.WalletTransactionRepository;
@@ -47,6 +50,9 @@ class ChargeServiceTest {
 
     @Mock
     private ChargeRepository chargeRepository;
+
+    @Mock
+    private ChargeRefundRepository chargeRefundRepository;
 
     @Mock
     private WalletRepository walletRepository;
@@ -466,19 +472,21 @@ class ChargeServiceTest {
                     new TossPaymentGateway.TossPaymentCancellation("paymentKey-001", 10_000L, refundedAt);
 
             given(chargeRepository.findByChargeId(chargeId)).willReturn(Optional.of(successCharge));
+            given(chargeRefundRepository.existsRefundedByChargeId(chargeId)).willReturn(false);
             given(walletRepository.findByWalletId(walletId)).willReturn(Optional.of(wallet));
             given(tossPaymentGateway.cancel("paymentKey-001", "user request", 10_000L)).willReturn(cancellation);
             given(timeProvider.now()).willReturn(now.plusMinutes(4));
-            given(identifierGenerator.generateUuid()).willReturn(UUID.randomUUID());
-            given(chargeRepository.save(any(Charge.class))).willAnswer(inv -> inv.getArgument(0));
+            given(identifierGenerator.generateUuid()).willReturn(UUID.randomUUID(), UUID.randomUUID());
+            given(chargeRefundRepository.save(any(ChargeRefund.class))).willAnswer(inv -> inv.getArgument(0));
             given(walletRepository.save(any(Wallet.class))).willAnswer(inv -> inv.getArgument(0));
             given(walletTransactionRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
 
             ChargeRefundResult result = chargeService.refundCharge(command);
 
-            assertThat(result.chargeStatus()).isEqualTo(ChargeStatus.REFUNDED);
+            assertThat(result.refundStatus()).isEqualTo(ChargeRefundStatus.REFUNDED);
             assertThat(result.walletBalance()).isEqualTo(5_000L);
             assertThat(result.refundedAmount()).isEqualTo(10_000L);
+            verify(chargeRefundRepository).save(any(ChargeRefund.class));
             verify(walletTransactionRepository).save(any());
         }
 
@@ -489,6 +497,7 @@ class ChargeServiceTest {
             wallet = Wallet.create(walletId, memberId, 9_000L, now, now);
 
             given(chargeRepository.findByChargeId(chargeId)).willReturn(Optional.of(successCharge));
+            given(chargeRefundRepository.existsRefundedByChargeId(chargeId)).willReturn(false);
             given(walletRepository.findByWalletId(walletId)).willReturn(Optional.of(wallet));
 
             assertThatThrownBy(() -> chargeService.refundCharge(command))
@@ -505,20 +514,37 @@ class ChargeServiceTest {
             ChargeRefundCommand command = new ChargeRefundCommand(chargeId, "user request");
 
             given(chargeRepository.findByChargeId(chargeId)).willReturn(Optional.of(successCharge));
+            given(chargeRefundRepository.existsRefundedByChargeId(chargeId)).willReturn(false);
             given(walletRepository.findByWalletId(walletId)).willReturn(Optional.of(wallet));
             given(tossPaymentGateway.cancel("paymentKey-001", "user request", 10_000L))
                     .willThrow(new PaymentGatewayException("cancel rejected"));
             given(timeProvider.now()).willReturn(now.plusMinutes(4), now.plusMinutes(5));
-            given(chargeRepository.save(any(Charge.class))).willAnswer(inv -> inv.getArgument(0));
+            given(identifierGenerator.generateUuid()).willReturn(UUID.randomUUID());
+            given(chargeRefundRepository.save(any(ChargeRefund.class))).willAnswer(inv -> inv.getArgument(0));
 
             assertThatThrownBy(() -> chargeService.refundCharge(command))
                     .isInstanceOf(PaymentGatewayException.class)
                     .hasMessageContaining("cancel rejected");
 
-            assertThat(successCharge.getChargeStatus()).isEqualTo(ChargeStatus.REFUND_FAILED);
-            assertThat(successCharge.getRefundFailureReason()).contains("cancel rejected");
+            assertThat(successCharge.getChargeStatus()).isEqualTo(ChargeStatus.SUCCESS);
+            verify(chargeRefundRepository).save(any(ChargeRefund.class));
             verify(walletRepository, never()).save(any());
             verify(walletTransactionRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("이미 환불 완료된 charge는 재환불할 수 없다")
+        void refundCharge_alreadyRefunded_throwsException() {
+            ChargeRefundCommand command = new ChargeRefundCommand(chargeId, "user request");
+
+            given(chargeRepository.findByChargeId(chargeId)).willReturn(Optional.of(successCharge));
+            given(chargeRefundRepository.existsRefundedByChargeId(chargeId)).willReturn(true);
+
+            assertThatThrownBy(() -> chargeService.refundCharge(command))
+                    .isInstanceOf(ChargeStateException.class)
+                    .hasMessageContaining("already been completed");
+
+            verify(tossPaymentGateway, never()).cancel(any(), any(), any());
         }
     }
 }

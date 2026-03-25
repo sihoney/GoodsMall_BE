@@ -1,12 +1,12 @@
 package com.example.payment.application.dto;
 
-import com.example.payment.domain.enumtype.ChargeStatus;
+import com.example.payment.domain.enumtype.ChargeRefundStatus;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 public record ChargeRefundResult(
         UUID chargeId,
-        ChargeStatus chargeStatus,
+        ChargeRefundStatus refundStatus,
         Long refundedAmount,
         Long walletBalance,
         LocalDateTime refundedAt

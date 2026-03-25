@@ -57,24 +57,6 @@ public class Charge {
     @Column(name = "approved_at")
     private LocalDateTime approvedAt;
 
-    @Column(name = "refunded_amount")
-    private Long refundedAmount;
-
-    @Column(name = "refund_reason", length = 255)
-    private String refundReason;
-
-    @Column(name = "refund_requested_at")
-    private LocalDateTime refundRequestedAt;
-
-    @Column(name = "refunded_at")
-    private LocalDateTime refundedAt;
-
-    @Column(name = "refund_failed_at")
-    private LocalDateTime refundFailedAt;
-
-    @Column(name = "refund_failure_reason", length = 500)
-    private String refundFailureReason;
-
     @Column(name = "failed_at")
     private LocalDateTime failedAt;
 
@@ -93,12 +75,6 @@ public class Charge {
             ChargeStatus chargeStatus,
             LocalDateTime requestedAt,
             LocalDateTime approvedAt,
-            Long refundedAmount,
-            String refundReason,
-            LocalDateTime refundRequestedAt,
-            LocalDateTime refundedAt,
-            LocalDateTime refundFailedAt,
-            String refundFailureReason,
             LocalDateTime failedAt,
             String failureReason
     ) {
@@ -113,12 +89,6 @@ public class Charge {
         this.chargeStatus = Objects.requireNonNull(chargeStatus);
         this.requestedAt = Objects.requireNonNull(requestedAt);
         this.approvedAt = approvedAt;
-        this.refundedAmount = refundedAmount;
-        this.refundReason = refundReason;
-        this.refundRequestedAt = refundRequestedAt;
-        this.refundedAt = refundedAt;
-        this.refundFailedAt = refundFailedAt;
-        this.refundFailureReason = refundFailureReason;
         this.failedAt = failedAt;
         this.failureReason = failureReason;
     }
@@ -145,12 +115,6 @@ public class Charge {
                 requestedAt,
                 null,
                 null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
                 null
         );
     }
@@ -162,12 +126,6 @@ public class Charge {
         this.approvedAt = Objects.requireNonNull(approvedAt);
         this.failedAt = null;
         this.failureReason = null;
-        this.refundedAmount = null;
-        this.refundReason = null;
-        this.refundRequestedAt = null;
-        this.refundedAt = null;
-        this.refundFailedAt = null;
-        this.refundFailureReason = null;
         this.chargeStatus = ChargeStatus.SUCCESS;
     }
 
@@ -176,27 +134,6 @@ public class Charge {
         this.failedAt = Objects.requireNonNull(failedAt);
         this.failureReason = Objects.requireNonNull(failureReason);
         this.chargeStatus = ChargeStatus.FAILED;
-    }
-
-    public void refund(Long refundedAmount, String refundReason, LocalDateTime refundRequestedAt, LocalDateTime refundedAt) {
-        validateSuccessStatus();
-        this.refundedAmount = Objects.requireNonNull(refundedAmount);
-        this.refundReason = Objects.requireNonNull(refundReason);
-        this.refundRequestedAt = Objects.requireNonNull(refundRequestedAt);
-        this.refundedAt = Objects.requireNonNull(refundedAt);
-        this.refundFailedAt = null;
-        this.refundFailureReason = null;
-        this.chargeStatus = ChargeStatus.REFUNDED;
-    }
-
-    public void refundFail(String refundReason, LocalDateTime refundRequestedAt, String refundFailureReason,
-                           LocalDateTime refundFailedAt) {
-        validateSuccessStatus();
-        this.refundReason = Objects.requireNonNull(refundReason);
-        this.refundRequestedAt = Objects.requireNonNull(refundRequestedAt);
-        this.refundFailureReason = Objects.requireNonNull(refundFailureReason);
-        this.refundFailedAt = Objects.requireNonNull(refundFailedAt);
-        this.chargeStatus = ChargeStatus.REFUND_FAILED;
     }
 
     public void cancel() {
@@ -215,12 +152,6 @@ public class Charge {
     private void validatePendingStatus() {
         if (!isPending()) {
             throw new IllegalStateException("Only pending charges can be changed.");
-        }
-    }
-
-    private void validateSuccessStatus() {
-        if (!isSuccess()) {
-            throw new IllegalStateException("Only successful charges can be refunded.");
         }
     }
 }

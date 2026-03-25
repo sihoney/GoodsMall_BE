@@ -190,34 +190,5 @@ class ChargeTest {
         }
     }
 
-    @Nested
-    @DisplayName("Charge.refund() 환불 테스트")
-    class Refund {
-
-        @Test
-        @DisplayName("SUCCESS 상태에서 refund() 호출 시 REFUNDED로 전이된다")
-        void refund_successToRefunded() {
-            Charge charge = createPendingCharge();
-            LocalDateTime approvedAt = requestedAt.plusMinutes(5);
-            LocalDateTime refundedAt = requestedAt.plusMinutes(10);
-            charge.approve(10_000L, "paymentKey-abc", approvedAt);
-
-            charge.refund(10_000L, "user request", refundedAt.minusMinutes(1), refundedAt);
-
-            assertThat(charge.getChargeStatus()).isEqualTo(ChargeStatus.REFUNDED);
-            assertThat(charge.getRefundedAmount()).isEqualTo(10_000L);
-            assertThat(charge.getRefundedAt()).isEqualTo(refundedAt);
-        }
-
-        @Test
-        @DisplayName("SUCCESS가 아니면 refund() 호출 시 예외가 발생한다")
-        void refund_nonSuccess_throwsException() {
-            Charge charge = createPendingCharge();
-
-            assertThatThrownBy(() -> charge.refund(10_000L, "user request", requestedAt, requestedAt.plusMinutes(1)))
-                    .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("Only successful charges can be refunded.");
-        }
-    }
 }
 

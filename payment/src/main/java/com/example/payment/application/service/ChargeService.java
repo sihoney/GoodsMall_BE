@@ -10,6 +10,7 @@ import com.example.payment.application.usecase.ChargeConfirmUseCase;
 import com.example.payment.application.usecase.ChargeCreateUseCase;
 import com.example.payment.application.usecase.ChargeRefundUseCase;
 import com.example.payment.domain.entity.Charge;
+import com.example.payment.domain.entity.ChargeRefund;
 import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.entity.WalletTransaction;
 import com.example.payment.domain.exception.ChargeNotFoundException;
@@ -17,6 +18,7 @@ import com.example.payment.domain.exception.ChargeStateException;
 import com.example.payment.domain.exception.InvalidChargeRequestException;
 import com.example.payment.domain.exception.PaymentGatewayException;
 import com.example.payment.domain.exception.WalletNotFoundException;
+import com.example.payment.domain.repository.ChargeRefundRepository;
 import com.example.payment.domain.repository.ChargeRepository;
 import com.example.payment.domain.repository.WalletRepository;
 import com.example.payment.domain.repository.WalletTransactionRepository;
@@ -34,6 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ChargeService implements ChargeCreateUseCase, ChargeConfirmUseCase, ChargeRefundUseCase {
 
     private final ChargeRepository chargeRepository;
+    private final ChargeRefundRepository chargeRefundRepository;
     private final WalletRepository walletRepository;
     private final WalletTransactionRepository walletTransactionRepository;
     private final TossPaymentGateway tossPaymentGateway;
@@ -42,6 +45,7 @@ public class ChargeService implements ChargeCreateUseCase, ChargeConfirmUseCase,
 
     public ChargeService(
             ChargeRepository chargeRepository,
+            ChargeRefundRepository chargeRefundRepository,
             WalletRepository walletRepository,
             WalletTransactionRepository walletTransactionRepository,
             TossPaymentGateway tossPaymentGateway,
@@ -49,6 +53,7 @@ public class ChargeService implements ChargeCreateUseCase, ChargeConfirmUseCase,
             TimeProvider timeProvider
     ) {
         this.chargeRepository = chargeRepository;
+        this.chargeRefundRepository = chargeRefundRepository;
         this.walletRepository = walletRepository;
         this.walletTransactionRepository = walletTransactionRepository;
         this.tossPaymentGateway = tossPaymentGateway;
@@ -164,6 +169,9 @@ public class ChargeService implements ChargeCreateUseCase, ChargeConfirmUseCase,
         if (!charge.isSuccess()) {
             throw new ChargeStateException("Charge is not refundable.");
         }
+        if (chargeRefundRepository.existsRefundedByChargeId(charge.getChargeId())) {
+            throw new ChargeStateException("Charge refund has already been completed.");
+        }
         if (charge.getApprovedAmount() == null || charge.getPgPaymentKey() == null) {
             throw new ChargeStateException("Charge refund information is incomplete.");
         }
@@ -201,23 +209,25 @@ public class ChargeService implements ChargeCreateUseCase, ChargeConfirmUseCase,
                 cancellation.canceledAt()
         );
 
-        charge.refund(
+        ChargeRefund chargeRefund = ChargeRefund.refunded(
+                identifierGenerator.generateUuid(),
+                charge.getChargeId(),
                 cancellation.canceledAmount(),
                 command.refundReason(),
                 refundRequestedAt,
                 cancellation.canceledAt()
         );
 
-        chargeRepository.save(charge);
+        chargeRefundRepository.save(chargeRefund);
         walletRepository.save(wallet);
         walletTransactionRepository.save(walletTransaction);
 
         return new ChargeRefundResult(
                 charge.getChargeId(),
-                charge.getChargeStatus(),
-                charge.getRefundedAmount(),
+                chargeRefund.getRefundStatus(),
+                chargeRefund.getRefundAmount(),
                 wallet.getBalance(),
-                charge.getRefundedAt()
+                chargeRefund.getRefundedAt()
         );
     }
 
@@ -278,13 +288,17 @@ public class ChargeService implements ChargeCreateUseCase, ChargeConfirmUseCase,
     }
 
     private void failRefund(Charge charge, String refundReason, LocalDateTime refundRequestedAt, String failureReason) {
-        charge.refundFail(
+        LocalDateTime failedAt = timeProvider.now();
+        ChargeRefund chargeRefund = ChargeRefund.failed(
+                identifierGenerator.generateUuid(),
+                charge.getChargeId(),
+                charge.getApprovedAmount(),
                 refundReason,
                 refundRequestedAt,
-                resolveFailureReason(failureReason),
-                timeProvider.now()
+                failedAt,
+                resolveFailureReason(failureReason)
         );
-        chargeRepository.save(charge);
+        chargeRefundRepository.save(chargeRefund);
     }
 
     private String resolveFailureReason(String failureReason) {
