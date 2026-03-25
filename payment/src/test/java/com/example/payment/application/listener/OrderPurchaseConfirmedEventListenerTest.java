@@ -1,0 +1,87 @@
+package com.example.payment.application.listener;
+
+import com.example.payment.application.dto.EscrowReleaseCommand;
+import com.example.payment.application.event.OrderPurchaseConfirmedEvent;
+import com.example.payment.application.usecase.EscrowReleaseUseCase;
+import com.example.payment.domain.enumtype.ConfirmationType;
+import com.example.payment.domain.exception.InvalidOrderPaymentRequestException;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+
+@ExtendWith(MockitoExtension.class)
+@DisplayName("OrderPurchaseConfirmedEventListener 테스트")
+class OrderPurchaseConfirmedEventListenerTest {
+
+    @Mock
+    private EscrowReleaseUseCase escrowReleaseUseCase;
+
+    @InjectMocks
+    private OrderPurchaseConfirmedEventListener listener;
+
+    @Test
+    @DisplayName("MANUAL 구매확정 이벤트 수신 시 escrow 해제 유스케이스를 호출한다")
+    void handle_manualEvent_callsEscrowReleaseUseCase() {
+        UUID orderId = UUID.randomUUID();
+        UUID sellerMemberId = UUID.randomUUID();
+        OrderPurchaseConfirmedEvent event = new OrderPurchaseConfirmedEvent(
+                orderId,
+                sellerMemberId,
+                LocalDateTime.of(2024, 1, 3, 10, 0, 0),
+                ConfirmationType.MANUAL
+        );
+
+        listener.handle(event);
+
+        ArgumentCaptor<EscrowReleaseCommand> captor = ArgumentCaptor.forClass(EscrowReleaseCommand.class);
+        verify(escrowReleaseUseCase).releaseEscrow(captor.capture());
+        assertThat(captor.getValue().orderId()).isEqualTo(orderId);
+        assertThat(captor.getValue().sellerMemberId()).isEqualTo(sellerMemberId);
+    }
+
+    @Test
+    @DisplayName("AUTO 구매확정 이벤트는 현재 listener에서 처리하지 않는다")
+    void handle_autoEvent_throwsException() {
+        OrderPurchaseConfirmedEvent event = new OrderPurchaseConfirmedEvent(
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                LocalDateTime.of(2024, 1, 3, 10, 0, 0),
+                ConfirmationType.AUTO
+        );
+
+        assertThatThrownBy(() -> listener.handle(event))
+                .isInstanceOf(InvalidOrderPaymentRequestException.class)
+                .hasMessageContaining("Only MANUAL confirmation event is allowed.");
+
+        verifyNoInteractions(escrowReleaseUseCase);
+    }
+
+    @Test
+    @DisplayName("orderId가 없으면 예외가 발생한다")
+    void handle_nullOrderId_throwsException() {
+        OrderPurchaseConfirmedEvent event = new OrderPurchaseConfirmedEvent(
+                null,
+                UUID.randomUUID(),
+                LocalDateTime.of(2024, 1, 3, 10, 0, 0),
+                ConfirmationType.MANUAL
+        );
+
+        assertThatThrownBy(() -> listener.handle(event))
+                .isInstanceOf(InvalidOrderPaymentRequestException.class)
+                .hasMessageContaining("orderId is required.");
+
+        verifyNoInteractions(escrowReleaseUseCase);
+    }
+}
