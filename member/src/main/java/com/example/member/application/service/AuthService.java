@@ -38,9 +38,11 @@ public class AuthService {
             throw new InvalidLoginException();
         }
 
-        // 토큰 발급 및 저장
+        // 토큰 발급 
         String accessToken = jwtTokenProvider.createAccessToken(member);
         String refreshToken = jwtTokenProvider.createRefreshToken(member);
+
+        // Redis에 리프레시 토큰 저장 (memberId를 키로 사용)
         refreshTokenStore.save(
                 member.getMemberId(),
                 refreshToken,
@@ -83,6 +85,7 @@ public class AuthService {
     }
 
     public void logout(UUID memberId) {
+        // Redis에서 리프레시 토큰 삭제
         refreshTokenStore.delete(memberId);
     }
 
