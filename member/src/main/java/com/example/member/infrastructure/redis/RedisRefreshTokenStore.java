@@ -17,7 +17,11 @@ public class RedisRefreshTokenStore implements RefreshTokenStore {
 
     @Override
     public void save(UUID memberId, String refreshToken, Duration ttl) {
-        stringRedisTemplate.opsForValue().set(buildKey(memberId), refreshToken, ttl);
+        stringRedisTemplate.opsForValue().set(
+            buildKey(memberId),     // refresh:123e4567-e89b-12d3-a456-426614174000
+            refreshToken,           // <refresh_token>
+            ttl                     // 14d
+        );
     }
 
     @Override
@@ -31,6 +35,6 @@ public class RedisRefreshTokenStore implements RefreshTokenStore {
     }
 
     private String buildKey(UUID memberId) {
-        return KEY_PREFIX + memberId;
+        return KEY_PREFIX + memberId; // refresh:123e4567-e89b-12d3-a456-426614174000
     }
 }

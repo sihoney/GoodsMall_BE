@@ -26,17 +26,19 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenStore refreshTokenStore;
 
-    // todo: 로그인 검증(access/refresh token 발급)
     public LoginResponse login(LoginRequest request) {
         validateLoginRequest(request);
 
+        // 이메일로 회원 조회
         Member member = memberRepository.findByEmail(normalizeRequired(request.email(), "email"))
                 .orElseThrow(InvalidLoginException::new);
 
+        // 비밀번호 검증
         if (!passwordEncoder.matches(normalizeRequired(request.password(), "password"), member.getPassword())) {
             throw new InvalidLoginException();
         }
 
+        // 토큰 발급 및 저장
         String accessToken = jwtTokenProvider.createAccessToken(member);
         String refreshToken = jwtTokenProvider.createRefreshToken(member);
         refreshTokenStore.save(
