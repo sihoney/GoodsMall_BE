@@ -53,17 +53,20 @@ public class Product {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    /**
+     * 전체 필드 생성자 (테스트 또는 특수 상황용)
+     */
     private Product(
-            UUID productId,
-            UUID sellerId,
-            String title,
-            String description,
-            BigDecimal price,
-            Integer count,
-            ProductStatus status,
-            Integer viewCount,
-            LocalDateTime createdAt,
-            LocalDateTime updatedAt
+        UUID productId,
+        UUID sellerId,
+        String title,
+        String description,
+        BigDecimal price,
+        Integer count,
+        ProductStatus status,
+        Integer viewCount,
+        LocalDateTime createdAt,
+        LocalDateTime updatedAt
     ) {
         this.productId = Objects.requireNonNull(productId);
         this.sellerId = Objects.requireNonNull(sellerId);
@@ -77,35 +80,48 @@ public class Product {
         this.updatedAt = Objects.requireNonNull(updatedAt);
     }
 
-    public static Product create(
-            UUID productId,
-            UUID sellerId,
-            String title,
-            String description,
-            BigDecimal price,
-            Integer count,
-            ProductStatus status,
-            Integer viewCount,
-            LocalDateTime createdAt,
-            LocalDateTime updatedAt
+    /**
+     * 신규 등록용 생성자 (create 메서드용)
+     * productId, status, viewCount, createdAt, updatedAt 자동 생성
+     */
+    private Product(
+        String sellerId,
+        String title,
+        String description,
+        BigDecimal price,
+        Integer count
     ) {
-        return new Product(productId, sellerId, title, description, price, count, status, viewCount, createdAt, updatedAt);
-    }
-
-    public void changeStatus(ProductStatus status, LocalDateTime updatedAt) {
-        this.status = Objects.requireNonNull(status);
-        this.updatedAt = Objects.requireNonNull(updatedAt);
-    }
-
-    public void increaseViewCount() {
-        this.viewCount = this.viewCount + 1;
-    }
-
-    public void updateDetails(String title, String description, BigDecimal price, Integer count, LocalDateTime updatedAt) {
+        LocalDateTime now = LocalDateTime.now();
+        this.productId = UUID.randomUUID();
+        this.sellerId = UUID.fromString(sellerId);
         this.title = Objects.requireNonNull(title);
         this.description = description;
         this.price = Objects.requireNonNull(price);
         this.count = count;
-        this.updatedAt = Objects.requireNonNull(updatedAt);
+        this.status = ProductStatus.ACTIVE;
+        this.viewCount = 0;
+        this.createdAt = now;
+        this.updatedAt = now;
+    }
+
+    /**
+     * 상품 생성 (신규 등록용)
+     * productId, status(ACTIVE), viewCount, createdAt, updatedAt는 자동 생성
+     *
+     * @param sellerId    판매자 ID (String)
+     * @param title       상품명
+     * @param description 상품 설명
+     * @param price       가격
+     * @param count       재고
+     * @return 생성된 Product
+     */
+    public static Product create(
+        String sellerId,
+        String title,
+        String description,
+        BigDecimal price,
+        Integer count
+    ) {
+        return new Product(sellerId, title, description, price, count);
     }
 }
