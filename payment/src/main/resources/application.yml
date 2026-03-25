@@ -1,0 +1,16 @@
+spring:
+  config:
+    import: optional:file:.env[.properties]
+  jpa:
+    properties:
+      hibernate:
+        default_schema: payment
+
+toss:
+  payments:
+    base-url: ${TOSS_PAYMENTS_BASE_URL:https://api.tosspayments.com}
+    client-key: ${TOSS_PAYMENTS_CLIENT_KEY:}
+    secret-key: ${TOSS_PAYMENTS_SECRET_KEY:}
+    success-url: ${TOSS_PAYMENTS_SUCCESS_URL:http://localhost:3000/payments/toss/success}
+    fail-url: ${TOSS_PAYMENTS_FAIL_URL:http://localhost:3000/payments/toss/fail}
+    widget-enabled: ${TOSS_PAYMENTS_WIDGET_ENABLED:true}
