@@ -7,7 +7,6 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
@@ -29,7 +28,7 @@ public class Escrow {
     private UUID orderId;
 
     @Column(name = "amount", nullable = false)
-    private BigDecimal amount;
+    private Long amount;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "escrow_status", nullable = false)
@@ -53,7 +52,7 @@ public class Escrow {
     private Escrow(
             UUID escrowId,
             UUID orderId,
-            BigDecimal amount,
+            Long amount,
             EscrowStatus escrowStatus,
             LocalDateTime refundedAt,
             LocalDateTime releasedAt,
@@ -72,10 +71,32 @@ public class Escrow {
         this.updatedAt = updatedAt;
     }
 
+    public static Escrow createHeld(
+            UUID escrowId,
+            UUID orderId,
+            Long amount,
+            LocalDateTime releaseAt,
+            LocalDateTime createdAt
+    ) {
+        LocalDateTime now = Objects.requireNonNull(createdAt);
+
+        return new Escrow(
+                escrowId,
+                orderId,
+                validateAmount(amount),
+                EscrowStatus.HELD,
+                null,
+                null,
+                Objects.requireNonNull(releaseAt),
+                now,
+                now
+        );
+    }
+
     public static Escrow create(
             UUID escrowId,
             UUID orderId,
-            BigDecimal amount,
+            Long amount,
             EscrowStatus escrowStatus,
             LocalDateTime refundedAt,
             LocalDateTime releasedAt,
@@ -86,7 +107,7 @@ public class Escrow {
         return new Escrow(
                 escrowId,
                 orderId,
-                amount,
+                validateAmount(amount),
                 escrowStatus,
                 refundedAt,
                 releasedAt,
@@ -97,14 +118,42 @@ public class Escrow {
     }
 
     public void release(LocalDateTime releasedAt, LocalDateTime updatedAt) {
+        validateHeldStatus();
         this.escrowStatus = EscrowStatus.RELEASED;
         this.releasedAt = Objects.requireNonNull(releasedAt);
         this.updatedAt = Objects.requireNonNull(updatedAt);
     }
 
     public void refund(LocalDateTime refundedAt, LocalDateTime updatedAt) {
+        validateHeldStatus();
         this.escrowStatus = EscrowStatus.REFUNDED;
         this.refundedAt = Objects.requireNonNull(refundedAt);
         this.updatedAt = Objects.requireNonNull(updatedAt);
+    }
+
+    public boolean isHeld() {
+        return escrowStatus == EscrowStatus.HELD;
+    }
+
+    public boolean isReleased() {
+        return escrowStatus == EscrowStatus.RELEASED;
+    }
+
+    public boolean isRefunded() {
+        return escrowStatus == EscrowStatus.REFUNDED;
+    }
+
+    private void validateHeldStatus() {
+        if (!isHeld()) {
+            throw new IllegalStateException("Only held escrow can be changed.");
+        }
+    }
+
+    private static Long validateAmount(Long amount) {
+        Objects.requireNonNull(amount);
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Escrow amount must be positive.");
+        }
+        return amount;
     }
 }

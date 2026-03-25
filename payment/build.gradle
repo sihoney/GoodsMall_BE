@@ -36,6 +36,8 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok'
     // Test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    // DB
+    runtimeOnly 'org.postgresql:postgresql'
 }
 
 tasks.named('test') {
