@@ -48,6 +48,15 @@ class EscrowTest {
         }
 
         @Test
+        @DisplayName("createHeld() 생성 시 releaseAt은 null일 수 있다")
+        void createHeld_releaseAtCanBeNull() {
+            Escrow escrow = Escrow.createHeld(escrowId, orderId, 12_000L, null, createdAt);
+
+            assertThat(escrow.getReleaseAt()).isNull();
+            assertThat(escrow.getEscrowStatus()).isEqualTo(EscrowStatus.HELD);
+        }
+
+        @Test
         @DisplayName("0원으로 createHeld() 생성 시 예외가 발생한다")
         void createHeld_zeroAmount_throwsException() {
             assertThatThrownBy(() -> Escrow.createHeld(escrowId, orderId, 0L, releaseAt, createdAt))
@@ -115,6 +124,23 @@ class EscrowTest {
             assertThatThrownBy(() -> escrow.refund(createdAt.plusDays(2), createdAt.plusDays(2)))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("Only held escrow can be changed.");
+        }
+    }
+
+    @Nested
+    @DisplayName("Escrow.scheduleReleaseAt() 자동구매확정 기준 시각 설정 테스트")
+    class ScheduleReleaseAt {
+
+        @Test
+        @DisplayName("HELD 상태에서는 releaseAt을 설정할 수 있다")
+        void scheduleReleaseAt_heldEscrow_updatesReleaseAt() {
+            Escrow escrow = Escrow.createHeld(escrowId, orderId, 12_000L, null, createdAt);
+            LocalDateTime scheduledAt = createdAt.plusDays(7);
+
+            escrow.scheduleReleaseAt(scheduledAt, createdAt.plusDays(1));
+
+            assertThat(escrow.getReleaseAt()).isEqualTo(scheduledAt);
+            assertThat(escrow.getUpdatedAt()).isEqualTo(createdAt.plusDays(1));
         }
     }
 }

@@ -87,7 +87,7 @@ public class Escrow {
                 EscrowStatus.HELD,
                 null,
                 null,
-                Objects.requireNonNull(releaseAt),
+                releaseAt,
                 now,
                 now
         );
@@ -141,6 +141,14 @@ public class Escrow {
 
     public boolean isRefunded() {
         return escrowStatus == EscrowStatus.REFUNDED;
+    }
+
+    public void scheduleReleaseAt(LocalDateTime releaseAt, LocalDateTime updatedAt) {
+        if (!isHeld()) {
+            throw new IllegalStateException("Only held escrow can be scheduled.");
+        }
+        this.releaseAt = Objects.requireNonNull(releaseAt);
+        this.updatedAt = Objects.requireNonNull(updatedAt);
     }
 
     private void validateHeldStatus() {
