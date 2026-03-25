@@ -27,6 +27,9 @@ public class Escrow {
     @Column(name = "order_id", nullable = false)
     private UUID orderId;
 
+    @Column(name = "seller_member_id", nullable = false)
+    private UUID sellerMemberId;
+
     @Column(name = "amount", nullable = false)
     private Long amount;
 
@@ -52,6 +55,7 @@ public class Escrow {
     private Escrow(
             UUID escrowId,
             UUID orderId,
+            UUID sellerMemberId,
             Long amount,
             EscrowStatus escrowStatus,
             LocalDateTime refundedAt,
@@ -62,6 +66,7 @@ public class Escrow {
     ) {
         this.escrowId = Objects.requireNonNull(escrowId);
         this.orderId = Objects.requireNonNull(orderId);
+        this.sellerMemberId = Objects.requireNonNull(sellerMemberId);
         this.amount = Objects.requireNonNull(amount);
         this.escrowStatus = Objects.requireNonNull(escrowStatus);
         this.refundedAt = refundedAt;
@@ -74,6 +79,7 @@ public class Escrow {
     public static Escrow createHeld(
             UUID escrowId,
             UUID orderId,
+            UUID sellerMemberId,
             Long amount,
             LocalDateTime releaseAt,
             LocalDateTime createdAt
@@ -83,6 +89,7 @@ public class Escrow {
         return new Escrow(
                 escrowId,
                 orderId,
+                sellerMemberId,
                 validateAmount(amount),
                 EscrowStatus.HELD,
                 null,
@@ -96,6 +103,7 @@ public class Escrow {
     public static Escrow create(
             UUID escrowId,
             UUID orderId,
+            UUID sellerMemberId,
             Long amount,
             EscrowStatus escrowStatus,
             LocalDateTime refundedAt,
@@ -107,6 +115,7 @@ public class Escrow {
         return new Escrow(
                 escrowId,
                 orderId,
+                sellerMemberId,
                 validateAmount(amount),
                 escrowStatus,
                 refundedAt,

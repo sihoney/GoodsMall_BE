@@ -81,6 +81,7 @@ public class PaymentController {
 		OrderPaymentCommand command = new OrderPaymentCommand(
 				request.orderId(),
 				request.buyerMemberId(),
+				request.sellerMemberId(),
 				request.orderAmount(),
 				request.sellerReceivableAmount(),
 				request.releaseAt()

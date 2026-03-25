@@ -51,6 +51,7 @@ class OrderPurchaseConfirmedEventListenerTest {
         verify(escrowReleaseUseCase).releaseEscrow(captor.capture());
         assertThat(captor.getValue().orderId()).isEqualTo(orderId);
         assertThat(captor.getValue().sellerMemberId()).isEqualTo(sellerMemberId);
+        assertThat(captor.getValue().confirmationType()).isEqualTo(ConfirmationType.MANUAL);
     }
 
     @Test
@@ -100,10 +101,10 @@ class OrderPurchaseConfirmedEventListenerTest {
         );
 
         doThrow(new EscrowAlreadyReleasedException()).when(escrowReleaseUseCase)
-                .releaseEscrow(new EscrowReleaseCommand(orderId, sellerMemberId));
+                .releaseEscrow(new EscrowReleaseCommand(orderId, sellerMemberId, ConfirmationType.MANUAL));
 
         listener.handle(event);
 
-        verify(escrowReleaseUseCase).releaseEscrow(new EscrowReleaseCommand(orderId, sellerMemberId));
+        verify(escrowReleaseUseCase).releaseEscrow(new EscrowReleaseCommand(orderId, sellerMemberId, ConfirmationType.MANUAL));
     }
 }

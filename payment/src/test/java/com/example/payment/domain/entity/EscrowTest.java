@@ -17,6 +17,7 @@ class EscrowTest {
 
     private UUID escrowId;
     private UUID orderId;
+    private UUID sellerMemberId;
     private LocalDateTime createdAt;
     private LocalDateTime releaseAt;
 
@@ -24,6 +25,7 @@ class EscrowTest {
     void setUp() {
         escrowId = UUID.randomUUID();
         orderId = UUID.randomUUID();
+        sellerMemberId = UUID.randomUUID();
         createdAt = LocalDateTime.of(2024, 1, 1, 10, 0, 0);
         releaseAt = createdAt.plusDays(7);
     }
@@ -35,10 +37,11 @@ class EscrowTest {
         @Test
         @DisplayName("createHeld() 생성 시 HELD 상태와 기본 필드가 올바르게 저장된다")
         void createHeld_storesFieldsCorrectly() {
-            Escrow escrow = Escrow.createHeld(escrowId, orderId, 12_000L, releaseAt, createdAt);
+            Escrow escrow = Escrow.createHeld(escrowId, orderId, sellerMemberId, 12_000L, releaseAt, createdAt);
 
             assertThat(escrow.getEscrowId()).isEqualTo(escrowId);
             assertThat(escrow.getOrderId()).isEqualTo(orderId);
+            assertThat(escrow.getSellerMemberId()).isEqualTo(sellerMemberId);
             assertThat(escrow.getAmount()).isEqualTo(12_000L);
             assertThat(escrow.getEscrowStatus()).isEqualTo(EscrowStatus.HELD);
             assertThat(escrow.getReleaseAt()).isEqualTo(releaseAt);
@@ -50,7 +53,7 @@ class EscrowTest {
         @Test
         @DisplayName("createHeld() 생성 시 releaseAt은 null일 수 있다")
         void createHeld_releaseAtCanBeNull() {
-            Escrow escrow = Escrow.createHeld(escrowId, orderId, 12_000L, null, createdAt);
+            Escrow escrow = Escrow.createHeld(escrowId, orderId, sellerMemberId, 12_000L, null, createdAt);
 
             assertThat(escrow.getReleaseAt()).isNull();
             assertThat(escrow.getEscrowStatus()).isEqualTo(EscrowStatus.HELD);
@@ -59,7 +62,7 @@ class EscrowTest {
         @Test
         @DisplayName("0원으로 createHeld() 생성 시 예외가 발생한다")
         void createHeld_zeroAmount_throwsException() {
-            assertThatThrownBy(() -> Escrow.createHeld(escrowId, orderId, 0L, releaseAt, createdAt))
+            assertThatThrownBy(() -> Escrow.createHeld(escrowId, orderId, sellerMemberId, 0L, releaseAt, createdAt))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("Escrow amount must be positive.");
         }
@@ -72,7 +75,7 @@ class EscrowTest {
         @Test
         @DisplayName("HELD 상태에서는 RELEASED로 전이된다")
         void release_heldEscrow_changesStatus() {
-            Escrow escrow = Escrow.createHeld(escrowId, orderId, 12_000L, releaseAt, createdAt);
+            Escrow escrow = Escrow.createHeld(escrowId, orderId, sellerMemberId, 12_000L, releaseAt, createdAt);
             LocalDateTime releasedAt = createdAt.plusDays(3);
             LocalDateTime updatedAt = releasedAt;
 
@@ -87,7 +90,7 @@ class EscrowTest {
         @Test
         @DisplayName("이미 RELEASED 상태면 다시 release() 할 수 없다")
         void release_releasedEscrow_throwsException() {
-            Escrow escrow = Escrow.createHeld(escrowId, orderId, 12_000L, releaseAt, createdAt);
+            Escrow escrow = Escrow.createHeld(escrowId, orderId, sellerMemberId, 12_000L, releaseAt, createdAt);
             escrow.release(createdAt.plusDays(3), createdAt.plusDays(3));
 
             assertThatThrownBy(() -> escrow.release(createdAt.plusDays(4), createdAt.plusDays(4)))
@@ -103,7 +106,7 @@ class EscrowTest {
         @Test
         @DisplayName("HELD 상태에서는 REFUNDED로 전이된다")
         void refund_heldEscrow_changesStatus() {
-            Escrow escrow = Escrow.createHeld(escrowId, orderId, 12_000L, releaseAt, createdAt);
+            Escrow escrow = Escrow.createHeld(escrowId, orderId, sellerMemberId, 12_000L, releaseAt, createdAt);
             LocalDateTime refundedAt = createdAt.plusDays(1);
             LocalDateTime updatedAt = refundedAt;
 
@@ -118,7 +121,7 @@ class EscrowTest {
         @Test
         @DisplayName("이미 REFUNDED 상태면 다시 refund() 할 수 없다")
         void refund_refundedEscrow_throwsException() {
-            Escrow escrow = Escrow.createHeld(escrowId, orderId, 12_000L, releaseAt, createdAt);
+            Escrow escrow = Escrow.createHeld(escrowId, orderId, sellerMemberId, 12_000L, releaseAt, createdAt);
             escrow.refund(createdAt.plusDays(1), createdAt.plusDays(1));
 
             assertThatThrownBy(() -> escrow.refund(createdAt.plusDays(2), createdAt.plusDays(2)))
@@ -134,7 +137,7 @@ class EscrowTest {
         @Test
         @DisplayName("HELD 상태에서는 releaseAt을 설정할 수 있다")
         void scheduleReleaseAt_heldEscrow_updatesReleaseAt() {
-            Escrow escrow = Escrow.createHeld(escrowId, orderId, 12_000L, null, createdAt);
+            Escrow escrow = Escrow.createHeld(escrowId, orderId, sellerMemberId, 12_000L, null, createdAt);
             LocalDateTime scheduledAt = createdAt.plusDays(7);
 
             escrow.scheduleReleaseAt(scheduledAt, createdAt.plusDays(1));

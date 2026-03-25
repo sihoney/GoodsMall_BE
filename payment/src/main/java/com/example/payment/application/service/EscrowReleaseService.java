@@ -94,7 +94,7 @@ public class EscrowReleaseService implements EscrowReleaseUseCase {
                 sellerWallet.getWalletId(),
                 escrow.getAmount(),
                 escrow.getReleasedAt(),
-                ConfirmationType.MANUAL
+                command.confirmationType()
         ));
 
         return new EscrowReleaseResult(
@@ -113,6 +113,9 @@ public class EscrowReleaseService implements EscrowReleaseUseCase {
         }
         if (command.sellerMemberId() == null) {
             throw new InvalidOrderPaymentRequestException("sellerMemberId is required.");
+        }
+        if (command.confirmationType() == null) {
+            throw new InvalidOrderPaymentRequestException("confirmationType is required.");
         }
     }
 }

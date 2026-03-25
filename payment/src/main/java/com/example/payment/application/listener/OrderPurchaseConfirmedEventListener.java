@@ -24,10 +24,11 @@ public class OrderPurchaseConfirmedEventListener {
 
         try {
             escrowReleaseUseCase.releaseEscrow(
-                    new EscrowReleaseCommand(
-                            event.orderId(),
-                            event.sellerMemberId()
-                    )
+                new EscrowReleaseCommand(
+                        event.orderId(),
+                        event.sellerMemberId(),
+                        event.confirmationType()
+                )
             );
         } catch (EscrowAlreadyReleasedException e) {
             // Duplicate manual confirmation event should not release funds twice.

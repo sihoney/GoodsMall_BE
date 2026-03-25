@@ -6,6 +6,7 @@ import java.util.UUID;
 public record OrderPaymentCommand(
         UUID orderId,
         UUID buyerMemberId,
+        UUID sellerMemberId,
         Long orderAmount,
         Long sellerReceivableAmount,
         LocalDateTime releaseAt

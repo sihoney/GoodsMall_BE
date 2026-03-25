@@ -4,6 +4,7 @@ import com.example.payment.application.dto.EscrowReleaseCommand;
 import com.example.payment.application.dto.EscrowReleaseResult;
 import com.example.payment.domain.entity.Escrow;
 import com.example.payment.domain.entity.Wallet;
+import com.example.payment.domain.enumtype.ConfirmationType;
 import com.example.payment.domain.enumtype.EscrowStatus;
 import com.example.payment.domain.exception.EscrowAlreadyRefundedException;
 import com.example.payment.domain.exception.EscrowAlreadyReleasedException;
@@ -83,8 +84,8 @@ class EscrowReleaseServiceTest {
         @Test
         @DisplayName("정상 해제 시 판매자 지갑이 증가하고 escrow가 RELEASED가 된다")
         void releaseEscrow_success_releasesEscrowAndIncreasesSellerBalance() {
-            EscrowReleaseCommand command = new EscrowReleaseCommand(orderId, sellerMemberId);
-            Escrow escrow = Escrow.createHeld(escrowId, orderId, 10_000L, now.plusDays(7), now.minusDays(1));
+            EscrowReleaseCommand command = new EscrowReleaseCommand(orderId, sellerMemberId, ConfirmationType.MANUAL);
+            Escrow escrow = Escrow.createHeld(escrowId, orderId, sellerMemberId, 10_000L, now.plusDays(7), now.minusDays(1));
             Wallet sellerWallet = Wallet.create(sellerWalletId, sellerMemberId, 5_000L, now, now.minusDays(2));
 
             given(escrowRepository.findByOrderId(orderId)).willReturn(Optional.of(escrow));
@@ -111,7 +112,7 @@ class EscrowReleaseServiceTest {
         @Test
         @DisplayName("에스크로가 없으면 EscrowNotFoundException이 발생한다")
         void releaseEscrow_escrowNotFound_throwsException() {
-            EscrowReleaseCommand command = new EscrowReleaseCommand(orderId, sellerMemberId);
+            EscrowReleaseCommand command = new EscrowReleaseCommand(orderId, sellerMemberId, ConfirmationType.MANUAL);
 
             given(escrowRepository.findByOrderId(orderId)).willReturn(Optional.empty());
 
@@ -122,8 +123,8 @@ class EscrowReleaseServiceTest {
         @Test
         @DisplayName("이미 RELEASED 상태면 다시 해제할 수 없다")
         void releaseEscrow_alreadyReleased_throwsException() {
-            EscrowReleaseCommand command = new EscrowReleaseCommand(orderId, sellerMemberId);
-            Escrow escrow = Escrow.createHeld(escrowId, orderId, 10_000L, now.plusDays(7), now.minusDays(1));
+            EscrowReleaseCommand command = new EscrowReleaseCommand(orderId, sellerMemberId, ConfirmationType.MANUAL);
+            Escrow escrow = Escrow.createHeld(escrowId, orderId, sellerMemberId, 10_000L, now.plusDays(7), now.minusDays(1));
             escrow.release(now.minusHours(1), now.minusHours(1));
 
             given(escrowRepository.findByOrderId(orderId)).willReturn(Optional.of(escrow));
@@ -140,8 +141,8 @@ class EscrowReleaseServiceTest {
         @Test
         @DisplayName("이미 REFUNDED 상태면 해제할 수 없다")
         void releaseEscrow_refunded_throwsException() {
-            EscrowReleaseCommand command = new EscrowReleaseCommand(orderId, sellerMemberId);
-            Escrow escrow = Escrow.createHeld(escrowId, orderId, 10_000L, now.plusDays(7), now.minusDays(1));
+            EscrowReleaseCommand command = new EscrowReleaseCommand(orderId, sellerMemberId, ConfirmationType.MANUAL);
+            Escrow escrow = Escrow.createHeld(escrowId, orderId, sellerMemberId, 10_000L, now.plusDays(7), now.minusDays(1));
             escrow.refund(now.minusHours(1), now.minusHours(1));
 
             given(escrowRepository.findByOrderId(orderId)).willReturn(Optional.of(escrow));
@@ -156,8 +157,8 @@ class EscrowReleaseServiceTest {
         @Test
         @DisplayName("판매자 지갑이 없으면 WalletNotFoundException이 발생한다")
         void releaseEscrow_sellerWalletNotFound_throwsException() {
-            EscrowReleaseCommand command = new EscrowReleaseCommand(orderId, sellerMemberId);
-            Escrow escrow = Escrow.createHeld(escrowId, orderId, 10_000L, now.plusDays(7), now.minusDays(1));
+            EscrowReleaseCommand command = new EscrowReleaseCommand(orderId, sellerMemberId, ConfirmationType.MANUAL);
+            Escrow escrow = Escrow.createHeld(escrowId, orderId, sellerMemberId, 10_000L, now.plusDays(7), now.minusDays(1));
 
             given(escrowRepository.findByOrderId(orderId)).willReturn(Optional.of(escrow));
             given(walletRepository.findByMemberId(sellerMemberId)).willReturn(Optional.empty());

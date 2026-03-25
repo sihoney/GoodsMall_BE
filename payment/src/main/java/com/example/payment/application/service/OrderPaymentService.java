@@ -67,6 +67,7 @@ public class OrderPaymentService implements OrderPaymentUseCase {
         Escrow escrow = Escrow.createHeld(
                 identifierGenerator.generateUuid(),
                 command.orderId(),
+                command.sellerMemberId(),
                 command.sellerReceivableAmount(),
                 command.releaseAt(),
                 now
@@ -93,6 +94,9 @@ public class OrderPaymentService implements OrderPaymentUseCase {
         }
         if (command.buyerMemberId() == null) {
             throw new InvalidOrderPaymentRequestException("buyerMemberId is required.");
+        }
+        if (command.sellerMemberId() == null) {
+            throw new InvalidOrderPaymentRequestException("sellerMemberId is required.");
         }
         if (command.orderAmount() == null || command.orderAmount() <= 0) {
             throw new InvalidOrderPaymentRequestException("orderAmount must be positive.");

@@ -55,6 +55,7 @@ class OrderPaymentServiceTest {
 
     private UUID orderId;
     private UUID buyerMemberId;
+    private UUID sellerMemberId;
     private UUID buyerWalletId;
     private UUID escrowId;
     private LocalDateTime now;
@@ -63,6 +64,7 @@ class OrderPaymentServiceTest {
     void setUp() {
         orderId = UUID.randomUUID();
         buyerMemberId = UUID.randomUUID();
+        sellerMemberId = UUID.randomUUID();
         buyerWalletId = UUID.randomUUID();
         escrowId = UUID.randomUUID();
         now = LocalDateTime.of(2024, 1, 1, 12, 0, 0);
@@ -78,6 +80,7 @@ class OrderPaymentServiceTest {
             OrderPaymentCommand command = new OrderPaymentCommand(
                     orderId,
                     buyerMemberId,
+                    sellerMemberId,
                     12_000L,
                     10_000L,
                     null
@@ -110,11 +113,12 @@ class OrderPaymentServiceTest {
             OrderPaymentCommand command = new OrderPaymentCommand(
                     orderId,
                     buyerMemberId,
+                    sellerMemberId,
                     12_000L,
                     10_000L,
                     null
             );
-            Escrow existingEscrow = Escrow.createHeld(escrowId, orderId, 10_000L, null, now);
+            Escrow existingEscrow = Escrow.createHeld(escrowId, orderId, sellerMemberId, 10_000L, null, now);
 
             given(escrowRepository.findByOrderId(orderId)).willReturn(Optional.of(existingEscrow));
 
@@ -132,6 +136,7 @@ class OrderPaymentServiceTest {
             OrderPaymentCommand command = new OrderPaymentCommand(
                     orderId,
                     buyerMemberId,
+                    sellerMemberId,
                     12_000L,
                     10_000L,
                     null
@@ -150,6 +155,7 @@ class OrderPaymentServiceTest {
             OrderPaymentCommand command = new OrderPaymentCommand(
                     orderId,
                     buyerMemberId,
+                    sellerMemberId,
                     10_000L,
                     12_000L,
                     null
@@ -166,6 +172,7 @@ class OrderPaymentServiceTest {
             OrderPaymentCommand command = new OrderPaymentCommand(
                     orderId,
                     buyerMemberId,
+                    sellerMemberId,
                     12_000L,
                     10_000L,
                     null

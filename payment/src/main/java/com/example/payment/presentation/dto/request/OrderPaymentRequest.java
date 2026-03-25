@@ -12,6 +12,9 @@ public record OrderPaymentRequest(
         @NotNull(message = "buyerMemberId is required.")
         UUID buyerMemberId,
 
+        @NotNull(message = "sellerMemberId is required.")
+        UUID sellerMemberId,
+
         @NotNull(message = "orderAmount is required.")
         @Positive(message = "orderAmount must be positive.")
         Long orderAmount,
