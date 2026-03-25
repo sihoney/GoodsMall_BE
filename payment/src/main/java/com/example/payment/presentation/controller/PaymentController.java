@@ -3,16 +3,20 @@ package com.example.payment.presentation.controller;
 import com.example.payment.application.dto.ChargeConfirmCommand;
 import com.example.payment.application.dto.ChargeCreateCommand;
 import com.example.payment.application.dto.ChargeRefundCommand;
+import com.example.payment.application.dto.OrderPaymentCommand;
 import com.example.payment.application.usecase.ChargeConfirmUseCase;
 import com.example.payment.application.usecase.ChargeCreateUseCase;
 import com.example.payment.application.usecase.ChargeRefundUseCase;
+import com.example.payment.application.usecase.OrderPaymentUseCase;
 import com.example.payment.domain.enumtype.PgProvider;
 import com.example.payment.presentation.dto.request.ChargeConfirmRequest;
 import com.example.payment.presentation.dto.request.ChargeCreateRequest;
 import com.example.payment.presentation.dto.request.ChargeRefundRequest;
+import com.example.payment.presentation.dto.request.OrderPaymentRequest;
 import com.example.payment.presentation.dto.response.ChargeConfirmResponse;
 import com.example.payment.presentation.dto.response.ChargeCreateResponse;
 import com.example.payment.presentation.dto.response.ChargeRefundResponse;
+import com.example.payment.presentation.dto.response.OrderPaymentResponse;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,15 +33,18 @@ public class PaymentController {
 	private final ChargeCreateUseCase chargeCreateUseCase;
 	private final ChargeConfirmUseCase chargeConfirmUseCase;
 	private final ChargeRefundUseCase chargeRefundUseCase;
+	private final OrderPaymentUseCase orderPaymentUseCase;
 
 	public PaymentController(
 			ChargeCreateUseCase chargeCreateUseCase,
 			ChargeConfirmUseCase chargeConfirmUseCase,
-			ChargeRefundUseCase chargeRefundUseCase
+			ChargeRefundUseCase chargeRefundUseCase,
+			OrderPaymentUseCase orderPaymentUseCase
 	) {
 		this.chargeCreateUseCase = chargeCreateUseCase;
 		this.chargeConfirmUseCase = chargeConfirmUseCase;
 		this.chargeRefundUseCase = chargeRefundUseCase;
+		this.orderPaymentUseCase = orderPaymentUseCase;
 	}
 
 	@PostMapping("/charge")
@@ -67,5 +74,17 @@ public class PaymentController {
 	) {
 		ChargeRefundCommand command = new ChargeRefundCommand(chargeId, request.refundReason());
 		return ChargeRefundResponse.from(chargeRefundUseCase.refundCharge(command));
+	}
+
+	@PostMapping("/orders/pay")
+	public OrderPaymentResponse payOrder(@Valid @RequestBody OrderPaymentRequest request) {
+		OrderPaymentCommand command = new OrderPaymentCommand(
+				request.orderId(),
+				request.buyerMemberId(),
+				request.orderAmount(),
+				request.sellerReceivableAmount(),
+				request.releaseAt()
+		);
+		return OrderPaymentResponse.from(orderPaymentUseCase.payOrder(command));
 	}
 }
