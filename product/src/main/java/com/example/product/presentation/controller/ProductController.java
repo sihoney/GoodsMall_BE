@@ -82,6 +82,6 @@ public class ProductController {
 
     @GetMapping("/{productId}")
     public ResponseEntity<ProductResponse> findProduct(@PathVariable String productId) {
-
+        return ResponseEntity.ok(productSearchUseCase.findById(productId));
     }
 }

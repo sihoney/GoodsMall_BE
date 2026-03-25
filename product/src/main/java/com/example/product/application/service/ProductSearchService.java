@@ -35,4 +35,8 @@ public class ProductSearchService implements ProductSearchUseCase {
         Page<Product> products = productRepository.findBySellerId(UUID.fromString(sellerId), pageable);
         return products.map(ProductResponse::from);
     }
+    @Override
+    public ProductResponse findById(String productId) {
+        return ProductResponse.from(productRepository.findById(UUID.fromString(productId)));
+    }
 }
