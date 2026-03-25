@@ -70,4 +70,12 @@ public class ProductController {
         Page<ProductResponse> response = productSearchUseCase.getAllProducts(pageable);
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/seller")
+    public ResponseEntity<Page<ProductResponse>> findSellerProducts(
+        @RequestHeader(value = "X-User-Id", required = false) String sellerId,
+                                                              Pageable pageable) {
+        Page<ProductResponse> response = productSearchUseCase.findBySellerId(sellerId, pageable);
+        return ResponseEntity.ok(response);
+    }
 }

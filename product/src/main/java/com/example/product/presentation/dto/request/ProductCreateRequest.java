@@ -5,8 +5,11 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
 
+/**
+ * 상품 등록 요청 DTO
+ * sellerId는 API Gateway의 Header(X-User-Id)에서 전달받음
+ */
 public record ProductCreateRequest(
-        String sellerId,
         @NotBlank(message = "상품명은 필수입니다")
         String title,
         String description,
