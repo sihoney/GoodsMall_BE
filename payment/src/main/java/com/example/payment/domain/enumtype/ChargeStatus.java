@@ -4,5 +4,7 @@ public enum ChargeStatus {
     PENDING,
     SUCCESS,
     FAILED,
-    CANCELLED
+    CANCELLED,
+    REFUNDED,
+    REFUND_FAILED
 }

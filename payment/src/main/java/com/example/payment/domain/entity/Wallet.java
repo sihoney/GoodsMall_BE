@@ -66,4 +66,18 @@ public class Wallet {
         this.updatedAt = Objects.requireNonNull(updatedAt);
         return this.balance;
     }
+
+    public Long decreaseBalance(Long amount, LocalDateTime updatedAt) {
+        Objects.requireNonNull(amount);
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Amount must be positive.");
+        }
+        if (balance < amount) {
+            throw new IllegalArgumentException("Balance is insufficient.");
+        }
+
+        this.balance = balance - amount;
+        this.updatedAt = Objects.requireNonNull(updatedAt);
+        return this.balance;
+    }
 }

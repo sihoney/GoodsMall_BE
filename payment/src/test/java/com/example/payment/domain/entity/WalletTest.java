@@ -126,5 +126,33 @@ class WalletTest {
             assertThat(wallet.getUpdatedAt()).isEqualTo(updatedAt);
         }
     }
+
+    @Nested
+    @DisplayName("Wallet.decreaseBalance() 환불 차감 테스트")
+    class DecreaseBalance {
+
+        @Test
+        @DisplayName("환불 금액만큼 잔액이 차감된다")
+        void decreaseBalance_subtractsAmountFromBalance() {
+            Wallet wallet = createWallet(10_000L);
+            LocalDateTime updatedAt = now.plusMinutes(5);
+
+            Long newBalance = wallet.decreaseBalance(4_000L, updatedAt);
+
+            assertThat(newBalance).isEqualTo(6_000L);
+            assertThat(wallet.getBalance()).isEqualTo(6_000L);
+            assertThat(wallet.getUpdatedAt()).isEqualTo(updatedAt);
+        }
+
+        @Test
+        @DisplayName("잔액보다 큰 금액 차감 시 예외가 발생한다")
+        void decreaseBalance_insufficientBalance_throwsException() {
+            Wallet wallet = createWallet(3_000L);
+
+            assertThatThrownBy(() -> wallet.decreaseBalance(4_000L, now))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("Balance is insufficient.");
+        }
+    }
 }
 

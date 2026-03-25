@@ -115,5 +115,23 @@ class WalletTransactionTest {
             assertThat(tx.getDescription()).isEqualTo("purchase item");
         }
     }
+
+    @Nested
+    @DisplayName("WalletTransaction.refund() 환불 트랜잭션 생성 테스트")
+    class RefundFactory {
+
+        @Test
+        @DisplayName("refund() 생성 시 transactionType이 REFUND로 설정된다")
+        void refund_transactionTypeIsRefund() {
+            WalletTransaction tx = WalletTransaction.refund(
+                    transactionId, walletId, 10_000L, 5_000L, chargeId, createdAt
+            );
+
+            assertThat(tx.getTransactionType()).isEqualTo(WalletTransactionType.REFUND);
+            assertThat(tx.getAmount()).isEqualTo(-10_000L);
+            assertThat(tx.getReferenceId()).isEqualTo(chargeId);
+            assertThat(tx.getDescription()).isEqualTo("charge refund");
+        }
+    }
 }
 

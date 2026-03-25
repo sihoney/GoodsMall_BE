@@ -4,14 +4,18 @@ import com.example.payment.application.dto.ChargeConfirmCommand;
 import com.example.payment.application.dto.ChargeConfirmResult;
 import com.example.payment.application.dto.ChargeCreateCommand;
 import com.example.payment.application.dto.ChargeCreateResult;
+import com.example.payment.application.dto.ChargeRefundCommand;
+import com.example.payment.application.dto.ChargeRefundResult;
 import com.example.payment.application.usecase.ChargeConfirmUseCase;
 import com.example.payment.application.usecase.ChargeCreateUseCase;
+import com.example.payment.application.usecase.ChargeRefundUseCase;
 import com.example.payment.domain.entity.Charge;
 import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.entity.WalletTransaction;
 import com.example.payment.domain.exception.ChargeNotFoundException;
 import com.example.payment.domain.exception.ChargeStateException;
 import com.example.payment.domain.exception.InvalidChargeRequestException;
+import com.example.payment.domain.exception.PaymentGatewayException;
 import com.example.payment.domain.exception.WalletNotFoundException;
 import com.example.payment.domain.repository.ChargeRepository;
 import com.example.payment.domain.repository.WalletRepository;
@@ -27,7 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional
-public class ChargeService implements ChargeCreateUseCase, ChargeConfirmUseCase {
+public class ChargeService implements ChargeCreateUseCase, ChargeConfirmUseCase, ChargeRefundUseCase {
 
     private final ChargeRepository chargeRepository;
     private final WalletRepository walletRepository;
@@ -102,11 +106,20 @@ public class ChargeService implements ChargeCreateUseCase, ChargeConfirmUseCase 
             throw new InvalidChargeRequestException("amount does not match charge.");
         }
 
-        TossPaymentGateway.TossPaymentConfirmation confirmation = tossPaymentGateway.confirm(
-                command.paymentKey(),
-                command.pgOrderId(),
-                command.amount()
-        );
+        TossPaymentGateway.TossPaymentConfirmation confirmation;
+        try {
+            confirmation = tossPaymentGateway.confirm(
+                    command.paymentKey(),
+                    command.pgOrderId(),
+                    command.amount()
+            );
+        } catch (PaymentGatewayException e) {
+            failCharge(charge, e.getMessage());
+            throw e;
+        } catch (RuntimeException e) {
+            failCharge(charge, e.getMessage());
+            throw e;
+        }
 
         Wallet wallet = walletRepository.findByWalletId(charge.getWalletId())
                 .orElseThrow(WalletNotFoundException::new);
@@ -138,6 +151,73 @@ public class ChargeService implements ChargeCreateUseCase, ChargeConfirmUseCase 
                 charge.getApprovedAmount(),
                 wallet.getBalance(),
                 charge.getApprovedAt()
+        );
+    }
+
+    @Override
+    public ChargeRefundResult refundCharge(ChargeRefundCommand command) {
+        validateRefundCommand(command);
+
+        Charge charge = chargeRepository.findByChargeId(command.chargeId())
+                .orElseThrow(ChargeNotFoundException::new);
+
+        if (!charge.isSuccess()) {
+            throw new ChargeStateException("Charge is not refundable.");
+        }
+        if (charge.getApprovedAmount() == null || charge.getPgPaymentKey() == null) {
+            throw new ChargeStateException("Charge refund information is incomplete.");
+        }
+
+        LocalDateTime refundRequestedAt = timeProvider.now();
+        Wallet wallet = walletRepository.findByWalletId(charge.getWalletId())
+                .orElseThrow(WalletNotFoundException::new);
+
+        if (wallet.getBalance() < charge.getApprovedAmount()) {
+            throw new ChargeStateException("Charge has already been used and cannot be refunded.");
+        }
+
+        TossPaymentGateway.TossPaymentCancellation cancellation;
+        try {
+            cancellation = tossPaymentGateway.cancel(
+                    charge.getPgPaymentKey(),
+                    command.refundReason(),
+                    charge.getApprovedAmount()
+            );
+        } catch (PaymentGatewayException e) {
+            failRefund(charge, command.refundReason(), refundRequestedAt, e.getMessage());
+            throw e;
+        } catch (RuntimeException e) {
+            failRefund(charge, command.refundReason(), refundRequestedAt, e.getMessage());
+            throw e;
+        }
+
+        Long balanceAfter = wallet.decreaseBalance(cancellation.canceledAmount(), cancellation.canceledAt());
+        WalletTransaction walletTransaction = WalletTransaction.refund(
+                identifierGenerator.generateUuid(),
+                wallet.getWalletId(),
+                cancellation.canceledAmount(),
+                balanceAfter,
+                charge.getChargeId(),
+                cancellation.canceledAt()
+        );
+
+        charge.refund(
+                cancellation.canceledAmount(),
+                command.refundReason(),
+                refundRequestedAt,
+                cancellation.canceledAt()
+        );
+
+        chargeRepository.save(charge);
+        walletRepository.save(wallet);
+        walletTransactionRepository.save(walletTransaction);
+
+        return new ChargeRefundResult(
+                charge.getChargeId(),
+                charge.getChargeStatus(),
+                charge.getRefundedAmount(),
+                wallet.getBalance(),
+                charge.getRefundedAt()
         );
     }
 
@@ -181,5 +261,36 @@ public class ChargeService implements ChargeCreateUseCase, ChargeConfirmUseCase 
         if (command.amount() == null || command.amount() <= 0) {
             throw new InvalidChargeRequestException("amount must be positive.");
         }
+    }
+
+    private void validateRefundCommand(ChargeRefundCommand command) {
+        if (command.chargeId() == null) {
+            throw new InvalidChargeRequestException("chargeId is required.");
+        }
+        if (command.refundReason() == null || command.refundReason().isBlank()) {
+            throw new InvalidChargeRequestException("refundReason is required.");
+        }
+    }
+
+    private void failCharge(Charge charge, String failureReason) {
+        charge.fail(resolveFailureReason(failureReason), timeProvider.now());
+        chargeRepository.save(charge);
+    }
+
+    private void failRefund(Charge charge, String refundReason, LocalDateTime refundRequestedAt, String failureReason) {
+        charge.refundFail(
+                refundReason,
+                refundRequestedAt,
+                resolveFailureReason(failureReason),
+                timeProvider.now()
+        );
+        chargeRepository.save(charge);
+    }
+
+    private String resolveFailureReason(String failureReason) {
+        if (failureReason == null || failureReason.isBlank()) {
+            return "Payment confirmation failed.";
+        }
+        return failureReason;
     }
 }

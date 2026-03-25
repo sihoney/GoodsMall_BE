@@ -119,4 +119,29 @@ public class WalletTransaction {
                 createdAt
         );
     }
+
+    public static WalletTransaction refund(
+            UUID transactionId,
+            UUID walletId,
+            Long amount,
+            Long balanceAfter,
+            UUID chargeId,
+            LocalDateTime createdAt
+    ) {
+        if (Objects.requireNonNull(amount) <= 0) {
+            throw new IllegalArgumentException("Refund amount must be positive.");
+        }
+
+        return create(
+                transactionId,
+                walletId,
+                -amount,
+                balanceAfter,
+                WalletTransactionType.REFUND,
+                chargeId,
+                "CHARGE",
+                "charge refund",
+                createdAt
+        );
+    }
 }

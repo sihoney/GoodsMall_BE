@@ -4,6 +4,8 @@ import com.example.payment.application.dto.ChargeConfirmCommand;
 import com.example.payment.application.dto.ChargeConfirmResult;
 import com.example.payment.application.dto.ChargeCreateCommand;
 import com.example.payment.application.dto.ChargeCreateResult;
+import com.example.payment.application.dto.ChargeRefundCommand;
+import com.example.payment.application.dto.ChargeRefundResult;
 import com.example.payment.domain.entity.Charge;
 import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.enumtype.ChargeStatus;
@@ -11,6 +13,7 @@ import com.example.payment.domain.enumtype.PgProvider;
 import com.example.payment.domain.exception.ChargeNotFoundException;
 import com.example.payment.domain.exception.ChargeStateException;
 import com.example.payment.domain.exception.InvalidChargeRequestException;
+import com.example.payment.domain.exception.PaymentGatewayException;
 import com.example.payment.domain.repository.ChargeRepository;
 import com.example.payment.domain.repository.WalletRepository;
 import com.example.payment.domain.repository.WalletTransactionRepository;
@@ -353,13 +356,40 @@ class ChargeServiceTest {
             ChargeConfirmCommand command = new ChargeConfirmCommand(chargeId, "payKey-001", pgOrderId, 10_000L);
             given(chargeRepository.findByChargeId(chargeId)).willReturn(Optional.of(pendingCharge));
             given(tossPaymentGateway.confirm(any(), any(), any()))
-                    .willThrow(new RuntimeException("Toss gateway error"));
+                    .willThrow(new PaymentGatewayException("Toss gateway error"));
+            given(timeProvider.now()).willReturn(now.plusMinutes(2));
+            given(chargeRepository.save(any(Charge.class))).willAnswer(inv -> inv.getArgument(0));
 
             // when & then
             assertThatThrownBy(() -> chargeService.confirmCharge(command))
-                    .isInstanceOf(RuntimeException.class);
+                    .isInstanceOf(PaymentGatewayException.class);
 
             verify(walletRepository, never()).findByWalletId(any());
+            verify(walletRepository, never()).save(any());
+            verify(walletTransactionRepository, never()).save(any());
+            verify(chargeRepository).save(pendingCharge);
+            assertThat(pendingCharge.getChargeStatus()).isEqualTo(ChargeStatus.FAILED);
+            assertThat(pendingCharge.getFailureReason()).contains("Toss gateway error");
+            assertThat(pendingCharge.getFailedAt()).isEqualTo(now.plusMinutes(2));
+        }
+
+        @Test
+        @DisplayName("토스 게이트웨이 호출 실패 시 charge만 FAILED로 저장된다")
+        void confirmCharge_tossGatewayFails_marksChargeFailedOnly() {
+            // given
+            ChargeConfirmCommand command = new ChargeConfirmCommand(chargeId, "payKey-001", pgOrderId, 10_000L);
+            given(chargeRepository.findByChargeId(chargeId)).willReturn(Optional.of(pendingCharge));
+            given(tossPaymentGateway.confirm(any(), any(), any()))
+                    .willThrow(new PaymentGatewayException("confirm rejected"));
+            given(timeProvider.now()).willReturn(now.plusMinutes(3));
+            given(chargeRepository.save(any(Charge.class))).willAnswer(inv -> inv.getArgument(0));
+
+            // when & then
+            assertThatThrownBy(() -> chargeService.confirmCharge(command))
+                    .isInstanceOf(PaymentGatewayException.class)
+                    .hasMessageContaining("confirm rejected");
+
+            assertThat(pendingCharge.getChargeStatus()).isEqualTo(ChargeStatus.FAILED);
             verify(walletRepository, never()).save(any());
             verify(walletTransactionRepository, never()).save(any());
         }
@@ -407,6 +437,88 @@ class ChargeServiceTest {
             // then
             assertThat(result.chargeId()).isEqualTo(chargeId);
             assertThat(result.approvedAt()).isEqualTo(approvedAt);
+        }
+    }
+
+    @Nested
+    @DisplayName("refundCharge() 충전 환불 테스트")
+    class RefundCharge {
+
+        private Charge successCharge;
+        private Wallet wallet;
+
+        @BeforeEach
+        void setUp() {
+            String pgOrderId = "CHARGE-" + chargeId;
+            successCharge = Charge.create(
+                    chargeId, memberId, walletId, 10_000L, PgProvider.TOSS, pgOrderId, now
+            );
+            successCharge.approve(10_000L, "paymentKey-001", now.plusMinutes(1));
+            wallet = Wallet.create(walletId, memberId, 15_000L, now, now);
+        }
+
+        @Test
+        @DisplayName("환불 성공 시 charge는 REFUNDED가 되고 wallet 잔액이 차감된다")
+        void refundCharge_success_updatesChargeAndWallet() {
+            ChargeRefundCommand command = new ChargeRefundCommand(chargeId, "user request");
+            LocalDateTime refundedAt = now.plusMinutes(5);
+            TossPaymentGateway.TossPaymentCancellation cancellation =
+                    new TossPaymentGateway.TossPaymentCancellation("paymentKey-001", 10_000L, refundedAt);
+
+            given(chargeRepository.findByChargeId(chargeId)).willReturn(Optional.of(successCharge));
+            given(walletRepository.findByWalletId(walletId)).willReturn(Optional.of(wallet));
+            given(tossPaymentGateway.cancel("paymentKey-001", "user request", 10_000L)).willReturn(cancellation);
+            given(timeProvider.now()).willReturn(now.plusMinutes(4));
+            given(identifierGenerator.generateUuid()).willReturn(UUID.randomUUID());
+            given(chargeRepository.save(any(Charge.class))).willAnswer(inv -> inv.getArgument(0));
+            given(walletRepository.save(any(Wallet.class))).willAnswer(inv -> inv.getArgument(0));
+            given(walletTransactionRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+
+            ChargeRefundResult result = chargeService.refundCharge(command);
+
+            assertThat(result.chargeStatus()).isEqualTo(ChargeStatus.REFUNDED);
+            assertThat(result.walletBalance()).isEqualTo(5_000L);
+            assertThat(result.refundedAmount()).isEqualTo(10_000L);
+            verify(walletTransactionRepository).save(any());
+        }
+
+        @Test
+        @DisplayName("현재 잔액이 환불 금액보다 적으면 환불할 수 없다")
+        void refundCharge_usedBalance_throwsException() {
+            ChargeRefundCommand command = new ChargeRefundCommand(chargeId, "user request");
+            wallet = Wallet.create(walletId, memberId, 9_000L, now, now);
+
+            given(chargeRepository.findByChargeId(chargeId)).willReturn(Optional.of(successCharge));
+            given(walletRepository.findByWalletId(walletId)).willReturn(Optional.of(wallet));
+
+            assertThatThrownBy(() -> chargeService.refundCharge(command))
+                    .isInstanceOf(ChargeStateException.class)
+                    .hasMessageContaining("already been used");
+
+            verify(tossPaymentGateway, never()).cancel(any(), any(), any());
+            verify(walletTransactionRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("토스 취소 실패 시 charge는 REFUND_FAILED로 저장된다")
+        void refundCharge_gatewayFails_marksRefundFailed() {
+            ChargeRefundCommand command = new ChargeRefundCommand(chargeId, "user request");
+
+            given(chargeRepository.findByChargeId(chargeId)).willReturn(Optional.of(successCharge));
+            given(walletRepository.findByWalletId(walletId)).willReturn(Optional.of(wallet));
+            given(tossPaymentGateway.cancel("paymentKey-001", "user request", 10_000L))
+                    .willThrow(new PaymentGatewayException("cancel rejected"));
+            given(timeProvider.now()).willReturn(now.plusMinutes(4), now.plusMinutes(5));
+            given(chargeRepository.save(any(Charge.class))).willAnswer(inv -> inv.getArgument(0));
+
+            assertThatThrownBy(() -> chargeService.refundCharge(command))
+                    .isInstanceOf(PaymentGatewayException.class)
+                    .hasMessageContaining("cancel rejected");
+
+            assertThat(successCharge.getChargeStatus()).isEqualTo(ChargeStatus.REFUND_FAILED);
+            assertThat(successCharge.getRefundFailureReason()).contains("cancel rejected");
+            verify(walletRepository, never()).save(any());
+            verify(walletTransactionRepository, never()).save(any());
         }
     }
 }
