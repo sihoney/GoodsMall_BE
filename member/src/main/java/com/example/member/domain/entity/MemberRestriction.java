@@ -38,7 +38,7 @@ public class MemberRestriction {
     private RestrictionType restrictionType;
 
     @Column(name = "duration_hours", nullable = false)
-    private LocalDateTime durationHours;
+    private Integer durationHours;
 
     @Column(name = "end_at", nullable = false)
     private LocalDateTime endAt;
@@ -58,7 +58,7 @@ public class MemberRestriction {
             UUID adminId,
             String reason,
             RestrictionType restrictionType,
-            LocalDateTime durationHours,
+            Integer durationHours,
             LocalDateTime endAt,
             boolean active,
             LocalDateTime createdAt,
@@ -82,7 +82,7 @@ public class MemberRestriction {
             UUID adminId,
             String reason,
             RestrictionType restrictionType,
-            LocalDateTime durationHours,
+            Integer durationHours,
             LocalDateTime endAt,
             LocalDateTime createdAt
     ) {

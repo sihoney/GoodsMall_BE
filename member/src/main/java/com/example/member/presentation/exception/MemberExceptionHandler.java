@@ -1,0 +1,47 @@
+package com.example.member.presentation.exception;
+
+import com.example.member.domain.exception.DuplicateMemberEmailException;
+import com.example.member.domain.exception.InvalidLoginException;
+import com.example.member.domain.exception.InvalidTokenException;
+import com.example.member.domain.exception.MemberNotFoundException;
+import com.example.member.domain.exception.RefreshTokenNotFoundException;
+import com.example.member.presentation.dto.ApiResponse;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+@RestControllerAdvice
+public class MemberExceptionHandler {
+
+    @ExceptionHandler(MemberNotFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> handleMemberNotFound(MemberNotFoundException exception) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.fail("MEMBER_NOT_FOUND", exception.getMessage()));
+    }
+
+    @ExceptionHandler(DuplicateMemberEmailException.class)
+    public ResponseEntity<ApiResponse<Object>> handleDuplicateEmail(DuplicateMemberEmailException exception) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.fail("DUPLICATE_MEMBER_EMAIL", exception.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidLoginException.class)
+    public ResponseEntity<ApiResponse<Object>> handleInvalidLogin(InvalidLoginException exception) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.fail("INVALID_LOGIN", exception.getMessage()));
+    }
+
+    @ExceptionHandler({InvalidTokenException.class, RefreshTokenNotFoundException.class})
+    public ResponseEntity<ApiResponse<Object>> handleInvalidToken(RuntimeException exception) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.fail("INVALID_TOKEN", exception.getMessage()));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<Object>> handleIllegalArgument(IllegalArgumentException exception) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.fail("BAD_REQUEST", exception.getMessage()));
+    }
+}

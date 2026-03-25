@@ -1,0 +1,53 @@
+server:
+    port: 8083 # random port
+
+spring:
+  application:
+    name: member-service
+  config:
+    import: optional:file:member/.env[.properties],optional:file:.env[.properties]
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:postgres}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:1q2w3e4r}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: member_service
+        format_sql: true # SQL을 예쁘게 출력하고 싶을 때 (선택)
+      show-sql: true # 실행되는 쿼리를 로그로 확인하고 싶을 때 (선택)
+#  sql:
+#    init:
+#      mode: always
+#      schema-locations: classpath:org/springframework/batch/core/schema-postgresql.sql
+#      continue-on-error: true
+#  batch:
+#    job:
+#      enabled: false
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+apigateway:
+    host: http://localhost:8080
+
+jwt:
+  secret: ${JWT_SECRET_KEY}
+  issuer: member-service # 1시간 = 60분 * 60초 * 1,000ms
+  access-expiration: 3600000  # 7일 = 7일 * 24시간 * 60분 * 60초 * 1,000ms
+  refresh-expiration: 604800000
+
+eureka:
+    client:
+        service-url:
+            defaultZone: http://localhost:8761/eureka/
