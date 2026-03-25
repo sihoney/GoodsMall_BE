@@ -53,6 +53,9 @@ public class Product {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
     /**
      * 전체 필드 생성자 (테스트 또는 특수 상황용)
      */
@@ -66,7 +69,8 @@ public class Product {
         ProductStatus status,
         Integer viewCount,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        LocalDateTime updatedAt,
+        LocalDateTime deletedAt
     ) {
         this.productId = Objects.requireNonNull(productId);
         this.sellerId = Objects.requireNonNull(sellerId);
@@ -78,6 +82,7 @@ public class Product {
         this.viewCount = Objects.requireNonNull(viewCount);
         this.createdAt = Objects.requireNonNull(createdAt);
         this.updatedAt = Objects.requireNonNull(updatedAt);
+        this.deletedAt = deletedAt;
     }
 
     /**
@@ -102,6 +107,7 @@ public class Product {
         this.viewCount = 0;
         this.createdAt = now;
         this.updatedAt = now;
+        this.deletedAt = null;
     }
 
     /**

@@ -1,0 +1,11 @@
+ ### 상품 등록 테스트
+  POST http://localhost:8081/api/product
+    Content-Type: application/json
+
+  {
+    "sellerId": "550e8400-e29b-41d4-a716-446655440000",
+    "title": "맛있는 도시락",
+    "description": "오늘의 점심 메뉴",
+    "price": 8500,
+    "count": 30
+  }

@@ -7,9 +7,10 @@ CREATE TABLE product
     price       DECIMAL(10, 2)                                                              NOT NULL,
     count       INTEGER,
     status      VARCHAR(20) CHECK (status IN ('ACTIVE', 'SOLD_OUT', 'INACTIVE', 'DELETED')) NOT NULL,
-    view_count  INTEGER DEFAULT 0                                                           NOT NULL,
+    view_count  INTEGER   DEFAULT 0                                                         NOT NULL,
     created_at  TIMESTAMP                                                                   NOT NULL,
-    updated_at  TIMESTAMP                                                                   NOT NULL
+    updated_at  TIMESTAMP                                                                   NOT NULL,
+    deleted_at  TIMESTAMP DEFAULT NULL
 );
 
 -- 인덱스 생성
