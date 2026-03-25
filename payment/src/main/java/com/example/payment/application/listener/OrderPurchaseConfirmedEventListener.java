@@ -4,6 +4,7 @@ import com.example.payment.application.dto.EscrowReleaseCommand;
 import com.example.payment.application.event.OrderPurchaseConfirmedEvent;
 import com.example.payment.application.usecase.EscrowReleaseUseCase;
 import com.example.payment.domain.enumtype.ConfirmationType;
+import com.example.payment.domain.exception.EscrowAlreadyReleasedException;
 import com.example.payment.domain.exception.InvalidOrderPaymentRequestException;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -21,12 +22,16 @@ public class OrderPurchaseConfirmedEventListener {
     public void handle(OrderPurchaseConfirmedEvent event) {
         validateEvent(event);
 
-        escrowReleaseUseCase.releaseEscrow(
-                new EscrowReleaseCommand(
-                        event.orderId(),
-                        event.sellerMemberId()
-                )
-        );
+        try {
+            escrowReleaseUseCase.releaseEscrow(
+                    new EscrowReleaseCommand(
+                            event.orderId(),
+                            event.sellerMemberId()
+                    )
+            );
+        } catch (EscrowAlreadyReleasedException e) {
+            // Duplicate manual confirmation event should not release funds twice.
+        }
     }
 
     private void validateEvent(OrderPurchaseConfirmedEvent event) {

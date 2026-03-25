@@ -2,10 +2,14 @@ package com.example.payment.application.service;
 
 import com.example.payment.application.dto.EscrowReleaseCommand;
 import com.example.payment.application.dto.EscrowReleaseResult;
+import com.example.payment.application.event.SellerIncomeReleasedEvent;
 import com.example.payment.application.usecase.EscrowReleaseUseCase;
 import com.example.payment.domain.entity.Escrow;
 import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.entity.WalletTransaction;
+import com.example.payment.domain.enumtype.ConfirmationType;
+import com.example.payment.domain.exception.EscrowAlreadyRefundedException;
+import com.example.payment.domain.exception.EscrowAlreadyReleasedException;
 import com.example.payment.domain.exception.EscrowNotFoundException;
 import com.example.payment.domain.exception.EscrowStateException;
 import com.example.payment.domain.exception.InvalidOrderPaymentRequestException;
@@ -14,6 +18,7 @@ import com.example.payment.domain.repository.EscrowRepository;
 import com.example.payment.domain.repository.WalletRepository;
 import com.example.payment.domain.repository.WalletTransactionRepository;
 import com.example.payment.domain.service.IdentifierGenerator;
+import com.example.payment.domain.service.SellerIncomeReleasedEventPublisher;
 import com.example.payment.domain.service.TimeProvider;
 import java.time.LocalDateTime;
 import org.springframework.stereotype.Service;
@@ -27,6 +32,7 @@ public class EscrowReleaseService implements EscrowReleaseUseCase {
     private final WalletRepository walletRepository;
     private final WalletTransactionRepository walletTransactionRepository;
     private final IdentifierGenerator identifierGenerator;
+    private final SellerIncomeReleasedEventPublisher sellerIncomeReleasedEventPublisher;
     private final TimeProvider timeProvider;
 
     public EscrowReleaseService(
@@ -34,12 +40,14 @@ public class EscrowReleaseService implements EscrowReleaseUseCase {
             WalletRepository walletRepository,
             WalletTransactionRepository walletTransactionRepository,
             IdentifierGenerator identifierGenerator,
+            SellerIncomeReleasedEventPublisher sellerIncomeReleasedEventPublisher,
             TimeProvider timeProvider
     ) {
         this.escrowRepository = escrowRepository;
         this.walletRepository = walletRepository;
         this.walletTransactionRepository = walletTransactionRepository;
         this.identifierGenerator = identifierGenerator;
+        this.sellerIncomeReleasedEventPublisher = sellerIncomeReleasedEventPublisher;
         this.timeProvider = timeProvider;
     }
 
@@ -50,6 +58,12 @@ public class EscrowReleaseService implements EscrowReleaseUseCase {
         Escrow escrow = escrowRepository.findByOrderId(command.orderId())
                 .orElseThrow(EscrowNotFoundException::new);
 
+        if (escrow.isReleased()) {
+            throw new EscrowAlreadyReleasedException();
+        }
+        if (escrow.isRefunded()) {
+            throw new EscrowAlreadyRefundedException();
+        }
         if (!escrow.isHeld()) {
             throw new EscrowStateException("Escrow is not releasable.");
         }
@@ -74,6 +88,14 @@ public class EscrowReleaseService implements EscrowReleaseUseCase {
         escrowRepository.save(escrow);
         walletRepository.save(sellerWallet);
         walletTransactionRepository.save(saleIncomeTransaction);
+        sellerIncomeReleasedEventPublisher.publish(new SellerIncomeReleasedEvent(
+                escrow.getOrderId(),
+                sellerWallet.getMemberId(),
+                sellerWallet.getWalletId(),
+                escrow.getAmount(),
+                escrow.getReleasedAt(),
+                ConfirmationType.MANUAL
+        ));
 
         return new EscrowReleaseResult(
                 escrow.getOrderId(),

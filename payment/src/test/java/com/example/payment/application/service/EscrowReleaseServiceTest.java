@@ -5,6 +5,8 @@ import com.example.payment.application.dto.EscrowReleaseResult;
 import com.example.payment.domain.entity.Escrow;
 import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.enumtype.EscrowStatus;
+import com.example.payment.domain.exception.EscrowAlreadyRefundedException;
+import com.example.payment.domain.exception.EscrowAlreadyReleasedException;
 import com.example.payment.domain.exception.EscrowNotFoundException;
 import com.example.payment.domain.exception.EscrowStateException;
 import com.example.payment.domain.exception.WalletNotFoundException;
@@ -12,6 +14,7 @@ import com.example.payment.domain.repository.EscrowRepository;
 import com.example.payment.domain.repository.WalletRepository;
 import com.example.payment.domain.repository.WalletTransactionRepository;
 import com.example.payment.domain.service.IdentifierGenerator;
+import com.example.payment.domain.service.SellerIncomeReleasedEventPublisher;
 import com.example.payment.domain.service.TimeProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -48,6 +51,9 @@ class EscrowReleaseServiceTest {
 
     @Mock
     private IdentifierGenerator identifierGenerator;
+
+    @Mock
+    private SellerIncomeReleasedEventPublisher sellerIncomeReleasedEventPublisher;
 
     @Mock
     private TimeProvider timeProvider;
@@ -99,6 +105,7 @@ class EscrowReleaseServiceTest {
             verify(escrowRepository).save(any(Escrow.class));
             verify(walletRepository).save(any(Wallet.class));
             verify(walletTransactionRepository).save(any());
+            verify(sellerIncomeReleasedEventPublisher).publish(any());
         }
 
         @Test
@@ -122,11 +129,12 @@ class EscrowReleaseServiceTest {
             given(escrowRepository.findByOrderId(orderId)).willReturn(Optional.of(escrow));
 
             assertThatThrownBy(() -> escrowReleaseService.releaseEscrow(command))
-                    .isInstanceOf(EscrowStateException.class)
-                    .hasMessageContaining("not releasable");
+                    .isInstanceOf(EscrowAlreadyReleasedException.class)
+                    .hasMessageContaining("already been released");
 
             verify(walletRepository, never()).save(any());
             verify(walletTransactionRepository, never()).save(any());
+            verify(sellerIncomeReleasedEventPublisher, never()).publish(any());
         }
 
         @Test
@@ -139,8 +147,10 @@ class EscrowReleaseServiceTest {
             given(escrowRepository.findByOrderId(orderId)).willReturn(Optional.of(escrow));
 
             assertThatThrownBy(() -> escrowReleaseService.releaseEscrow(command))
-                    .isInstanceOf(EscrowStateException.class)
-                    .hasMessageContaining("not releasable");
+                    .isInstanceOf(EscrowAlreadyRefundedException.class)
+                    .hasMessageContaining("already been refunded");
+
+            verify(sellerIncomeReleasedEventPublisher, never()).publish(any());
         }
 
         @Test
@@ -154,6 +164,8 @@ class EscrowReleaseServiceTest {
 
             assertThatThrownBy(() -> escrowReleaseService.releaseEscrow(command))
                     .isInstanceOf(WalletNotFoundException.class);
+
+            verify(sellerIncomeReleasedEventPublisher, never()).publish(any());
         }
     }
 }

@@ -4,6 +4,7 @@ import com.example.payment.application.dto.EscrowReleaseCommand;
 import com.example.payment.application.event.OrderPurchaseConfirmedEvent;
 import com.example.payment.application.usecase.EscrowReleaseUseCase;
 import com.example.payment.domain.enumtype.ConfirmationType;
+import com.example.payment.domain.exception.EscrowAlreadyReleasedException;
 import com.example.payment.domain.exception.InvalidOrderPaymentRequestException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.doThrow;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("OrderPurchaseConfirmedEventListener 테스트")
@@ -83,5 +85,25 @@ class OrderPurchaseConfirmedEventListenerTest {
                 .hasMessageContaining("orderId is required.");
 
         verifyNoInteractions(escrowReleaseUseCase);
+    }
+
+    @Test
+    @DisplayName("이미 RELEASED 상태로 인한 중복 이벤트는 무시한다")
+    void handle_duplicateManualEvent_ignoresAlreadyReleasedException() {
+        UUID orderId = UUID.randomUUID();
+        UUID sellerMemberId = UUID.randomUUID();
+        OrderPurchaseConfirmedEvent event = new OrderPurchaseConfirmedEvent(
+                orderId,
+                sellerMemberId,
+                LocalDateTime.of(2024, 1, 3, 10, 0, 0),
+                ConfirmationType.MANUAL
+        );
+
+        doThrow(new EscrowAlreadyReleasedException()).when(escrowReleaseUseCase)
+                .releaseEscrow(new EscrowReleaseCommand(orderId, sellerMemberId));
+
+        listener.handle(event);
+
+        verify(escrowReleaseUseCase).releaseEscrow(new EscrowReleaseCommand(orderId, sellerMemberId));
     }
 }
