@@ -2,6 +2,7 @@ package com.example.product.infrastructure.repository;
 
 import com.example.product.domain.entity.Product;
 import com.example.product.domain.repository.ProductRepository;
+import com.example.product.presentation.exception.ProductNotFoundException;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -32,5 +33,10 @@ public class ProductRepositoryImpl implements ProductRepository {
     @Override
     public Page<Product> findBySellerId(UUID sellerId, Pageable pageable) {
         return jpaRepository.findBySellerId(sellerId, pageable);
+    }
+
+    @Override
+    public Product findById(UUID productId) {
+        return  jpaRepository.findById(productId).orElseThrow(ProductNotFoundException::new);
     }
 }

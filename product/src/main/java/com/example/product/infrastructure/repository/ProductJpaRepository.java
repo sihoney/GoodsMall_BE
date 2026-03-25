@@ -1,6 +1,7 @@
 package com.example.product.infrastructure.repository;
 
 import com.example.product.domain.entity.Product;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,4 +19,6 @@ public interface ProductJpaRepository extends JpaRepository<Product, UUID> {
     Page<Product> findDisplayProducts(Pageable pageable);
 
     Page<Product> findBySellerId(UUID sellerId, Pageable pageable);
+
+    Optional<Product> findById(UUID productId);
 }
