@@ -1,5 +1,7 @@
 package com.example.product.domain.entity;
 
+import com.example.product.presentation.exception.CategoryDepthExceededException;
+import com.example.product.presentation.exception.dto.ErrorCode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -62,13 +64,12 @@ public class Category {
     }
 
     /**
-     * 하위 분류 생성 (중분류, 소분류)
-     * 부모의 depth + 1로 자동 설정
+     * 하위 분류 생성 (중분류, 소분류) 부모의 depth + 1로 자동 설정
      */
     public static Category createChild(Category parent, String name, Integer sortOrder) {
         Objects.requireNonNull(parent);
         if (parent.depth >= 2) {
-            throw new IllegalArgumentException("소분류 이하로는 카테고리를 생성할 수 없습니다");
+            throw new CategoryDepthExceededException();
         }
         return new Category(parent, name, parent.getDepth() + 1, sortOrder);
     }
