@@ -148,5 +148,16 @@ class EscrowTest {
             assertThat(escrow.getReleaseAt()).isEqualTo(scheduledAt);
             assertThat(escrow.getUpdatedAt()).isEqualTo(createdAt.plusDays(1));
         }
+
+        @Test
+        @DisplayName("이미 releaseAt이 설정된 경우 다시 설정할 수 없다")
+        void scheduleReleaseAt_alreadyScheduled_throwsException() {
+            Escrow escrow = Escrow.createHeld(escrowId, orderId, buyerMemberId, sellerMemberId, 12_000L, null, createdAt);
+            escrow.scheduleReleaseAt(createdAt.plusDays(7), createdAt.plusDays(1));
+
+            assertThatThrownBy(() -> escrow.scheduleReleaseAt(createdAt.plusDays(8), createdAt.plusDays(2)))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("already been scheduled");
+        }
     }
 }

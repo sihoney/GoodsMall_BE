@@ -165,6 +165,9 @@ public class Escrow {
         if (!isHeld()) {
             throw new IllegalStateException("Only held escrow can be scheduled.");
         }
+        if (this.releaseAt != null) {
+            throw new IllegalStateException("releaseAt has already been scheduled.");
+        }
         this.releaseAt = Objects.requireNonNull(releaseAt);
         this.updatedAt = Objects.requireNonNull(updatedAt);
     }

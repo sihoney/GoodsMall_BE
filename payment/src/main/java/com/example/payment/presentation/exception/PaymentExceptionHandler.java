@@ -1,6 +1,7 @@
 package com.example.payment.presentation.exception;
 
 import com.example.payment.domain.exception.InvalidChargeRequestException;
+import com.example.payment.domain.exception.EscrowNotFoundException;
 import com.example.payment.domain.exception.InvalidOrderPaymentRequestException;
 import com.example.payment.domain.exception.WalletNotFoundException;
 import com.example.payment.presentation.dto.response.ApiErrorResponse;
@@ -27,6 +28,12 @@ public class PaymentExceptionHandler {
     public ResponseEntity<ApiErrorResponse> handleWalletNotFound(WalletNotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(ApiErrorResponse.of("WALLET_NOT_FOUND", e.getMessage()));
+    }
+
+    @ExceptionHandler(EscrowNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleEscrowNotFound(EscrowNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiErrorResponse.of("ESCROW_NOT_FOUND", e.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
