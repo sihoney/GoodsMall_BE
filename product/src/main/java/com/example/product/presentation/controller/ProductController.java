@@ -1,8 +1,11 @@
 package com.example.product.presentation.controller;
 
 import com.example.product.application.usecase.ProductCreateUseCase;
+import com.example.product.application.usecase.ProductDeleteUseCase;
 import com.example.product.application.usecase.ProductSearchUseCase;
+import com.example.product.application.usecase.ProductUpdateUseCase;
 import com.example.product.presentation.dto.request.ProductCreateRequest;
+import com.example.product.presentation.dto.request.ProductUpdateRequest;
 import com.example.product.presentation.dto.response.ProductResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -10,17 +13,17 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * 상품 API Controller
- */
+
 @RestController
 @RequestMapping("/api/product")
 @RequiredArgsConstructor
@@ -28,6 +31,8 @@ public class ProductController {
 
     private final ProductCreateUseCase productCreateUseCase;
     private final ProductSearchUseCase productSearchUseCase;
+    private final ProductUpdateUseCase productUpdateUseCase;
+    private final ProductDeleteUseCase productDeleteUseCase;
 
     /**
      * 상품 등록 API
@@ -83,5 +88,39 @@ public class ProductController {
     @GetMapping("/{productId}")
     public ResponseEntity<ProductResponse> findProduct(@PathVariable String productId) {
         return ResponseEntity.ok(productSearchUseCase.findById(productId));
+    }
+
+    /**
+     * 상품 수정 API
+     *
+     * @param userId    판매자 ID (Header: X-User-Id)
+     * @param productId 수정할 상품 ID
+     * @param request   수정 요청 데이터
+     * @return 수정된 상품 정보 (200 OK)
+     */
+    @PutMapping("/{productId}")
+    public ResponseEntity<ProductResponse> updateProduct(
+        @RequestHeader(value = "X-User-Id", required = false) String userId,
+        @PathVariable String productId,
+        @Valid @RequestBody ProductUpdateRequest request
+    ) {
+        ProductResponse response = productUpdateUseCase.updateProduct(userId, productId, request);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 상품 삭제 API (소프트 삭제)
+     *
+     * @param userId    판매자 ID (Header: X-User-Id)
+     * @param productId 삭제할 상품 ID
+     * @return 204 No Content
+     */
+    @DeleteMapping("/{productId}")
+    public ResponseEntity<Void> deleteProduct(
+        @RequestHeader(value = "X-User-Id", required = false) String userId,
+        @PathVariable String productId
+    ) {
+        productDeleteUseCase.deleteProduct(userId, productId);
+        return ResponseEntity.noContent().build();
     }
 }

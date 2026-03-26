@@ -156,3 +156,76 @@ X-User-Id: 550e8400-e29b-41d4-a716-446655440000
 }
 
 ###
+
+### 18. 상품 수정 (정상) - 본인 상품
+# 먼저 11번 요청으로 내 상품 조회 후, productId를 복사해서 아래에 붙여넣기
+PUT http://localhost:8081/api/product/YOUR_PRODUCT_ID_HERE
+Content-Type: application/json
+X-User-Id: 550e8400-e29b-41d4-a716-446655440000
+
+{
+  "title": "수정된 치킨도시락",
+  "description": "더 맛있어진 치킨도시락",
+  "price": 9000,
+  "stockQuantity": 25,
+  "categoryId": "YOUR_CATEGORY_ID_HERE"
+}
+
+###
+
+### 19. 상품 수정 - 권한 없음 (403 에러)
+# 다른 판매자의 상품을 수정하려고 시도
+PUT http://localhost:8081/api/product/YOUR_PRODUCT_ID_HERE
+Content-Type: application/json
+X-User-Id: 999e8400-e29b-41d4-a716-446655440999
+
+{
+  "title": "해킹 시도",
+  "description": "다른 사람 상품 수정",
+  "price": 1000,
+  "stockQuantity": 1,
+  "categoryId": "YOUR_CATEGORY_ID_HERE"
+}
+
+###
+
+### 20. 상품 수정 - Validation 에러
+PUT http://localhost:8081/api/product/YOUR_PRODUCT_ID_HERE
+Content-Type: application/json
+X-User-Id: 550e8400-e29b-41d4-a716-446655440000
+
+{
+  "title": "",
+  "description": "설명",
+  "price": -5000,
+  "stockQuantity": -10,
+  "categoryId": "YOUR_CATEGORY_ID_HERE"
+}
+
+###
+
+### 21. 상품 삭제 (정상) - 본인 상품
+# 먼저 11번 요청으로 내 상품 조회 후, productId를 복사해서 아래에 붙여넣기
+DELETE http://localhost:8081/api/product/YOUR_PRODUCT_ID_HERE
+X-User-Id: 550e8400-e29b-41d4-a716-446655440000
+
+###
+
+### 22. 상품 삭제 - 권한 없음 (403 에러)
+DELETE http://localhost:8081/api/product/YOUR_PRODUCT_ID_HERE
+X-User-Id: 999e8400-e29b-41d4-a716-446655440999
+
+###
+
+### 23. 상품 삭제 - 이미 삭제된 상품 (409 에러)
+# 21번 요청을 두 번 실행하면 발생
+DELETE http://localhost:8081/api/product/YOUR_PRODUCT_ID_HERE
+X-User-Id: 550e8400-e29b-41d4-a716-446655440000
+
+###
+
+### 24. 상품 삭제 - 존재하지 않는 상품 (404 에러)
+DELETE http://localhost:8081/api/product/00000000-0000-0000-0000-000000000000
+X-User-Id: 550e8400-e29b-41d4-a716-446655440000
+
+###
