@@ -15,6 +15,10 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "wallet", schema = "payment")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+/**
+ * 회원의 payment 잔액을 관리하는 wallet aggregate다.
+ * 잔액 증감과 최종 balance 반영 규칙을 엔티티 내부에서 보장한다.
+ */
 public class Wallet {
 
     @Id
@@ -51,11 +55,17 @@ public class Wallet {
         return new Wallet(walletId, memberId, balance, updatedAt, createdAt);
     }
 
+    /**
+     * 외부에서 계산된 최종 balance를 그대로 반영한다.
+     */
     public void applyTransaction(Long balanceAfter, LocalDateTime updatedAt) {
         this.balance = Objects.requireNonNull(balanceAfter);
         this.updatedAt = Objects.requireNonNull(updatedAt);
     }
 
+    /**
+     * wallet 잔액을 증가시키고 반영 후 balance를 반환한다.
+     */
     public Long increaseBalance(Long amount, LocalDateTime updatedAt) {
         Objects.requireNonNull(amount);
         if (amount <= 0) {
@@ -67,6 +77,10 @@ public class Wallet {
         return this.balance;
     }
 
+    /**
+     * wallet 잔액을 차감하고 반영 후 balance를 반환한다.
+     * 부족한 잔액으로는 차감할 수 없다.
+     */
     public Long decreaseBalance(Long amount, LocalDateTime updatedAt) {
         Objects.requireNonNull(amount);
         if (amount <= 0) {

@@ -12,6 +12,10 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 @Component
+/**
+ * releaseAt이 지난 escrow를 주기적으로 자동 구매확정 경로로 넘기는 scheduler다.
+ * scheduler는 대상 조회와 command 생성만 담당하고, 실제 정산과 멱등 처리는 release usecase에 위임한다.
+ */
 public class EscrowAutoReleaseScheduler {
 
     private final EscrowRepository escrowRepository;
@@ -29,6 +33,9 @@ public class EscrowAutoReleaseScheduler {
     }
 
     @Scheduled(fixedDelayString = "${payment.escrow.auto-release.fixed-delay-ms:60000}")
+    /**
+     * 현재 시각 기준 자동 해제 대상 escrow를 조회해 AUTO confirmation으로 release를 요청한다.
+     */
     public void releaseDueEscrows() {
         LocalDateTime now = timeProvider.now();
         List<Escrow> releaseTargets = escrowRepository.findReleaseTargets(now);

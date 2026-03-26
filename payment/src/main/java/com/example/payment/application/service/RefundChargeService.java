@@ -24,6 +24,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional
+/**
+ * 충전 환불 유스케이스를 담당한다.
+ * 승인된 charge를 기준으로 환불 가능 상태를 확인하고, PG 취소 성공 후 wallet 잔액을 차감한다.
+ */
 public class RefundChargeService implements ChargeRefundUseCase {
 
     private final ChargeRepository chargeRepository;
@@ -53,6 +57,10 @@ public class RefundChargeService implements ChargeRefundUseCase {
     }
 
     @Override
+    /**
+     * 환불 가능한 charge인지 먼저 검증한 뒤 PG 취소와 wallet 차감을 순서대로 수행한다.
+     * PG 취소가 실패하면 failed refund 이력만 남기고 charge와 wallet 상태는 유지한다.
+     */
     public ChargeRefundResult refundCharge(ChargeRefundCommand command) {
         validateCommand(command);
 
@@ -133,6 +141,10 @@ public class RefundChargeService implements ChargeRefundUseCase {
         }
     }
 
+    /**
+     * 환불 PG 호출 실패를 refund 이력으로 남긴다.
+     * 실제 환불 완료 이력과 분리해서 저장해 재시도 또는 원인 추적이 가능하도록 한다.
+     */
     private void failRefund(Charge charge, String refundReason, LocalDateTime refundRequestedAt, String failureReason) {
         LocalDateTime failedAt = timeProvider.now();
         ChargeRefund chargeRefund = ChargeRefund.failed(

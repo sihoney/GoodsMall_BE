@@ -6,6 +6,10 @@ import org.springframework.http.HttpStatus;
 
 @Getter
 @RequiredArgsConstructor
+/**
+ * payment 예외 응답의 표준 코드와 기본 메시지를 정의한다.
+ * 공통 예외는 이 enum을 기준으로 HTTP 상태와 응답 코드를 일관되게 노출한다.
+ */
 public enum ErrorCode {
 
     INVALID_CHARGE_REQUEST(HttpStatus.BAD_REQUEST, "충전 요청이 올바르지 않습니다."),

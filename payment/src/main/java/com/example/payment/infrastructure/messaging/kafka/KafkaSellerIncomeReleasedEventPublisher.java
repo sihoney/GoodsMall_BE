@@ -8,6 +8,9 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
+/**
+ * 판매자 정산 완료 내부 이벤트를 Kafka 계약 메시지로 변환해 발행하는 adapter다.
+ */
 public class KafkaSellerIncomeReleasedEventPublisher implements SellerIncomeReleasedEventPublisher {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
@@ -22,6 +25,9 @@ public class KafkaSellerIncomeReleasedEventPublisher implements SellerIncomeRele
     }
 
     @Override
+    /**
+     * 내부 정산 이벤트를 seller income released 메시지로 바꿔 orderId key로 발행한다.
+     */
     public void publish(SellerIncomeReleasedEvent event) {
         kafkaTemplate.send(topic, String.valueOf(event.orderId()), new SellerIncomeReleasedMessage(
                 event.orderId(),

@@ -5,6 +5,9 @@ import com.example.payment.domain.enumtype.EscrowStatus;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * 주문 결제 API의 응답 DTO다.
+ */
 public record OrderPaymentResponse(
         UUID orderId,
         UUID buyerWalletId,
@@ -15,6 +18,9 @@ public record OrderPaymentResponse(
         LocalDateTime releaseAt
 ) {
 
+    /**
+     * application 결과를 presentation 응답 형식으로 변환한다.
+     */
     public static OrderPaymentResponse from(OrderPaymentResult result) {
         return new OrderPaymentResponse(
                 result.orderId(),

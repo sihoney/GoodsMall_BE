@@ -22,6 +22,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional
+/**
+ * 충전 승인 유스케이스를 담당한다.
+ * 요청 단계에서 생성된 PENDING charge를 기준으로 PG 승인 결과를 검증하고,
+ * 승인 성공 시 charge와 wallet을 함께 반영한다.
+ */
 public class ConfirmChargeService implements ChargeConfirmUseCase {
 
     private final ChargeRepository chargeRepository;
@@ -48,6 +53,10 @@ public class ConfirmChargeService implements ChargeConfirmUseCase {
     }
 
     @Override
+    /**
+     * charge 요청 정보와 PG 승인 응답을 대조한 뒤 wallet 잔액을 증가시킨다.
+     * PG 호출이 실패하면 charge만 FAILED로 기록하고 wallet 변경은 수행하지 않는다.
+     */
     public ChargeConfirmResult confirmCharge(ChargeConfirmCommand command) {
         validateCommand(command);
 
@@ -126,6 +135,10 @@ public class ConfirmChargeService implements ChargeConfirmUseCase {
         }
     }
 
+    /**
+     * PG 승인 실패를 charge 이력에 남긴다.
+     * wallet 반영 이전 단계에서만 호출되므로 실패 기록과 지갑 변경이 섞이지 않는다.
+     */
     private void failCharge(Charge charge, String failureReason) {
         charge.fail(resolveFailureReason(failureReason), timeProvider.now());
         chargeRepository.save(charge);

@@ -10,6 +10,10 @@ import java.util.UUID;
 import org.springframework.stereotype.Repository;
 
 @Repository
+/**
+ * EscrowRepository 포트를 Spring Data JPA로 연결하는 adapter다.
+ * 자동 해제 대상 조회는 HELD + releaseAt 조건으로 한정한다.
+ */
 public class EscrowRepositoryImpl implements EscrowRepository {
 
     private final EscrowJpaRepository escrowJpaRepository;

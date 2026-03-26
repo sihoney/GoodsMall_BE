@@ -9,6 +9,10 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
 @Component
+/**
+ * 수동 구매확정 이벤트를 escrow release 유스케이스로 연결하는 Kafka consumer다.
+ * consumer는 MANUAL 계약 검증과 command 변환만 담당하고, 정산 정책은 usecase에 위임한다.
+ */
 public class OrderPurchaseConfirmedEventConsumer {
 
     private final EscrowReleaseUseCase escrowReleaseUseCase;
@@ -22,6 +26,10 @@ public class OrderPurchaseConfirmedEventConsumer {
             groupId = "${payment.kafka.consumer-groups.order-purchase-confirmed:payment-service}",
             containerFactory = "orderPurchaseConfirmedKafkaListenerContainerFactory"
     )
+    /**
+     * 수동 구매확정 이벤트만 escrow release 요청으로 전달한다.
+     * AUTO 구매확정은 scheduler 경로에서 처리되므로 consumer 단계에서 차단한다.
+     */
     public void listen(OrderPurchaseConfirmedMessage event) {
         validateEvent(event);
         escrowReleaseUseCase.releaseEscrow(new EscrowReleaseCommand(
@@ -31,6 +39,9 @@ public class OrderPurchaseConfirmedEventConsumer {
         ));
     }
 
+    /**
+     * 구매확정 이벤트 계약과 허용 confirmation type을 검증한다.
+     */
     private void validateEvent(OrderPurchaseConfirmedMessage event) {
         if (event == null) {
             throw new InvalidOrderPaymentRequestException("orderPurchaseConfirmed event is required.");

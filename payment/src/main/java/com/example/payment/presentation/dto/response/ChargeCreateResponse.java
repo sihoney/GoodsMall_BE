@@ -5,6 +5,9 @@ import com.example.payment.domain.enumtype.ChargeStatus;
 import com.example.payment.domain.enumtype.PgProvider;
 import java.util.UUID;
 
+/**
+ * 충전 요청 생성 API의 응답 DTO다.
+ */
 public record ChargeCreateResponse(
         UUID chargeId,
         UUID walletId,
@@ -14,6 +17,9 @@ public record ChargeCreateResponse(
         ChargeStatus chargeStatus
 ) {
 
+    /**
+     * application 결과를 presentation 응답 형식으로 변환한다.
+     */
     public static ChargeCreateResponse from(ChargeCreateResult result) {
         return new ChargeCreateResponse(
                 result.chargeId(),

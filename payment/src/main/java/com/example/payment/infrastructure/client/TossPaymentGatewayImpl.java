@@ -15,6 +15,10 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
 @Component
+/**
+ * Toss Payments API 호출을 담당하는 infrastructure adapter다.
+ * 외부 응답 형식과 클라이언트 예외를 payment 공통 예외로 변환해 application 계층에 전달한다.
+ */
 public class TossPaymentGatewayImpl implements TossPaymentGateway {
 
     private final RestClient restClient;
@@ -30,6 +34,10 @@ public class TossPaymentGatewayImpl implements TossPaymentGateway {
     }
 
     @Override
+    /**
+     * Toss 승인 API를 호출하고 application에서 필요한 최소 응답만 추려 반환한다.
+     * HTTP 오류, 빈 응답, 파싱 오류는 모두 PaymentGatewayException으로 통일한다.
+     */
     public TossPaymentConfirmation confirm(String paymentKey, String orderId, Long amount) {
         validateConfiguration();
 
@@ -71,6 +79,10 @@ public class TossPaymentGatewayImpl implements TossPaymentGateway {
     }
 
     @Override
+    /**
+     * Toss 취소 API를 호출하고 마지막 cancel 항목을 기준으로 환불 결과를 구성한다.
+     * 승인과 동일하게 외부 통신 및 응답 오류는 PaymentGatewayException으로 감싼다.
+     */
     public TossPaymentCancellation cancel(String paymentKey, String cancelReason, Long cancelAmount) {
         validateConfiguration();
 
@@ -111,6 +123,9 @@ public class TossPaymentGatewayImpl implements TossPaymentGateway {
         }
     }
 
+    /**
+     * 외부 API 호출 전 필수 설정값을 확인한다.
+     */
     private void validateConfiguration() {
         if (isBlank(properties.baseUrl())) {
             throw new PaymentGatewayException("toss.payments.base-url is required.");
