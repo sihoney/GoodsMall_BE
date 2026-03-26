@@ -1,15 +1,16 @@
 package com.example.member.application.service;
 
 import com.example.member.application.dto.MemberCreateCommand;
+import com.example.member.application.event.MemberEventPublisher;
 import com.example.member.application.usecase.MemberUsecase;
+import com.example.member.common.exception.DuplicateMemberEmailException;
+import com.example.member.common.exception.MemberNotFoundException;
 import com.example.member.domain.entity.Member;
 import com.example.member.domain.enumtype.MemberRole;
 import com.example.member.domain.enumtype.MemberStatus;
-import com.example.member.common.exception.DuplicateMemberEmailException;
-import com.example.member.common.exception.MemberNotFoundException;
 import com.example.member.infrastructure.repository.MemberRepository;
-import com.example.member.presentation.dto.CreateMemberResponse;
 import com.example.member.presentation.dto.CreateMemberRequest;
+import com.example.member.presentation.dto.CreateMemberResponse;
 import com.example.member.presentation.dto.MemberResponse;
 import com.example.member.presentation.dto.UpdateMemberRequest;
 import java.time.LocalDateTime;
@@ -19,8 +20,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-// TODO: usecase(interface) 분리
-
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
@@ -28,15 +27,14 @@ public class MemberService implements MemberUsecase {
 
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
+    private final MemberEventPublisher memberEventPublisher;
 
-    // 1. 회원가입
     @Transactional
     @Override
     public CreateMemberResponse createMember(CreateMemberRequest request) {
         validateCreateRequest(request);
         MemberCreateCommand command = MemberCreateCommand.from(request);
 
-        // 이메일 중복 검사
         String email = normalizeRequired(command.email(), "email");
         if (memberRepository.existsByEmail(email)) {
             throw new DuplicateMemberEmailException();
@@ -51,29 +49,27 @@ public class MemberService implements MemberUsecase {
                 normalizeNullable(command.phone()),
                 normalizeNullable(command.address()),
                 normalizeNullable(command.profileImageUrl()),
-                request.role() == null ? MemberRole.USER : request.role(), // 기본 역할(MemberRole.USER) 저장
-                MemberStatus.ACTIVE, // 상태 저장
+                command.role() == null ? MemberRole.USER : command.role(),
+                MemberStatus.ACTIVE,
                 now,
                 now
         );
 
-        // TODO: wallet 자동 생성 붙이기
-
-        return CreateMemberResponse.from(memberRepository.save(member)); // email, phone, address, password 제외
+        Member savedMember = memberRepository.save(member);
+        memberEventPublisher.publishMemberSignedUp(savedMember); // 회원 가입 이벤트 발행
+        return CreateMemberResponse.from(savedMember);
     }
 
-    // 회원정보 조회
+    @Override
     public MemberResponse getMember(UUID memberId) {
         return MemberResponse.from(getMemberEntity(memberId));
     }
 
-    // 인증된 회원정보 조회
     @Override
     public MemberResponse getCurrentMember(UUID memberId) {
         return MemberResponse.from(getMemberEntity(memberId));
     }
 
-    // 회원정보 수정
     @Transactional
     @Override
     public MemberResponse updateMember(UUID memberId, UpdateMemberRequest request) {
@@ -99,6 +95,7 @@ public class MemberService implements MemberUsecase {
     }
 
     @Transactional
+    @Override
     public MemberResponse updateCurrentMember(UUID memberId, UpdateMemberRequest request) {
         return updateMember(memberId, request);
     }
@@ -110,20 +107,20 @@ public class MemberService implements MemberUsecase {
 
     private void validateCreateRequest(CreateMemberRequest request) {
         if (request == null) {
-            throw new IllegalArgumentException("회원가입 요청 본문이 필요합니다.");
+            throw new IllegalArgumentException("Create member request body is required.");
         }
     }
 
     private void validateUpdateRequest(UpdateMemberRequest request) {
         if (request == null) {
-            throw new IllegalArgumentException("회원 수정 요청 본문이 필요합니다.");
+            throw new IllegalArgumentException("Update member request body is required.");
         }
     }
 
     private String normalizeRequired(String value, String fieldName) {
         String normalized = normalizeNullable(value);
         if (normalized == null) {
-            throw new IllegalArgumentException(fieldName + " 값은 필수입니다.");
+            throw new IllegalArgumentException(fieldName + " is required.");
         }
         return normalized;
     }
