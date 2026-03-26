@@ -2,6 +2,7 @@ package com.example.payment.application.service;
 
 import com.example.payment.application.dto.EscrowReleaseCommand;
 import com.example.payment.application.dto.EscrowReleaseResult;
+import com.example.payment.application.event.AutoPurchaseConfirmedEvent;
 import com.example.payment.application.event.SellerIncomeReleasedEvent;
 import com.example.payment.application.usecase.EscrowReleaseUseCase;
 import com.example.payment.domain.entity.Escrow;
@@ -17,6 +18,7 @@ import com.example.payment.domain.exception.WalletNotFoundException;
 import com.example.payment.domain.repository.EscrowRepository;
 import com.example.payment.domain.repository.WalletRepository;
 import com.example.payment.domain.repository.WalletTransactionRepository;
+import com.example.payment.domain.service.AutoPurchaseConfirmedEventPublisher;
 import com.example.payment.domain.service.IdentifierGenerator;
 import com.example.payment.domain.service.SellerIncomeReleasedEventPublisher;
 import com.example.payment.domain.service.TimeProvider;
@@ -32,6 +34,7 @@ public class EscrowReleaseService implements EscrowReleaseUseCase {
     private final WalletRepository walletRepository;
     private final WalletTransactionRepository walletTransactionRepository;
     private final IdentifierGenerator identifierGenerator;
+    private final AutoPurchaseConfirmedEventPublisher autoPurchaseConfirmedEventPublisher;
     private final SellerIncomeReleasedEventPublisher sellerIncomeReleasedEventPublisher;
     private final TimeProvider timeProvider;
 
@@ -40,6 +43,7 @@ public class EscrowReleaseService implements EscrowReleaseUseCase {
             WalletRepository walletRepository,
             WalletTransactionRepository walletTransactionRepository,
             IdentifierGenerator identifierGenerator,
+            AutoPurchaseConfirmedEventPublisher autoPurchaseConfirmedEventPublisher,
             SellerIncomeReleasedEventPublisher sellerIncomeReleasedEventPublisher,
             TimeProvider timeProvider
     ) {
@@ -47,6 +51,7 @@ public class EscrowReleaseService implements EscrowReleaseUseCase {
         this.walletRepository = walletRepository;
         this.walletTransactionRepository = walletTransactionRepository;
         this.identifierGenerator = identifierGenerator;
+        this.autoPurchaseConfirmedEventPublisher = autoPurchaseConfirmedEventPublisher;
         this.sellerIncomeReleasedEventPublisher = sellerIncomeReleasedEventPublisher;
         this.timeProvider = timeProvider;
     }
@@ -96,6 +101,13 @@ public class EscrowReleaseService implements EscrowReleaseUseCase {
                 escrow.getReleasedAt(),
                 command.confirmationType()
         ));
+        if (command.confirmationType() == ConfirmationType.AUTO) {
+            autoPurchaseConfirmedEventPublisher.publish(new AutoPurchaseConfirmedEvent(
+                    escrow.getOrderId(),
+                    escrow.getBuyerMemberId(),
+                    escrow.getReleasedAt()
+            ));
+        }
 
         return new EscrowReleaseResult(
                 escrow.getOrderId(),

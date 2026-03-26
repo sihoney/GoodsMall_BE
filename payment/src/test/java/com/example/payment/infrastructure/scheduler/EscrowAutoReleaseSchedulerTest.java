@@ -43,8 +43,9 @@ class EscrowAutoReleaseSchedulerTest {
     void releaseDueEscrows_callsReleaseUseCaseForTargets() {
         LocalDateTime now = LocalDateTime.of(2024, 1, 10, 10, 0, 0);
         UUID orderId = UUID.randomUUID();
+        UUID buyerMemberId = UUID.randomUUID();
         UUID sellerMemberId = UUID.randomUUID();
-        Escrow escrow = Escrow.createHeld(UUID.randomUUID(), orderId, sellerMemberId, 10_000L, now.minusMinutes(1), now.minusDays(7));
+        Escrow escrow = Escrow.createHeld(UUID.randomUUID(), orderId, buyerMemberId, sellerMemberId, 10_000L, now.minusMinutes(1), now.minusDays(7));
 
         when(timeProvider.now()).thenReturn(now);
         when(escrowRepository.findReleaseTargets(now)).thenReturn(List.of(escrow));
@@ -61,8 +62,9 @@ class EscrowAutoReleaseSchedulerTest {
     void releaseDueEscrows_ignoresAlreadyReleasedException() {
         LocalDateTime now = LocalDateTime.of(2024, 1, 10, 10, 0, 0);
         UUID orderId = UUID.randomUUID();
+        UUID buyerMemberId = UUID.randomUUID();
         UUID sellerMemberId = UUID.randomUUID();
-        Escrow escrow = Escrow.createHeld(UUID.randomUUID(), orderId, sellerMemberId, 10_000L, now.minusMinutes(1), now.minusDays(7));
+        Escrow escrow = Escrow.createHeld(UUID.randomUUID(), orderId, buyerMemberId, sellerMemberId, 10_000L, now.minusMinutes(1), now.minusDays(7));
 
         when(timeProvider.now()).thenReturn(now);
         when(escrowRepository.findReleaseTargets(now)).thenReturn(List.of(escrow));

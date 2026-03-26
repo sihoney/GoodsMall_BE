@@ -67,6 +67,7 @@ public class OrderPaymentService implements OrderPaymentUseCase {
         Escrow escrow = Escrow.createHeld(
                 identifierGenerator.generateUuid(),
                 command.orderId(),
+                command.buyerMemberId(),
                 command.sellerMemberId(),
                 command.sellerReceivableAmount(),
                 command.releaseAt(),

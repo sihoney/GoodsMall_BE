@@ -118,7 +118,7 @@ class OrderPaymentServiceTest {
                     10_000L,
                     null
             );
-            Escrow existingEscrow = Escrow.createHeld(escrowId, orderId, sellerMemberId, 10_000L, null, now);
+        Escrow existingEscrow = Escrow.createHeld(escrowId, orderId, buyerMemberId, sellerMemberId, 10_000L, null, now);
 
             given(escrowRepository.findByOrderId(orderId)).willReturn(Optional.of(existingEscrow));
 
