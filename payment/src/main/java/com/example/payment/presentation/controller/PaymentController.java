@@ -3,21 +3,16 @@ package com.example.payment.presentation.controller;
 import com.example.payment.application.dto.ChargeConfirmCommand;
 import com.example.payment.application.dto.ChargeCreateCommand;
 import com.example.payment.application.dto.ChargeRefundCommand;
-import com.example.payment.application.dto.EscrowReleaseCommand;
 import com.example.payment.application.usecase.ChargeConfirmUseCase;
 import com.example.payment.application.usecase.ChargeCreateUseCase;
 import com.example.payment.application.usecase.ChargeRefundUseCase;
-import com.example.payment.application.usecase.EscrowReleaseUseCase;
-import com.example.payment.domain.enumtype.ConfirmationType;
 import com.example.payment.domain.enumtype.PgProvider;
 import com.example.payment.presentation.dto.request.ChargeConfirmRequest;
 import com.example.payment.presentation.dto.request.ChargeCreateRequest;
 import com.example.payment.presentation.dto.request.ChargeRefundRequest;
-import com.example.payment.presentation.dto.request.ManualPurchaseConfirmRequest;
 import com.example.payment.presentation.dto.response.ChargeConfirmResponse;
 import com.example.payment.presentation.dto.response.ChargeCreateResponse;
 import com.example.payment.presentation.dto.response.ChargeRefundResponse;
-import com.example.payment.presentation.dto.response.ManualPurchaseConfirmResponse;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -34,18 +29,15 @@ public class PaymentController {
 	private final ChargeCreateUseCase chargeCreateUseCase;
 	private final ChargeConfirmUseCase chargeConfirmUseCase;
 	private final ChargeRefundUseCase chargeRefundUseCase;
-	private final EscrowReleaseUseCase escrowReleaseUseCase;
 
 	public PaymentController(
 			ChargeCreateUseCase chargeCreateUseCase,
 			ChargeConfirmUseCase chargeConfirmUseCase,
-			ChargeRefundUseCase chargeRefundUseCase,
-			EscrowReleaseUseCase escrowReleaseUseCase
+			ChargeRefundUseCase chargeRefundUseCase
 	) {
 		this.chargeCreateUseCase = chargeCreateUseCase;
 		this.chargeConfirmUseCase = chargeConfirmUseCase;
 		this.chargeRefundUseCase = chargeRefundUseCase;
-		this.escrowReleaseUseCase = escrowReleaseUseCase;
 	}
 
 	@PostMapping("/charge")
@@ -75,18 +67,5 @@ public class PaymentController {
 	) {
 		ChargeRefundCommand command = new ChargeRefundCommand(chargeId, request.refundReason());
 		return ChargeRefundResponse.from(chargeRefundUseCase.refundCharge(command));
-	}
-
-	@PostMapping("/orders/{orderId}/confirm")
-	public ManualPurchaseConfirmResponse confirmPurchase(
-			@PathVariable UUID orderId,
-			@Valid @RequestBody ManualPurchaseConfirmRequest request
-	) {
-		EscrowReleaseCommand command = new EscrowReleaseCommand(
-				orderId,
-				request.sellerMemberId(),
-				ConfirmationType.MANUAL
-		);
-		return ManualPurchaseConfirmResponse.from(escrowReleaseUseCase.releaseEscrow(command));
 	}
 }

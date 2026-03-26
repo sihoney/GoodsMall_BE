@@ -2,6 +2,7 @@ package com.example.payment.infrastructure.messaging.kafka;
 
 import com.example.payment.application.dto.EscrowReleaseScheduleCommand;
 import com.example.payment.application.usecase.EscrowReleaseScheduleUseCase;
+import com.example.payment.domain.exception.EscrowNotHeldException;
 import com.example.payment.domain.exception.EscrowReleaseAlreadyScheduledException;
 import com.example.payment.domain.exception.InvalidOrderPaymentRequestException;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderDeliveryCompletedMessage;
@@ -30,8 +31,8 @@ public class OrderDeliveryCompletedEventConsumer {
                     event.orderId(),
                     event.deliveredAt()
             ));
-        } catch (EscrowReleaseAlreadyScheduledException ignored) {
-            // Duplicate delivery completed event should not reschedule releaseAt.
+        } catch (EscrowReleaseAlreadyScheduledException | EscrowNotHeldException ignored) {
+            // Duplicate or already-processed delivery completed event should not reschedule releaseAt.
         }
     }
 

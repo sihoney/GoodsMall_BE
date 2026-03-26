@@ -3,9 +3,13 @@ package com.example.payment.infrastructure.messaging.kafka;
 import com.example.payment.application.dto.OrderPaymentResult;
 import com.example.payment.application.dto.OrderPaymentCommand;
 import com.example.payment.application.usecase.OrderPaymentUseCase;
+import com.example.payment.domain.entity.Escrow;
+import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.exception.InvalidOrderPaymentRequestException;
 import com.example.payment.domain.exception.OrderPaymentAlreadyCompletedException;
 import com.example.payment.domain.exception.WalletNotFoundException;
+import com.example.payment.domain.repository.EscrowRepository;
+import com.example.payment.domain.repository.WalletRepository;
 import com.example.payment.domain.service.OrderPaymentResultEventPublisher;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPaymentFailureReason;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPaymentRequestedMessage;
@@ -21,13 +25,19 @@ public class OrderPaymentRequestedEventConsumer {
 
     private final OrderPaymentUseCase orderPaymentUseCase;
     private final OrderPaymentResultEventPublisher orderPaymentResultEventPublisher;
+    private final EscrowRepository escrowRepository;
+    private final WalletRepository walletRepository;
 
     public OrderPaymentRequestedEventConsumer(
             OrderPaymentUseCase orderPaymentUseCase,
-            OrderPaymentResultEventPublisher orderPaymentResultEventPublisher
+            OrderPaymentResultEventPublisher orderPaymentResultEventPublisher,
+            EscrowRepository escrowRepository,
+            WalletRepository walletRepository
     ) {
         this.orderPaymentUseCase = orderPaymentUseCase;
         this.orderPaymentResultEventPublisher = orderPaymentResultEventPublisher;
+        this.escrowRepository = escrowRepository;
+        this.walletRepository = walletRepository;
     }
 
     @KafkaListener(
@@ -49,11 +59,7 @@ public class OrderPaymentRequestedEventConsumer {
             ));
             orderPaymentResultEventPublisher.publish(successMessage(event, result));
         } catch (OrderPaymentAlreadyCompletedException ignored) {
-            orderPaymentResultEventPublisher.publish(failureMessage(
-                    event,
-                    OrderPaymentFailureReason.DUPLICATE_ORDER_PAYMENT,
-                    ignored.getMessage()
-            ));
+            orderPaymentResultEventPublisher.publish(duplicateSuccessMessage(event));
         } catch (WalletNotFoundException e) {
             orderPaymentResultEventPublisher.publish(failureMessage(
                     event,
@@ -115,6 +121,30 @@ public class OrderPaymentRequestedEventConsumer {
                 null,
                 reason,
                 failureMessage,
+                LocalDateTime.now()
+        );
+    }
+
+    private OrderPaymentResultMessage duplicateSuccessMessage(OrderPaymentRequestedMessage event) {
+        UUID escrowId = escrowRepository.findByOrderId(event.orderId())
+                .map(Escrow::getEscrowId)
+                .orElse(null);
+        UUID buyerWalletId = walletRepository.findByMemberId(event.buyerMemberId())
+                .map(Wallet::getWalletId)
+                .orElse(null);
+
+        return new OrderPaymentResultMessage(
+                newEventId(),
+                event.orderId(),
+                event.buyerMemberId(),
+                event.sellerMemberId(),
+                OrderPaymentResultStatus.SUCCESS,
+                event.orderAmount(),
+                event.sellerReceivableAmount(),
+                buyerWalletId,
+                escrowId,
+                null,
+                null,
                 LocalDateTime.now()
         );
     }

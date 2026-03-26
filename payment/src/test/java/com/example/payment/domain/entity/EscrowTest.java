@@ -1,6 +1,7 @@
 package com.example.payment.domain.entity;
 
 import com.example.payment.domain.enumtype.EscrowStatus;
+import com.example.payment.domain.exception.EscrowNotHeldException;
 import com.example.payment.domain.exception.EscrowReleaseAlreadyScheduledException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -98,7 +99,7 @@ class EscrowTest {
             escrow.release(createdAt.plusDays(3), createdAt.plusDays(3));
 
             assertThatThrownBy(() -> escrow.release(createdAt.plusDays(4), createdAt.plusDays(4)))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(EscrowNotHeldException.class)
                     .hasMessageContaining("Only held escrow can be changed.");
         }
     }
@@ -129,7 +130,7 @@ class EscrowTest {
             escrow.refund(createdAt.plusDays(1), createdAt.plusDays(1));
 
             assertThatThrownBy(() -> escrow.refund(createdAt.plusDays(2), createdAt.plusDays(2)))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(EscrowNotHeldException.class)
                     .hasMessageContaining("Only held escrow can be changed.");
         }
     }

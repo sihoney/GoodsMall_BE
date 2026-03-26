@@ -3,14 +3,16 @@ package com.example.payment.infrastructure.messaging.kafka;
 import com.example.payment.application.dto.OrderPaymentResult;
 import com.example.payment.application.dto.OrderPaymentCommand;
 import com.example.payment.application.usecase.OrderPaymentUseCase;
+import com.example.payment.domain.entity.Escrow;
+import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.exception.InvalidOrderPaymentRequestException;
 import com.example.payment.domain.exception.OrderPaymentAlreadyCompletedException;
 import com.example.payment.domain.exception.WalletNotFoundException;
+import com.example.payment.domain.repository.EscrowRepository;
+import com.example.payment.domain.repository.WalletRepository;
 import com.example.payment.domain.service.OrderPaymentResultEventPublisher;
-import com.example.payment.infrastructure.messaging.kafka.contract.OrderPaymentFailureReason;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPaymentRequestedMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPaymentResultMessage;
-import com.example.payment.infrastructure.messaging.kafka.contract.OrderPaymentResultStatus;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -38,6 +40,12 @@ class OrderPaymentRequestedEventConsumerTest {
 
     @Mock
     private OrderPaymentResultEventPublisher orderPaymentResultEventPublisher;
+
+    @Mock
+    private EscrowRepository escrowRepository;
+
+    @Mock
+    private WalletRepository walletRepository;
 
     @InjectMocks
     private OrderPaymentRequestedEventConsumer consumer;
@@ -83,11 +91,13 @@ class OrderPaymentRequestedEventConsumerTest {
     }
 
     @Test
-    @DisplayName("중복 결제 요청 이벤트는 무시한다")
-    void listen_duplicateEvent_ignoresAlreadyCompletedException() {
+    @DisplayName("중복 결제 요청 이벤트는 기존 성공 상태를 다시 발행한다")
+    void listen_duplicateEvent_publishesSuccessResult() {
         UUID orderId = UUID.randomUUID();
         UUID buyerMemberId = UUID.randomUUID();
         UUID sellerMemberId = UUID.randomUUID();
+        UUID escrowId = UUID.randomUUID();
+        UUID walletId = UUID.randomUUID();
         OrderPaymentRequestedMessage event = new OrderPaymentRequestedMessage(
                 "evt-1",
                 orderId,
@@ -97,15 +107,37 @@ class OrderPaymentRequestedEventConsumerTest {
                 10_000L,
                 LocalDateTime.of(2024, 1, 3, 10, 0, 0)
         );
+        Escrow existingEscrow = Escrow.createHeld(
+                escrowId,
+                orderId,
+                buyerMemberId,
+                sellerMemberId,
+                10_000L,
+                null,
+                LocalDateTime.of(2024, 1, 1, 10, 0, 0)
+        );
+        Wallet wallet = Wallet.create(
+                walletId,
+                buyerMemberId,
+                20_000L,
+                LocalDateTime.of(2024, 1, 1, 10, 0, 0),
+                LocalDateTime.of(2024, 1, 1, 10, 0, 0)
+        );
 
         doThrow(new OrderPaymentAlreadyCompletedException()).when(orderPaymentUseCase)
                 .payOrder(new OrderPaymentCommand(orderId, buyerMemberId, sellerMemberId, 12_000L, 10_000L, null));
+        given(escrowRepository.findByOrderId(orderId)).willReturn(java.util.Optional.of(existingEscrow));
+        given(walletRepository.findByMemberId(buyerMemberId)).willReturn(java.util.Optional.of(wallet));
 
         consumer.listen(event);
 
         verify(orderPaymentUseCase)
                 .payOrder(new OrderPaymentCommand(orderId, buyerMemberId, sellerMemberId, 12_000L, 10_000L, null));
-        verify(orderPaymentResultEventPublisher).publish(any(OrderPaymentResultMessage.class));
+        ArgumentCaptor<OrderPaymentResultMessage> captor = ArgumentCaptor.forClass(OrderPaymentResultMessage.class);
+        verify(orderPaymentResultEventPublisher).publish(captor.capture());
+        assertThat(captor.getValue().status()).isEqualTo(com.example.payment.infrastructure.messaging.kafka.contract.OrderPaymentResultStatus.SUCCESS);
+        assertThat(captor.getValue().escrowId()).isEqualTo(escrowId);
+        assertThat(captor.getValue().buyerWalletId()).isEqualTo(walletId);
     }
 
     @Test
@@ -131,8 +163,8 @@ class OrderPaymentRequestedEventConsumerTest {
 
         ArgumentCaptor<OrderPaymentResultMessage> captor = ArgumentCaptor.forClass(OrderPaymentResultMessage.class);
         verify(orderPaymentResultEventPublisher).publish(captor.capture());
-        assertThat(captor.getValue().status()).isEqualTo(OrderPaymentResultStatus.FAILED);
-        assertThat(captor.getValue().failureReason()).isEqualTo(OrderPaymentFailureReason.WALLET_NOT_FOUND);
+        assertThat(captor.getValue().status()).isEqualTo(com.example.payment.infrastructure.messaging.kafka.contract.OrderPaymentResultStatus.FAILED);
+        assertThat(captor.getValue().failureReason()).isEqualTo(com.example.payment.infrastructure.messaging.kafka.contract.OrderPaymentFailureReason.WALLET_NOT_FOUND);
     }
 
     @Test
