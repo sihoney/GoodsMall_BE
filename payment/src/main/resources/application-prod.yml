@@ -10,6 +10,17 @@ spring:
     url: ${DB_URL} # PostgreSQL URL
     username: ${DB_USER_NAME} # PostgreSQL 계정
     password: ${DB_USER_PASSWORD} # PostgreSQL 비밀번호
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.example.payment.infrastructure.messaging.kafka.contract
 
 server:
   port: 8082
@@ -29,6 +40,20 @@ toss:
     widget-enabled: ${TOSS_PAYMENTS_WIDGET_ENABLED:true}
 
 payment:
+  kafka:
+    topics:
+      member-created: ${PAYMENT_KAFKA_TOPIC_MEMBER_CREATED:member.created}
+      order-payment-requested: ${PAYMENT_KAFKA_TOPIC_ORDER_PAYMENT_REQUESTED:order.payment-requested}
+      order-payment-result: ${PAYMENT_KAFKA_TOPIC_ORDER_PAYMENT_RESULT:payment.order-payment-result}
+      order-delivery-completed: ${PAYMENT_KAFKA_TOPIC_ORDER_DELIVERY_COMPLETED:order.delivery-completed}
+      order-purchase-confirmed: ${PAYMENT_KAFKA_TOPIC_ORDER_PURCHASE_CONFIRMED:order.purchase-confirmed}
+      seller-income-released: ${PAYMENT_KAFKA_TOPIC_SELLER_INCOME_RELEASED:payment.seller-income-released}
+      auto-purchase-confirmed: ${PAYMENT_KAFKA_TOPIC_AUTO_PURCHASE_CONFIRMED:payment.auto-purchase-confirmed}
+    consumer-groups:
+      member-created: ${PAYMENT_KAFKA_CONSUMER_GROUP_MEMBER_CREATED:payment-service}
+      order-payment-requested: ${PAYMENT_KAFKA_CONSUMER_GROUP_ORDER_PAYMENT_REQUESTED:payment-service}
+      order-delivery-completed: ${PAYMENT_KAFKA_CONSUMER_GROUP_ORDER_DELIVERY_COMPLETED:payment-service}
+      order-purchase-confirmed: ${PAYMENT_KAFKA_CONSUMER_GROUP_ORDER_PURCHASE_CONFIRMED:payment-service}
   escrow:
     auto-release:
       fixed-delay-ms: ${PAYMENT_ESCROW_AUTO_RELEASE_FIXED_DELAY_MS:60000}

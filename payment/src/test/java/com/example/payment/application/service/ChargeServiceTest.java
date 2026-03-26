@@ -16,6 +16,7 @@ import com.example.payment.domain.exception.ChargeNotFoundException;
 import com.example.payment.domain.exception.ChargeStateException;
 import com.example.payment.domain.exception.InvalidChargeRequestException;
 import com.example.payment.domain.exception.PaymentGatewayException;
+import com.example.payment.domain.exception.WalletNotFoundException;
 import com.example.payment.domain.repository.ChargeRefundRepository;
 import com.example.payment.domain.repository.ChargeRepository;
 import com.example.payment.domain.repository.WalletRepository;
@@ -117,27 +118,18 @@ class ChargeServiceTest {
         }
 
         @Test
-        @DisplayName("지갑이 없을 때 충전 요청 시 새 지갑이 자동 생성된다")
-        void createCharge_noWallet_createsNewWallet() {
+        @DisplayName("지갑이 없을 때 충전 요청 시 WalletNotFoundException이 발생한다")
+        void createCharge_noWallet_throwsWalletNotFoundException() {
             // given
             ChargeCreateCommand command = new ChargeCreateCommand(memberId, 10_000L, PgProvider.TOSS);
-            UUID newWalletId = UUID.randomUUID();
-            Wallet newWallet = Wallet.create(newWalletId, memberId, 0L, now, now);
-
-            given(timeProvider.now()).willReturn(now);
             given(walletRepository.findByMemberId(memberId)).willReturn(Optional.empty());
-            given(identifierGenerator.generateUuid())
-                    .willReturn(newWalletId)   // wallet ID
-                    .willReturn(chargeId);     // charge ID
-            given(walletRepository.save(any(Wallet.class))).willReturn(newWallet);
-            given(chargeRepository.save(any(Charge.class))).willAnswer(inv -> inv.getArgument(0));
 
-            // when
-            ChargeCreateResult result = chargeService.createCharge(command);
-
-            // then
-            verify(walletRepository).save(any(Wallet.class));
-            assertThat(result.chargeStatus()).isEqualTo(ChargeStatus.PENDING);
+            // when & then
+            assertThatThrownBy(() -> chargeService.createCharge(command))
+                    .isInstanceOf(WalletNotFoundException.class)
+                    .hasMessageContaining("Wallet not found.");
+            verify(walletRepository, never()).save(any(Wallet.class));
+            verify(chargeRepository, never()).save(any(Charge.class));
         }
 
         @Test

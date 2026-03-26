@@ -5,6 +5,7 @@ import com.example.payment.application.dto.OrderPaymentResult;
 import com.example.payment.domain.entity.Escrow;
 import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.exception.InvalidOrderPaymentRequestException;
+import com.example.payment.domain.exception.OrderPaymentAlreadyCompletedException;
 import com.example.payment.domain.exception.WalletNotFoundException;
 import com.example.payment.domain.repository.EscrowRepository;
 import com.example.payment.domain.repository.WalletRepository;
@@ -123,7 +124,7 @@ class OrderPaymentServiceTest {
             given(escrowRepository.findByOrderId(orderId)).willReturn(Optional.of(existingEscrow));
 
             assertThatThrownBy(() -> orderPaymentService.payOrder(command))
-                    .isInstanceOf(InvalidOrderPaymentRequestException.class)
+                    .isInstanceOf(OrderPaymentAlreadyCompletedException.class)
                     .hasMessageContaining("already been completed");
 
             verify(walletRepository, never()).save(any());

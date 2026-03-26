@@ -1,6 +1,8 @@
 package com.example.payment.domain.entity;
 
 import com.example.payment.domain.enumtype.EscrowStatus;
+import com.example.payment.domain.exception.EscrowNotHeldException;
+import com.example.payment.domain.exception.EscrowReleaseAlreadyScheduledException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -163,10 +165,10 @@ public class Escrow {
 
     public void scheduleReleaseAt(LocalDateTime releaseAt, LocalDateTime updatedAt) {
         if (!isHeld()) {
-            throw new IllegalStateException("Only held escrow can be scheduled.");
+            throw new EscrowNotHeldException("Only held escrow can be scheduled.");
         }
         if (this.releaseAt != null) {
-            throw new IllegalStateException("releaseAt has already been scheduled.");
+            throw new EscrowReleaseAlreadyScheduledException();
         }
         this.releaseAt = Objects.requireNonNull(releaseAt);
         this.updatedAt = Objects.requireNonNull(updatedAt);
@@ -174,7 +176,7 @@ public class Escrow {
 
     private void validateHeldStatus() {
         if (!isHeld()) {
-            throw new IllegalStateException("Only held escrow can be changed.");
+            throw new EscrowNotHeldException("Only held escrow can be changed.");
         }
     }
 
