@@ -44,6 +44,7 @@ payment:
     topics:
       member-created: ${PAYMENT_KAFKA_TOPIC_MEMBER_CREATED:member.created}
       order-payment-requested: ${PAYMENT_KAFKA_TOPIC_ORDER_PAYMENT_REQUESTED:order.payment-requested}
+      order-payment-result: ${PAYMENT_KAFKA_TOPIC_ORDER_PAYMENT_RESULT:payment.order-payment-result}
       order-delivery-completed: ${PAYMENT_KAFKA_TOPIC_ORDER_DELIVERY_COMPLETED:order.delivery-completed}
       order-purchase-confirmed: ${PAYMENT_KAFKA_TOPIC_ORDER_PURCHASE_CONFIRMED:order.purchase-confirmed}
       seller-income-released: ${PAYMENT_KAFKA_TOPIC_SELLER_INCOME_RELEASED:payment.seller-income-released}
