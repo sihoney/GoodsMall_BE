@@ -2,7 +2,7 @@ package com.example.product.infrastructure.repository;
 
 import com.example.product.domain.entity.Category;
 import com.example.product.domain.repository.CategoryRepository;
-import com.example.product.presentation.exception.CategoryNotFoundException;
+import com.example.product.common.exception.CategoryNotFoundException;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;

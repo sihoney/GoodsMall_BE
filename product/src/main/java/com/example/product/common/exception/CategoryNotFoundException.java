@@ -1,6 +1,4 @@
-package com.example.product.presentation.exception;
-
-import com.example.product.presentation.exception.dto.ErrorCode;
+package com.example.product.common.exception;
 
 public class CategoryNotFoundException extends CustomException {
     public CategoryNotFoundException() {

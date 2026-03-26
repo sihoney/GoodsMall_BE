@@ -1,5 +1,7 @@
 package com.example.product.domain.entity;
 
+import com.example.product.common.exception.ProductAlreadyDeletedException;
+import com.example.product.common.exception.SellerNotAuthorizedException;
 import com.example.product.domain.enumtype.ProductStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -98,5 +100,101 @@ public class Product {
         Category category
     ) {
         return new Product(sellerId, title, description, price, count, category);
+    }
+
+    public void validateSeller(UUID requestSellerId) {
+        if (!this.sellerId.equals(requestSellerId)) {
+            throw new SellerNotAuthorizedException();
+        }
+    }
+
+
+    public void updateProductInfo(String title, String description, BigDecimal price) {
+        validateTitle(title);
+        validatePrice(price);
+        this.title = title;
+        this.description = description;
+        this.price = price;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void updateCategory(Category newCategory) {
+        this.category = Objects.requireNonNull(newCategory, "카테고리는 필수입니다");
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void updateStock(Integer newStock) {
+        validateStock(newStock);
+        this.stockQuantity = newStock;
+
+        if (newStock == 0 && this.status == ProductStatus.ACTIVE) {
+            this.status = ProductStatus.SOLD_OUT;
+        }
+        if (newStock > 0 && this.status == ProductStatus.SOLD_OUT) {
+            this.status = ProductStatus.ACTIVE;
+        }
+        this.updatedAt = LocalDateTime.now();
+    }
+
+
+    public void updateStatus(ProductStatus newStatus) {
+        Objects.requireNonNull(newStatus, "상태는 필수입니다");
+
+        if (newStatus == ProductStatus.SOLD_OUT && this.stockQuantity > 0) {
+            throw new IllegalArgumentException("재고가 남아있는 상품은 품절 상태로 변경할 수 없습니다");
+        }
+
+        this.status = newStatus;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void delete() {
+        if (this.deletedAt != null) {
+            throw new ProductAlreadyDeletedException();
+        }
+        this.deletedAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+
+    public void increaseViewCount() {
+        this.viewCount++;
+    }
+
+
+    public boolean isDeleted() {
+        return this.deletedAt != null;
+    }
+
+    public boolean isActive() {
+        return this.status == ProductStatus.ACTIVE && !isDeleted();
+    }
+
+
+    private void validateTitle(String title) {
+        if (title == null || title.isBlank()) {
+            throw new IllegalArgumentException("상품명은 필수입니다");
+        }
+        if (title.length() > 255) {
+            throw new IllegalArgumentException("상품명은 255자를 초과할 수 없습니다");
+        }
+    }
+
+    private void validatePrice(BigDecimal price) {
+        if (price == null) {
+            throw new IllegalArgumentException("가격은 필수입니다");
+        }
+        if (price.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("가격은 0보다 커야 합니다");
+        }
+    }
+
+    private void validateStock(Integer stock) {
+        if (stock == null) {
+            throw new IllegalArgumentException("재고는 필수입니다");
+        }
+        if (stock < 0) {
+            throw new IllegalArgumentException("재고는 음수일 수 없습니다");
+        }
     }
 }
