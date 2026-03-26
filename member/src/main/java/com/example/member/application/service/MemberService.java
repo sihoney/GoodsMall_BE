@@ -1,12 +1,14 @@
 package com.example.member.application.service;
 
 import com.example.member.application.dto.MemberCreateCommand;
+import com.example.member.application.usecase.MemberUsecase;
 import com.example.member.domain.entity.Member;
 import com.example.member.domain.enumtype.MemberRole;
 import com.example.member.domain.enumtype.MemberStatus;
 import com.example.member.domain.exception.DuplicateMemberEmailException;
 import com.example.member.domain.exception.MemberNotFoundException;
 import com.example.member.infrastructure.repository.MemberRepository;
+import com.example.member.presentation.dto.CreateMemberResponse;
 import com.example.member.presentation.dto.CreateMemberRequest;
 import com.example.member.presentation.dto.MemberResponse;
 import com.example.member.presentation.dto.UpdateMemberRequest;
@@ -22,14 +24,15 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
-public class MemberService {
+public class MemberService implements MemberUsecase {
 
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
 
     // 1. 회원가입
     @Transactional
-    public MemberResponse createMember(CreateMemberRequest request) {
+    @Override
+    public CreateMemberResponse createMember(CreateMemberRequest request) {
         validateCreateRequest(request);
         MemberCreateCommand command = MemberCreateCommand.from(request);
 
@@ -43,7 +46,6 @@ public class MemberService {
         Member member = Member.create(
                 UUID.randomUUID(),
                 email,
-                // todo: 비밀번호 BCrypt 해싱
                 passwordEncoder.encode(normalizeRequired(command.password(), "password")),
                 normalizeRequired(command.nickname(), "nickname"),
                 normalizeNullable(command.phone()),
@@ -57,8 +59,7 @@ public class MemberService {
 
         // TODO: wallet 자동 생성 붙이기
 
-        // TODO: 민감 정보 제외 응답
-        return MemberResponse.from(memberRepository.save(member));
+        return CreateMemberResponse.from(memberRepository.save(member)); // email, phone, address, password 제외
     }
 
     // 회원정보 조회
@@ -67,12 +68,14 @@ public class MemberService {
     }
 
     // 인증된 회원정보 조회
+    @Override
     public MemberResponse getCurrentMember(UUID memberId) {
         return MemberResponse.from(getMemberEntity(memberId));
     }
 
     // 회원정보 수정
     @Transactional
+    @Override
     public MemberResponse updateMember(UUID memberId, UpdateMemberRequest request) {
         validateUpdateRequest(request);
 
@@ -99,9 +102,6 @@ public class MemberService {
     public MemberResponse updateCurrentMember(UUID memberId, UpdateMemberRequest request) {
         return updateMember(memberId, request);
     }
-
-    // todo: 로그인 검증(access/refresh token 발급)
-
 
     private Member getMemberEntity(UUID memberId) {
         return memberRepository.findById(memberId)

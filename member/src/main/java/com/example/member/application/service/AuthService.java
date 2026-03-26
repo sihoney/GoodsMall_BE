@@ -1,5 +1,6 @@
 package com.example.member.application.service;
 
+import com.example.member.application.usecase.AuthUsecase;
 import com.example.member.domain.entity.Member;
 import com.example.member.domain.exception.InvalidLoginException;
 import com.example.member.domain.exception.InvalidTokenException;
@@ -19,7 +20,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class AuthService {
+public class AuthService implements AuthUsecase {
 
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
