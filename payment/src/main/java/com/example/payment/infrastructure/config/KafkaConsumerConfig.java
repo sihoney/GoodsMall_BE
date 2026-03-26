@@ -27,7 +27,8 @@ public class KafkaConsumerConfig {
     }
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, MemberCreatedMessage> memberCreatedKafkaListenerContainerFactory(
+    public ConcurrentKafkaListenerContainerFactory<String, MemberCreatedMessage>
+        memberCreatedKafkaListenerContainerFactory(
             ConsumerFactory<String, MemberCreatedMessage> memberCreatedConsumerFactory
     ) {
         ConcurrentKafkaListenerContainerFactory<String, MemberCreatedMessage> factory =
@@ -53,7 +54,8 @@ public class KafkaConsumerConfig {
     }
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, OrderPaymentRequestedMessage> orderPaymentRequestedKafkaListenerContainerFactory(
+    public ConcurrentKafkaListenerContainerFactory<String, OrderPaymentRequestedMessage>
+        orderPaymentRequestedKafkaListenerContainerFactory(
             ConsumerFactory<String, OrderPaymentRequestedMessage> orderPaymentRequestedConsumerFactory
     ) {
         ConcurrentKafkaListenerContainerFactory<String, OrderPaymentRequestedMessage> factory =
@@ -71,7 +73,8 @@ public class KafkaConsumerConfig {
     }
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, OrderDeliveryCompletedMessage> orderDeliveryCompletedKafkaListenerContainerFactory(
+    public ConcurrentKafkaListenerContainerFactory<String, OrderDeliveryCompletedMessage>
+        orderDeliveryCompletedKafkaListenerContainerFactory(
             ConsumerFactory<String, OrderDeliveryCompletedMessage> orderDeliveryCompletedConsumerFactory
     ) {
         ConcurrentKafkaListenerContainerFactory<String, OrderDeliveryCompletedMessage> factory =
@@ -81,7 +84,8 @@ public class KafkaConsumerConfig {
     }
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, OrderPurchaseConfirmedMessage> orderPurchaseConfirmedKafkaListenerContainerFactory(
+    public ConcurrentKafkaListenerContainerFactory<String, OrderPurchaseConfirmedMessage>
+        orderPurchaseConfirmedKafkaListenerContainerFactory(
             ConsumerFactory<String, OrderPurchaseConfirmedMessage> orderPurchaseConfirmedConsumerFactory
     ) {
         ConcurrentKafkaListenerContainerFactory<String, OrderPurchaseConfirmedMessage> factory =

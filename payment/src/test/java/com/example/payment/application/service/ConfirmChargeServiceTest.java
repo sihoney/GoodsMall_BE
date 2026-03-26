@@ -35,7 +35,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("ConfirmChargeService test")
+@DisplayName("ConfirmChargeService 테스트")
 class ConfirmChargeServiceTest {
 
     @Mock
