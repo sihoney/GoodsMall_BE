@@ -1,7 +1,7 @@
 package com.example.member.presentation.resolver;
 
 import com.example.member.domain.enumtype.MemberRole;
-import com.example.member.domain.exception.InvalidTokenException;
+import com.example.member.common.exception.InvalidTokenException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.UUID;
 import org.springframework.core.MethodParameter;

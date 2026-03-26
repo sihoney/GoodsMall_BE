@@ -1,7 +1,7 @@
 package com.example.member.security;
 
 import com.example.member.domain.entity.Member;
-import com.example.member.domain.exception.InvalidTokenException;
+import com.example.member.common.exception.InvalidTokenException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;

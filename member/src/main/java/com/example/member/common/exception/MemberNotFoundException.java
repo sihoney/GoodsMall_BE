@@ -1,4 +1,4 @@
-package com.example.member.domain.exception;
+package com.example.member.common.exception;
 
 public class MemberNotFoundException extends RuntimeException {
 
