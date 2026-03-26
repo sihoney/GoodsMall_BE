@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+// TODO: access token 필요~! (gateway 작동되게 되면, 테스트 필요!)
 @RestController
 @RequestMapping("/api/v1/members")
 @RequiredArgsConstructor
@@ -32,6 +33,7 @@ public class MemberController {
 
     private final MemberService memberService;
 
+    // TODO: AuthController로 옮기기 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary="사용자 생성", description="사용자을 생성합니다.")

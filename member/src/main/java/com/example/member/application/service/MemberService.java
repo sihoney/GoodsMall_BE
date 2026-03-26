@@ -17,7 +17,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-// todo: usecase(interface) 분리
+// TODO: usecase(interface) 분리
 
 @Service
 @Transactional(readOnly = true)
@@ -55,9 +55,9 @@ public class MemberService {
                 now
         );
 
-        // todo: wallet 자동 생성 붙이기
+        // TODO: wallet 자동 생성 붙이기
 
-        // todo: 민감 정보 제외 응답
+        // TODO: 민감 정보 제외 응답
         return MemberResponse.from(memberRepository.save(member));
     }
 
@@ -66,6 +66,7 @@ public class MemberService {
         return MemberResponse.from(getMemberEntity(memberId));
     }
 
+    // 인증된 회원정보 조회
     public MemberResponse getCurrentMember(UUID memberId) {
         return MemberResponse.from(getMemberEntity(memberId));
     }
