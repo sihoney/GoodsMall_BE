@@ -1,7 +1,9 @@
 package com.example.product.application.service;
 
 import com.example.product.application.usecase.ProductCreateUseCase;
+import com.example.product.domain.entity.Category;
 import com.example.product.domain.entity.Product;
+import com.example.product.domain.repository.CategoryRepository;
 import com.example.product.domain.repository.ProductRepository;
 import com.example.product.presentation.dto.request.ProductCreateRequest;
 import com.example.product.presentation.dto.response.ProductResponse;
@@ -18,6 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProductCreateService implements ProductCreateUseCase {
 
     private final ProductRepository productRepository;
+    private final CategoryRepository categoryRepository;
+
 
     @Override
     public ProductResponse createProduct(String sellerId, ProductCreateRequest request) {
@@ -26,8 +30,10 @@ public class ProductCreateService implements ProductCreateUseCase {
             request.title(),
             request.description(),
             request.price(),
-            request.count()
+            request.stockQuantity(),
+            categoryRepository.findById(request.categoryId())
         );
+
         Product savedProduct = productRepository.save(product);
         return ProductResponse.from(savedProduct);
     }

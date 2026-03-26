@@ -3,7 +3,9 @@ package com.example.product.presentation.dto.request;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import java.math.BigDecimal;
+import java.util.UUID;
 
 /**
  * 상품 등록 요청 DTO
@@ -16,6 +18,9 @@ public record ProductCreateRequest(
         @NotNull(message = "가격은 필수입니다")
         @Positive(message = "가격은 0보다 커야 합니다")
         BigDecimal price,
-        Integer count
+        @NotNull
+        @PositiveOrZero
+        Integer stockQuantity,
+        @NotNull UUID categoryId
 ) {
 }

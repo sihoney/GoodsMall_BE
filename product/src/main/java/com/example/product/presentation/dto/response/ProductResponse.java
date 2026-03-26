@@ -27,7 +27,7 @@ public record ProductResponse(
                 product.getTitle(),
                 product.getDescription(),
                 product.getPrice(),
-                product.getCount(),
+                product.getStockQuantity(),
                 product.getStatus(),
                 product.getCreatedAt()
         );

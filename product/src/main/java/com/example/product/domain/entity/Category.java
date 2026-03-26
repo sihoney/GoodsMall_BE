@@ -2,7 +2,10 @@ package com.example.product.domain.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import java.util.Objects;
@@ -21,27 +24,67 @@ public class Category {
     @Column(name = "category_id", nullable = false, updatable = false)
     private UUID categoryId;
 
-    @Column(name = "name", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
+    private Category parent;
+
+    @Column(name = "name", nullable = false, length = 50)
     private String name;
+
+    @Column(name = "depth", nullable = false)
+    private Integer depth;
+
+    @Column(name = "sort_order", nullable = false)
+    private Integer sortOrder;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "product_id", nullable = false)
-    private UUID productId;
-
-    private Category(UUID categoryId, String name, LocalDateTime createdAt, UUID productId) {
-        this.categoryId = Objects.requireNonNull(categoryId);
+    private Category(
+        Category category,
+        String name,
+        Integer depth,
+        Integer sortOrder
+    ) {
+        this.categoryId = UUID.randomUUID();
+        this.parent = category;
         this.name = Objects.requireNonNull(name);
-        this.createdAt = Objects.requireNonNull(createdAt);
-        this.productId = Objects.requireNonNull(productId);
+        this.depth = Objects.requireNonNull(depth);
+        this.sortOrder = Objects.requireNonNull(sortOrder);
+        this.createdAt = LocalDateTime.now();
     }
 
-    public static Category create(UUID categoryId, String name, LocalDateTime createdAt, UUID productId) {
-        return new Category(categoryId, name, createdAt, productId);
+    /**
+     * 대분류 생성 (depth = 0, parentId = null)
+     */
+    public static Category createRoot(String name, Integer sortOrder) {
+        return new Category(null, name, 0, sortOrder);
     }
 
-    public void rename(String name) {
-        this.name = Objects.requireNonNull(name);
+    /**
+     * 하위 분류 생성 (중분류, 소분류)
+     * 부모의 depth + 1로 자동 설정
+     */
+    public static Category createChild(Category parent, String name, Integer sortOrder) {
+        Objects.requireNonNull(parent);
+        if (parent.depth >= 2) {
+            throw new IllegalArgumentException("소분류 이하로는 카테고리를 생성할 수 없습니다");
+        }
+        return new Category(parent, name, parent.getDepth() + 1, sortOrder);
+    }
+
+    public void changeName(String name) {
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("카테고리명은 비어있을 수 없습니다");
+        }
+        this.name = name;
+    }
+
+    public void changeSortOrder(Integer sortOrder) {
+        this.sortOrder = Objects.requireNonNull(sortOrder);
+    }
+
+    public boolean isRoot() {
+        return this.parent == null;
     }
 }

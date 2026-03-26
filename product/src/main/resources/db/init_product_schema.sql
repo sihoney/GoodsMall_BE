@@ -1,16 +1,17 @@
 CREATE TABLE product
 (
-    product_id  UUID PRIMARY KEY,
-    seller_id   UUID                                                                        NOT NULL,
-    title       VARCHAR(255)                                                                NOT NULL,
-    description TEXT,
-    price       DECIMAL(10, 2)                                                              NOT NULL,
-    count       INTEGER,
-    status      VARCHAR(20) CHECK (status IN ('ACTIVE', 'SOLD_OUT', 'INACTIVE', 'DELETED')) NOT NULL,
-    view_count  INTEGER   DEFAULT 0                                                         NOT NULL,
-    created_at  TIMESTAMP                                                                   NOT NULL,
-    updated_at  TIMESTAMP                                                                   NOT NULL,
-    deleted_at  TIMESTAMP DEFAULT NULL
+    product_id     UUID PRIMARY KEY,
+    seller_id      UUID                                                             NOT NULL,
+    category_id    UUID                                                             NOT NULL,
+    title          VARCHAR(255)                                                     NOT NULL,
+    description    TEXT,
+    price          DECIMAL(10, 2)                                                   NOT NULL,
+    stock_quantity INTEGER                                                          NOT NULL,
+    status         VARCHAR(20) CHECK (status IN ('ACTIVE', 'SOLD_OUT', 'INACTIVE')) NOT NULL,
+    view_count     INTEGER   DEFAULT 0                                              NOT NULL,
+    created_at     TIMESTAMP                                                        NOT NULL,
+    updated_at     TIMESTAMP                                                        NOT NULL,
+    deleted_at     TIMESTAMP DEFAULT NULL
 );
 
 -- 인덱스 생성
