@@ -7,6 +7,9 @@ import java.util.UUID;
 import org.springframework.stereotype.Repository;
 
 @Repository
+/**
+ * ChargeRepository 포트를 Spring Data JPA로 연결하는 adapter다.
+ */
 public class ChargeRepositoryImpl implements ChargeRepository {
 
     private final ChargeJpaRepository chargeJpaRepository;

@@ -5,6 +5,10 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import java.util.UUID;
 
+/**
+ * 충전 승인 API의 입력 DTO다.
+ * PG 승인 결과와 charge 식별 정보를 함께 전달한다.
+ */
 public record ChargeConfirmRequest(
         @NotNull(message = "chargeId is required.")
         UUID chargeId,

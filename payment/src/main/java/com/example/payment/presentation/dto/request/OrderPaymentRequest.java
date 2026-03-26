@@ -5,6 +5,10 @@ import jakarta.validation.constraints.Positive;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * 주문 결제 API의 입력 DTO다.
+ * 구매자 차감 금액과 seller 정산 예정 금액을 함께 전달한다.
+ */
 public record OrderPaymentRequest(
         @NotNull(message = "orderId is required.")
         UUID orderId,

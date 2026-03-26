@@ -1,20 +1,17 @@
 package com.example.payment.domain.entity;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.example.payment.domain.enumtype.EscrowStatus;
-import com.example.payment.domain.exception.EscrowNotHeldException;
-import com.example.payment.domain.exception.EscrowReleaseAlreadyScheduledException;
+import java.time.LocalDateTime;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDateTime;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
-@DisplayName("Escrow 도메인 테스트")
+@DisplayName("Escrow 엔티티 테스트")
 class EscrowTest {
 
     private UUID escrowId;
@@ -39,7 +36,7 @@ class EscrowTest {
     class CreateHeld {
 
         @Test
-        @DisplayName("createHeld() 생성 시 HELD 상태와 기본 필드가 올바르게 저장된다")
+        @DisplayName("createHeld() 생성 시 HELD 상태와 기본 필드가 저장된다")
         void createHeld_storesFieldsCorrectly() {
             Escrow escrow = Escrow.createHeld(escrowId, orderId, buyerMemberId, sellerMemberId, 12_000L, releaseAt, createdAt);
 
@@ -74,21 +71,20 @@ class EscrowTest {
     }
 
     @Nested
-    @DisplayName("Escrow.release() 해제 테스트")
+    @DisplayName("Escrow.release() 테스트")
     class Release {
 
         @Test
-        @DisplayName("HELD 상태에서는 RELEASED로 전이된다")
+        @DisplayName("HELD 상태에서 RELEASED로 전이된다")
         void release_heldEscrow_changesStatus() {
             Escrow escrow = Escrow.createHeld(escrowId, orderId, buyerMemberId, sellerMemberId, 12_000L, releaseAt, createdAt);
             LocalDateTime releasedAt = createdAt.plusDays(3);
-            LocalDateTime updatedAt = releasedAt;
 
-            escrow.release(releasedAt, updatedAt);
+            escrow.release(releasedAt, releasedAt);
 
             assertThat(escrow.getEscrowStatus()).isEqualTo(EscrowStatus.RELEASED);
             assertThat(escrow.getReleasedAt()).isEqualTo(releasedAt);
-            assertThat(escrow.getUpdatedAt()).isEqualTo(updatedAt);
+            assertThat(escrow.getUpdatedAt()).isEqualTo(releasedAt);
             assertThat(escrow.isReleased()).isTrue();
         }
 
@@ -99,27 +95,26 @@ class EscrowTest {
             escrow.release(createdAt.plusDays(3), createdAt.plusDays(3));
 
             assertThatThrownBy(() -> escrow.release(createdAt.plusDays(4), createdAt.plusDays(4)))
-                    .isInstanceOf(EscrowNotHeldException.class)
+                    .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("Only held escrow can be changed.");
         }
     }
 
     @Nested
-    @DisplayName("Escrow.refund() 환불 테스트")
+    @DisplayName("Escrow.refund() 테스트")
     class Refund {
 
         @Test
-        @DisplayName("HELD 상태에서는 REFUNDED로 전이된다")
+        @DisplayName("HELD 상태에서 REFUNDED로 전이된다")
         void refund_heldEscrow_changesStatus() {
             Escrow escrow = Escrow.createHeld(escrowId, orderId, buyerMemberId, sellerMemberId, 12_000L, releaseAt, createdAt);
             LocalDateTime refundedAt = createdAt.plusDays(1);
-            LocalDateTime updatedAt = refundedAt;
 
-            escrow.refund(refundedAt, updatedAt);
+            escrow.refund(refundedAt, refundedAt);
 
             assertThat(escrow.getEscrowStatus()).isEqualTo(EscrowStatus.REFUNDED);
             assertThat(escrow.getRefundedAt()).isEqualTo(refundedAt);
-            assertThat(escrow.getUpdatedAt()).isEqualTo(updatedAt);
+            assertThat(escrow.getUpdatedAt()).isEqualTo(refundedAt);
             assertThat(escrow.isRefunded()).isTrue();
         }
 
@@ -130,17 +125,17 @@ class EscrowTest {
             escrow.refund(createdAt.plusDays(1), createdAt.plusDays(1));
 
             assertThatThrownBy(() -> escrow.refund(createdAt.plusDays(2), createdAt.plusDays(2)))
-                    .isInstanceOf(EscrowNotHeldException.class)
+                    .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("Only held escrow can be changed.");
         }
     }
 
     @Nested
-    @DisplayName("Escrow.scheduleReleaseAt() 자동구매확정 기준 시각 설정 테스트")
+    @DisplayName("Escrow.scheduleReleaseAt() 테스트")
     class ScheduleReleaseAt {
 
         @Test
-        @DisplayName("HELD 상태에서는 releaseAt을 설정할 수 있다")
+        @DisplayName("HELD 상태에서 releaseAt을 설정할 수 있다")
         void scheduleReleaseAt_heldEscrow_updatesReleaseAt() {
             Escrow escrow = Escrow.createHeld(escrowId, orderId, buyerMemberId, sellerMemberId, 12_000L, null, createdAt);
             LocalDateTime scheduledAt = createdAt.plusDays(7);
@@ -149,17 +144,18 @@ class EscrowTest {
 
             assertThat(escrow.getReleaseAt()).isEqualTo(scheduledAt);
             assertThat(escrow.getUpdatedAt()).isEqualTo(createdAt.plusDays(1));
+            assertThat(escrow.isReleaseScheduled()).isTrue();
         }
 
         @Test
-        @DisplayName("이미 releaseAt이 설정된 경우 다시 설정할 수 없다")
+        @DisplayName("이미 releaseAt이 있으면 다시 설정할 수 없다")
         void scheduleReleaseAt_alreadyScheduled_throwsException() {
             Escrow escrow = Escrow.createHeld(escrowId, orderId, buyerMemberId, sellerMemberId, 12_000L, null, createdAt);
             escrow.scheduleReleaseAt(createdAt.plusDays(7), createdAt.plusDays(1));
 
             assertThatThrownBy(() -> escrow.scheduleReleaseAt(createdAt.plusDays(8), createdAt.plusDays(2)))
-                    .isInstanceOf(EscrowReleaseAlreadyScheduledException.class)
-                    .hasMessageContaining("already been scheduled");
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("already scheduled");
         }
     }
 }

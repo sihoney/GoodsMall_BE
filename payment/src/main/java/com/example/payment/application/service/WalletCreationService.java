@@ -4,7 +4,7 @@ import com.example.payment.application.dto.CreateWalletCommand;
 import com.example.payment.application.dto.CreateWalletResult;
 import com.example.payment.application.usecase.CreateWalletUseCase;
 import com.example.payment.domain.entity.Wallet;
-import com.example.payment.domain.exception.InvalidChargeRequestException;
+import com.example.payment.common.exception.InvalidChargeRequestException;
 import com.example.payment.domain.repository.WalletRepository;
 import com.example.payment.domain.service.IdentifierGenerator;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -13,6 +13,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional
+/**
+ * 회원의 payment wallet 생성 유스케이스를 담당한다.
+ * 이미 wallet이 있으면 기존 정보를 반환하고, 없으면 새 wallet을 생성한다.
+ */
 public class WalletCreationService implements CreateWalletUseCase {
 
     private final WalletRepository walletRepository;
@@ -27,6 +31,10 @@ public class WalletCreationService implements CreateWalletUseCase {
     }
 
     @Override
+    /**
+     * memberId 기준 wallet 존재 여부를 먼저 확인한 뒤 없을 때만 생성한다.
+     * 중복 생성 경쟁이 발생해도 기존 wallet을 다시 조회해 멱등하게 응답한다.
+     */
     public CreateWalletResult createWallet(CreateWalletCommand command) {
         validateCommand(command);
 
@@ -40,6 +48,9 @@ public class WalletCreationService implements CreateWalletUseCase {
                 .orElseGet(() -> createNewWallet(command));
     }
 
+    /**
+     * wallet을 새로 저장하되, 동시 생성으로 unique 제약이 충돌하면 기존 wallet을 재조회해 반환한다.
+     */
     private CreateWalletResult createNewWallet(CreateWalletCommand command) {
         Wallet wallet = Wallet.create(
                 identifierGenerator.generateUuid(),
@@ -69,6 +80,9 @@ public class WalletCreationService implements CreateWalletUseCase {
         );
     }
 
+    /**
+     * wallet 생성에 필요한 최소 입력만 검증한다.
+     */
     private void validateCommand(CreateWalletCommand command) {
         if (command.memberId() == null) {
             throw new InvalidChargeRequestException("memberId is required.");

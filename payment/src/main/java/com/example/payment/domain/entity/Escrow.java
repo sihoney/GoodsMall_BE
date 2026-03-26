@@ -1,8 +1,6 @@
 package com.example.payment.domain.entity;
 
 import com.example.payment.domain.enumtype.EscrowStatus;
-import com.example.payment.domain.exception.EscrowNotHeldException;
-import com.example.payment.domain.exception.EscrowReleaseAlreadyScheduledException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -20,6 +18,10 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "escrow", schema = "payment")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+/**
+ * 주문 결제 금액을 임시 보관하는 escrow aggregate다.
+ * releaseAt 예약과 실제 release/refund 상태 전이를 한 엔티티에서 보장한다.
+ */
 public class Escrow {
 
     @Id
@@ -137,6 +139,10 @@ public class Escrow {
         );
     }
 
+    /**
+     * escrow 정산 완료 상태로 전이한다.
+     * release는 HELD 상태에서만 허용되고, 중복 호출 방어는 엔티티가 마지막으로 확인한다.
+     */
     public void release(LocalDateTime releasedAt, LocalDateTime updatedAt) {
         validateHeldStatus();
         this.escrowStatus = EscrowStatus.RELEASED;
@@ -144,6 +150,10 @@ public class Escrow {
         this.updatedAt = Objects.requireNonNull(updatedAt);
     }
 
+    /**
+     * escrow 환불 완료 상태로 전이한다.
+     * release와 동일하게 HELD 상태에서만 허용해 상충되는 종료 상태를 막는다.
+     */
     public void refund(LocalDateTime refundedAt, LocalDateTime updatedAt) {
         validateHeldStatus();
         this.escrowStatus = EscrowStatus.REFUNDED;
@@ -163,12 +173,20 @@ public class Escrow {
         return escrowStatus == EscrowStatus.REFUNDED;
     }
 
+    public boolean isReleaseScheduled() {
+        return releaseAt != null;
+    }
+
+    /**
+     * 배송완료 이후 자동 구매확정 시점을 예약한다.
+     * application에서 선분기하더라도 엔티티는 마지막 방어선으로 상태를 다시 확인한다.
+     */
     public void scheduleReleaseAt(LocalDateTime releaseAt, LocalDateTime updatedAt) {
         if (!isHeld()) {
-            throw new EscrowNotHeldException("Only held escrow can be scheduled.");
+            throw new IllegalStateException("Only held escrow can be scheduled.");
         }
         if (this.releaseAt != null) {
-            throw new EscrowReleaseAlreadyScheduledException();
+            throw new IllegalStateException("Release time is already scheduled.");
         }
         this.releaseAt = Objects.requireNonNull(releaseAt);
         this.updatedAt = Objects.requireNonNull(updatedAt);
@@ -176,7 +194,7 @@ public class Escrow {
 
     private void validateHeldStatus() {
         if (!isHeld()) {
-            throw new EscrowNotHeldException("Only held escrow can be changed.");
+            throw new IllegalStateException("Only held escrow can be changed.");
         }
     }
 

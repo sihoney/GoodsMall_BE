@@ -24,48 +24,61 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/payments")
+/**
+ * payment 충전 API 진입점이다.
+ * HTTP 요청을 application command로 변환하고, usecase 결과를 presentation 응답 DTO로 매핑한다.
+ */
 public class PaymentController {
 
-	private final ChargeCreateUseCase chargeCreateUseCase;
-	private final ChargeConfirmUseCase chargeConfirmUseCase;
-	private final ChargeRefundUseCase chargeRefundUseCase;
+    private final ChargeCreateUseCase chargeCreateUseCase;
+    private final ChargeConfirmUseCase chargeConfirmUseCase;
+    private final ChargeRefundUseCase chargeRefundUseCase;
 
-	public PaymentController(
-			ChargeCreateUseCase chargeCreateUseCase,
-			ChargeConfirmUseCase chargeConfirmUseCase,
-			ChargeRefundUseCase chargeRefundUseCase
-	) {
-		this.chargeCreateUseCase = chargeCreateUseCase;
-		this.chargeConfirmUseCase = chargeConfirmUseCase;
-		this.chargeRefundUseCase = chargeRefundUseCase;
-	}
+    public PaymentController(
+            ChargeCreateUseCase chargeCreateUseCase,
+            ChargeConfirmUseCase chargeConfirmUseCase,
+            ChargeRefundUseCase chargeRefundUseCase
+    ) {
+        this.chargeCreateUseCase = chargeCreateUseCase;
+        this.chargeConfirmUseCase = chargeConfirmUseCase;
+        this.chargeRefundUseCase = chargeRefundUseCase;
+    }
 
-	@PostMapping("/charge")
-	public ChargeCreateResponse createCharge(
-			@RequestHeader("X-Member-Id") UUID memberId,
-			@Valid @RequestBody ChargeCreateRequest request
-	) {
-		ChargeCreateCommand command = new ChargeCreateCommand(memberId, request.amount(), PgProvider.TOSS);
-		return ChargeCreateResponse.from(chargeCreateUseCase.createCharge(command));
-	}
+    /**
+     * 충전 요청을 생성하고 PG 승인에 필요한 charge 식별 정보를 반환한다.
+     */
+    @PostMapping("/charge")
+    public ChargeCreateResponse createCharge(
+            @RequestHeader("X-Member-Id") UUID memberId,
+            @Valid @RequestBody ChargeCreateRequest request
+    ) {
+        ChargeCreateCommand command = new ChargeCreateCommand(memberId, request.amount(), PgProvider.TOSS);
+        return ChargeCreateResponse.from(chargeCreateUseCase.createCharge(command));
+    }
 
-	@PostMapping("/confirm")
-	public ChargeConfirmResponse confirmCharge(@Valid @RequestBody ChargeConfirmRequest request) {
-		ChargeConfirmCommand command = new ChargeConfirmCommand(
-				request.chargeId(),
-				request.paymentKey(),
-				request.orderId(),
-				request.amount()
-		);
-		return ChargeConfirmResponse.from(chargeConfirmUseCase.confirmCharge(command));
-	}
+    /**
+     * PG 승인 결과를 받아 charge와 wallet 상태를 확정한다.
+     */
+    @PostMapping("/confirm")
+    public ChargeConfirmResponse confirmCharge(@Valid @RequestBody ChargeConfirmRequest request) {
+        ChargeConfirmCommand command = new ChargeConfirmCommand(
+                request.chargeId(),
+                request.paymentKey(),
+                request.orderId(),
+                request.amount()
+        );
+        return ChargeConfirmResponse.from(chargeConfirmUseCase.confirmCharge(command));
+    }
 
-	@PostMapping("/charges/{chargeId}/refund")
-	public ChargeRefundResponse refundCharge(
-			@PathVariable UUID chargeId,
-			@Valid @RequestBody ChargeRefundRequest request
-	) {
-		ChargeRefundCommand command = new ChargeRefundCommand(chargeId, request.refundReason());
-		return ChargeRefundResponse.from(chargeRefundUseCase.refundCharge(command));
-	}
+    /**
+     * 승인된 charge를 환불하고 wallet 잔액을 차감한다.
+     */
+    @PostMapping("/charges/{chargeId}/refund")
+    public ChargeRefundResponse refundCharge(
+            @PathVariable UUID chargeId,
+            @Valid @RequestBody ChargeRefundRequest request
+    ) {
+        ChargeRefundCommand command = new ChargeRefundCommand(chargeId, request.refundReason());
+        return ChargeRefundResponse.from(chargeRefundUseCase.refundCharge(command));
+    }
 }

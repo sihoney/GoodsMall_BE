@@ -2,6 +2,9 @@ package com.example.payment.presentation.dto.response;
 
 import java.time.LocalDateTime;
 
+/**
+ * payment API 공통 오류 응답 DTO다.
+ */
 public record ApiErrorResponse(
         String code,
         String message,

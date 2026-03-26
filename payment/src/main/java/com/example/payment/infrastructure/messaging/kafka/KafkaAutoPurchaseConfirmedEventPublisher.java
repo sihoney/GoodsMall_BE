@@ -8,6 +8,9 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
+/**
+ * 자동 구매확정 내부 이벤트를 Kafka 계약 메시지로 변환해 발행하는 adapter다.
+ */
 public class KafkaAutoPurchaseConfirmedEventPublisher implements AutoPurchaseConfirmedEventPublisher {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
@@ -22,6 +25,9 @@ public class KafkaAutoPurchaseConfirmedEventPublisher implements AutoPurchaseCon
     }
 
     @Override
+    /**
+     * 내부 이벤트를 Kafka 메시지로 변환하고 orderId를 key로 발행한다.
+     */
     public void publish(AutoPurchaseConfirmedEvent event) {
         kafkaTemplate.send(topic, String.valueOf(event.orderId()), new AutoPurchaseConfirmedMessage(
                 event.orderId(),

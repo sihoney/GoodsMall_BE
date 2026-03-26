@@ -1,15 +1,10 @@
 package com.example.payment.infrastructure.messaging.kafka;
 
+import com.example.payment.common.exception.InvalidOrderPaymentRequestException;
+import com.example.payment.common.exception.WalletNotFoundException;
 import com.example.payment.application.dto.OrderPaymentResult;
 import com.example.payment.application.dto.OrderPaymentCommand;
 import com.example.payment.application.usecase.OrderPaymentUseCase;
-import com.example.payment.domain.entity.Escrow;
-import com.example.payment.domain.entity.Wallet;
-import com.example.payment.domain.exception.InvalidOrderPaymentRequestException;
-import com.example.payment.domain.exception.OrderPaymentAlreadyCompletedException;
-import com.example.payment.domain.exception.WalletNotFoundException;
-import com.example.payment.domain.repository.EscrowRepository;
-import com.example.payment.domain.repository.WalletRepository;
 import com.example.payment.domain.service.OrderPaymentResultEventPublisher;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPaymentFailureReason;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPaymentRequestedMessage;
@@ -21,23 +16,22 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
 @Component
+/**
+ * 주문 결제 요청 이벤트를 payment 유스케이스로 연결하는 Kafka consumer다.
+ * transport 계층에서는 이벤트 유효성 검증과 실패 사유 매핑만 담당하고,
+ * 실제 중복 처리와 비즈니스 정책은 order payment usecase에 위임한다.
+ */
 public class OrderPaymentRequestedEventConsumer {
 
     private final OrderPaymentUseCase orderPaymentUseCase;
     private final OrderPaymentResultEventPublisher orderPaymentResultEventPublisher;
-    private final EscrowRepository escrowRepository;
-    private final WalletRepository walletRepository;
 
     public OrderPaymentRequestedEventConsumer(
             OrderPaymentUseCase orderPaymentUseCase,
-            OrderPaymentResultEventPublisher orderPaymentResultEventPublisher,
-            EscrowRepository escrowRepository,
-            WalletRepository walletRepository
+            OrderPaymentResultEventPublisher orderPaymentResultEventPublisher
     ) {
         this.orderPaymentUseCase = orderPaymentUseCase;
         this.orderPaymentResultEventPublisher = orderPaymentResultEventPublisher;
-        this.escrowRepository = escrowRepository;
-        this.walletRepository = walletRepository;
     }
 
     @KafkaListener(
@@ -45,6 +39,10 @@ public class OrderPaymentRequestedEventConsumer {
             groupId = "${payment.kafka.consumer-groups.order-payment-requested:payment-service}",
             containerFactory = "orderPaymentRequestedKafkaListenerContainerFactory"
     )
+    /**
+     * 주문 결제 요청 이벤트를 command로 변환해 usecase에 전달한다.
+     * usecase 결과나 예외를 다시 Kafka 결과 이벤트로 바꿔 upstream이 상태를 추적할 수 있게 한다.
+     */
     public void listen(OrderPaymentRequestedMessage event) {
         validateEvent(event);
 
@@ -58,8 +56,6 @@ public class OrderPaymentRequestedEventConsumer {
                     null
             ));
             orderPaymentResultEventPublisher.publish(successMessage(event, result));
-        } catch (OrderPaymentAlreadyCompletedException ignored) {
-            orderPaymentResultEventPublisher.publish(duplicateSuccessMessage(event));
         } catch (WalletNotFoundException e) {
             orderPaymentResultEventPublisher.publish(failureMessage(
                     event,
@@ -125,34 +121,14 @@ public class OrderPaymentRequestedEventConsumer {
         );
     }
 
-    private OrderPaymentResultMessage duplicateSuccessMessage(OrderPaymentRequestedMessage event) {
-        UUID escrowId = escrowRepository.findByOrderId(event.orderId())
-                .map(Escrow::getEscrowId)
-                .orElse(null);
-        UUID buyerWalletId = walletRepository.findByMemberId(event.buyerMemberId())
-                .map(Wallet::getWalletId)
-                .orElse(null);
-
-        return new OrderPaymentResultMessage(
-                newEventId(),
-                event.orderId(),
-                event.buyerMemberId(),
-                event.sellerMemberId(),
-                OrderPaymentResultStatus.SUCCESS,
-                event.orderAmount(),
-                event.sellerReceivableAmount(),
-                buyerWalletId,
-                escrowId,
-                null,
-                null,
-                LocalDateTime.now()
-        );
-    }
-
     private String newEventId() {
         return UUID.randomUUID().toString();
     }
 
+    /**
+     * consumer 단계에서 계약 필수값만 검증한다.
+     * 금액 차감 가능 여부나 멱등 처리 같은 비즈니스 판단은 usecase에서 수행한다.
+     */
     private void validateEvent(OrderPaymentRequestedMessage event) {
         if (event == null) {
             throw new InvalidOrderPaymentRequestException("orderPaymentRequested event is required.");

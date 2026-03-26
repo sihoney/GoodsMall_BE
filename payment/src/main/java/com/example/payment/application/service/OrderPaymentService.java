@@ -6,9 +6,8 @@ import com.example.payment.application.usecase.OrderPaymentUseCase;
 import com.example.payment.domain.entity.Escrow;
 import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.entity.WalletTransaction;
-import com.example.payment.domain.exception.InvalidOrderPaymentRequestException;
-import com.example.payment.domain.exception.OrderPaymentAlreadyCompletedException;
-import com.example.payment.domain.exception.WalletNotFoundException;
+import com.example.payment.common.exception.InvalidOrderPaymentRequestException;
+import com.example.payment.common.exception.WalletNotFoundException;
 import com.example.payment.domain.repository.EscrowRepository;
 import com.example.payment.domain.repository.WalletRepository;
 import com.example.payment.domain.repository.WalletTransactionRepository;
@@ -20,6 +19,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional
+/**
+ * 주문 결제 유스케이스를 담당한다.
+ * 구매자 wallet 차감과 escrow 생성까지를 하나의 흐름으로 처리하고, 중복 주문 결제 요청은 기존 결과를 재사용한다.
+ */
 public class OrderPaymentService implements OrderPaymentUseCase {
 
     private final WalletRepository walletRepository;
@@ -43,11 +46,16 @@ public class OrderPaymentService implements OrderPaymentUseCase {
     }
 
     @Override
+    /**
+     * 주문 결제 요청을 검증한 뒤 구매자 wallet을 차감하고 seller 정산용 escrow를 생성한다.
+     * 이미 같은 orderId의 escrow가 있으면 추가 차감 없이 기존 결과를 반환해 멱등하게 처리한다.
+     */
     public OrderPaymentResult payOrder(OrderPaymentCommand command) {
         validateCommand(command);
 
-        if (escrowRepository.findByOrderId(command.orderId()).isPresent()) {
-            throw new OrderPaymentAlreadyCompletedException();
+        Escrow existingEscrow = escrowRepository.findByOrderId(command.orderId()).orElse(null);
+        if (existingEscrow != null) {
+            return existingResult(command, existingEscrow);
         }
 
         Wallet buyerWallet = walletRepository.findByMemberId(command.buyerMemberId())
@@ -90,6 +98,25 @@ public class OrderPaymentService implements OrderPaymentUseCase {
         );
     }
 
+    private OrderPaymentResult existingResult(OrderPaymentCommand command, Escrow existingEscrow) {
+        Wallet buyerWallet = walletRepository.findByMemberId(command.buyerMemberId())
+                .orElseThrow(WalletNotFoundException::new);
+
+        return new OrderPaymentResult(
+                command.orderId(),
+                buyerWallet.getWalletId(),
+                existingEscrow.getEscrowId(),
+                command.orderAmount(),
+                buyerWallet.getBalance(),
+                existingEscrow.getEscrowStatus(),
+                existingEscrow.getReleaseAt()
+        );
+    }
+
+    /**
+     * 주문 결제 단계의 필수 입력만 검증한다.
+     * wallet 잔액 부족과 중복 결제 같은 상태 판단은 본문 흐름에서 처리한다.
+     */
     private void validateCommand(OrderPaymentCommand command) {
         if (command.orderId() == null) {
             throw new InvalidOrderPaymentRequestException("orderId is required.");
