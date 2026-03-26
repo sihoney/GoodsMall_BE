@@ -1,6 +1,7 @@
 package com.example.payment.domain.entity;
 
 import com.example.payment.domain.enumtype.EscrowStatus;
+import com.example.payment.domain.exception.EscrowReleaseAlreadyScheduledException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -156,7 +157,7 @@ class EscrowTest {
             escrow.scheduleReleaseAt(createdAt.plusDays(7), createdAt.plusDays(1));
 
             assertThatThrownBy(() -> escrow.scheduleReleaseAt(createdAt.plusDays(8), createdAt.plusDays(2)))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(EscrowReleaseAlreadyScheduledException.class)
                     .hasMessageContaining("already been scheduled");
         }
     }

@@ -4,6 +4,7 @@ import com.example.payment.application.dto.EscrowReleaseScheduleCommand;
 import com.example.payment.application.dto.EscrowReleaseScheduleResult;
 import com.example.payment.domain.entity.Escrow;
 import com.example.payment.domain.exception.EscrowNotFoundException;
+import com.example.payment.domain.exception.EscrowReleaseAlreadyScheduledException;
 import com.example.payment.domain.exception.InvalidOrderPaymentRequestException;
 import com.example.payment.domain.repository.EscrowRepository;
 import com.example.payment.domain.service.TimeProvider;
@@ -112,7 +113,7 @@ class EscrowReleaseScheduleServiceTest {
             given(timeProvider.now()).willReturn(now);
 
             assertThatThrownBy(() -> escrowReleaseScheduleService.scheduleRelease(command))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(EscrowReleaseAlreadyScheduledException.class)
                     .hasMessageContaining("already been scheduled");
         }
     }

@@ -7,6 +7,7 @@ import com.example.payment.domain.entity.Escrow;
 import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.entity.WalletTransaction;
 import com.example.payment.domain.exception.InvalidOrderPaymentRequestException;
+import com.example.payment.domain.exception.OrderPaymentAlreadyCompletedException;
 import com.example.payment.domain.exception.WalletNotFoundException;
 import com.example.payment.domain.repository.EscrowRepository;
 import com.example.payment.domain.repository.WalletRepository;
@@ -46,7 +47,7 @@ public class OrderPaymentService implements OrderPaymentUseCase {
         validateCommand(command);
 
         if (escrowRepository.findByOrderId(command.orderId()).isPresent()) {
-            throw new InvalidOrderPaymentRequestException("Order payment has already been completed.");
+            throw new OrderPaymentAlreadyCompletedException();
         }
 
         Wallet buyerWallet = walletRepository.findByMemberId(command.buyerMemberId())

@@ -20,7 +20,7 @@ spring:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
-        spring.json.trusted.packages: com.example.payment.application.event
+        spring.json.trusted.packages: com.example.payment.infrastructure.messaging.kafka.contract
 
 server:
   port: 8082
@@ -43,11 +43,15 @@ payment:
   kafka:
     topics:
       member-created: ${PAYMENT_KAFKA_TOPIC_MEMBER_CREATED:member.created}
+      order-payment-requested: ${PAYMENT_KAFKA_TOPIC_ORDER_PAYMENT_REQUESTED:order.payment-requested}
+      order-delivery-completed: ${PAYMENT_KAFKA_TOPIC_ORDER_DELIVERY_COMPLETED:order.delivery-completed}
       order-purchase-confirmed: ${PAYMENT_KAFKA_TOPIC_ORDER_PURCHASE_CONFIRMED:order.purchase-confirmed}
       seller-income-released: ${PAYMENT_KAFKA_TOPIC_SELLER_INCOME_RELEASED:payment.seller-income-released}
       auto-purchase-confirmed: ${PAYMENT_KAFKA_TOPIC_AUTO_PURCHASE_CONFIRMED:payment.auto-purchase-confirmed}
     consumer-groups:
       member-created: ${PAYMENT_KAFKA_CONSUMER_GROUP_MEMBER_CREATED:payment-service}
+      order-payment-requested: ${PAYMENT_KAFKA_CONSUMER_GROUP_ORDER_PAYMENT_REQUESTED:payment-service}
+      order-delivery-completed: ${PAYMENT_KAFKA_CONSUMER_GROUP_ORDER_DELIVERY_COMPLETED:payment-service}
       order-purchase-confirmed: ${PAYMENT_KAFKA_CONSUMER_GROUP_ORDER_PURCHASE_CONFIRMED:payment-service}
   escrow:
     auto-release:

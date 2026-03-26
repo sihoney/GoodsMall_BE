@@ -1,6 +1,8 @@
 package com.example.payment.infrastructure.config;
 
 import com.example.payment.infrastructure.messaging.kafka.contract.MemberCreatedMessage;
+import com.example.payment.infrastructure.messaging.kafka.contract.OrderDeliveryCompletedMessage;
+import com.example.payment.infrastructure.messaging.kafka.contract.OrderPaymentRequestedMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPurchaseConfirmedMessage;
 import java.util.HashMap;
 import java.util.Map;
@@ -40,6 +42,42 @@ public class KafkaConsumerConfig {
             @Value("${payment.kafka.consumer-groups.order-purchase-confirmed:payment-service}") String groupId
     ) {
         return createConsumerFactory(bootstrapServers, groupId, OrderPurchaseConfirmedMessage.class);
+    }
+
+    @Bean
+    public ConsumerFactory<String, OrderPaymentRequestedMessage> orderPaymentRequestedConsumerFactory(
+            @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers,
+            @Value("${payment.kafka.consumer-groups.order-payment-requested:payment-service}") String groupId
+    ) {
+        return createConsumerFactory(bootstrapServers, groupId, OrderPaymentRequestedMessage.class);
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, OrderPaymentRequestedMessage> orderPaymentRequestedKafkaListenerContainerFactory(
+            ConsumerFactory<String, OrderPaymentRequestedMessage> orderPaymentRequestedConsumerFactory
+    ) {
+        ConcurrentKafkaListenerContainerFactory<String, OrderPaymentRequestedMessage> factory =
+                new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(orderPaymentRequestedConsumerFactory);
+        return factory;
+    }
+
+    @Bean
+    public ConsumerFactory<String, OrderDeliveryCompletedMessage> orderDeliveryCompletedConsumerFactory(
+            @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers,
+            @Value("${payment.kafka.consumer-groups.order-delivery-completed:payment-service}") String groupId
+    ) {
+        return createConsumerFactory(bootstrapServers, groupId, OrderDeliveryCompletedMessage.class);
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, OrderDeliveryCompletedMessage> orderDeliveryCompletedKafkaListenerContainerFactory(
+            ConsumerFactory<String, OrderDeliveryCompletedMessage> orderDeliveryCompletedConsumerFactory
+    ) {
+        ConcurrentKafkaListenerContainerFactory<String, OrderDeliveryCompletedMessage> factory =
+                new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(orderDeliveryCompletedConsumerFactory);
+        return factory;
     }
 
     @Bean
