@@ -1,0 +1,231 @@
+### 1. 상품 등록
+POST http://localhost:8081/api/product
+Content-Type: application/json
+X-User-Id: 550e8400-e29b-41d4-a716-446655440000
+
+{
+  "title": "치킨도시락",
+  "description": "바삭한 치킨과 신선한 야채",
+  "price": 8500,
+  "count": 30
+}
+
+###
+
+### 2. 상품 등록 - 두 번째 상품 (같은 판매자)
+POST http://localhost:8081/api/product
+Content-Type: application/json
+X-User-Id: 550e8400-e29b-41d4-a716-446655440000
+
+{
+  "title": "제육도시락",
+  "description": "매콤한 제육볶음",
+  "price": 7500,
+  "count": 20
+}
+
+###
+
+### 3. 상품 등록 - 다른 판매자
+POST http://localhost:8081/api/product
+Content-Type: application/json
+X-User-Id: 660e8400-e29b-41d4-a716-446655440001
+
+{
+  "title": "김치볶음밥",
+  "description": "맛있는 김치볶음밥",
+  "price": 6000,
+  "count": 50
+}
+
+###
+
+### 4. 사용자용 상품 조회 (ACTIVE 상품만)
+GET http://localhost:8081/api/product
+
+###
+
+### 5. 사용자용 상품 조회 - 페이징
+GET http://localhost:8081/api/product?page=0&size=10
+
+###
+
+### 6. 사용자용 상품 조회 - 가격 오름차순 정렬
+GET http://localhost:8081/api/product?sort=price,asc
+
+###
+
+### 7. 사용자용 상품 조회 - 최신순 정렬
+GET http://localhost:8081/api/product?sort=createdAt,desc
+
+###
+
+### 8. 사용자용 상품 조회 - 페이징 + 정렬
+GET http://localhost:8081/api/product?page=0&size=5&sort=price,asc
+
+###
+
+### 8-1. 단일 상품 조회 (정상)
+# 먼저 4번 요청으로 전체 목록 조회 후, productId를 복사해서 아래에 붙여넣기
+GET http://localhost:8081/api/product/dc902c7b-85bc-42a9-bd5a-b8e16a9b9289
+
+###
+
+### 8-2. 단일 상품 조회 - 존재하지 않는 ID (404 에러)
+GET http://localhost:8081/api/product/00000000-0000-0000-0000-000000000000
+
+###
+
+### 8-3. 단일 상품 조회 - 잘못된 UUID 형식 (400 에러)
+GET http://localhost:8081/api/product/invalid-uuid
+
+###
+
+### 9. 관리자용 전체 상품 조회 (모든 상태 포함)
+GET http://localhost:8081/api/product/admin/all
+
+###
+
+### 10. 관리자용 전체 상품 조회 - 페이징
+GET http://localhost:8081/api/product/admin/all?page=0&size=10
+
+###
+
+### 11. 판매자 상품 조회 (내 상품만)
+GET http://localhost:8081/api/product/seller
+X-User-Id: 550e8400-e29b-41d4-a716-446655440000
+
+###
+
+### 12. 판매자 상품 조회 - 페이징
+GET http://localhost:8081/api/product/seller?page=0&size=10
+X-User-Id: 550e8400-e29b-41d4-a716-446655440000
+
+###
+
+### 13. 판매자 상품 조회 - 최신순 정렬
+GET http://localhost:8081/api/product/seller?sort=createdAt,desc
+X-User-Id: 550e8400-e29b-41d4-a716-446655440000
+
+###
+
+### 14. 다른 판매자 상품 조회
+GET http://localhost:8081/api/product/seller
+X-User-Id: 660e8400-e29b-41d4-a716-446655440001
+
+###
+
+### 15. Validation 에러 테스트 - 빈 제목
+POST http://localhost:8081/api/product
+Content-Type: application/json
+X-User-Id: 550e8400-e29b-41d4-a716-446655440000
+
+{
+  "title": "",
+  "description": "설명",
+  "price": 5000,
+  "count": 10
+}
+
+###
+
+### 16. Validation 에러 테스트 - 음수 가격
+POST http://localhost:8081/api/product
+Content-Type: application/json
+X-User-Id: 550e8400-e29b-41d4-a716-446655440000
+
+{
+  "title": "상품명",
+  "description": "설명",
+  "price": -1000,
+  "count": 10
+}
+
+###
+
+### 17. Validation 에러 테스트 - 여러 필드 에러
+POST http://localhost:8081/api/product
+Content-Type: application/json
+X-User-Id: 550e8400-e29b-41d4-a716-446655440000
+
+{
+  "title": "",
+  "description": "설명",
+  "price": -1000,
+  "count": 10
+}
+
+###
+
+### 18. 상품 수정 (정상) - 본인 상품
+# 먼저 11번 요청으로 내 상품 조회 후, productId를 복사해서 아래에 붙여넣기
+PUT http://localhost:8081/api/product/YOUR_PRODUCT_ID_HERE
+Content-Type: application/json
+X-User-Id: 550e8400-e29b-41d4-a716-446655440000
+
+{
+  "title": "수정된 치킨도시락",
+  "description": "더 맛있어진 치킨도시락",
+  "price": 9000,
+  "stockQuantity": 25,
+  "categoryId": "YOUR_CATEGORY_ID_HERE"
+}
+
+###
+
+### 19. 상품 수정 - 권한 없음 (403 에러)
+# 다른 판매자의 상품을 수정하려고 시도
+PUT http://localhost:8081/api/product/YOUR_PRODUCT_ID_HERE
+Content-Type: application/json
+X-User-Id: 999e8400-e29b-41d4-a716-446655440999
+
+{
+  "title": "해킹 시도",
+  "description": "다른 사람 상품 수정",
+  "price": 1000,
+  "stockQuantity": 1,
+  "categoryId": "YOUR_CATEGORY_ID_HERE"
+}
+
+###
+
+### 20. 상품 수정 - Validation 에러
+PUT http://localhost:8081/api/product/YOUR_PRODUCT_ID_HERE
+Content-Type: application/json
+X-User-Id: 550e8400-e29b-41d4-a716-446655440000
+
+{
+  "title": "",
+  "description": "설명",
+  "price": -5000,
+  "stockQuantity": -10,
+  "categoryId": "YOUR_CATEGORY_ID_HERE"
+}
+
+###
+
+### 21. 상품 삭제 (정상) - 본인 상품
+# 먼저 11번 요청으로 내 상품 조회 후, productId를 복사해서 아래에 붙여넣기
+DELETE http://localhost:8081/api/product/YOUR_PRODUCT_ID_HERE
+X-User-Id: 550e8400-e29b-41d4-a716-446655440000
+
+###
+
+### 22. 상품 삭제 - 권한 없음 (403 에러)
+DELETE http://localhost:8081/api/product/YOUR_PRODUCT_ID_HERE
+X-User-Id: 999e8400-e29b-41d4-a716-446655440999
+
+###
+
+### 23. 상품 삭제 - 이미 삭제된 상품 (409 에러)
+# 21번 요청을 두 번 실행하면 발생
+DELETE http://localhost:8081/api/product/YOUR_PRODUCT_ID_HERE
+X-User-Id: 550e8400-e29b-41d4-a716-446655440000
+
+###
+
+### 24. 상품 삭제 - 존재하지 않는 상품 (404 에러)
+DELETE http://localhost:8081/api/product/00000000-0000-0000-0000-000000000000
+X-User-Id: 550e8400-e29b-41d4-a716-446655440000
+
+###
