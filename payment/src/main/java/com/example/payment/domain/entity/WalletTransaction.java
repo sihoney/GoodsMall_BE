@@ -7,7 +7,6 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
@@ -17,7 +16,7 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
-@Table(name = "wallet_transaction")
+@Table(name = "wallet_transaction", schema = "payment")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class WalletTransaction {
 
@@ -29,10 +28,10 @@ public class WalletTransaction {
     private UUID walletId;
 
     @Column(name = "amount", nullable = false)
-    private BigDecimal amount;
+    private Long amount;
 
     @Column(name = "balance_after", nullable = false)
-    private BigDecimal balanceAfter;
+    private Long balanceAfter;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "transaction_type", nullable = false)
@@ -50,20 +49,16 @@ public class WalletTransaction {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "direction")
-    private String direction;
-
     private WalletTransaction(
             UUID transactionId,
             UUID walletId,
-            BigDecimal amount,
-            BigDecimal balanceAfter,
+            Long amount,
+            Long balanceAfter,
             WalletTransactionType transactionType,
             UUID referenceId,
             String referenceType,
             String description,
-            LocalDateTime createdAt,
-            String direction
+            LocalDateTime createdAt
     ) {
         this.transactionId = Objects.requireNonNull(transactionId);
         this.walletId = Objects.requireNonNull(walletId);
@@ -74,20 +69,18 @@ public class WalletTransaction {
         this.referenceType = referenceType;
         this.description = description;
         this.createdAt = Objects.requireNonNull(createdAt);
-        this.direction = direction;
     }
 
     public static WalletTransaction create(
             UUID transactionId,
             UUID walletId,
-            BigDecimal amount,
-            BigDecimal balanceAfter,
+            Long amount,
+            Long balanceAfter,
             WalletTransactionType transactionType,
             UUID referenceId,
             String referenceType,
             String description,
-            LocalDateTime createdAt,
-            String direction
+            LocalDateTime createdAt
     ) {
         return new WalletTransaction(
                 transactionId,
@@ -98,8 +91,57 @@ public class WalletTransaction {
                 referenceId,
                 referenceType,
                 description,
-                createdAt,
-                direction
+                createdAt
+        );
+    }
+
+    public static WalletTransaction charge(
+            UUID transactionId,
+            UUID walletId,
+            Long amount,
+            Long balanceAfter,
+            UUID chargeId,
+            LocalDateTime createdAt
+    ) {
+        if (Objects.requireNonNull(amount) <= 0) {
+            throw new IllegalArgumentException("Charge amount must be positive.");
+        }
+
+        return create(
+                transactionId,
+                walletId,
+                amount,
+                balanceAfter,
+                WalletTransactionType.CHARGE,
+                chargeId,
+                "CHARGE",
+                "wallet charge",
+                createdAt
+        );
+    }
+
+    public static WalletTransaction refund(
+            UUID transactionId,
+            UUID walletId,
+            Long amount,
+            Long balanceAfter,
+            UUID chargeId,
+            LocalDateTime createdAt
+    ) {
+        if (Objects.requireNonNull(amount) <= 0) {
+            throw new IllegalArgumentException("Refund amount must be positive.");
+        }
+
+        return create(
+                transactionId,
+                walletId,
+                -amount,
+                balanceAfter,
+                WalletTransactionType.REFUND,
+                chargeId,
+                "CHARGE",
+                "charge refund",
+                createdAt
         );
     }
 }
