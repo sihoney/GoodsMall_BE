@@ -65,12 +65,12 @@ public class ChargeService implements ChargeCreateUseCase, ChargeConfirmUseCase,
     public ChargeCreateResult createCharge(ChargeCreateCommand command) {
         validateCreateCommand(command);
 
-        LocalDateTime requestedAt = timeProvider.now();
         Wallet wallet = walletRepository.findByMemberId(command.memberId())
-                .orElseGet(() -> createWallet(command.memberId(), requestedAt));
+                .orElseThrow(WalletNotFoundException::new);
 
         UUID chargeId = identifierGenerator.generateUuid();
         String pgOrderId = generatePgOrderId(chargeId);
+        LocalDateTime requestedAt = timeProvider.now();
 
         Charge charge = Charge.create(
                 chargeId,
@@ -229,17 +229,6 @@ public class ChargeService implements ChargeCreateUseCase, ChargeConfirmUseCase,
                 wallet.getBalance(),
                 chargeRefund.getRefundedAt()
         );
-    }
-
-    private Wallet createWallet(UUID memberId, LocalDateTime now) {
-        Wallet wallet = Wallet.create(
-                identifierGenerator.generateUuid(),
-                memberId,
-                0L,
-                now,
-                now
-        );
-        return walletRepository.save(wallet);
     }
 
     private String generatePgOrderId(UUID chargeId) {

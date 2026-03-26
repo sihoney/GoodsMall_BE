@@ -10,6 +10,14 @@ spring:
     url: ${DB_URL} # PostgreSQL URL
     username: ${DB_USER_NAME} # PostgreSQL 계정
     password: ${DB_USER_PASSWORD} # PostgreSQL 비밀번호
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    consumer:
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.example.payment.application.event
 
 server:
   port: 8082
@@ -29,6 +37,11 @@ toss:
     widget-enabled: ${TOSS_PAYMENTS_WIDGET_ENABLED:true}
 
 payment:
+  kafka:
+    topics:
+      member-created: ${PAYMENT_KAFKA_TOPIC_MEMBER_CREATED:member.created}
+    consumer-groups:
+      member-created: ${PAYMENT_KAFKA_CONSUMER_GROUP_MEMBER_CREATED:payment-service}
   escrow:
     auto-release:
       fixed-delay-ms: ${PAYMENT_ESCROW_AUTO_RELEASE_FIXED_DELAY_MS:60000}
