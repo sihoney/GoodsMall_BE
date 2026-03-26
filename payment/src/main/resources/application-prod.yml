@@ -1,0 +1,35 @@
+spring:
+  config:
+    import: optional:file:.env[.properties]
+  jpa:
+    properties:
+      hibernate:
+        default_schema: payment
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: ${DB_URL} # PostgreSQL URL
+    username: ${DB_USER_NAME} # PostgreSQL 계정
+    password: ${DB_USER_PASSWORD} # PostgreSQL 비밀번호
+
+server:
+  port: 8082
+
+logging:
+  level:
+    com.example.payment: DEBUG
+    org.hibernate.SQL: DEBUG
+
+toss:
+  payments:
+    base-url: ${TOSS_PAYMENTS_BASE_URL:https://api.tosspayments.com}
+    client-key: ${TOSS_PAYMENTS_CLIENT_KEY:}
+    secret-key: ${TOSS_PAYMENTS_SECRET_KEY:}
+    success-url: ${TOSS_PAYMENTS_SUCCESS_URL:http://localhost:3000/payments/toss/success}
+    fail-url: ${TOSS_PAYMENTS_FAIL_URL:http://localhost:3000/payments/toss/fail}
+    widget-enabled: ${TOSS_PAYMENTS_WIDGET_ENABLED:true}
+
+payment:
+  escrow:
+    auto-release:
+      fixed-delay-ms: ${PAYMENT_ESCROW_AUTO_RELEASE_FIXED_DELAY_MS:60000}
+

@@ -18,6 +18,7 @@ class WalletTransactionTest {
     private UUID transactionId;
     private UUID walletId;
     private UUID chargeId;
+    private UUID orderId;
     private LocalDateTime createdAt;
 
     @BeforeEach
@@ -25,6 +26,7 @@ class WalletTransactionTest {
         transactionId = UUID.randomUUID();
         walletId = UUID.randomUUID();
         chargeId = UUID.randomUUID();
+        orderId = UUID.randomUUID();
         createdAt = LocalDateTime.of(2024, 1, 1, 12, 5, 0);
     }
 
@@ -131,6 +133,64 @@ class WalletTransactionTest {
             assertThat(tx.getAmount()).isEqualTo(-10_000L);
             assertThat(tx.getReferenceId()).isEqualTo(chargeId);
             assertThat(tx.getDescription()).isEqualTo("charge refund");
+        }
+    }
+
+    @Nested
+    @DisplayName("WalletTransaction.purchase() 주문 결제 트랜잭션 생성 테스트")
+    class PurchaseFactory {
+
+        @Test
+        @DisplayName("purchase() 생성 시 transactionType이 PURCHASE로 설정된다")
+        void purchase_transactionTypeIsPurchase() {
+            WalletTransaction tx = WalletTransaction.purchase(
+                    transactionId, walletId, 12_000L, 8_000L, orderId, createdAt
+            );
+
+            assertThat(tx.getTransactionType()).isEqualTo(WalletTransactionType.PURCHASE);
+            assertThat(tx.getAmount()).isEqualTo(-12_000L);
+            assertThat(tx.getReferenceId()).isEqualTo(orderId);
+            assertThat(tx.getReferenceType()).isEqualTo("ORDER");
+            assertThat(tx.getDescription()).isEqualTo("order purchase");
+        }
+
+        @Test
+        @DisplayName("0원으로 purchase() 생성 시 예외가 발생한다")
+        void purchase_zeroAmount_throwsException() {
+            assertThatThrownBy(() ->
+                    WalletTransaction.purchase(transactionId, walletId, 0L, 10_000L, orderId, createdAt)
+            )
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("Purchase amount must be positive.");
+        }
+    }
+
+    @Nested
+    @DisplayName("WalletTransaction.saleIncome() 판매자 정산 트랜잭션 생성 테스트")
+    class SaleIncomeFactory {
+
+        @Test
+        @DisplayName("saleIncome() 생성 시 transactionType이 SALE_INCOME으로 설정된다")
+        void saleIncome_transactionTypeIsSaleIncome() {
+            WalletTransaction tx = WalletTransaction.saleIncome(
+                    transactionId, walletId, 9_000L, 29_000L, orderId, createdAt
+            );
+
+            assertThat(tx.getTransactionType()).isEqualTo(WalletTransactionType.SALE_INCOME);
+            assertThat(tx.getAmount()).isEqualTo(9_000L);
+            assertThat(tx.getReferenceId()).isEqualTo(orderId);
+            assertThat(tx.getReferenceType()).isEqualTo("ORDER");
+            assertThat(tx.getDescription()).isEqualTo("sale income release");
+        }
+
+        @Test
+        @DisplayName("음수 금액으로 saleIncome() 생성 시 예외가 발생한다")
+        void saleIncome_negativeAmount_throwsException() {
+            assertThatThrownBy(() ->
+                    WalletTransaction.saleIncome(transactionId, walletId, -1L, 10_000L, orderId, createdAt)
+            )
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("Sale income amount must be positive.");
         }
     }
 }
