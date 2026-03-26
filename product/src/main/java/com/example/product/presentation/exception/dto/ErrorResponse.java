@@ -1,5 +1,6 @@
 package com.example.product.presentation.exception.dto;
 
+import com.example.product.common.exception.ErrorCode;
 import java.time.LocalDateTime;
 import java.util.List;
 

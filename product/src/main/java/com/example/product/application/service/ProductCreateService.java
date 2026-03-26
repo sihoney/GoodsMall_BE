@@ -1,7 +1,6 @@
 package com.example.product.application.service;
 
 import com.example.product.application.usecase.ProductCreateUseCase;
-import com.example.product.domain.entity.Category;
 import com.example.product.domain.entity.Product;
 import com.example.product.domain.repository.CategoryRepository;
 import com.example.product.domain.repository.ProductRepository;

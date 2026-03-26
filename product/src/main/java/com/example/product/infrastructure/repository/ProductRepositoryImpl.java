@@ -2,7 +2,7 @@ package com.example.product.infrastructure.repository;
 
 import com.example.product.domain.entity.Product;
 import com.example.product.domain.repository.ProductRepository;
-import com.example.product.presentation.exception.ProductNotFoundException;
+import com.example.product.common.exception.ProductNotFoundException;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

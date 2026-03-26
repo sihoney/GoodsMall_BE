@@ -1,6 +1,5 @@
-package com.example.product.presentation.exception;
+package com.example.product.common.exception;
 
-import com.example.product.presentation.exception.dto.ErrorCode;
 import lombok.Getter;
 
 @Getter

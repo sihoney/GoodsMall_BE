@@ -1,7 +1,7 @@
 package com.example.product.presentation.exception.handler;
 
-import com.example.product.presentation.exception.CustomException;
-import com.example.product.presentation.exception.dto.ErrorCode;
+import com.example.product.common.exception.CustomException;
+import com.example.product.common.exception.ErrorCode;
 import com.example.product.presentation.exception.dto.ErrorResponse;
 import com.example.product.presentation.exception.dto.ValidationError;
 import jakarta.servlet.http.HttpServletRequest;
@@ -45,6 +45,51 @@ public class GlobalExceptionHandler {
             errors
         );
 
+        return ResponseEntity
+            .status(ErrorCode.INVALID_INPUT_VALUE.getHttpStatus())
+            .body(response);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgument(
+        IllegalArgumentException ex,
+        HttpServletRequest request
+    ) {
+        log.warn("IllegalArgumentException: {}", ex.getMessage());
+        ErrorResponse response = ErrorResponse.of(
+            ErrorCode.INVALID_INPUT_VALUE,
+            request.getRequestURI()
+        );
+        return ResponseEntity
+            .status(ErrorCode.INVALID_INPUT_VALUE.getHttpStatus())
+            .body(response);
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalState(
+        IllegalStateException ex,
+        HttpServletRequest request
+    ) {
+        log.warn("IllegalStateException: {}", ex.getMessage());
+        ErrorResponse response = ErrorResponse.of(
+            ErrorCode.INVALID_INPUT_VALUE,
+            request.getRequestURI()
+        );
+        return ResponseEntity
+            .status(ErrorCode.INVALID_INPUT_VALUE.getHttpStatus())
+            .body(response);
+    }
+
+    @ExceptionHandler(NullPointerException.class)
+    public ResponseEntity<ErrorResponse> handleNullPointer(
+        NullPointerException ex,
+        HttpServletRequest request
+    ) {
+        log.warn("NullPointerException: {}", ex.getMessage());
+        ErrorResponse response = ErrorResponse.of(
+            ErrorCode.INVALID_INPUT_VALUE,
+            request.getRequestURI()
+        );
         return ResponseEntity
             .status(ErrorCode.INVALID_INPUT_VALUE.getHttpStatus())
             .body(response);

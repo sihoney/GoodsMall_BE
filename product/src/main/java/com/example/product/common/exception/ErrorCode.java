@@ -1,4 +1,4 @@
-package com.example.product.presentation.exception.dto;
+package com.example.product.common.exception;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +16,12 @@ public enum ErrorCode {
 
     INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, "입력값이 올바르지 않습니다"),
     INVALID_PRICE(HttpStatus.BAD_REQUEST, "가격은 0보다 커야 합니다"),
-    SELLER_NOT_AUTHORIZED(HttpStatus.FORBIDDEN, "해당 상품에 대한 권한이 없습니다");
+
+    //403
+    SELLER_NOT_AUTHORIZED(HttpStatus.FORBIDDEN, "해당 상품에 대한 권한이 없습니다"),
+
+    //409
+    PRODUCT_ALREADY_DELETED(HttpStatus.CONFLICT, "이미 삭제된 상품입니다");
 
     private final HttpStatus httpStatus;
     private final String message;
