@@ -1,9 +1,9 @@
 package com.example.payment.infrastructure.messaging.kafka;
 
 import com.example.payment.application.dto.CreateWalletCommand;
-import com.example.payment.application.event.MemberCreatedEvent;
 import com.example.payment.application.usecase.CreateWalletUseCase;
 import com.example.payment.domain.exception.InvalidChargeRequestException;
+import com.example.payment.infrastructure.messaging.kafka.contract.MemberCreatedMessage;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -33,7 +33,7 @@ class MemberCreatedEventConsumerTest {
     void listen_validEvent_callsCreateWalletUseCase() {
         UUID memberId = UUID.randomUUID();
         LocalDateTime occurredAt = LocalDateTime.of(2024, 1, 1, 12, 0, 0);
-        MemberCreatedEvent event = new MemberCreatedEvent("evt-1", memberId, occurredAt);
+        MemberCreatedMessage event = new MemberCreatedMessage("evt-1", memberId, occurredAt);
 
         consumer.listen(event);
 
@@ -46,7 +46,7 @@ class MemberCreatedEventConsumerTest {
     @Test
     @DisplayName("memberId가 없으면 예외가 발생한다")
     void listen_missingMemberId_throwsException() {
-        MemberCreatedEvent event = new MemberCreatedEvent("evt-1", null, LocalDateTime.of(2024, 1, 1, 12, 0, 0));
+        MemberCreatedMessage event = new MemberCreatedMessage("evt-1", null, LocalDateTime.of(2024, 1, 1, 12, 0, 0));
 
         assertThatThrownBy(() -> consumer.listen(event))
                 .isInstanceOf(InvalidChargeRequestException.class)

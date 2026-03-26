@@ -12,6 +12,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -74,6 +75,26 @@ class WalletCreationServiceTest {
         assertThat(result.balance()).isEqualTo(0L);
         assertThat(result.created()).isTrue();
         verify(walletRepository).save(any(Wallet.class));
+    }
+
+    @Test
+    @DisplayName("중복 생성 경쟁으로 unique 제약 예외가 나면 기존 wallet를 반환한다")
+    void createWallet_duplicateInsert_returnsExistingWallet() {
+        UUID memberId = UUID.randomUUID();
+        UUID walletId = UUID.randomUUID();
+        LocalDateTime now = LocalDateTime.of(2024, 1, 1, 12, 0, 0);
+        Wallet existingWallet = Wallet.create(walletId, memberId, 0L, now, now);
+
+        given(walletRepository.findByMemberId(memberId))
+                .willReturn(Optional.empty())
+                .willReturn(Optional.of(existingWallet));
+        given(identifierGenerator.generateUuid()).willReturn(UUID.randomUUID());
+        given(walletRepository.save(any(Wallet.class))).willThrow(new DataIntegrityViolationException("duplicate"));
+
+        CreateWalletResult result = walletCreationService.createWallet(new CreateWalletCommand(memberId, now));
+
+        assertThat(result.walletId()).isEqualTo(walletId);
+        assertThat(result.created()).isFalse();
     }
 
     @Test

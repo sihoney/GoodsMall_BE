@@ -7,6 +7,7 @@ import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.exception.InvalidChargeRequestException;
 import com.example.payment.domain.repository.WalletRepository;
 import com.example.payment.domain.service.IdentifierGenerator;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,7 +48,19 @@ public class WalletCreationService implements CreateWalletUseCase {
                 command.createdAt(),
                 command.createdAt()
         );
-        Wallet savedWallet = walletRepository.save(wallet);
+        Wallet savedWallet;
+        try {
+            savedWallet = walletRepository.save(wallet);
+        } catch (DataIntegrityViolationException e) {
+            Wallet existingWallet = walletRepository.findByMemberId(command.memberId())
+                    .orElseThrow(() -> e);
+            return new CreateWalletResult(
+                    existingWallet.getWalletId(),
+                    existingWallet.getMemberId(),
+                    existingWallet.getBalance(),
+                    false
+            );
+        }
         return new CreateWalletResult(
                 savedWallet.getWalletId(),
                 savedWallet.getMemberId(),

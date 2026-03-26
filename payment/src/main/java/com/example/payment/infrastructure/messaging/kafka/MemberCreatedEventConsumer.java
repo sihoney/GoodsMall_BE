@@ -1,9 +1,9 @@
 package com.example.payment.infrastructure.messaging.kafka;
 
 import com.example.payment.application.dto.CreateWalletCommand;
-import com.example.payment.application.event.MemberCreatedEvent;
 import com.example.payment.application.usecase.CreateWalletUseCase;
 import com.example.payment.domain.exception.InvalidChargeRequestException;
+import com.example.payment.infrastructure.messaging.kafka.contract.MemberCreatedMessage;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
@@ -18,9 +18,10 @@ public class MemberCreatedEventConsumer {
 
     @KafkaListener(
             topics = "${payment.kafka.topics.member-created:member.created}",
-            groupId = "${payment.kafka.consumer-groups.member-created:payment-service}"
+            groupId = "${payment.kafka.consumer-groups.member-created:payment-service}",
+            containerFactory = "memberCreatedKafkaListenerContainerFactory"
     )
-    public void listen(MemberCreatedEvent event) {
+    public void listen(MemberCreatedMessage event) {
         validateEvent(event);
         createWalletUseCase.createWallet(new CreateWalletCommand(
                 event.memberId(),
@@ -28,7 +29,7 @@ public class MemberCreatedEventConsumer {
         ));
     }
 
-    private void validateEvent(MemberCreatedEvent event) {
+    private void validateEvent(MemberCreatedMessage event) {
         if (event == null) {
             throw new InvalidChargeRequestException("memberCreated event is required.");
         }
