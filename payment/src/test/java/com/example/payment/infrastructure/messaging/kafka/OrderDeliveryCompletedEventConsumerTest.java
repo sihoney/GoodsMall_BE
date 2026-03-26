@@ -1,9 +1,13 @@
 package com.example.payment.infrastructure.messaging.kafka;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+
 import com.example.payment.application.dto.EscrowReleaseScheduleCommand;
 import com.example.payment.application.usecase.EscrowReleaseScheduleUseCase;
-import com.example.payment.domain.exception.EscrowReleaseAlreadyScheduledException;
-import com.example.payment.domain.exception.InvalidOrderPaymentRequestException;
+import com.example.payment.common.exception.InvalidOrderPaymentRequestException;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderDeliveryCompletedMessage;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -14,12 +18,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("OrderDeliveryCompletedEventConsumer 테스트")
@@ -32,7 +30,7 @@ class OrderDeliveryCompletedEventConsumerTest {
     private OrderDeliveryCompletedEventConsumer consumer;
 
     @Test
-    @DisplayName("정상 배송 완료 이벤트를 수신하면 releaseAt 설정 유스케이스를 호출한다")
+    @DisplayName("정상 배송 완료 이벤트를 수신하면 releaseAt 설정 usecase를 호출한다")
     void listen_validEvent_callsEscrowReleaseScheduleUseCase() {
         UUID orderId = UUID.randomUUID();
         LocalDateTime deliveredAt = LocalDateTime.of(2024, 1, 5, 12, 0, 0);
@@ -53,8 +51,8 @@ class OrderDeliveryCompletedEventConsumerTest {
     }
 
     @Test
-    @DisplayName("중복 배송 완료 이벤트는 무시한다")
-    void listen_duplicateEvent_ignoresAlreadyScheduledException() {
+    @DisplayName("중복 배송 완료 이벤트도 그대로 usecase에 위임한다")
+    void listen_duplicateEvent_callsUseCase() {
         UUID orderId = UUID.randomUUID();
         LocalDateTime deliveredAt = LocalDateTime.of(2024, 1, 5, 12, 0, 0);
         OrderDeliveryCompletedMessage event = new OrderDeliveryCompletedMessage(
@@ -63,9 +61,6 @@ class OrderDeliveryCompletedEventConsumerTest {
                 deliveredAt,
                 LocalDateTime.of(2024, 1, 5, 12, 1, 0)
         );
-
-        doThrow(new EscrowReleaseAlreadyScheduledException()).when(escrowReleaseScheduleUseCase)
-                .scheduleRelease(new EscrowReleaseScheduleCommand(orderId, deliveredAt));
 
         consumer.listen(event);
 

@@ -9,12 +9,9 @@ import com.example.payment.domain.entity.Escrow;
 import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.entity.WalletTransaction;
 import com.example.payment.domain.enumtype.ConfirmationType;
-import com.example.payment.domain.exception.EscrowAlreadyRefundedException;
-import com.example.payment.domain.exception.EscrowAlreadyReleasedException;
-import com.example.payment.domain.exception.EscrowNotFoundException;
-import com.example.payment.domain.exception.EscrowStateException;
-import com.example.payment.domain.exception.InvalidOrderPaymentRequestException;
-import com.example.payment.domain.exception.WalletNotFoundException;
+import com.example.payment.common.exception.EscrowNotFoundException;
+import com.example.payment.common.exception.InvalidOrderPaymentRequestException;
+import com.example.payment.common.exception.WalletNotFoundException;
 import com.example.payment.domain.repository.EscrowRepository;
 import com.example.payment.domain.repository.WalletRepository;
 import com.example.payment.domain.repository.WalletTransactionRepository;
@@ -64,13 +61,13 @@ public class EscrowReleaseService implements EscrowReleaseUseCase {
                 .orElseThrow(EscrowNotFoundException::new);
 
         if (escrow.isReleased()) {
-            throw new EscrowAlreadyReleasedException();
+            return existingResult(command, escrow);
         }
         if (escrow.isRefunded()) {
-            throw new EscrowAlreadyRefundedException();
+            throw new IllegalStateException("Escrow is not releasable.");
         }
         if (!escrow.isHeld()) {
-            throw new EscrowStateException("Escrow is not releasable.");
+            throw new IllegalStateException("Escrow is not releasable.");
         }
 
         Wallet sellerWallet = walletRepository.findByMemberId(command.sellerMemberId())
@@ -108,6 +105,20 @@ public class EscrowReleaseService implements EscrowReleaseUseCase {
                     escrow.getReleasedAt()
             ));
         }
+
+        return new EscrowReleaseResult(
+                escrow.getOrderId(),
+                sellerWallet.getWalletId(),
+                escrow.getAmount(),
+                sellerWallet.getBalance(),
+                escrow.getEscrowStatus(),
+                escrow.getReleasedAt()
+        );
+    }
+
+    private EscrowReleaseResult existingResult(EscrowReleaseCommand command, Escrow escrow) {
+        Wallet sellerWallet = walletRepository.findByMemberId(command.sellerMemberId())
+                .orElseThrow(WalletNotFoundException::new);
 
         return new EscrowReleaseResult(
                 escrow.getOrderId(),

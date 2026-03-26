@@ -2,9 +2,7 @@ package com.example.payment.infrastructure.messaging.kafka;
 
 import com.example.payment.application.dto.EscrowReleaseScheduleCommand;
 import com.example.payment.application.usecase.EscrowReleaseScheduleUseCase;
-import com.example.payment.domain.exception.EscrowNotHeldException;
-import com.example.payment.domain.exception.EscrowReleaseAlreadyScheduledException;
-import com.example.payment.domain.exception.InvalidOrderPaymentRequestException;
+import com.example.payment.common.exception.InvalidOrderPaymentRequestException;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderDeliveryCompletedMessage;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
@@ -25,15 +23,10 @@ public class OrderDeliveryCompletedEventConsumer {
     )
     public void listen(OrderDeliveryCompletedMessage event) {
         validateEvent(event);
-
-        try {
-            escrowReleaseScheduleUseCase.scheduleRelease(new EscrowReleaseScheduleCommand(
-                    event.orderId(),
-                    event.deliveredAt()
-            ));
-        } catch (EscrowReleaseAlreadyScheduledException | EscrowNotHeldException ignored) {
-            // Duplicate or already-processed delivery completed event should not reschedule releaseAt.
-        }
+        escrowReleaseScheduleUseCase.scheduleRelease(new EscrowReleaseScheduleCommand(
+                event.orderId(),
+                event.deliveredAt()
+        ));
     }
 
     private void validateEvent(OrderDeliveryCompletedMessage event) {

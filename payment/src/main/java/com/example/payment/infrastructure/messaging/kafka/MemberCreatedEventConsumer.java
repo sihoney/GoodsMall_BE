@@ -2,7 +2,7 @@ package com.example.payment.infrastructure.messaging.kafka;
 
 import com.example.payment.application.dto.CreateWalletCommand;
 import com.example.payment.application.usecase.CreateWalletUseCase;
-import com.example.payment.domain.exception.InvalidChargeRequestException;
+import com.example.payment.common.exception.InvalidChargeRequestException;
 import com.example.payment.infrastructure.messaging.kafka.contract.MemberCreatedMessage;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;

@@ -9,14 +9,13 @@ import static org.mockito.Mockito.verify;
 
 import com.example.payment.application.dto.ChargeConfirmCommand;
 import com.example.payment.application.dto.ChargeConfirmResult;
+import com.example.payment.common.exception.ChargeNotFoundException;
+import com.example.payment.common.exception.InvalidChargeRequestException;
+import com.example.payment.common.exception.PaymentGatewayException;
 import com.example.payment.domain.entity.Charge;
 import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.enumtype.ChargeStatus;
 import com.example.payment.domain.enumtype.PgProvider;
-import com.example.payment.domain.exception.ChargeNotFoundException;
-import com.example.payment.domain.exception.ChargeStateException;
-import com.example.payment.domain.exception.InvalidChargeRequestException;
-import com.example.payment.domain.exception.PaymentGatewayException;
 import com.example.payment.domain.repository.ChargeRepository;
 import com.example.payment.domain.repository.WalletRepository;
 import com.example.payment.domain.repository.WalletTransactionRepository;
@@ -36,7 +35,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("ConfirmChargeService 테스트")
+@DisplayName("ConfirmChargeService test")
 class ConfirmChargeServiceTest {
 
     @Mock
@@ -74,7 +73,7 @@ class ConfirmChargeServiceTest {
     }
 
     @Nested
-    @DisplayName("confirmCharge() 충전 승인 테스트")
+    @DisplayName("confirmCharge")
     class ConfirmCharge {
 
         private Charge pendingCharge;
@@ -91,8 +90,8 @@ class ConfirmChargeServiceTest {
         }
 
         @Test
-        @DisplayName("승인 성공 시 charge 상태가 SUCCESS로 변경된다")
-        void confirmCharge_success_chargeStatusIsSuccess() {
+        @DisplayName("success updates charge and wallet")
+        void confirmCharge_success_updatesChargeAndWallet() {
             ChargeConfirmCommand command = new ChargeConfirmCommand(chargeId, "payKey-001", pgOrderId, 10_000L);
             LocalDateTime approvedAt = now.plusMinutes(5);
             TossPaymentGateway.TossPaymentConfirmation confirmation =
@@ -110,54 +109,16 @@ class ConfirmChargeServiceTest {
 
             assertThat(result.chargeStatus()).isEqualTo(ChargeStatus.SUCCESS);
             assertThat(result.approvedAmount()).isEqualTo(10_000L);
-        }
-
-        @Test
-        @DisplayName("승인 성공 시 wallet 잔액이 증가한다")
-        void confirmCharge_success_walletBalanceIncreases() {
-            ChargeConfirmCommand command = new ChargeConfirmCommand(chargeId, "payKey-001", pgOrderId, 10_000L);
-            LocalDateTime approvedAt = now.plusMinutes(5);
-            TossPaymentGateway.TossPaymentConfirmation confirmation =
-                    new TossPaymentGateway.TossPaymentConfirmation("payKey-001", pgOrderId, 10_000L, approvedAt);
-
-            given(chargeRepository.findByChargeId(chargeId)).willReturn(Optional.of(pendingCharge));
-            given(tossPaymentGateway.confirm(any(), any(), any())).willReturn(confirmation);
-            given(walletRepository.findByWalletId(walletId)).willReturn(Optional.of(wallet));
-            given(identifierGenerator.generateUuid()).willReturn(UUID.randomUUID());
-            given(chargeRepository.save(any(Charge.class))).willAnswer(invocation -> invocation.getArgument(0));
-            given(walletRepository.save(any(Wallet.class))).willAnswer(invocation -> invocation.getArgument(0));
-            given(walletTransactionRepository.save(any())).willAnswer(invocation -> invocation.getArgument(0));
-
-            ChargeConfirmResult result = confirmChargeService.confirmCharge(command);
-
             assertThat(result.walletBalance()).isEqualTo(15_000L);
-        }
-
-        @Test
-        @DisplayName("승인 성공 시 charge, wallet, walletTransaction이 모두 저장된다")
-        void confirmCharge_success_savesAllThreeEntities() {
-            ChargeConfirmCommand command = new ChargeConfirmCommand(chargeId, "payKey-001", pgOrderId, 10_000L);
-            LocalDateTime approvedAt = now.plusMinutes(5);
-            TossPaymentGateway.TossPaymentConfirmation confirmation =
-                    new TossPaymentGateway.TossPaymentConfirmation("payKey-001", pgOrderId, 10_000L, approvedAt);
-
-            given(chargeRepository.findByChargeId(chargeId)).willReturn(Optional.of(pendingCharge));
-            given(tossPaymentGateway.confirm(any(), any(), any())).willReturn(confirmation);
-            given(walletRepository.findByWalletId(walletId)).willReturn(Optional.of(wallet));
-            given(identifierGenerator.generateUuid()).willReturn(UUID.randomUUID());
-            given(chargeRepository.save(any(Charge.class))).willAnswer(invocation -> invocation.getArgument(0));
-            given(walletRepository.save(any(Wallet.class))).willAnswer(invocation -> invocation.getArgument(0));
-            given(walletTransactionRepository.save(any())).willAnswer(invocation -> invocation.getArgument(0));
-
-            confirmChargeService.confirmCharge(command);
-
+            assertThat(result.chargeId()).isEqualTo(chargeId);
+            assertThat(result.approvedAt()).isEqualTo(approvedAt);
             verify(chargeRepository).save(any(Charge.class));
             verify(walletRepository).save(any(Wallet.class));
             verify(walletTransactionRepository).save(any());
         }
 
         @Test
-        @DisplayName("charge를 찾지 못하면 ChargeNotFoundException이 발생한다")
+        @DisplayName("missing charge throws not found")
         void confirmCharge_chargeNotFound_throwsException() {
             ChargeConfirmCommand command = new ChargeConfirmCommand(chargeId, "payKey-001", pgOrderId, 10_000L);
             given(chargeRepository.findByChargeId(chargeId)).willReturn(Optional.empty());
@@ -167,14 +128,14 @@ class ConfirmChargeServiceTest {
         }
 
         @Test
-        @DisplayName("이미 SUCCESS인 charge를 재승인하면 ChargeStateException이 발생한다")
-        void confirmCharge_alreadySuccessCharge_throwsChargeStateException() {
+        @DisplayName("non pending charge throws illegal state")
+        void confirmCharge_alreadySuccessCharge_throwsIllegalStateException() {
             pendingCharge.approve(10_000L, "payKey-001", now.plusMinutes(1));
             ChargeConfirmCommand command = new ChargeConfirmCommand(chargeId, "payKey-002", pgOrderId, 10_000L);
             given(chargeRepository.findByChargeId(chargeId)).willReturn(Optional.of(pendingCharge));
 
             assertThatThrownBy(() -> confirmChargeService.confirmCharge(command))
-                    .isInstanceOf(ChargeStateException.class)
+                    .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("Charge is not pending.");
 
             verify(walletRepository, never()).save(any());
@@ -182,7 +143,7 @@ class ConfirmChargeServiceTest {
         }
 
         @Test
-        @DisplayName("pgOrderId가 불일치하면 InvalidChargeRequestException이 발생한다")
+        @DisplayName("pg order mismatch throws invalid request")
         void confirmCharge_pgOrderIdMismatch_throwsException() {
             ChargeConfirmCommand command = new ChargeConfirmCommand(
                     chargeId, "payKey-001", "WRONG-ORDER-ID", 10_000L
@@ -195,7 +156,7 @@ class ConfirmChargeServiceTest {
         }
 
         @Test
-        @DisplayName("amount가 불일치하면 InvalidChargeRequestException이 발생한다")
+        @DisplayName("amount mismatch throws invalid request")
         void confirmCharge_amountMismatch_throwsException() {
             ChargeConfirmCommand command = new ChargeConfirmCommand(chargeId, "payKey-001", pgOrderId, 99_999L);
             given(chargeRepository.findByChargeId(chargeId)).willReturn(Optional.of(pendingCharge));
@@ -206,29 +167,7 @@ class ConfirmChargeServiceTest {
         }
 
         @Test
-        @DisplayName("토스 게이트웨이 호출 실패 시 wallet이 저장되지 않는다")
-        void confirmCharge_tossGatewayFails_walletNotSaved() {
-            ChargeConfirmCommand command = new ChargeConfirmCommand(chargeId, "payKey-001", pgOrderId, 10_000L);
-            given(chargeRepository.findByChargeId(chargeId)).willReturn(Optional.of(pendingCharge));
-            given(tossPaymentGateway.confirm(any(), any(), any()))
-                    .willThrow(new PaymentGatewayException("Toss gateway error"));
-            given(timeProvider.now()).willReturn(now.plusMinutes(2));
-            given(chargeRepository.save(any(Charge.class))).willAnswer(invocation -> invocation.getArgument(0));
-
-            assertThatThrownBy(() -> confirmChargeService.confirmCharge(command))
-                    .isInstanceOf(PaymentGatewayException.class);
-
-            verify(walletRepository, never()).findByWalletId(any());
-            verify(walletRepository, never()).save(any());
-            verify(walletTransactionRepository, never()).save(any());
-            verify(chargeRepository).save(pendingCharge);
-            assertThat(pendingCharge.getChargeStatus()).isEqualTo(ChargeStatus.FAILED);
-            assertThat(pendingCharge.getFailureReason()).contains("Toss gateway error");
-            assertThat(pendingCharge.getFailedAt()).isEqualTo(now.plusMinutes(2));
-        }
-
-        @Test
-        @DisplayName("토스 게이트웨이 호출 실패 시 charge만 FAILED로 저장된다")
+        @DisplayName("gateway failure marks charge failed only")
         void confirmCharge_tossGatewayFails_marksChargeFailedOnly() {
             ChargeConfirmCommand command = new ChargeConfirmCommand(chargeId, "payKey-001", pgOrderId, 10_000L);
             given(chargeRepository.findByChargeId(chargeId)).willReturn(Optional.of(pendingCharge));
@@ -247,7 +186,7 @@ class ConfirmChargeServiceTest {
         }
 
         @Test
-        @DisplayName("confirmCharge 요청 시 chargeId가 null이면 InvalidChargeRequestException이 발생한다")
+        @DisplayName("null charge id throws invalid request")
         void confirmCharge_nullChargeId_throwsException() {
             ChargeConfirmCommand command = new ChargeConfirmCommand(null, "payKey-001", pgOrderId, 10_000L);
 
@@ -257,35 +196,13 @@ class ConfirmChargeServiceTest {
         }
 
         @Test
-        @DisplayName("confirmCharge 요청 시 paymentKey가 빈 문자열이면 InvalidChargeRequestException이 발생한다")
+        @DisplayName("blank payment key throws invalid request")
         void confirmCharge_blankPaymentKey_throwsException() {
             ChargeConfirmCommand command = new ChargeConfirmCommand(chargeId, "  ", pgOrderId, 10_000L);
 
             assertThatThrownBy(() -> confirmChargeService.confirmCharge(command))
                     .isInstanceOf(InvalidChargeRequestException.class)
                     .hasMessageContaining("paymentKey is required.");
-        }
-
-        @Test
-        @DisplayName("승인 성공 시 반환된 결과에 chargeId와 approvedAt이 올바르게 포함된다")
-        void confirmCharge_success_resultContainsCorrectFields() {
-            LocalDateTime approvedAt = now.plusMinutes(5);
-            ChargeConfirmCommand command = new ChargeConfirmCommand(chargeId, "payKey-001", pgOrderId, 10_000L);
-            TossPaymentGateway.TossPaymentConfirmation confirmation =
-                    new TossPaymentGateway.TossPaymentConfirmation("payKey-001", pgOrderId, 10_000L, approvedAt);
-
-            given(chargeRepository.findByChargeId(chargeId)).willReturn(Optional.of(pendingCharge));
-            given(tossPaymentGateway.confirm(any(), any(), any())).willReturn(confirmation);
-            given(walletRepository.findByWalletId(walletId)).willReturn(Optional.of(wallet));
-            given(identifierGenerator.generateUuid()).willReturn(UUID.randomUUID());
-            given(chargeRepository.save(any(Charge.class))).willAnswer(invocation -> invocation.getArgument(0));
-            given(walletRepository.save(any(Wallet.class))).willAnswer(invocation -> invocation.getArgument(0));
-            given(walletTransactionRepository.save(any())).willAnswer(invocation -> invocation.getArgument(0));
-
-            ChargeConfirmResult result = confirmChargeService.confirmCharge(command);
-
-            assertThat(result.chargeId()).isEqualTo(chargeId);
-            assertThat(result.approvedAt()).isEqualTo(approvedAt);
         }
     }
 }

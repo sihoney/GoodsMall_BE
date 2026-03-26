@@ -3,7 +3,7 @@ package com.example.payment.application.service;
 import com.example.payment.application.dto.CreateWalletCommand;
 import com.example.payment.application.dto.CreateWalletResult;
 import com.example.payment.domain.entity.Wallet;
-import com.example.payment.domain.exception.InvalidChargeRequestException;
+import com.example.payment.common.exception.InvalidChargeRequestException;
 import com.example.payment.domain.repository.WalletRepository;
 import com.example.payment.domain.service.IdentifierGenerator;
 import java.time.LocalDateTime;

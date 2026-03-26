@@ -4,8 +4,8 @@ import com.example.payment.application.dto.EscrowReleaseScheduleCommand;
 import com.example.payment.application.dto.EscrowReleaseScheduleResult;
 import com.example.payment.application.usecase.EscrowReleaseScheduleUseCase;
 import com.example.payment.domain.entity.Escrow;
-import com.example.payment.domain.exception.EscrowNotFoundException;
-import com.example.payment.domain.exception.InvalidOrderPaymentRequestException;
+import com.example.payment.common.exception.EscrowNotFoundException;
+import com.example.payment.common.exception.InvalidOrderPaymentRequestException;
 import com.example.payment.domain.repository.EscrowRepository;
 import com.example.payment.domain.service.TimeProvider;
 import java.time.LocalDateTime;
@@ -32,6 +32,14 @@ public class EscrowReleaseScheduleService implements EscrowReleaseScheduleUseCas
 
         Escrow escrow = escrowRepository.findByOrderId(command.orderId())
                 .orElseThrow(EscrowNotFoundException::new);
+
+        if (!escrow.isHeld() || escrow.getReleaseAt() != null) {
+            return new EscrowReleaseScheduleResult(
+                    escrow.getOrderId(),
+                    command.deliveredAt(),
+                    escrow.getReleaseAt()
+            );
+        }
 
         LocalDateTime releaseAt = command.deliveredAt().plusDays(AUTO_CONFIRM_DAYS);
         LocalDateTime now = timeProvider.now();

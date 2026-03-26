@@ -1,6 +1,6 @@
 package com.example.payment.infrastructure.client;
 
-import com.example.payment.domain.exception.PaymentGatewayException;
+import com.example.payment.common.exception.PaymentGatewayException;
 import com.example.payment.domain.service.TossPaymentGateway;
 import com.example.payment.infrastructure.config.TossPaymentsProperties;
 import java.nio.charset.StandardCharsets;

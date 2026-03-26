@@ -6,9 +6,8 @@ import com.example.payment.application.usecase.OrderPaymentUseCase;
 import com.example.payment.domain.entity.Escrow;
 import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.entity.WalletTransaction;
-import com.example.payment.domain.exception.InvalidOrderPaymentRequestException;
-import com.example.payment.domain.exception.OrderPaymentAlreadyCompletedException;
-import com.example.payment.domain.exception.WalletNotFoundException;
+import com.example.payment.common.exception.InvalidOrderPaymentRequestException;
+import com.example.payment.common.exception.WalletNotFoundException;
 import com.example.payment.domain.repository.EscrowRepository;
 import com.example.payment.domain.repository.WalletRepository;
 import com.example.payment.domain.repository.WalletTransactionRepository;
@@ -46,8 +45,9 @@ public class OrderPaymentService implements OrderPaymentUseCase {
     public OrderPaymentResult payOrder(OrderPaymentCommand command) {
         validateCommand(command);
 
-        if (escrowRepository.findByOrderId(command.orderId()).isPresent()) {
-            throw new OrderPaymentAlreadyCompletedException();
+        Escrow existingEscrow = escrowRepository.findByOrderId(command.orderId()).orElse(null);
+        if (existingEscrow != null) {
+            return existingResult(command, existingEscrow);
         }
 
         Wallet buyerWallet = walletRepository.findByMemberId(command.buyerMemberId())
@@ -87,6 +87,21 @@ public class OrderPaymentService implements OrderPaymentUseCase {
                 buyerWallet.getBalance(),
                 escrow.getEscrowStatus(),
                 escrow.getReleaseAt()
+        );
+    }
+
+    private OrderPaymentResult existingResult(OrderPaymentCommand command, Escrow existingEscrow) {
+        Wallet buyerWallet = walletRepository.findByMemberId(command.buyerMemberId())
+                .orElseThrow(WalletNotFoundException::new);
+
+        return new OrderPaymentResult(
+                command.orderId(),
+                buyerWallet.getWalletId(),
+                existingEscrow.getEscrowId(),
+                command.orderAmount(),
+                buyerWallet.getBalance(),
+                existingEscrow.getEscrowStatus(),
+                existingEscrow.getReleaseAt()
         );
     }
 

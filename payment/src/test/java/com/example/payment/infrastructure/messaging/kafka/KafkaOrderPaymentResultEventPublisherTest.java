@@ -38,7 +38,7 @@ class KafkaOrderPaymentResultEventPublisherTest {
                 null,
                 null,
                 OrderPaymentFailureReason.WALLET_NOT_FOUND,
-                "Wallet not found.",
+                "지갑 정보를 찾을 수 없습니다.",
                 LocalDateTime.of(2024, 1, 1, 12, 0, 0)
         );
 

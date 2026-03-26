@@ -13,8 +13,8 @@ import com.example.payment.domain.entity.Charge;
 import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.enumtype.ChargeStatus;
 import com.example.payment.domain.enumtype.PgProvider;
-import com.example.payment.domain.exception.InvalidChargeRequestException;
-import com.example.payment.domain.exception.WalletNotFoundException;
+import com.example.payment.common.exception.InvalidChargeRequestException;
+import com.example.payment.common.exception.WalletNotFoundException;
 import com.example.payment.domain.repository.ChargeRepository;
 import com.example.payment.domain.repository.WalletRepository;
 import com.example.payment.domain.service.IdentifierGenerator;
@@ -90,7 +90,7 @@ class CreateChargeServiceTest {
 
         assertThatThrownBy(() -> createChargeService.createCharge(command))
                 .isInstanceOf(WalletNotFoundException.class)
-                .hasMessageContaining("Wallet not found.");
+                .hasMessageContaining("지갑 정보를 찾을 수 없습니다.");
         verify(walletRepository, never()).save(any(Wallet.class));
         verify(chargeRepository, never()).save(any(Charge.class));
     }

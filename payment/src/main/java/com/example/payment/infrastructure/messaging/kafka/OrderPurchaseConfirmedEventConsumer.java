@@ -1,10 +1,9 @@
 package com.example.payment.infrastructure.messaging.kafka;
 
+import com.example.payment.common.exception.InvalidOrderPaymentRequestException;
 import com.example.payment.application.dto.EscrowReleaseCommand;
 import com.example.payment.application.usecase.EscrowReleaseUseCase;
 import com.example.payment.domain.enumtype.ConfirmationType;
-import com.example.payment.domain.exception.EscrowAlreadyReleasedException;
-import com.example.payment.domain.exception.InvalidOrderPaymentRequestException;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPurchaseConfirmedMessage;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
@@ -25,16 +24,11 @@ public class OrderPurchaseConfirmedEventConsumer {
     )
     public void listen(OrderPurchaseConfirmedMessage event) {
         validateEvent(event);
-
-        try {
-            escrowReleaseUseCase.releaseEscrow(new EscrowReleaseCommand(
-                    event.orderId(),
-                    event.sellerMemberId(),
-                    event.confirmationType()
-            ));
-        } catch (EscrowAlreadyReleasedException ignored) {
-            // Duplicate confirmation event should not release funds twice.
-        }
+        escrowReleaseUseCase.releaseEscrow(new EscrowReleaseCommand(
+                event.orderId(),
+                event.sellerMemberId(),
+                event.confirmationType()
+        ));
     }
 
     private void validateEvent(OrderPurchaseConfirmedMessage event) {

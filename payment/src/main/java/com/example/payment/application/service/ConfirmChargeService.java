@@ -6,11 +6,10 @@ import com.example.payment.application.usecase.ChargeConfirmUseCase;
 import com.example.payment.domain.entity.Charge;
 import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.entity.WalletTransaction;
-import com.example.payment.domain.exception.ChargeNotFoundException;
-import com.example.payment.domain.exception.ChargeStateException;
-import com.example.payment.domain.exception.InvalidChargeRequestException;
-import com.example.payment.domain.exception.PaymentGatewayException;
-import com.example.payment.domain.exception.WalletNotFoundException;
+import com.example.payment.common.exception.ChargeNotFoundException;
+import com.example.payment.common.exception.InvalidChargeRequestException;
+import com.example.payment.common.exception.PaymentGatewayException;
+import com.example.payment.common.exception.WalletNotFoundException;
 import com.example.payment.domain.repository.ChargeRepository;
 import com.example.payment.domain.repository.WalletRepository;
 import com.example.payment.domain.repository.WalletTransactionRepository;
@@ -56,7 +55,7 @@ public class ConfirmChargeService implements ChargeConfirmUseCase {
                 .orElseThrow(ChargeNotFoundException::new);
 
         if (!charge.isPending()) {
-            throw new ChargeStateException("Charge is not pending.");
+            throw new IllegalStateException("Charge is not pending.");
         }
         if (!Objects.equals(charge.getPgOrderId(), command.pgOrderId())) {
             throw new InvalidChargeRequestException("pgOrderId does not match charge.");

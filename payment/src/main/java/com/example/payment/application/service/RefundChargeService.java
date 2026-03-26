@@ -7,11 +7,10 @@ import com.example.payment.domain.entity.Charge;
 import com.example.payment.domain.entity.ChargeRefund;
 import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.entity.WalletTransaction;
-import com.example.payment.domain.exception.ChargeNotFoundException;
-import com.example.payment.domain.exception.ChargeStateException;
-import com.example.payment.domain.exception.InvalidChargeRequestException;
-import com.example.payment.domain.exception.PaymentGatewayException;
-import com.example.payment.domain.exception.WalletNotFoundException;
+import com.example.payment.common.exception.ChargeNotFoundException;
+import com.example.payment.common.exception.InvalidChargeRequestException;
+import com.example.payment.common.exception.PaymentGatewayException;
+import com.example.payment.common.exception.WalletNotFoundException;
 import com.example.payment.domain.repository.ChargeRefundRepository;
 import com.example.payment.domain.repository.ChargeRepository;
 import com.example.payment.domain.repository.WalletRepository;
@@ -61,13 +60,13 @@ public class RefundChargeService implements ChargeRefundUseCase {
                 .orElseThrow(ChargeNotFoundException::new);
 
         if (!charge.isSuccess()) {
-            throw new ChargeStateException("Charge is not refundable.");
+            throw new IllegalStateException("Charge is not refundable.");
         }
         if (chargeRefundRepository.existsRefundedByChargeId(charge.getChargeId())) {
-            throw new ChargeStateException("Charge refund has already been completed.");
+            throw new IllegalStateException("Charge refund has already been completed.");
         }
         if (charge.getApprovedAmount() == null || charge.getPgPaymentKey() == null) {
-            throw new ChargeStateException("Charge refund information is incomplete.");
+            throw new IllegalStateException("Charge refund information is incomplete.");
         }
 
         LocalDateTime refundRequestedAt = timeProvider.now();
@@ -75,7 +74,7 @@ public class RefundChargeService implements ChargeRefundUseCase {
                 .orElseThrow(WalletNotFoundException::new);
 
         if (wallet.getBalance() < charge.getApprovedAmount()) {
-            throw new ChargeStateException("Charge has already been used and cannot be refunded.");
+            throw new IllegalStateException("Charge has already been used and cannot be refunded.");
         }
 
         TossPaymentGateway.TossPaymentCancellation cancellation;

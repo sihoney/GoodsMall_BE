@@ -9,14 +9,13 @@ import static org.mockito.Mockito.verify;
 
 import com.example.payment.application.dto.ChargeRefundCommand;
 import com.example.payment.application.dto.ChargeRefundResult;
+import com.example.payment.common.exception.PaymentGatewayException;
 import com.example.payment.domain.entity.Charge;
 import com.example.payment.domain.entity.ChargeRefund;
 import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.enumtype.ChargeRefundStatus;
 import com.example.payment.domain.enumtype.ChargeStatus;
 import com.example.payment.domain.enumtype.PgProvider;
-import com.example.payment.domain.exception.ChargeStateException;
-import com.example.payment.domain.exception.PaymentGatewayException;
 import com.example.payment.domain.repository.ChargeRefundRepository;
 import com.example.payment.domain.repository.ChargeRepository;
 import com.example.payment.domain.repository.WalletRepository;
@@ -37,7 +36,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("RefundChargeService 테스트")
+@DisplayName("RefundChargeService test")
 class RefundChargeServiceTest {
 
     @Mock
@@ -78,7 +77,7 @@ class RefundChargeServiceTest {
     }
 
     @Nested
-    @DisplayName("refundCharge() 충전 환불 테스트")
+    @DisplayName("refundCharge")
     class RefundCharge {
 
         private Charge successCharge;
@@ -95,7 +94,7 @@ class RefundChargeServiceTest {
         }
 
         @Test
-        @DisplayName("환불 성공 시 charge는 REFUNDED가 되고 wallet 잔액이 차감된다")
+        @DisplayName("success creates refund and decreases wallet")
         void refundCharge_success_updatesChargeAndWallet() {
             ChargeRefundCommand command = new ChargeRefundCommand(chargeId, "user request");
             LocalDateTime refundedAt = now.plusMinutes(5);
@@ -122,7 +121,7 @@ class RefundChargeServiceTest {
         }
 
         @Test
-        @DisplayName("현재 잔액이 환불 금액보다 적으면 환불할 수 없다")
+        @DisplayName("used balance throws illegal state")
         void refundCharge_usedBalance_throwsException() {
             ChargeRefundCommand command = new ChargeRefundCommand(chargeId, "user request");
             wallet = Wallet.create(walletId, memberId, 9_000L, now, now);
@@ -132,7 +131,7 @@ class RefundChargeServiceTest {
             given(walletRepository.findByWalletId(walletId)).willReturn(Optional.of(wallet));
 
             assertThatThrownBy(() -> refundChargeService.refundCharge(command))
-                    .isInstanceOf(ChargeStateException.class)
+                    .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("already been used");
 
             verify(tossPaymentGateway, never()).cancel(any(), any(), any());
@@ -140,7 +139,7 @@ class RefundChargeServiceTest {
         }
 
         @Test
-        @DisplayName("토스 취소 실패 시 charge는 REFUND_FAILED로 저장된다")
+        @DisplayName("gateway failure stores failed refund only")
         void refundCharge_gatewayFails_marksRefundFailed() {
             ChargeRefundCommand command = new ChargeRefundCommand(chargeId, "user request");
 
@@ -164,7 +163,7 @@ class RefundChargeServiceTest {
         }
 
         @Test
-        @DisplayName("이미 환불 완료된 charge는 재환불할 수 없다")
+        @DisplayName("already refunded throws illegal state")
         void refundCharge_alreadyRefunded_throwsException() {
             ChargeRefundCommand command = new ChargeRefundCommand(chargeId, "user request");
 
@@ -172,7 +171,7 @@ class RefundChargeServiceTest {
             given(chargeRefundRepository.existsRefundedByChargeId(chargeId)).willReturn(true);
 
             assertThatThrownBy(() -> refundChargeService.refundCharge(command))
-                    .isInstanceOf(ChargeStateException.class)
+                    .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("already been completed");
 
             verify(tossPaymentGateway, never()).cancel(any(), any(), any());
