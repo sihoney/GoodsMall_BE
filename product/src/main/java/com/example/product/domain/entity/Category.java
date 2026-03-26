@@ -1,7 +1,6 @@
 package com.example.product.domain.entity;
 
-import com.example.product.presentation.exception.CategoryDepthExceededException;
-import com.example.product.presentation.exception.dto.ErrorCode;
+import com.example.product.common.exception.CategoryDepthExceededException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
