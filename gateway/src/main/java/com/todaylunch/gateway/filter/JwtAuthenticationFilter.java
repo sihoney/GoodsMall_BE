@@ -31,6 +31,12 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         ServerWebExchange exchange, 
         GatewayFilterChain chain
     ) {
+        // OPTIONS 요청과 /api/v1/ 이하가 아닌 경로는 
+        // 인증 필터를 적용하지 않고 바로 다음 필터로 전달
+        if ("OPTIONS".equalsIgnoreCase(exchange.getRequest().getMethod().name())) {
+            return chain.filter(exchange);
+        }
+
         String path = exchange.getRequest().getURI().getPath();
         if (!path.startsWith("/api/v1/")) {
             return chain.filter(exchange);

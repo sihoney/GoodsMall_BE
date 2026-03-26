@@ -10,6 +10,22 @@ spring:
     gateway:
       server:
         webflux:
+          globalcors:
+            add-to-simple-url-handler-mapping: true # CORS 설정을 글로벌 URL 핸들러 매핑에 추가
+            cors-configurations: # CORS 설정 정의
+              '[/**]':
+                allowedOrigins:
+                  - http://localhost:5173
+                allowedMethods:
+                  - GET
+                  - POST
+                  - PUT
+                  - PATCH
+                  - DELETE
+                  - OPTIONS
+                allowedHeaders:
+                  - '*'
+                allowCredentials: true
           routes:
             - id: member-auth-service
               uri: lb://member-service
