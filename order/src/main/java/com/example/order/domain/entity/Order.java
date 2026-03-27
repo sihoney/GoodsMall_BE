@@ -1,17 +1,22 @@
 package com.example.order.domain.entity;
 
 import com.example.order.domain.enumtype.OrderStatus;
-import com.example.order.domain.enumtype.TradeMethod;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -29,16 +34,12 @@ public class Order {
     @Column(name = "buyer_id", nullable = false)
     private UUID buyerId;
 
-    @Column(name = "totalprice", nullable = false)
+    @Column(name = "total_price", nullable = false)
     private BigDecimal totalPrice;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "order_status", nullable = false)
     private OrderStatus orderStatus;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "trade_method", nullable = false)
-    private TradeMethod tradeMethod;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -53,7 +54,7 @@ public class Order {
     private String addressDetail;
 
     @Column(name = "\"zipCode\"")
-    private Integer zipCode;
+    private String zipCode;
 
     @Column(name = "receiver")
     private String receiver;
@@ -61,17 +62,19 @@ public class Order {
     @Column(name = "receiver_phone")
     private String receiverPhone;
 
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
+    private final List<OrderItem> items = new ArrayList<>();
+
     private Order(
             UUID orderId,
             UUID buyerId,
             BigDecimal totalPrice,
             OrderStatus orderStatus,
-            TradeMethod tradeMethod,
             LocalDateTime createdAt,
             LocalDateTime updatedAt,
             String address,
             String addressDetail,
-            Integer zipCode,
+            String zipCode,
             String receiver,
             String receiverPhone
     ) {
@@ -79,7 +82,6 @@ public class Order {
         this.buyerId = Objects.requireNonNull(buyerId);
         this.totalPrice = Objects.requireNonNull(totalPrice);
         this.orderStatus = Objects.requireNonNull(orderStatus);
-        this.tradeMethod = Objects.requireNonNull(tradeMethod);
         this.createdAt = Objects.requireNonNull(createdAt);
         this.updatedAt = Objects.requireNonNull(updatedAt);
         this.address = address;
@@ -90,27 +92,20 @@ public class Order {
     }
 
     public static Order create(
-            UUID orderId,
             UUID buyerId,
-            BigDecimal totalPrice,
-            OrderStatus orderStatus,
-            TradeMethod tradeMethod,
-            LocalDateTime createdAt,
-            LocalDateTime updatedAt,
             String address,
             String addressDetail,
-            Integer zipCode,
+            String zipCode,
             String receiver,
             String receiverPhone
     ) {
         return new Order(
-                orderId,
+                UUID.randomUUID(),
                 buyerId,
-                totalPrice,
-                orderStatus,
-                tradeMethod,
-                createdAt,
-                updatedAt,
+                BigDecimal.ZERO,
+                OrderStatus.PENDING_PAYMENT,
+                LocalDateTime.now(),
+                LocalDateTime.now(),
                 address,
                 addressDetail,
                 zipCode,
@@ -127,7 +122,7 @@ public class Order {
     public void updateDeliveryAddress(
             String address,
             String addressDetail,
-            Integer zipCode,
+            String zipCode,
             String receiver,
             String receiverPhone,
             LocalDateTime updatedAt

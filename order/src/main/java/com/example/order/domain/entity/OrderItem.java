@@ -5,10 +5,16 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+
+import java.math.BigDecimal;
 import java.util.Objects;
 import java.util.UUID;
+
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -26,8 +32,9 @@ public class OrderItem {
     @Column(name = "product_id", nullable = false)
     private UUID productId;
 
-    @Column(name = "order_id", nullable = false)
-    private UUID orderId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id")
+    private Order order;
 
     @Column(name = "seller_id", nullable = false)
     private UUID sellerId;
@@ -36,7 +43,7 @@ public class OrderItem {
     private String productNameSnapshot;
 
     @Column(name = "unit_price_snapshot")
-    private Integer unitPriceSnapshot;
+    private BigDecimal unitPriceSnapshot;
 
     @Column(name = "quantity")
     private Integer quantity;
@@ -48,16 +55,16 @@ public class OrderItem {
     private OrderItem(
             UUID orderItemId,
             UUID productId,
-            UUID orderId,
+            Order order,
             UUID sellerId,
             String productNameSnapshot,
-            Integer unitPriceSnapshot,
+            BigDecimal unitPriceSnapshot,
             Integer quantity,
             OrderItemStatus status
     ) {
         this.orderItemId = Objects.requireNonNull(orderItemId);
         this.productId = Objects.requireNonNull(productId);
-        this.orderId = Objects.requireNonNull(orderId);
+        this.order = Objects.requireNonNull(order);
         this.sellerId = Objects.requireNonNull(sellerId);
         this.productNameSnapshot = productNameSnapshot;
         this.unitPriceSnapshot = unitPriceSnapshot;
@@ -66,24 +73,22 @@ public class OrderItem {
     }
 
     public static OrderItem create(
-            UUID orderItemId,
             UUID productId,
-            UUID orderId,
+            Order order,
             UUID sellerId,
             String productNameSnapshot,
-            Integer unitPriceSnapshot,
-            Integer quantity,
-            OrderItemStatus status
+            BigDecimal unitPriceSnapshot,
+            Integer quantity
     ) {
         return new OrderItem(
-                orderItemId,
+                UUID.randomUUID(),
                 productId,
-                orderId,
+                order,
                 sellerId,
                 productNameSnapshot,
                 unitPriceSnapshot,
                 quantity,
-                status
+                OrderItemStatus.PENDING
         );
     }
 
