@@ -1,21 +1,19 @@
-package com.example.member.presentation.resolver;
+package com.todaylunch.common.security.auth.resolver;
 
-import com.example.member.domain.enumtype.MemberRole;
-import com.example.member.common.exception.InvalidTokenException;
+import com.todaylunch.common.security.auth.annotation.CurrentMember;
+import com.todaylunch.common.security.auth.constant.AuthHeaders;
+import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
+import com.todaylunch.common.security.auth.enumtype.MemberRole;
+import com.todaylunch.common.security.exception.InvalidTokenException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.UUID;
 import org.springframework.core.MethodParameter;
-import org.springframework.stereotype.Component;
 import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
-@Component
 public class CurrentMemberArgumentResolver implements HandlerMethodArgumentResolver {
-
-    private static final String MEMBER_ID_HEADER = "X-Member-Id";
-    private static final String MEMBER_ROLE_HEADER = "X-Member-Role";
 
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
@@ -35,8 +33,8 @@ public class CurrentMemberArgumentResolver implements HandlerMethodArgumentResol
             throw new InvalidTokenException();
         }
 
-        String memberIdHeader = request.getHeader(MEMBER_ID_HEADER);
-        String roleHeader = request.getHeader(MEMBER_ROLE_HEADER);
+        String memberIdHeader = request.getHeader(AuthHeaders.MEMBER_ID);
+        String roleHeader = request.getHeader(AuthHeaders.MEMBER_ROLE);
 
         if (memberIdHeader == null || memberIdHeader.isBlank() || roleHeader == null || roleHeader.isBlank()) {
             throw new InvalidTokenException();

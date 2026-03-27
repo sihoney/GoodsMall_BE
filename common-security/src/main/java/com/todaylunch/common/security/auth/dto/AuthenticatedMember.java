@@ -1,6 +1,6 @@
-package com.example.member.presentation.resolver;
+package com.todaylunch.common.security.auth.dto;
 
-import com.example.member.domain.enumtype.MemberRole;
+import com.todaylunch.common.security.auth.enumtype.MemberRole;
 import java.util.UUID;
 
 public record AuthenticatedMember(
