@@ -1,8 +1,8 @@
 package com.example.member.presentation.dto;
 
 import com.example.member.domain.entity.Member;
-import com.example.member.domain.enumtype.MemberRole;
 import com.example.member.domain.enumtype.MemberStatus;
+import com.todaylunch.common.security.auth.enumtype.MemberRole;
 import java.time.LocalDateTime;
 import java.util.UUID;
 

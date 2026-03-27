@@ -1,4 +1,4 @@
-package com.example.member.common.exception;
+package com.todaylunch.common.security.exception;
 
 public class InvalidTokenException extends RuntimeException {
 

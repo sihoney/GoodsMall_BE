@@ -1,7 +1,7 @@
 package com.example.member.domain.entity;
 
-import com.example.member.domain.enumtype.MemberRole;
 import com.example.member.domain.enumtype.MemberStatus;
+import com.todaylunch.common.security.auth.enumtype.MemberRole;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

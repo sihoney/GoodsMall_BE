@@ -1,10 +1,9 @@
 package com.example.member.application.service;
 
 import com.example.member.application.usecase.AuthUsecase;
-import com.example.member.domain.entity.Member;
 import com.example.member.common.exception.InvalidLoginException;
-import com.example.member.common.exception.InvalidTokenException;
 import com.example.member.common.exception.RefreshTokenNotFoundException;
+import com.example.member.domain.entity.Member;
 import com.example.member.infrastructure.redis.RefreshTokenStore;
 import com.example.member.infrastructure.repository.MemberRepository;
 import com.example.member.presentation.dto.LoginRequest;
@@ -12,6 +11,7 @@ import com.example.member.presentation.dto.LoginResponse;
 import com.example.member.presentation.dto.TokenRefreshRequest;
 import com.example.member.presentation.dto.TokenRefreshResponse;
 import com.example.member.security.JwtTokenProvider;
+import com.todaylunch.common.security.exception.InvalidTokenException;
 import java.time.Duration;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;

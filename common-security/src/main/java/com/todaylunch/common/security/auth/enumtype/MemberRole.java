@@ -1,4 +1,4 @@
-package com.example.member.domain.enumtype;
+package com.todaylunch.common.security.auth.enumtype;
 
 public enum MemberRole {
     USER,

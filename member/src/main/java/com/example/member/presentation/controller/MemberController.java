@@ -14,8 +14,8 @@ import com.example.member.application.usecase.MemberUsecase;
 import com.example.member.presentation.dto.ApiResponse;
 import com.example.member.presentation.dto.MemberResponse;
 import com.example.member.presentation.dto.UpdateMemberRequest;
-import com.example.member.presentation.resolver.AuthenticatedMember;
-import com.example.member.presentation.resolver.CurrentMember;
+import com.todaylunch.common.security.auth.annotation.CurrentMember;
+import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

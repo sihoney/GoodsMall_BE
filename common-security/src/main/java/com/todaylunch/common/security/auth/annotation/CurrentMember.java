@@ -1,4 +1,4 @@
-package com.example.member.presentation.resolver;
+package com.todaylunch.common.security.auth.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
