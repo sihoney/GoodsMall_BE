@@ -62,6 +62,15 @@ public class Order {
     @Column(name = "receiver_phone")
     private String receiverPhone;
 
+    @Column(name = "representative_product_name")
+    private String representativeProductName;
+
+    @Column(name = "representative_thumbnail_key")
+    private String representativeThumbnailKey;
+
+    @Column(name = "item_count")
+    private Integer itemCount;
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
     private final List<OrderItem> items = new ArrayList<>();
 
@@ -76,7 +85,10 @@ public class Order {
             String addressDetail,
             String zipCode,
             String receiver,
-            String receiverPhone
+            String receiverPhone,
+            String representativeProductName,
+            String representativeThumbnailKey,
+            Integer itemCount
     ) {
         this.orderId = Objects.requireNonNull(orderId);
         this.buyerId = Objects.requireNonNull(buyerId);
@@ -89,6 +101,9 @@ public class Order {
         this.zipCode = zipCode;
         this.receiver = receiver;
         this.receiverPhone = receiverPhone;
+        this.representativeProductName = representativeProductName;
+        this.representativeThumbnailKey = representativeThumbnailKey;
+        this.itemCount = itemCount;
     }
 
     public static Order create(
@@ -97,7 +112,10 @@ public class Order {
             String addressDetail,
             String zipCode,
             String receiver,
-            String receiverPhone
+            String receiverPhone,
+            String representativeProductName,
+            String representativeThumbnailKey,
+            Integer itemCount
     ) {
         return new Order(
                 UUID.randomUUID(),
@@ -110,7 +128,10 @@ public class Order {
                 addressDetail,
                 zipCode,
                 receiver,
-                receiverPhone
+                receiverPhone,
+                representativeProductName,
+                representativeThumbnailKey,
+                itemCount
         );
     }
 
@@ -119,7 +140,8 @@ public class Order {
             UUID sellerId,
             String productName,
             BigDecimal unitPrice,
-            Integer quantity
+            Integer quantity,
+            String thumbnailKeySnapshot
     ) {
         OrderItem orderItem = OrderItem.create(
                 productId,
@@ -127,7 +149,8 @@ public class Order {
                 sellerId,
                 productName,
                 unitPrice,
-                quantity);
+                quantity,
+                thumbnailKeySnapshot);
         this.items.add(orderItem);
         this.totalPrice = this.totalPrice.add(
                 unitPrice.multiply(BigDecimal.valueOf(quantity))

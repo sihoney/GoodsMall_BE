@@ -16,6 +16,7 @@ public interface ProductPort {
             UUID sellerId,
             String name,
             BigDecimal price,
+            String thumbnailKeySnapshot,
             ProductOrderStatus productOrderStatus
     ) {
     }

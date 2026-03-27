@@ -10,6 +10,7 @@ public record ProductResponse(
         UUID sellerId,
         String name,
         BigDecimal price,
+        String thumbnailKeySnapshot,
         ProductOrderStatus productOrderStatus
 ) {
 }

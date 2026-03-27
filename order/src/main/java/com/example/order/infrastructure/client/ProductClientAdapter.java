@@ -27,6 +27,7 @@ public class ProductClientAdapter implements ProductPort {
                             res.sellerId(),
                             res.name(),
                             res.price(),
+                            res.thumbnailKeySnapshot(),
                             res.productOrderStatus()
                     ))
                     .toList();

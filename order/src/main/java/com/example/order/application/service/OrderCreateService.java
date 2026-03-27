@@ -45,7 +45,13 @@ public class OrderCreateService implements OrderCreateUseCase {
                 .map(OrderItemCreateRequest::productId)
                 .toList();
 
-        validateDuplicateProduct(productIds);
+        if (request.orderItemRequest().isEmpty()) {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        if (productIds.size() != new HashSet<>(productIds).size()) {
+            throw new CustomException(ErrorCode.DUPLICATE_PRODUCT_REQUEST);
+        }
 
         List<ProductInfo> products = productPort.getProductsByIds(productIds);
 
@@ -56,13 +62,19 @@ public class OrderCreateService implements OrderCreateUseCase {
         Map<UUID, ProductInfo> productMap = products.stream()
                 .collect(Collectors.toMap(ProductInfo::productId, p -> p));
 
+        UUID firstProductId = productIds.get(0);
+        ProductInfo firstProduct = productMap.get(firstProductId);
+
         Order order = Order.create(
                 memberId,
                 request.address(),
                 request.addressDetail(),
                 request.zipCode(),
                 request.receiver(),
-                request.receiverPhone());
+                request.receiverPhone(),
+                firstProduct.name(),
+                firstProduct.thumbnailKeySnapshot(),
+                productIds.size());
 
         request.orderItemRequest().forEach(item -> {
             ProductInfo product = productMap.get(item.productId());
@@ -70,9 +82,7 @@ public class OrderCreateService implements OrderCreateUseCase {
 
             if (status == ProductOrderStatus.INSUFFICIENT_STOCK) {
                 throw new CustomException(ErrorCode.INSUFFICIENT_STOCK);
-            }
-
-            if (status == ProductOrderStatus.NOT_FOR_SALE) {
+            } else if (status == ProductOrderStatus.NOT_FOR_SALE) {
                 throw new CustomException(ErrorCode.PRODUCT_NOT_ORDERABLE);
             }
 
@@ -81,15 +91,10 @@ public class OrderCreateService implements OrderCreateUseCase {
                     product.sellerId(),
                     product.name(),
                     product.price(),
-                    item.quantity());
+                    item.quantity(),
+                    product.thumbnailKeySnapshot());
         });
 
         return OrderResponse.from(orderRepository.save(order));
-    }
-
-    private void validateDuplicateProduct(List<UUID> productIds) {
-        if (productIds.size() != new HashSet<>(productIds).size()) {
-            throw new CustomException(ErrorCode.DUPLICATE_PRODUCT_REQUEST);
-        }
     }
 }

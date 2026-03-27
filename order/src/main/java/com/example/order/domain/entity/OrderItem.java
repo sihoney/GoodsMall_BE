@@ -52,6 +52,9 @@ public class OrderItem {
     @Column(name = "status")
     private OrderItemStatus status;
 
+    @Column(name = "thumbnail_key_snapshot")
+    private String thumbnailKeySnapshot;
+
     private OrderItem(
             UUID orderItemId,
             UUID productId,
@@ -60,7 +63,8 @@ public class OrderItem {
             String productNameSnapshot,
             BigDecimal unitPriceSnapshot,
             Integer quantity,
-            OrderItemStatus status
+            OrderItemStatus status,
+            String thumbnailKeySnapshot
     ) {
         this.orderItemId = Objects.requireNonNull(orderItemId);
         this.productId = Objects.requireNonNull(productId);
@@ -70,6 +74,7 @@ public class OrderItem {
         this.unitPriceSnapshot = unitPriceSnapshot;
         this.quantity = quantity;
         this.status = status;
+        this.thumbnailKeySnapshot = thumbnailKeySnapshot;
     }
 
     public static OrderItem create(
@@ -78,7 +83,8 @@ public class OrderItem {
             UUID sellerId,
             String productNameSnapshot,
             BigDecimal unitPriceSnapshot,
-            Integer quantity
+            Integer quantity,
+            String thumbnailKeySnapshot
     ) {
         if (quantity == null || quantity <= 0) {
             throw new IllegalArgumentException("수량은 0개보다 많아야 합니다.");
@@ -96,7 +102,8 @@ public class OrderItem {
                 productNameSnapshot,
                 unitPriceSnapshot,
                 quantity,
-                OrderItemStatus.PENDING
+                OrderItemStatus.PENDING,
+                thumbnailKeySnapshot
         );
     }
 
