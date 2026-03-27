@@ -2,7 +2,7 @@ package com.example.payment.presentation.exception;
 
 import com.example.payment.common.exception.CustomException;
 import com.example.payment.common.exception.ErrorCode;
-import com.example.payment.presentation.dto.response.ApiErrorResponse;
+import com.example.payment.presentation.dto.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -19,9 +19,9 @@ public class PaymentExceptionHandler {
     /**
      * payment 공통 예외를 ErrorCode 기반 응답으로 변환한다.
      */
-    public ResponseEntity<ApiErrorResponse> handleCustomException(CustomException e) {
+    public ResponseEntity<ApiResponse<Object>> handleCustomException(CustomException e) {
         return ResponseEntity.status(e.getErrorCode().getHttpStatus())
-                .body(ApiErrorResponse.of(e.getErrorCode().name(), e.getMessage()));
+                .body(ApiResponse.fail(e.getErrorCode().name(), e.getMessage()));
     }
 
     @ExceptionHandler({
@@ -32,26 +32,26 @@ public class PaymentExceptionHandler {
      * domain/application의 최소 guard 예외를 공통 API 코드로 변환한다.
      * IllegalArgumentException은 입력 오류, IllegalStateException은 상태 충돌로 구분한다.
      */
-    public ResponseEntity<ApiErrorResponse> handleRuntimeStateException(RuntimeException e) {
+    public ResponseEntity<ApiResponse<Object>> handleRuntimeStateException(RuntimeException e) {
         ErrorCode errorCode = e instanceof IllegalStateException
                 ? ErrorCode.INVALID_STATE
                 : ErrorCode.INVALID_INPUT_VALUE;
 
         return ResponseEntity.status(errorCode.getHttpStatus())
-                .body(ApiErrorResponse.of(errorCode.name(), e.getMessage()));
+                .body(ApiResponse.fail(errorCode.name(), e.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     /**
      * Bean Validation 실패를 첫 번째 필드 오류 기준으로 응답한다.
      */
-    public ResponseEntity<ApiErrorResponse> handleValidation(MethodArgumentNotValidException e) {
+    public ResponseEntity<ApiResponse<Object>> handleValidation(MethodArgumentNotValidException e) {
         String message = e.getBindingResult().getFieldErrors().stream()
                 .findFirst()
                 .map(error -> error.getDefaultMessage() == null ? "Invalid request." : error.getDefaultMessage())
                 .orElse("Invalid request.");
 
         return ResponseEntity.badRequest()
-                .body(ApiErrorResponse.of(ErrorCode.INVALID_INPUT_VALUE.name(), message));
+                .body(ApiResponse.fail(ErrorCode.INVALID_INPUT_VALUE.name(), message));
     }
 }
