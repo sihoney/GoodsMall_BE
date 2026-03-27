@@ -46,7 +46,7 @@ import org.springframework.data.domain.PageRequest;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("PaymentSearchService 테스트")
-class PaymentQueryServiceTest {
+class PaymentSearchServiceTest {
 
     @Mock
     private WalletRepository walletRepository;
@@ -89,7 +89,7 @@ class PaymentQueryServiceTest {
 
     @Nested
     @DisplayName("findWalletSummary() 테스트")
-    class GetWalletSummary {
+    class FindWalletSummary {
 
         @Test
         @DisplayName("회원 지갑을 조회해 요약 정보를 반환한다")
