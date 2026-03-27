@@ -23,7 +23,7 @@ public class OrderController {
     private final OrderCreateUseCase orderCreateUseCase;
 
     @PostMapping
-    public ResponseEntity<OrderResponse> createOrder(
+    public ResponseEntity<OrderCreateResponse> createOrder(
             @RequestHeader(value = "X-User-Id") UUID memberId,
             @Valid @RequestBody OrderCreateRequest request
     ) {

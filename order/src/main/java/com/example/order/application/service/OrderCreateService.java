@@ -10,7 +10,7 @@ import com.example.order.domain.enumtype.ProductOrderStatus;
 import com.example.order.domain.repository.OrderRepository;
 import com.example.order.presentation.dto.request.OrderCreateRequest;
 import com.example.order.presentation.dto.request.OrderItemCreateRequest;
-import com.example.order.presentation.dto.response.OrderResponse;
+import com.example.order.presentation.dto.response.OrderCreateResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,7 +38,7 @@ public class OrderCreateService implements OrderCreateUseCase {
      */
     @Transactional
     @Override
-    public OrderResponse create(
+    public OrderCreateResponse create(
             UUID memberId,
             OrderCreateRequest request) {
         List<UUID> productIds = request.orderItemRequest().stream()
@@ -95,6 +95,6 @@ public class OrderCreateService implements OrderCreateUseCase {
                     product.thumbnailKeySnapshot());
         });
 
-        return OrderResponse.from(orderRepository.save(order));
+        return OrderCreateResponse.from(orderRepository.save(order));
     }
 }

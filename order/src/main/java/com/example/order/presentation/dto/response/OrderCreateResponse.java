@@ -7,14 +7,14 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-public record OrderResponse(
+public record OrderCreateResponse(
         UUID orderId,
         BigDecimal totalPrice,
         OrderStatus status,
         LocalDateTime createdAt) {
 
-    public static OrderResponse from(Order order) {
-        return new OrderResponse(
+    public static OrderCreateResponse from(Order order) {
+        return new OrderCreateResponse(
                 order.getOrderId(),
                 order.getTotalPrice(),
                 order.getOrderStatus(),
