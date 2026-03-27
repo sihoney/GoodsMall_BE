@@ -1,0 +1,10 @@
+.gradle/
+bin/
+out/
+src/
+
+build/*
+!build/libs/
+!build/libs/*.jar
+
+.env
