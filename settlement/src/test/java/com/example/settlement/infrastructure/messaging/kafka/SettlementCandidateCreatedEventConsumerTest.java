@@ -1,5 +1,7 @@
 package com.example.settlement.infrastructure.messaging.kafka;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 
 import com.example.settlement.application.dto.SettlementItemCreateCommand;
@@ -43,5 +45,29 @@ class SettlementCandidateCreatedEventConsumerTest {
 
         ArgumentCaptor<SettlementItemCreateCommand> captor = ArgumentCaptor.forClass(SettlementItemCreateCommand.class);
         verify(monthlySettlementService).registerSettlementItem(captor.capture());
+        assertThat(captor.getValue().orderId()).isEqualTo(event.orderId());
+        assertThat(captor.getValue().escrowId()).isEqualTo(event.escrowId());
+        assertThat(captor.getValue().sellerId()).isEqualTo(event.sellerMemberId());
+        assertThat(captor.getValue().grossAmount()).isEqualTo(event.grossAmount());
+        assertThat(captor.getValue().releasedAt()).isEqualTo(event.releasedAt());
+    }
+
+    @Test
+    @DisplayName("escrowId가 없으면 예외가 발생한다")
+    void listen_withoutEscrowId_throwsException() {
+        SettlementCandidateCreatedMessage event = new SettlementCandidateCreatedMessage(
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                null,
+                UUID.randomUUID(),
+                10_000L,
+                LocalDateTime.of(2024, 1, 1, 12, 0),
+                "MANUAL",
+                LocalDateTime.of(2024, 1, 1, 12, 0, 1)
+        );
+
+        assertThatThrownBy(() -> consumer.listen(event))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("escrowId");
     }
 }
