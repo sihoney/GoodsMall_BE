@@ -4,15 +4,14 @@ import com.example.payment.domain.enumtype.ConfirmationType;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-/**
- * 판매자 정산 완료를 외부 모듈에 알리는 Kafka 계약 메시지다.
- */
-public record SellerIncomeReleasedMessage(
+public record SettlementCandidateCreatedMessage(
+        UUID eventId,
         UUID orderId,
+        UUID escrowId,
         UUID sellerMemberId,
-        UUID sellerWalletId,
-        Long releasedAmount,
+        Long grossAmount,
         LocalDateTime releasedAt,
-        ConfirmationType confirmationType
+        ConfirmationType confirmationType,
+        LocalDateTime occurredAt
 ) {
 }

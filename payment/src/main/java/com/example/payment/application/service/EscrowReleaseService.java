@@ -3,21 +3,16 @@ package com.example.payment.application.service;
 import com.example.payment.application.dto.EscrowReleaseCommand;
 import com.example.payment.application.dto.EscrowReleaseResult;
 import com.example.payment.application.event.AutoPurchaseConfirmedEvent;
-import com.example.payment.application.event.SellerIncomeReleasedEvent;
+import com.example.payment.application.event.SettlementCandidateCreatedEvent;
 import com.example.payment.application.usecase.EscrowReleaseUseCase;
 import com.example.payment.domain.entity.Escrow;
-import com.example.payment.domain.entity.Wallet;
-import com.example.payment.domain.entity.WalletTransaction;
 import com.example.payment.domain.enumtype.ConfirmationType;
 import com.example.payment.common.exception.EscrowNotFoundException;
 import com.example.payment.common.exception.InvalidOrderPaymentRequestException;
-import com.example.payment.common.exception.WalletNotFoundException;
 import com.example.payment.domain.repository.EscrowRepository;
-import com.example.payment.domain.repository.WalletRepository;
-import com.example.payment.domain.repository.WalletTransactionRepository;
 import com.example.payment.domain.service.AutoPurchaseConfirmedEventPublisher;
 import com.example.payment.domain.service.IdentifierGenerator;
-import com.example.payment.domain.service.SellerIncomeReleasedEventPublisher;
+import com.example.payment.domain.service.SettlementCandidateCreatedEventPublisher;
 import com.example.payment.domain.service.TimeProvider;
 import java.time.LocalDateTime;
 import org.springframework.stereotype.Service;
@@ -32,28 +27,22 @@ import org.springframework.transaction.annotation.Transactional;
 public class EscrowReleaseService implements EscrowReleaseUseCase {
 
     private final EscrowRepository escrowRepository;
-    private final WalletRepository walletRepository;
-    private final WalletTransactionRepository walletTransactionRepository;
     private final IdentifierGenerator identifierGenerator;
     private final AutoPurchaseConfirmedEventPublisher autoPurchaseConfirmedEventPublisher;
-    private final SellerIncomeReleasedEventPublisher sellerIncomeReleasedEventPublisher;
+    private final SettlementCandidateCreatedEventPublisher settlementCandidateCreatedEventPublisher;
     private final TimeProvider timeProvider;
 
     public EscrowReleaseService(
             EscrowRepository escrowRepository,
-            WalletRepository walletRepository,
-            WalletTransactionRepository walletTransactionRepository,
             IdentifierGenerator identifierGenerator,
             AutoPurchaseConfirmedEventPublisher autoPurchaseConfirmedEventPublisher,
-            SellerIncomeReleasedEventPublisher sellerIncomeReleasedEventPublisher,
+            SettlementCandidateCreatedEventPublisher settlementCandidateCreatedEventPublisher,
             TimeProvider timeProvider
     ) {
         this.escrowRepository = escrowRepository;
-        this.walletRepository = walletRepository;
-        this.walletTransactionRepository = walletTransactionRepository;
         this.identifierGenerator = identifierGenerator;
         this.autoPurchaseConfirmedEventPublisher = autoPurchaseConfirmedEventPublisher;
-        this.sellerIncomeReleasedEventPublisher = sellerIncomeReleasedEventPublisher;
+        this.settlementCandidateCreatedEventPublisher = settlementCandidateCreatedEventPublisher;
         this.timeProvider = timeProvider;
     }
 
@@ -78,33 +67,19 @@ public class EscrowReleaseService implements EscrowReleaseUseCase {
             throw new IllegalStateException("Escrow is not releasable.");
         }
 
-        Wallet sellerWallet = walletRepository.findByMemberId(command.sellerMemberId())
-                .orElseThrow(WalletNotFoundException::new);
-
         LocalDateTime now = timeProvider.now();
         escrow.release(now, now);
 
-        Long balanceAfter = sellerWallet.increaseBalance(escrow.getAmount(), now);
-
-        WalletTransaction saleIncomeTransaction = WalletTransaction.saleIncome(
-                identifierGenerator.generateUuid(),
-                sellerWallet.getWalletId(),
-                escrow.getAmount(),
-                balanceAfter,
-                escrow.getOrderId(),
-                now
-        );
-
         escrowRepository.save(escrow);
-        walletRepository.save(sellerWallet);
-        walletTransactionRepository.save(saleIncomeTransaction);
-        sellerIncomeReleasedEventPublisher.publish(new SellerIncomeReleasedEvent(
+        settlementCandidateCreatedEventPublisher.publish(new SettlementCandidateCreatedEvent(
+                identifierGenerator.generateUuid(),
                 escrow.getOrderId(),
-                sellerWallet.getMemberId(),
-                sellerWallet.getWalletId(),
+                escrow.getEscrowId(),
+                escrow.getSellerMemberId(),
                 escrow.getAmount(),
                 escrow.getReleasedAt(),
-                command.confirmationType()
+                command.confirmationType(),
+                now
         ));
         if (command.confirmationType() == ConfirmationType.AUTO) {
             autoPurchaseConfirmedEventPublisher.publish(new AutoPurchaseConfirmedEvent(
@@ -116,9 +91,7 @@ public class EscrowReleaseService implements EscrowReleaseUseCase {
 
         return new EscrowReleaseResult(
                 escrow.getOrderId(),
-                sellerWallet.getWalletId(),
                 escrow.getAmount(),
-                sellerWallet.getBalance(),
                 escrow.getEscrowStatus(),
                 escrow.getReleasedAt()
         );
@@ -129,14 +102,9 @@ public class EscrowReleaseService implements EscrowReleaseUseCase {
      * 추가 정산 없이 동일한 성공 결과를 반환하기 위한 보조 메서드다.
      */
     private EscrowReleaseResult existingResult(EscrowReleaseCommand command, Escrow escrow) {
-        Wallet sellerWallet = walletRepository.findByMemberId(command.sellerMemberId())
-                .orElseThrow(WalletNotFoundException::new);
-
         return new EscrowReleaseResult(
                 escrow.getOrderId(),
-                sellerWallet.getWalletId(),
                 escrow.getAmount(),
-                sellerWallet.getBalance(),
                 escrow.getEscrowStatus(),
                 escrow.getReleasedAt()
         );

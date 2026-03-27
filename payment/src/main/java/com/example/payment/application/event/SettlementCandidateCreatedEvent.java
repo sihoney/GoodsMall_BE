@@ -4,12 +4,14 @@ import com.example.payment.domain.enumtype.ConfirmationType;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-public record SellerIncomeReleasedEvent(
+public record SettlementCandidateCreatedEvent(
+        UUID eventId,
         UUID orderId,
+        UUID escrowId,
         UUID sellerMemberId,
-        UUID sellerWalletId,
-        Long releasedAmount,
+        Long grossAmount,
         LocalDateTime releasedAt,
-        ConfirmationType confirmationType
+        ConfirmationType confirmationType,
+        LocalDateTime occurredAt
 ) {
 }
