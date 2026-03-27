@@ -1,7 +1,6 @@
 package com.todaylunch.gateway.filter;
 
 import com.todaylunch.gateway.security.GatewayJwtValidator;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
@@ -19,10 +18,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     private static final String MEMBER_ID_HEADER = "X-Member-Id";
     private static final String MEMBER_ROLE_HEADER = "X-Member-Role";
-    private static final List<String> PUBLIC_PATH_PREFIXES = List.of(
-            "/api/v1/auth/login",
-            "/api/v1/auth/refresh"
-    );
+    private static final String PUBLIC_AUTH_PREFIX = "/api/v1/auth";
 
     private final GatewayJwtValidator gatewayJwtValidator;
 
@@ -75,10 +71,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     private boolean isPublic(ServerWebExchange exchange) {
         String path = exchange.getRequest().getURI().getPath();
-        if ("POST".equalsIgnoreCase(exchange.getRequest().getMethod().name()) && "/api/v1/members".equals(path)) {
-            return true;
-        }
-        return PUBLIC_PATH_PREFIXES.stream().anyMatch(path::startsWith);
+        return path.startsWith(PUBLIC_AUTH_PREFIX);
     }
 
     private Mono<Void> unauthorized(ServerWebExchange exchange) {
