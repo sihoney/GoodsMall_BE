@@ -148,4 +148,9 @@ public class Member {
         this.status = Objects.requireNonNull(status);
         this.updatedAt = Objects.requireNonNull(updatedAt);
     }
+
+    public void changeRole(MemberRole role, LocalDateTime updatedAt) {
+        this.role = Objects.requireNonNull(role);
+        this.updatedAt = Objects.requireNonNull(updatedAt);
+    }
 }
