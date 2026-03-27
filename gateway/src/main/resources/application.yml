@@ -1,43 +1,81 @@
 server:
-    port: 8080
+  port: 8080
 
 spring:
-    application:
-        name: gateway-service
-    cloud:
-        gateway:
-            routes:
-                - id: product-service
-                  uri: lb://product-service
-                  predicates:
-                      - Path=/api/products/**
+  application:
+    name: gateway-service
+  config:
+    import: optional:file:gateway/.env[.properties],optional:file:.env[.properties]
+  cloud:
+    gateway:
+      server:
+        webflux:
+          globalcors:
+            add-to-simple-url-handler-mapping: true # CORS 설정을 글로벌 URL 핸들러 매핑에 추가
+            cors-configurations: # CORS 설정 정의
+              '[/**]':
+                allowedOrigins:
+                  - http://localhost:5173
+                allowedMethods:
+                  - GET
+                  - POST
+                  - PUT
+                  - PATCH
+                  - DELETE
+                  - OPTIONS
+                allowedHeaders:
+                  - '*'
+                allowCredentials: true
+          routes:
+            - id: member-auth-service
+              uri: lb://member-service
+              predicates:
+                - Path=/api/v1/auth/**
 
-                - id: member-service
-                  uri: lb://member-service
-                  predicates:
-                      - Path=/api/members/**
+            - id: member-service-v1
+              uri: lb://member-service
+              predicates:
+                - Path=/api/v1/members/**
 
-                - id: order-service
-                  uri: lb://order-service
-                  predicates:
-                      - Path=/api/orders/**
+            - id: product-service
+              uri: lb://product-service
+              predicates:
+                - Path=/api/products/**
 
-                - id: payment-service
-                  uri: lb://payment-service
-                  predicates:
-                      - Path=/api/payments/**
+            - id: order-service
+              uri: lb://order-service
+              predicates:
+                - Path=/api/orders/**
 
-                - id: settlement-service
-                  uri: lb://settlement-service
-                  predicates:
-                      - Path=/api/settlements/**
+            - id: payment-service
+              uri: lb://payment-service
+              predicates:
+                - Path=/api/payments/**
 
-                - id: notification-service
-                  uri: lb://notification-service
-                  predicates:
-                      - Path=/api/notifications/**
+            - id: settlement-service
+              uri: lb://settlement-service
+              predicates:
+                - Path=/api/settlements/**
+
+            - id: notification-service
+              uri: lb://notification-service
+              predicates:
+                - Path=/api/notifications/**
 
 eureka:
-    client:
-        service-url:
-            defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+    ip-address: 127.0.0.1
+    instance-id: ${spring.application.name}:${server.port}
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+jwt:
+  secret: ${JWT_SECRET_KEY}
+  issuer: member-service
+
+logging:
+  level:
+    com.todaylunch.gateway: INFO
+    org.springframework.cloud.gateway: INFO

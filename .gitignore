@@ -27,6 +27,9 @@ replay_pid*
 .idea/
 *.iml
 
+### vsc ###
+.vscode
+
 ### Gradle ###
 .gradle/
 build/

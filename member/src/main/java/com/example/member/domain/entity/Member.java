@@ -2,15 +2,18 @@ package com.example.member.domain.entity;
 
 import com.example.member.domain.enumtype.MemberRole;
 import com.example.member.domain.enumtype.MemberStatus;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
+
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -58,17 +61,17 @@ public class Member {
     private LocalDateTime updatedAt;
 
     private Member(
-            UUID memberId,
-            String email,
-            String password,
-            String nickname,
-            String phone,
-            String address,
-            String profileImageUrl,
-            MemberRole role,
-            MemberStatus status,
-            LocalDateTime createdAt,
-            LocalDateTime updatedAt
+        UUID memberId,
+        String email,
+        String password,
+        String nickname,
+        String phone,
+        String address,
+        String profileImageUrl,
+        MemberRole role,
+        MemberStatus status,
+        LocalDateTime createdAt,
+        LocalDateTime updatedAt
     ) {
         this.memberId = Objects.requireNonNull(memberId);
         this.email = Objects.requireNonNull(email);
@@ -84,35 +87,53 @@ public class Member {
     }
 
     public static Member create(
-            UUID memberId,
-            String email,
-            String password,
-            String nickname,
-            String phone,
-            String address,
-            String profileImageUrl,
-            MemberRole role,
-            MemberStatus status,
-            LocalDateTime createdAt,
-            LocalDateTime updatedAt
+        UUID memberId,
+        String email,
+        String password,
+        String nickname,
+        String phone,
+        String address,
+        String profileImageUrl,
+        MemberRole role,
+        MemberStatus status,
+        LocalDateTime createdAt,
+        LocalDateTime updatedAt
     ) {
         return new Member(
-                memberId,
-                email,
-                password,
-                nickname,
-                phone,
-                address,
-                profileImageUrl,
-                role,
-                status,
-                createdAt,
-                updatedAt
+            memberId,
+            email,
+            password,
+            nickname,
+            phone,
+            address,
+            profileImageUrl,
+            role,
+            status,
+            createdAt,
+            updatedAt
         );
     }
 
     public void changeNickname(String nickname, LocalDateTime updatedAt) {
         this.nickname = Objects.requireNonNull(nickname);
+        this.updatedAt = Objects.requireNonNull(updatedAt);
+    }
+
+    public void updateAccount(
+        String email,
+        String password,
+        String nickname,
+        String phone,
+        String address,
+        String profileImageUrl,
+        LocalDateTime updatedAt
+    ) {
+        this.email = Objects.requireNonNull(email);
+        this.password = Objects.requireNonNull(password);
+        this.nickname = Objects.requireNonNull(nickname);
+        this.phone = phone;
+        this.address = address;
+        this.profileImageUrl = profileImageUrl;
         this.updatedAt = Objects.requireNonNull(updatedAt);
     }
 

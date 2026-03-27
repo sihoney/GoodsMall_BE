@@ -1,0 +1,61 @@
+server:
+  port: 8083 # random port
+
+spring:
+  application:
+    name: member-service
+  config:
+    import: optional:file:member/.env[.properties],optional:file:.env[.properties]
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092} # Kafka 브로커 주소
+    producer: # KafkaProducer 설정
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer # 키 직렬화 클래스
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer # 값 직렬화 클래스
+      properties:
+        spring.json.add.type.headers: false # JSON 직렬화 시 타입 정보를 헤더에 추가하지 않도록 설정
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:postgres}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:1q2w3e4r}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: member_service
+        format_sql: true
+      show-sql: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+apigateway:
+  host: http://localhost:8080
+
+jwt:
+  secret: ${JWT_SECRET_KEY}
+  issuer: member-service
+  access-expiration: 3600000
+  refresh-expiration: 604800000
+
+eureka:
+  instance:
+    prefer-ip-address: true
+    ip-address: 127.0.0.1
+    instance-id: ${spring.application.name}
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+member:
+  kafka:
+    topic:
+      signed-up: ${MEMBER_SIGNED_UP_TOPIC:member-signed-up} # 토픽 이름
