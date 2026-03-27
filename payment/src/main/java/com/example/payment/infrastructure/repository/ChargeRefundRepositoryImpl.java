@@ -5,6 +5,8 @@ import com.example.payment.domain.enumtype.ChargeRefundStatus;
 import com.example.payment.domain.repository.ChargeRefundRepository;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -29,5 +31,10 @@ public class ChargeRefundRepositoryImpl implements ChargeRefundRepository {
     @Override
     public Optional<ChargeRefund> findTopByChargeIdOrderByRequestedAtDesc(UUID chargeId) {
         return chargeRefundJpaRepository.findTopByChargeIdOrderByRequestedAtDesc(chargeId);
+    }
+
+    @Override
+    public Page<ChargeRefund> findByMemberId(UUID memberId, Pageable pageable) {
+        return chargeRefundJpaRepository.findByMemberId(memberId, pageable);
     }
 }

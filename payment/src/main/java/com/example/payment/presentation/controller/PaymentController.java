@@ -6,20 +6,31 @@ import com.example.payment.application.dto.ChargeRefundCommand;
 import com.example.payment.application.usecase.ChargeConfirmUseCase;
 import com.example.payment.application.usecase.ChargeCreateUseCase;
 import com.example.payment.application.usecase.ChargeRefundUseCase;
+import com.example.payment.application.usecase.PaymentSearchUseCase;
 import com.example.payment.domain.enumtype.PgProvider;
 import com.example.payment.presentation.dto.request.ChargeConfirmRequest;
 import com.example.payment.presentation.dto.request.ChargeCreateRequest;
 import com.example.payment.presentation.dto.request.ChargeRefundRequest;
+import com.example.payment.presentation.dto.response.ChargeDetailResponse;
 import com.example.payment.presentation.dto.response.ChargeConfirmResponse;
 import com.example.payment.presentation.dto.response.ChargeCreateResponse;
+import com.example.payment.presentation.dto.response.ChargeListItemResponse;
+import com.example.payment.presentation.dto.response.ChargeRefundSummaryResponse;
 import com.example.payment.presentation.dto.response.ChargeRefundResponse;
+import com.example.payment.presentation.dto.response.PagedResponse;
+import com.example.payment.presentation.dto.response.PendingSellerIncomeItemResponse;
+import com.example.payment.presentation.dto.response.WalletSummaryResponse;
+import com.example.payment.presentation.dto.response.WalletTransactionItemResponse;
 import jakarta.validation.Valid;
+import java.util.List;
 import java.util.UUID;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -33,15 +44,129 @@ public class PaymentController {
     private final ChargeCreateUseCase chargeCreateUseCase;
     private final ChargeConfirmUseCase chargeConfirmUseCase;
     private final ChargeRefundUseCase chargeRefundUseCase;
+    private final PaymentSearchUseCase paymentSearchUseCase;
 
     public PaymentController(
             ChargeCreateUseCase chargeCreateUseCase,
             ChargeConfirmUseCase chargeConfirmUseCase,
-            ChargeRefundUseCase chargeRefundUseCase
+            ChargeRefundUseCase chargeRefundUseCase,
+            PaymentSearchUseCase paymentSearchUseCase
     ) {
         this.chargeCreateUseCase = chargeCreateUseCase;
         this.chargeConfirmUseCase = chargeConfirmUseCase;
         this.chargeRefundUseCase = chargeRefundUseCase;
+        this.paymentSearchUseCase = paymentSearchUseCase;
+    }
+
+    /**
+     * 네비게이션과 마이페이지에서 공통으로 사용하는 wallet 요약을 반환한다.
+     */
+    @GetMapping("/wallet")
+    public WalletSummaryResponse findWalletSummary(@RequestHeader("X-Member-Id") UUID memberId) {
+        return WalletSummaryResponse.from(paymentSearchUseCase.findWalletSummary(memberId));
+    }
+
+    /**
+     * 회원의 charge 목록을 최신순 페이지 응답으로 반환한다.
+     */
+    @GetMapping("/charges")
+    public PagedResponse<ChargeListItemResponse> findAllCharges(
+            @RequestHeader("X-Member-Id") UUID memberId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        var result = paymentSearchUseCase.findAllCharges(memberId, page, size);
+        List<ChargeListItemResponse> items = result.items().stream()
+                .map(ChargeListItemResponse::from)
+                .toList();
+        return new PagedResponse<>(
+                items,
+                result.page(),
+                result.size(),
+                result.totalElements(),
+                result.totalPages(),
+                result.hasNext()
+        );
+    }
+
+    /**
+     * 단건 charge 상세와 최신 refund 이력을 함께 반환한다.
+     */
+    @GetMapping("/charges/{chargeId}")
+    public ChargeDetailResponse findChargeDetail(
+            @RequestHeader("X-Member-Id") UUID memberId,
+            @PathVariable UUID chargeId
+    ) {
+        return ChargeDetailResponse.from(paymentSearchUseCase.findChargeDetail(memberId, chargeId));
+    }
+
+    /**
+     * 회원의 charge refund 목록을 최신순 페이지 응답으로 반환한다.
+     */
+    @GetMapping("/refunds")
+    public PagedResponse<ChargeRefundSummaryResponse> findAllRefunds(
+            @RequestHeader("X-Member-Id") UUID memberId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        var result = paymentSearchUseCase.findAllRefunds(memberId, page, size);
+        List<ChargeRefundSummaryResponse> items = result.items().stream()
+                .map(ChargeRefundSummaryResponse::from)
+                .toList();
+        return new PagedResponse<>(
+                items,
+                result.page(),
+                result.size(),
+                result.totalElements(),
+                result.totalPages(),
+                result.hasNext()
+        );
+    }
+
+    /**
+     * wallet 거래 내역을 프론트 표시용 페이지 응답으로 반환한다.
+     */
+    @GetMapping("/transactions")
+    public PagedResponse<WalletTransactionItemResponse> findAllTransactions(
+            @RequestHeader("X-Member-Id") UUID memberId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        var result = paymentSearchUseCase.findAllTransactions(memberId, page, size);
+        List<WalletTransactionItemResponse> items = result.items().stream()
+                .map(WalletTransactionItemResponse::from)
+                .toList();
+        return new PagedResponse<>(
+                items,
+                result.page(),
+                result.size(),
+                result.totalElements(),
+                result.totalPages(),
+                result.hasNext()
+        );
+    }
+
+    /**
+     * 판매자 기준으로 아직 wallet에 반영되지 않은 HELD escrow를 반환한다.
+     */
+    @GetMapping("/seller/pending-incomes")
+    public PagedResponse<PendingSellerIncomeItemResponse> findAllPendingSellerIncomes(
+            @RequestHeader("X-Member-Id") UUID memberId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        var result = paymentSearchUseCase.findAllPendingSellerIncomes(memberId, page, size);
+        List<PendingSellerIncomeItemResponse> items = result.items().stream()
+                .map(PendingSellerIncomeItemResponse::from)
+                .toList();
+        return new PagedResponse<>(
+                items,
+                result.page(),
+                result.size(),
+                result.totalElements(),
+                result.totalPages(),
+                result.hasNext()
+        );
     }
 
     /**
