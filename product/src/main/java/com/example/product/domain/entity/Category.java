@@ -2,11 +2,8 @@ package com.example.product.domain.entity;
 
 import com.example.product.common.exception.CategoryAlreadyDeletedException;
 import com.example.product.common.exception.CategoryDepthExceededException;
-import com.example.product.domain.enumtype.CategoryStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
@@ -48,10 +45,6 @@ public class Category {
     @Column(name = "sort_order", nullable = false)
     private Integer sortOrder;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
-    private CategoryStatus status;
-
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -77,7 +70,6 @@ public class Category {
         this.description = description;
         this.depth = Objects.requireNonNull(depth);
         this.sortOrder = Objects.requireNonNull(sortOrder);
-        this.status = CategoryStatus.ACTIVE;
         this.createdAt = now;
         this.updatedAt = now;
         this.deletedAt = null;
@@ -131,14 +123,13 @@ public class Category {
         if (this.deletedAt != null) {
             throw new CategoryAlreadyDeletedException();
         }
-        this.status = CategoryStatus.INACTIVE;
         this.deletedAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }
 
     public void validateSeller(UUID requestSellerId) {
         if (this.sellerId == null) {
-            throw new IllegalStateException("관리자가 관리하는 카고테리는 수정할 수 없습니다");
+            throw new IllegalStateException("관리자가 관리하는 카테고리는 수정할 수 없습니다");
         }
         if (!this.sellerId.equals(requestSellerId)) {
             throw new IllegalStateException("해당 카테고리에 대한 권한이 없습니다");

@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 public enum ErrorCode {
 
     CATEGORY_DEPTH_EXCEEDED(HttpStatus.BAD_REQUEST, "소분류 이하로는 카테고리를 생성할 수 없습니다"),
+    CATEGORY_HAS_CHILDREN(HttpStatus.BAD_REQUEST, "하위 카테고리가 존재하여 삭제할 수 없습니다"),
 
     //404
     PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "상품을 찾을 수 없습니다"),
@@ -19,9 +20,11 @@ public enum ErrorCode {
 
     //403
     SELLER_NOT_AUTHORIZED(HttpStatus.FORBIDDEN, "해당 상품에 대한 권한이 없습니다"),
+    UNAUTHORIZED_ROLE(HttpStatus.FORBIDDEN, "해당 작업을 수행할 권한이 없습니다"),
 
     //409
-    PRODUCT_ALREADY_DELETED(HttpStatus.CONFLICT, "이미 삭제된 상품입니다");
+    PRODUCT_ALREADY_DELETED(HttpStatus.CONFLICT, "이미 삭제된 상품입니다"),
+    CATEGORY_ALREADY_DELETED(HttpStatus.CONFLICT, "이미 삭제된 카테고리입니다");
 
     private final HttpStatus httpStatus;
     private final String message;

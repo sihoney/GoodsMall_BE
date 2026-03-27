@@ -7,7 +7,6 @@ CREATE TABLE category
     description VARCHAR(500),                       -- 카테고리 설명
     depth       INTEGER     NOT NULL,              -- 0: 대(관리자만), 1: 중(판매자), 2: 소(판매자)
     sort_order  INTEGER     NOT NULL DEFAULT 0,
-    status      VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',  -- ACTIVE, INACTIVE
     created_at  TIMESTAMP   NOT NULL,
     updated_at  TIMESTAMP   NOT NULL,
     deleted_at  TIMESTAMP            DEFAULT NULL,
@@ -17,7 +16,6 @@ CREATE TABLE category
 
 CREATE INDEX idx_category_parent_id ON category (parent_id);
 CREATE INDEX idx_category_seller_id ON category (seller_id);
-CREATE INDEX idx_category_status ON category (status);
 CREATE INDEX idx_category_deleted_at ON category (deleted_at);
 CREATE INDEX idx_category_depth ON category (depth);
 
