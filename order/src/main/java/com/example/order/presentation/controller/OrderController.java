@@ -16,20 +16,17 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/order")
+@RequestMapping("/api/orders")
 @RequiredArgsConstructor
 public class OrderController {
 
     private final OrderCreateUseCase orderCreateUseCase;
 
-    /**
-     * 주문 생성 API
-     */
     @PostMapping
     public ResponseEntity<OrderResponse> createOrder(
-            @RequestHeader(value = "X-User-Id") UUID userId,
+            @RequestHeader(value = "X-User-Id") UUID memberId,
             @Valid @RequestBody OrderCreateRequest request
     ) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(orderCreateUseCase.create(userId, request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(orderCreateUseCase.create(memberId, request));
     }
 }

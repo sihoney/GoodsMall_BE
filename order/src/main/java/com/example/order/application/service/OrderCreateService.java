@@ -39,7 +39,7 @@ public class OrderCreateService implements OrderCreateUseCase {
     @Transactional
     @Override
     public OrderResponse create(
-            UUID userId,
+            UUID memberId,
             OrderCreateRequest request) {
         List<UUID> productIds = request.orderItemRequest().stream()
                 .map(OrderItemCreateRequest::productId)
@@ -57,7 +57,7 @@ public class OrderCreateService implements OrderCreateUseCase {
                 .collect(Collectors.toMap(ProductInfo::productId, p -> p));
 
         Order order = Order.create(
-                userId,
+                memberId,
                 request.address(),
                 request.addressDetail(),
                 request.zipCode(),
