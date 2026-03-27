@@ -1,0 +1,186 @@
+package com.example.settlement.application.service;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import com.example.settlement.application.dto.MonthlySettlementAggregateCommand;
+import com.example.settlement.application.dto.MonthlySettlementAggregateResult;
+import com.example.settlement.application.dto.SettlementItemCreateCommand;
+import com.example.settlement.domain.entity.Settlement;
+import com.example.settlement.domain.entity.SettlementItem;
+import com.example.settlement.domain.enumtype.SettlementStatus;
+import com.example.settlement.domain.repository.SettlementItemRepository;
+import com.example.settlement.domain.repository.SettlementRepository;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+@ExtendWith(MockitoExtension.class)
+class MonthlySettlementServiceTest {
+
+    @Mock
+    private SettlementRepository settlementRepository;
+
+    @Mock
+    private SettlementItemRepository settlementItemRepository;
+
+    private MonthlySettlementService monthlySettlementService;
+
+    @BeforeEach
+    void setUp() {
+        monthlySettlementService = new MonthlySettlementService(settlementRepository, settlementItemRepository);
+    }
+
+    @Test
+    void registerSettlementItemReturnsExistingItemWhenEscrowAlreadyRegistered() {
+        UUID escrowId = UUID.randomUUID();
+        SettlementItem existingItem = SettlementItem.create(
+                UUID.randomUUID(),
+                null,
+                UUID.randomUUID(),
+                escrowId,
+                UUID.randomUUID(),
+                10_000L,
+                1_000L,
+                9_000L,
+                LocalDateTime.now(),
+                LocalDateTime.now()
+        );
+        when(settlementItemRepository.findByEscrowId(escrowId)).thenReturn(Optional.of(existingItem));
+
+        SettlementItem result = monthlySettlementService.registerSettlementItem(new SettlementItemCreateCommand(
+                UUID.randomUUID(),
+                escrowId,
+                UUID.randomUUID(),
+                10_000L,
+                LocalDateTime.now()
+        ));
+
+        assertThat(result).isSameAs(existingItem);
+    }
+
+    @Test
+    void registerSettlementItemCreatesSettlementItemWithTenPercentFee() {
+        UUID escrowId = UUID.randomUUID();
+        when(settlementItemRepository.findByEscrowId(escrowId)).thenReturn(Optional.empty());
+        when(settlementItemRepository.save(any(SettlementItem.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        SettlementItem result = monthlySettlementService.registerSettlementItem(new SettlementItemCreateCommand(
+                UUID.randomUUID(),
+                escrowId,
+                UUID.randomUUID(),
+                10_000L,
+                LocalDateTime.now()
+        ));
+
+        assertThat(result.getGrossAmount()).isEqualTo(10_000L);
+        assertThat(result.getFeeAmount()).isEqualTo(1_000L);
+        assertThat(result.getNetAmount()).isEqualTo(9_000L);
+    }
+
+    @Test
+    void aggregateMonthlySettlementsCreatesNewSettlementForFirstItem() {
+        UUID sellerId = UUID.randomUUID();
+        SettlementItem settlementItem = SettlementItem.create(
+                UUID.randomUUID(),
+                null,
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                sellerId,
+                10_000L,
+                1_000L,
+                9_000L,
+                LocalDateTime.of(2026, 3, 15, 10, 0),
+                LocalDateTime.now()
+        );
+        Settlement createdSettlement = Settlement.create(
+                UUID.randomUUID(),
+                sellerId,
+                2026,
+                3,
+                10_000L,
+                1_000L,
+                9_000L,
+                0L,
+                SettlementStatus.PENDING,
+                null,
+                LocalDateTime.now(),
+                LocalDateTime.now()
+        );
+        when(settlementItemRepository.findByReleasedAtBetween(any(), any())).thenReturn(List.of(settlementItem));
+        when(settlementRepository.findBySellerIdAndSettlementYearAndSettlementMonth(sellerId, 2026, 3))
+                .thenReturn(Optional.empty());
+        when(settlementRepository.save(any(Settlement.class))).thenReturn(createdSettlement);
+        when(settlementItemRepository.save(any(SettlementItem.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        MonthlySettlementAggregateResult result = monthlySettlementService.aggregateMonthlySettlements(
+                new MonthlySettlementAggregateCommand(
+                        2026,
+                        3,
+                        LocalDateTime.of(2026, 3, 1, 0, 0),
+                        LocalDateTime.of(2026, 4, 1, 0, 0)
+                )
+        );
+
+        assertThat(result.createdSettlementCount()).isEqualTo(1);
+        assertThat(result.updatedSettlementCount()).isZero();
+        assertThat(result.aggregatedItemCount()).isEqualTo(1);
+    }
+
+    @Test
+    void aggregateMonthlySettlementsAccumulatesExistingSettlement() {
+        UUID sellerId = UUID.randomUUID();
+        SettlementItem settlementItem = SettlementItem.create(
+                UUID.randomUUID(),
+                null,
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                sellerId,
+                20_000L,
+                2_000L,
+                18_000L,
+                LocalDateTime.of(2026, 3, 20, 10, 0),
+                LocalDateTime.now()
+        );
+        Settlement existingSettlement = Settlement.createPending(
+                UUID.randomUUID(),
+                sellerId,
+                2026,
+                3,
+                10_000L,
+                1_000L,
+                9_000L,
+                LocalDateTime.now()
+        );
+        when(settlementItemRepository.findByReleasedAtBetween(any(), any())).thenReturn(List.of(settlementItem));
+        when(settlementRepository.findBySellerIdAndSettlementYearAndSettlementMonth(sellerId, 2026, 3))
+                .thenReturn(Optional.of(existingSettlement));
+        when(settlementRepository.save(any(Settlement.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(settlementItemRepository.save(any(SettlementItem.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        MonthlySettlementAggregateResult result = monthlySettlementService.aggregateMonthlySettlements(
+                new MonthlySettlementAggregateCommand(
+                        2026,
+                        3,
+                        LocalDateTime.of(2026, 3, 1, 0, 0),
+                        LocalDateTime.of(2026, 4, 1, 0, 0)
+                )
+        );
+
+        assertThat(existingSettlement.getTotalSalesAmount()).isEqualTo(30_000L);
+        assertThat(existingSettlement.getFeeAmount()).isEqualTo(3_000L);
+        assertThat(existingSettlement.getFinalSettlementAmount()).isEqualTo(27_000L);
+        assertThat(result.createdSettlementCount()).isZero();
+        assertThat(result.updatedSettlementCount()).isEqualTo(1);
+        verify(settlementRepository, times(1)).save(existingSettlement);
+    }
+}

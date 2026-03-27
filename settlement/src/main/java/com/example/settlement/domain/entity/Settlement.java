@@ -116,6 +116,45 @@ public class Settlement {
         );
     }
 
+    public static Settlement createPending(
+            UUID settlementId,
+            UUID sellerId,
+            Integer settlementYear,
+            Integer settlementMonth,
+            Long totalSalesAmount,
+            Long feeAmount,
+            Long finalSettlementAmount,
+            LocalDateTime requestedAt
+    ) {
+        LocalDateTime now = Objects.requireNonNull(requestedAt);
+        return new Settlement(
+                settlementId,
+                sellerId,
+                settlementYear,
+                settlementMonth,
+                validateNonNegative(totalSalesAmount, "totalSalesAmount"),
+                validateNonNegative(feeAmount, "feeAmount"),
+                validateNonNegative(finalSettlementAmount, "finalSettlementAmount"),
+                0L,
+                SettlementStatus.PENDING,
+                null,
+                now,
+                now
+        );
+    }
+
+    public void accumulate(
+            Long salesAmount,
+            Long feeAmount,
+            Long finalSettlementAmount,
+            LocalDateTime updatedAt
+    ) {
+        this.totalSalesAmount += validateNonNegative(salesAmount, "salesAmount");
+        this.feeAmount += validateNonNegative(feeAmount, "feeAmount");
+        this.finalSettlementAmount += validateNonNegative(finalSettlementAmount, "finalSettlementAmount");
+        this.updatedAt = Objects.requireNonNull(updatedAt);
+    }
+
     public void complete(Long settledAmount, LocalDateTime settledAt, LocalDateTime updatedAt) {
         this.settledAmount = Objects.requireNonNull(settledAmount);
         this.settledAt = Objects.requireNonNull(settledAt);
@@ -126,5 +165,12 @@ public class Settlement {
     public void fail(LocalDateTime updatedAt) {
         this.updatedAt = Objects.requireNonNull(updatedAt);
         this.settlementStatus = SettlementStatus.FAILED;
+    }
+
+    private static Long validateNonNegative(Long amount, String fieldName) {
+        if (Objects.requireNonNull(amount) < 0) {
+            throw new IllegalArgumentException(fieldName + " must not be negative.");
+        }
+        return amount;
     }
 }
