@@ -16,13 +16,13 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
-@Table(name = "adjustment")
+@Table(name = "settlement")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Adjustment {
+public class Settlement {
 
     @Id
-    @Column(name = "adjustment_id", updatable = false)
-    private UUID adjustmentId;
+    @Column(name = "settlement_id", updatable = false)
+    private UUID settlementId;
 
     @Column(name = "seller_id", nullable = false)
     private UUID sellerId;
@@ -58,8 +58,8 @@ public class Adjustment {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    private Adjustment(
-            UUID adjustmentId,
+    private Settlement(
+            UUID settlementId,
             UUID sellerId,
             Integer settlementYear,
             Integer settlementMonth,
@@ -72,7 +72,7 @@ public class Adjustment {
             LocalDateTime requestedAt,
             LocalDateTime updatedAt
     ) {
-        this.adjustmentId = adjustmentId;
+        this.settlementId = Objects.requireNonNull(settlementId);
         this.sellerId = Objects.requireNonNull(sellerId);
         this.settlementYear = Objects.requireNonNull(settlementYear);
         this.settlementMonth = Objects.requireNonNull(settlementMonth);
@@ -86,8 +86,8 @@ public class Adjustment {
         this.updatedAt = Objects.requireNonNull(updatedAt);
     }
 
-    public static Adjustment create(
-            UUID adjustmentId,
+    public static Settlement create(
+            UUID settlementId,
             UUID sellerId,
             Integer settlementYear,
             Integer settlementMonth,
@@ -100,8 +100,8 @@ public class Adjustment {
             LocalDateTime requestedAt,
             LocalDateTime updatedAt
     ) {
-        return new Adjustment(
-                adjustmentId,
+        return new Settlement(
+                settlementId,
                 sellerId,
                 settlementYear,
                 settlementMonth,
