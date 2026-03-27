@@ -5,6 +5,8 @@ import com.example.member.common.exception.InvalidLoginException;
 import com.example.member.common.exception.InvalidTokenException;
 import com.example.member.common.exception.MemberNotFoundException;
 import com.example.member.common.exception.RefreshTokenNotFoundException;
+import com.example.member.common.exception.SellerAlreadyRegisteredException;
+import com.example.member.common.exception.SellerNotFoundException;
 import com.example.member.presentation.dto.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +27,20 @@ public class MemberExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleDuplicateEmail(DuplicateMemberEmailException exception) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(ApiResponse.fail("DUPLICATE_MEMBER_EMAIL", exception.getMessage()));
+    }
+
+    @ExceptionHandler(SellerAlreadyRegisteredException.class)
+    public ResponseEntity<ApiResponse<Object>> handleSellerAlreadyRegistered(
+            SellerAlreadyRegisteredException exception
+    ) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.fail("SELLER_ALREADY_REGISTERED", exception.getMessage()));
+    }
+
+    @ExceptionHandler(SellerNotFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> handleSellerNotFound(SellerNotFoundException exception) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.fail("SELLER_NOT_FOUND", exception.getMessage()));
     }
 
     @ExceptionHandler(InvalidLoginException.class)
