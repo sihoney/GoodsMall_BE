@@ -8,16 +8,16 @@ import com.example.order.common.exception.ErrorCode;
 import com.example.order.domain.entity.Order;
 import com.example.order.domain.enumtype.ProductOrderStatus;
 import com.example.order.domain.repository.OrderRepository;
+import com.example.order.infrastructure.client.dto.request.ProductRequest;
 import com.example.order.presentation.dto.request.OrderCreateRequest;
-import com.example.order.presentation.dto.request.OrderItemCreateRequest;
 import com.example.order.presentation.dto.response.OrderCreateResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -41,19 +41,27 @@ public class OrderCreateService implements OrderCreateUseCase {
     public OrderCreateResponse create(
             UUID memberId,
             OrderCreateRequest request) {
-        List<UUID> productIds = request.orderItemRequest().stream()
-                .map(OrderItemCreateRequest::productId)
-                .toList();
 
         if (request.orderItemRequest().isEmpty()) {
             throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
         }
 
-        if (productIds.size() != new HashSet<>(productIds).size()) {
+        List<ProductRequest> productRequests = request.orderItemRequest().stream()
+                .map(item -> new ProductRequest(
+                        item.productId(),
+                        item.quantity()
+                ))
+                .toList();
+
+        Set<UUID> productIds = productRequests.stream()
+                .map(ProductRequest::productId)
+                .collect(Collectors.toSet());
+
+        if (productIds.size() != productRequests.size()) {
             throw new CustomException(ErrorCode.DUPLICATE_PRODUCT_REQUEST);
         }
 
-        List<ProductInfo> products = productPort.getProductsByIds(productIds);
+        List<ProductInfo> products = productPort.checkAvailability(productRequests);
 
         if (products.size() != productIds.size()) {
             throw new CustomException(ErrorCode.PRODUCT_NOT_FOUND);
@@ -62,7 +70,7 @@ public class OrderCreateService implements OrderCreateUseCase {
         Map<UUID, ProductInfo> productMap = products.stream()
                 .collect(Collectors.toMap(ProductInfo::productId, p -> p));
 
-        UUID firstProductId = productIds.get(0);
+        UUID firstProductId = productRequests.get(0).productId();
         ProductInfo firstProduct = productMap.get(firstProductId);
 
         Order order = Order.create(
