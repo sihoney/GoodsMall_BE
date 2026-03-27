@@ -24,7 +24,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     @Override
     public Mono<Void> filter(
-        ServerWebExchange exchange, 
+        ServerWebExchange exchange,
         GatewayFilterChain chain
     ) {
         // OPTIONS 요청과 /api/v1/ 이하가 아닌 경로는 
@@ -32,16 +32,19 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         if ("OPTIONS".equalsIgnoreCase(exchange.getRequest().getMethod().name())) {
             return chain.filter(exchange);
         }
-
+        
+        // /api/v1/ 이하의 경로에 대해서만 인증 필터 적용
         String path = exchange.getRequest().getURI().getPath();
         if (!path.startsWith("/api/v1/")) {
             return chain.filter(exchange);
         }
 
+        // 인증이 필요 없는 경로는 필터를 적용하지 않고 다음 필터로 전달
         if (isPublic(exchange)) {
             return chain.filter(exchange);
         }
 
+        // Authorization 헤더에서 Bearer 토큰 추출
         String authorizationHeader = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
             return unauthorized(exchange);
@@ -49,7 +52,8 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
         try {
             String token = authorizationHeader.substring(7);
-            GatewayJwtValidator.AuthenticatedPrincipal principal = gatewayJwtValidator.validateAccessToken(token);
+            GatewayJwtValidator.AuthenticatedPrincipal principal = gatewayJwtValidator.validateAccessToken(token); // 토큰 검증 및 인증 정보 추출
+            // 인증 정보가 유효한 경우, 원래 요청에 사용자 ID와 역할 정보를 헤더에 추가하여 다음 필터로 전달
             ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
                     .headers(headers -> {
                         headers.remove(MEMBER_ID_HEADER);
