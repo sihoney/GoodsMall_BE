@@ -152,10 +152,19 @@ public class Product {
         if (this.deletedAt != null) {
             throw new ProductAlreadyDeletedException();
         }
+        this.status = ProductStatus.INACTIVE;
         this.deletedAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }
 
+    public void restore() {
+        if (this.deletedAt == null) {
+            throw new IllegalStateException("삭제되지 않은 상품은 복구할 수 없습니다");
+        }
+        this.deletedAt = null;
+        this.status = ProductStatus.ACTIVE;
+        this.updatedAt = LocalDateTime.now();
+    }
 
     public void increaseViewCount() {
         this.viewCount++;

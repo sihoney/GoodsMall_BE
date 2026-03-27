@@ -1,5 +1,6 @@
 package com.example.product.domain.entity;
 
+import com.example.product.common.exception.CategoryAlreadyDeletedException;
 import com.example.product.common.exception.CategoryDepthExceededException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -29,8 +30,14 @@ public class Category {
     @JoinColumn(name = "parent_id")
     private Category parent;
 
+    @Column(name = "seller_id")
+    private UUID sellerId;
+
     @Column(name = "name", nullable = false, length = 50)
     private String name;
+
+    @Column(name = "description", length = 500)
+    private String description;
 
     @Column(name = "depth", nullable = false)
     private Integer depth;
@@ -41,50 +48,111 @@ public class Category {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
     private Category(
-        Category category,
-        String name,
-        Integer depth,
-        Integer sortOrder
+            Category parent,
+            UUID sellerId,
+            String name,
+            String description,
+            Integer depth,
+            Integer sortOrder
     ) {
+        LocalDateTime now = LocalDateTime.now();
         this.categoryId = UUID.randomUUID();
-        this.parent = category;
+        this.parent = parent;
+        this.sellerId = sellerId;
         this.name = Objects.requireNonNull(name);
+        this.description = description;
         this.depth = Objects.requireNonNull(depth);
         this.sortOrder = Objects.requireNonNull(sortOrder);
-        this.createdAt = LocalDateTime.now();
+        this.createdAt = now;
+        this.updatedAt = now;
+        this.deletedAt = null;
     }
 
-    /**
-     * 대분류 생성 (depth = 0, parentId = null)
-     */
-    public static Category createRoot(String name, Integer sortOrder) {
-        return new Category(null, name, 0, sortOrder);
+
+    public static Category createRoot(
+            String name,
+            String description,
+            Integer sortOrder
+    ) {
+        return new Category(null, null, name, description, 0, sortOrder);
     }
 
-    /**
-     * 하위 분류 생성 (중분류, 소분류) 부모의 depth + 1로 자동 설정
-     */
-    public static Category createChild(Category parent, String name, Integer sortOrder) {
-        Objects.requireNonNull(parent);
+    public static Category createChild(
+            Category parent,
+            UUID sellerId,
+            String name,
+            String description,
+            Integer sortOrder
+    ) {
+        Objects.requireNonNull(parent, "부모 카테고리는 필수입니다");
+        Objects.requireNonNull(sellerId, "판매자 ID는 필수입니다");
+
         if (parent.depth >= 2) {
             throw new CategoryDepthExceededException();
         }
-        return new Category(parent, name, parent.getDepth() + 1, sortOrder);
+
+        if (parent.depth == 0 && parent.sellerId != null) {
+            throw new IllegalArgumentException("관리자가 생성한 대분류에만 하위 카테고리를 생성할 수 있습니다");
+        }
+
+        return new Category(parent, sellerId, name, description, parent.getDepth() + 1, sortOrder);
     }
 
-    public void changeName(String name) {
+    /**
+     * 관리자용 하위 카테고리 생성 (중/소분류)
+     * sellerId는 null로 설정됨
+     */
+    public static Category createChildByAdmin(
+            Category parent,
+            String name,
+            String description,
+            Integer sortOrder
+    ) {
+        Objects.requireNonNull(parent, "부모 카테고리는 필수입니다");
+
+        if (parent.depth >= 2) {
+            throw new CategoryDepthExceededException();
+        }
+
+        return new Category(parent, null, name, description, parent.getDepth() + 1, sortOrder);
+    }
+
+    public void update(
+            String name,
+            String description,
+            Integer sortOrder
+    ) {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("카테고리명은 비어있을 수 없습니다");
         }
         this.name = name;
-    }
-
-    public void changeSortOrder(Integer sortOrder) {
+        this.description = description;
         this.sortOrder = Objects.requireNonNull(sortOrder);
+        this.updatedAt = LocalDateTime.now();
     }
 
-    public boolean isRoot() {
-        return this.parent == null;
+    public void delete() {
+        if (this.deletedAt != null) {
+            throw new CategoryAlreadyDeletedException();
+        }
+        this.deletedAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void validateSeller(UUID requestSellerId) {
+        if (this.sellerId == null) {
+            throw new IllegalStateException("관리자가 관리하는 카테고리는 수정할 수 없습니다");
+        }
+        if (!this.sellerId.equals(requestSellerId)) {
+            throw new IllegalStateException("해당 카테고리에 대한 권한이 없습니다");
+        }
     }
 }
+
