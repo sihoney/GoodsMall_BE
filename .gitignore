@@ -54,3 +54,6 @@ goods-api/src/main/resources/application-local.yml
 CLAUDE.md
 AGENTS.md
 .claude/skills/gitnexus/*/*
+
+### gitnexus ###
+node_modules/
