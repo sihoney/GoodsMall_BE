@@ -5,6 +5,9 @@ import com.example.payment.domain.enumtype.PgProvider;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * charge 단건 상세 조회 결과다.
+ */
 public record ChargeDetailResult(
         UUID chargeId,
         UUID memberId,

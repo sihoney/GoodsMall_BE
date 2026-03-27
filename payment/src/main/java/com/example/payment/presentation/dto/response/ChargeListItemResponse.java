@@ -6,6 +6,9 @@ import com.example.payment.domain.enumtype.PgProvider;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * charge 목록 단건 응답 DTO다.
+ */
 public record ChargeListItemResponse(
         UUID chargeId,
         Long requestedAmount,
@@ -17,6 +20,9 @@ public record ChargeListItemResponse(
         LocalDateTime failedAt
 ) {
 
+    /**
+     * application 결과를 presentation 응답으로 변환한다.
+     */
     public static ChargeListItemResponse from(ChargeListItemResult result) {
         return new ChargeListItemResponse(
                 result.chargeId(),

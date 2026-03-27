@@ -5,6 +5,9 @@ import com.example.payment.domain.enumtype.ChargeRefundStatus;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * charge refund 목록 단건 응답 DTO다.
+ */
 public record ChargeRefundSummaryResponse(
         UUID chargeRefundId,
         UUID chargeId,
@@ -16,6 +19,9 @@ public record ChargeRefundSummaryResponse(
         LocalDateTime failedAt
 ) {
 
+    /**
+     * application 결과를 presentation 응답으로 변환한다.
+     */
     public static ChargeRefundSummaryResponse from(ChargeRefundSummaryResult result) {
         return new ChargeRefundSummaryResponse(
                 result.chargeRefundId(),

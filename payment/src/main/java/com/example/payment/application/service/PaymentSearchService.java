@@ -59,6 +59,9 @@ public class PaymentSearchService implements PaymentSearchUseCase {
     }
 
     @Override
+    /**
+     * wallet aggregate에서 네비/마이페이지 공통 요약 정보를 꺼낸다.
+     */
     public WalletSummaryResult findWalletSummary(UUID memberId) {
         Wallet wallet = findWallet(memberId);
         return new WalletSummaryResult(
@@ -70,6 +73,9 @@ public class PaymentSearchService implements PaymentSearchUseCase {
     }
 
     @Override
+    /**
+     * charge 엔티티 목록을 최신 요청 시각 기준으로 페이지 조회한다.
+     */
     public PagedResult<ChargeListItemResult> findAllCharges(UUID memberId, int page, int size) {
         Page<Charge> chargePage = chargeRepository.findByMemberId(
                 memberId,
@@ -80,6 +86,9 @@ public class PaymentSearchService implements PaymentSearchUseCase {
     }
 
     @Override
+    /**
+     * 단건 charge를 본인 소유 여부까지 함께 확인해 상세 응답으로 조립한다.
+     */
     public ChargeDetailResult findChargeDetail(UUID memberId, UUID chargeId) {
         Charge charge = chargeRepository.findByChargeIdAndMemberId(chargeId, memberId)
                 .orElseThrow(ChargeNotFoundException::new);
@@ -108,6 +117,9 @@ public class PaymentSearchService implements PaymentSearchUseCase {
     }
 
     @Override
+    /**
+     * refund 엔티티를 charge 소유 기준으로 필터링해 목록 응답으로 변환한다.
+     */
     public PagedResult<ChargeRefundSummaryResult> findAllRefunds(UUID memberId, int page, int size) {
         Page<ChargeRefund> refundPage = chargeRefundRepository.findByMemberId(
                 memberId,
@@ -118,6 +130,9 @@ public class PaymentSearchService implements PaymentSearchUseCase {
     }
 
     @Override
+    /**
+     * wallet 거래 이력을 walletId 기준으로 조회해 프론트 표시용 응답으로 변환한다.
+     */
     public PagedResult<WalletTransactionItemResult> findAllTransactions(UUID memberId, int page, int size) {
         Wallet wallet = findWallet(memberId);
         Page<WalletTransaction> transactionPage = walletTransactionRepository.findByWalletId(
@@ -129,6 +144,9 @@ public class PaymentSearchService implements PaymentSearchUseCase {
     }
 
     @Override
+    /**
+     * 판매자 wallet에 아직 반영되지 않은 HELD escrow를 목록으로 반환한다.
+     */
     public PagedResult<PendingSellerIncomeItemResult> findAllPendingSellerIncomes(UUID memberId, int page, int size) {
         Page<Escrow> escrowPage = escrowRepository.findPendingBySellerMemberId(
                 memberId,
@@ -138,11 +156,17 @@ public class PaymentSearchService implements PaymentSearchUseCase {
         return toPagedResult(escrowPage.map(this::toPendingSellerIncomeItemResult));
     }
 
+    /**
+     * 모든 wallet 기반 조회의 공통 시작점이다.
+     */
     private Wallet findWallet(UUID memberId) {
         return walletRepository.findByMemberId(memberId)
                 .orElseThrow(WalletNotFoundException::new);
     }
 
+    /**
+     * 목록 조회 공통 페이지 조건을 검증하고 최신순 Pageable을 생성한다.
+     */
     private Pageable createPageRequest(int page, int size, String sortBy) {
         if (page < 0) {
             throw new IllegalArgumentException("page must be zero or positive.");
@@ -157,6 +181,9 @@ public class PaymentSearchService implements PaymentSearchUseCase {
         return PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, sortBy));
     }
 
+    /**
+     * charge 목록 응답에서 필요한 필드만 추려 DTO로 변환한다.
+     */
     private ChargeListItemResult toChargeListItemResult(Charge charge) {
         return new ChargeListItemResult(
                 charge.getChargeId(),
@@ -170,6 +197,9 @@ public class PaymentSearchService implements PaymentSearchUseCase {
         );
     }
 
+    /**
+     * 환불 엔티티를 프론트 목록 응답 DTO로 변환한다.
+     */
     private ChargeRefundSummaryResult toChargeRefundSummaryResult(ChargeRefund chargeRefund) {
         return new ChargeRefundSummaryResult(
                 chargeRefund.getChargeRefundId(),
@@ -183,6 +213,9 @@ public class PaymentSearchService implements PaymentSearchUseCase {
         );
     }
 
+    /**
+     * wallet transaction 엔티티를 프론트 표시용 DTO로 변환한다.
+     */
     private WalletTransactionItemResult toWalletTransactionItemResult(WalletTransaction walletTransaction) {
         return new WalletTransactionItemResult(
                 walletTransaction.getTransactionId(),
@@ -196,6 +229,9 @@ public class PaymentSearchService implements PaymentSearchUseCase {
         );
     }
 
+    /**
+     * 미정산 escrow를 판매자 대기 수익 DTO로 변환한다.
+     */
     private PendingSellerIncomeItemResult toPendingSellerIncomeItemResult(Escrow escrow) {
         return new PendingSellerIncomeItemResult(
                 escrow.getEscrowId(),
@@ -208,6 +244,9 @@ public class PaymentSearchService implements PaymentSearchUseCase {
         );
     }
 
+    /**
+     * Spring Data Page를 공통 PagedResult로 감싼다.
+     */
     private <T> PagedResult<T> toPagedResult(Page<T> page) {
         return new PagedResult<>(
                 page.getContent(),

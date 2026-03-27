@@ -6,6 +6,9 @@ import com.example.payment.domain.enumtype.PgProvider;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * charge 상세 조회 응답 DTO다.
+ */
 public record ChargeDetailResponse(
         UUID chargeId,
         UUID memberId,
@@ -24,6 +27,9 @@ public record ChargeDetailResponse(
         ChargeRefundSummaryResponse latestRefund
 ) {
 
+    /**
+     * application 상세 결과를 presentation 응답으로 변환한다.
+     */
     public static ChargeDetailResponse from(ChargeDetailResult result) {
         return new ChargeDetailResponse(
                 result.chargeId(),

@@ -58,11 +58,17 @@ public class PaymentController {
         this.paymentSearchUseCase = paymentSearchUseCase;
     }
 
+    /**
+     * 네비게이션과 마이페이지에서 공통으로 사용하는 wallet 요약을 반환한다.
+     */
     @GetMapping("/wallet")
     public WalletSummaryResponse findWalletSummary(@RequestHeader("X-Member-Id") UUID memberId) {
         return WalletSummaryResponse.from(paymentSearchUseCase.findWalletSummary(memberId));
     }
 
+    /**
+     * 회원의 charge 목록을 최신순 페이지 응답으로 반환한다.
+     */
     @GetMapping("/charges")
     public PagedResponse<ChargeListItemResponse> findAllCharges(
             @RequestHeader("X-Member-Id") UUID memberId,
@@ -83,6 +89,9 @@ public class PaymentController {
         );
     }
 
+    /**
+     * 단건 charge 상세와 최신 refund 이력을 함께 반환한다.
+     */
     @GetMapping("/charges/{chargeId}")
     public ChargeDetailResponse findChargeDetail(
             @RequestHeader("X-Member-Id") UUID memberId,
@@ -91,6 +100,9 @@ public class PaymentController {
         return ChargeDetailResponse.from(paymentSearchUseCase.findChargeDetail(memberId, chargeId));
     }
 
+    /**
+     * 회원의 charge refund 목록을 최신순 페이지 응답으로 반환한다.
+     */
     @GetMapping("/refunds")
     public PagedResponse<ChargeRefundSummaryResponse> findAllRefunds(
             @RequestHeader("X-Member-Id") UUID memberId,
@@ -111,6 +123,9 @@ public class PaymentController {
         );
     }
 
+    /**
+     * wallet 거래 내역을 프론트 표시용 페이지 응답으로 반환한다.
+     */
     @GetMapping("/transactions")
     public PagedResponse<WalletTransactionItemResponse> findAllTransactions(
             @RequestHeader("X-Member-Id") UUID memberId,
@@ -131,6 +146,9 @@ public class PaymentController {
         );
     }
 
+    /**
+     * 판매자 기준으로 아직 wallet에 반영되지 않은 HELD escrow를 반환한다.
+     */
     @GetMapping("/seller/pending-incomes")
     public PagedResponse<PendingSellerIncomeItemResponse> findAllPendingSellerIncomes(
             @RequestHeader("X-Member-Id") UUID memberId,
