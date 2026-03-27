@@ -80,6 +80,14 @@ public class OrderItem {
             BigDecimal unitPriceSnapshot,
             Integer quantity
     ) {
+        if (quantity == null || quantity <= 0) {
+            throw new IllegalArgumentException("수량은 0개보다 많아야 합니다.");
+        }
+
+        if (unitPriceSnapshot == null || unitPriceSnapshot.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("가격이 0원보다 높아야 합니다.");
+        }
+
         return new OrderItem(
                 UUID.randomUUID(),
                 productId,

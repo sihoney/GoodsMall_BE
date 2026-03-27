@@ -114,6 +114,26 @@ public class Order {
         );
     }
 
+    public void addItem(
+            UUID productId,
+            UUID sellerId,
+            String productName,
+            BigDecimal unitPrice,
+            Integer quantity
+    ) {
+        OrderItem orderItem = OrderItem.create(
+                productId,
+                this,
+                sellerId,
+                productName,
+                unitPrice,
+                quantity);
+        this.items.add(orderItem);
+        this.totalPrice = this.totalPrice.add(
+                unitPrice.multiply(BigDecimal.valueOf(quantity))
+        );
+    }
+
     public void changeStatus(OrderStatus orderStatus, LocalDateTime updatedAt) {
         this.orderStatus = Objects.requireNonNull(orderStatus);
         this.updatedAt = Objects.requireNonNull(updatedAt);
