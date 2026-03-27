@@ -20,7 +20,7 @@ public class CategoryRepositoryImpl implements CategoryRepository {
 
     @Override
     public List<Category> findAll() {
-        return jpaRepository.findAllByDeletedAtIsNull();
+        return jpaRepository.findAllWithParent();
     }
 
     @Override
@@ -31,16 +31,17 @@ public class CategoryRepositoryImpl implements CategoryRepository {
 
     @Override
     public List<Category> findByDepth(Integer depth) {
-        return jpaRepository.findByDepthAndDeletedAtIsNull(depth);
+        return jpaRepository.findByDepthOrderBySortOrder(depth);
     }
 
     @Override
-    public List<Category> findByParentCategory(Category category) {
-        return jpaRepository.findByParentAndDeletedAtIsNull(category);
+    public List<Category> findByParentId(UUID parentId) {
+        // sortOrder로 정렬된 하위 카테고리 반환
+        return jpaRepository.findByParentIdOrderBySortOrder(parentId);
     }
 
     @Override
-    public boolean hasChildren(UUID categoryId) {
-        return jpaRepository.existsByParent_CategoryIdAndDeletedAtIsNull(categoryId);
+    public boolean hasChildren(UUID parentId) {
+        return jpaRepository.existsByParent_CategoryIdAndDeletedAtIsNull(parentId);
     }
 }

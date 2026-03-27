@@ -105,6 +105,25 @@ public class Category {
         return new Category(parent, sellerId, name, description, parent.getDepth() + 1, sortOrder);
     }
 
+    /**
+     * 관리자용 하위 카테고리 생성 (중/소분류)
+     * sellerId는 null로 설정됨
+     */
+    public static Category createChildByAdmin(
+            Category parent,
+            String name,
+            String description,
+            Integer sortOrder
+    ) {
+        Objects.requireNonNull(parent, "부모 카테고리는 필수입니다");
+
+        if (parent.depth >= 2) {
+            throw new CategoryDepthExceededException();
+        }
+
+        return new Category(parent, null, name, description, parent.getDepth() + 1, sortOrder);
+    }
+
     public void update(
             String name,
             String description,

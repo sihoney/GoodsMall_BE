@@ -21,6 +21,7 @@ public enum ErrorCode {
     //403
     SELLER_NOT_AUTHORIZED(HttpStatus.FORBIDDEN, "해당 상품에 대한 권한이 없습니다"),
     UNAUTHORIZED_ROLE(HttpStatus.FORBIDDEN, "해당 작업을 수행할 권한이 없습니다"),
+    SELLER_CANNOT_CREATE_ROOT_CATEGORY(HttpStatus.FORBIDDEN, "판매자는 대분류를 생성할 수 없습니다"),
 
     //409
     PRODUCT_ALREADY_DELETED(HttpStatus.CONFLICT, "이미 삭제된 상품입니다"),

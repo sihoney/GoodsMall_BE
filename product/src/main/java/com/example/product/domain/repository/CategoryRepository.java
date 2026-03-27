@@ -14,7 +14,7 @@ public interface CategoryRepository {
 
     List<Category> findByDepth(Integer depth);
 
-    List<Category> findByParentCategory(Category category);
+    List<Category> findByParentId(UUID parentId);
 
-    boolean hasChildren(UUID categoryId);
+    boolean hasChildren(UUID parentId);
 }
