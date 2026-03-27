@@ -45,7 +45,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("PaymentQueryService 테스트")
+@DisplayName("PaymentSearchService 테스트")
 class PaymentQueryServiceTest {
 
     @Mock
@@ -64,7 +64,7 @@ class PaymentQueryServiceTest {
     private EscrowRepository escrowRepository;
 
     @InjectMocks
-    private PaymentQueryService paymentQueryService;
+    private PaymentSearchService paymentSearchService;
 
     private UUID memberId;
     private UUID walletId;
@@ -88,16 +88,16 @@ class PaymentQueryServiceTest {
     }
 
     @Nested
-    @DisplayName("getWalletSummary() 테스트")
+    @DisplayName("findWalletSummary() 테스트")
     class GetWalletSummary {
 
         @Test
         @DisplayName("회원 지갑을 조회해 요약 정보를 반환한다")
-        void getWalletSummary_success_returnsWalletSummary() {
+        void findWalletSummary_success_returnsWalletSummary() {
             Wallet wallet = Wallet.create(walletId, memberId, 30_000L, now, now);
             given(walletRepository.findByMemberId(memberId)).willReturn(Optional.of(wallet));
 
-            WalletSummaryResult result = paymentQueryService.getWalletSummary(memberId);
+            WalletSummaryResult result = paymentSearchService.findWalletSummary(memberId);
 
             assertThat(result.walletId()).isEqualTo(walletId);
             assertThat(result.memberId()).isEqualTo(memberId);
@@ -106,23 +106,23 @@ class PaymentQueryServiceTest {
 
         @Test
         @DisplayName("지갑이 없으면 WalletNotFoundException이 발생한다")
-        void getWalletSummary_walletNotFound_throwsException() {
+        void findWalletSummary_walletNotFound_throwsException() {
             given(walletRepository.findByMemberId(memberId)).willReturn(Optional.empty());
 
-            assertThatThrownBy(() -> paymentQueryService.getWalletSummary(memberId))
+            assertThatThrownBy(() -> paymentSearchService.findWalletSummary(memberId))
                     .isInstanceOf(WalletNotFoundException.class);
         }
     }
 
     @Test
     @DisplayName("충전 목록은 최신순 페이지 결과를 반환한다")
-    void getCharges_success_returnsPagedCharges() {
+    void findAllCharges_success_returnsPagedCharges() {
         Charge charge = Charge.create(chargeId, memberId, walletId, 10_000L, PgProvider.TOSS, "CHARGE-1", now);
         given(chargeRepository.findByMemberId(any(), any())).willReturn(
                 new PageImpl<>(List.of(charge), PageRequest.of(0, 20), 1)
         );
 
-        PagedResult<ChargeListItemResult> result = paymentQueryService.getCharges(memberId, 0, 20);
+        PagedResult<ChargeListItemResult> result = paymentSearchService.findAllCharges(memberId, 0, 20);
 
         assertThat(result.items()).hasSize(1);
         assertThat(result.items().getFirst().chargeId()).isEqualTo(chargeId);
@@ -131,7 +131,7 @@ class PaymentQueryServiceTest {
 
     @Test
     @DisplayName("충전 상세는 본인 charge만 조회하고 최신 환불 이력을 포함한다")
-    void getChargeDetail_success_returnsChargeDetail() {
+    void findChargeDetail_success_returnsChargeDetail() {
         Charge charge = Charge.create(chargeId, memberId, walletId, 10_000L, PgProvider.TOSS, "CHARGE-1", now);
         charge.approve(10_000L, "payment-key", now.plusMinutes(1));
         ChargeRefund refund = ChargeRefund.refunded(
@@ -145,7 +145,7 @@ class PaymentQueryServiceTest {
         given(chargeRepository.findByChargeIdAndMemberId(chargeId, memberId)).willReturn(Optional.of(charge));
         given(chargeRefundRepository.findTopByChargeIdOrderByRequestedAtDesc(chargeId)).willReturn(Optional.of(refund));
 
-        ChargeDetailResult result = paymentQueryService.getChargeDetail(memberId, chargeId);
+        ChargeDetailResult result = paymentSearchService.findChargeDetail(memberId, chargeId);
 
         assertThat(result.chargeId()).isEqualTo(chargeId);
         assertThat(result.hasRefundHistory()).isTrue();
@@ -155,16 +155,16 @@ class PaymentQueryServiceTest {
 
     @Test
     @DisplayName("본인 charge가 아니면 ChargeNotFoundException이 발생한다")
-    void getChargeDetail_notOwned_throwsException() {
+    void findChargeDetail_notOwned_throwsException() {
         given(chargeRepository.findByChargeIdAndMemberId(chargeId, memberId)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> paymentQueryService.getChargeDetail(memberId, chargeId))
+        assertThatThrownBy(() -> paymentSearchService.findChargeDetail(memberId, chargeId))
                 .isInstanceOf(ChargeNotFoundException.class);
     }
 
     @Test
     @DisplayName("환불 목록은 charge 소유 기준으로 조회된다")
-    void getRefunds_success_returnsPagedRefunds() {
+    void findAllRefunds_success_returnsPagedRefunds() {
         ChargeRefund refund = ChargeRefund.failed(
                 refundId,
                 chargeId,
@@ -178,7 +178,7 @@ class PaymentQueryServiceTest {
                 new PageImpl<>(List.of(refund), PageRequest.of(0, 20), 1)
         );
 
-        PagedResult<ChargeRefundSummaryResult> result = paymentQueryService.getRefunds(memberId, 0, 20);
+        PagedResult<ChargeRefundSummaryResult> result = paymentSearchService.findAllRefunds(memberId, 0, 20);
 
         assertThat(result.items()).hasSize(1);
         assertThat(result.items().getFirst().chargeRefundId()).isEqualTo(refundId);
@@ -186,7 +186,7 @@ class PaymentQueryServiceTest {
 
     @Test
     @DisplayName("거래 내역은 회원 지갑 기준으로 조회된다")
-    void getTransactions_success_returnsWalletTransactions() {
+    void findAllTransactions_success_returnsWalletTransactions() {
         Wallet wallet = Wallet.create(walletId, memberId, 20_000L, now, now);
         WalletTransaction transaction = WalletTransaction.create(
                 transactionId,
@@ -204,7 +204,7 @@ class PaymentQueryServiceTest {
                 new PageImpl<>(List.of(transaction), PageRequest.of(0, 20), 1)
         );
 
-        PagedResult<WalletTransactionItemResult> result = paymentQueryService.getTransactions(memberId, 0, 20);
+        PagedResult<WalletTransactionItemResult> result = paymentSearchService.findAllTransactions(memberId, 0, 20);
 
         assertThat(result.items()).hasSize(1);
         assertThat(result.items().getFirst().transactionId()).isEqualTo(transactionId);
@@ -213,7 +213,7 @@ class PaymentQueryServiceTest {
 
     @Test
     @DisplayName("판매자 미입금 건은 HELD escrow 목록을 반환한다")
-    void getPendingSellerIncomes_success_returnsHeldEscrows() {
+    void findAllPendingSellerIncomes_success_returnsHeldEscrows() {
         Escrow escrow = Escrow.create(
                 escrowId,
                 orderId,
@@ -231,7 +231,11 @@ class PaymentQueryServiceTest {
                 new PageImpl<>(List.of(escrow), PageRequest.of(0, 20), 1)
         );
 
-        PagedResult<PendingSellerIncomeItemResult> result = paymentQueryService.getPendingSellerIncomes(memberId, 0, 20);
+        PagedResult<PendingSellerIncomeItemResult> result = paymentSearchService.findAllPendingSellerIncomes(
+                memberId,
+                0,
+                20
+        );
 
         assertThat(result.items()).hasSize(1);
         assertThat(result.items().getFirst().escrowStatus()).isEqualTo(EscrowStatus.HELD);
@@ -240,8 +244,8 @@ class PaymentQueryServiceTest {
 
     @Test
     @DisplayName("페이지 크기가 100을 넘으면 예외가 발생한다")
-    void getCharges_tooLargePageSize_throwsException() {
-        assertThatThrownBy(() -> paymentQueryService.getCharges(memberId, 0, 101))
+    void findAllCharges_tooLargePageSize_throwsException() {
+        assertThatThrownBy(() -> paymentSearchService.findAllCharges(memberId, 0, 101))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("must not exceed 100");
     }

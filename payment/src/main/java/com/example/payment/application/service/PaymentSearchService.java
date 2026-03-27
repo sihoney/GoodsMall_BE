@@ -7,7 +7,7 @@ import com.example.payment.application.dto.PagedResult;
 import com.example.payment.application.dto.PendingSellerIncomeItemResult;
 import com.example.payment.application.dto.WalletSummaryResult;
 import com.example.payment.application.dto.WalletTransactionItemResult;
-import com.example.payment.application.usecase.PaymentQueryUseCase;
+import com.example.payment.application.usecase.PaymentSearchUseCase;
 import com.example.payment.common.exception.ChargeNotFoundException;
 import com.example.payment.common.exception.WalletNotFoundException;
 import com.example.payment.domain.entity.Charge;
@@ -34,7 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
  * 프론트 마이페이지에서 필요한 payment 조회를 담당한다.
  * 모든 조회는 gateway가 전달한 memberId 기준으로 자기 데이터만 읽도록 제한한다.
  */
-public class PaymentQueryService implements PaymentQueryUseCase {
+public class PaymentSearchService implements PaymentSearchUseCase {
 
     private static final int MAX_PAGE_SIZE = 100;
 
@@ -44,7 +44,7 @@ public class PaymentQueryService implements PaymentQueryUseCase {
     private final WalletTransactionRepository walletTransactionRepository;
     private final EscrowRepository escrowRepository;
 
-    public PaymentQueryService(
+    public PaymentSearchService(
             WalletRepository walletRepository,
             ChargeRepository chargeRepository,
             ChargeRefundRepository chargeRefundRepository,
@@ -59,7 +59,7 @@ public class PaymentQueryService implements PaymentQueryUseCase {
     }
 
     @Override
-    public WalletSummaryResult getWalletSummary(UUID memberId) {
+    public WalletSummaryResult findWalletSummary(UUID memberId) {
         Wallet wallet = findWallet(memberId);
         return new WalletSummaryResult(
                 wallet.getWalletId(),
@@ -70,7 +70,7 @@ public class PaymentQueryService implements PaymentQueryUseCase {
     }
 
     @Override
-    public PagedResult<ChargeListItemResult> getCharges(UUID memberId, int page, int size) {
+    public PagedResult<ChargeListItemResult> findAllCharges(UUID memberId, int page, int size) {
         Page<Charge> chargePage = chargeRepository.findByMemberId(
                 memberId,
                 createPageRequest(page, size, "requestedAt")
@@ -80,7 +80,7 @@ public class PaymentQueryService implements PaymentQueryUseCase {
     }
 
     @Override
-    public ChargeDetailResult getChargeDetail(UUID memberId, UUID chargeId) {
+    public ChargeDetailResult findChargeDetail(UUID memberId, UUID chargeId) {
         Charge charge = chargeRepository.findByChargeIdAndMemberId(chargeId, memberId)
                 .orElseThrow(ChargeNotFoundException::new);
 
@@ -108,7 +108,7 @@ public class PaymentQueryService implements PaymentQueryUseCase {
     }
 
     @Override
-    public PagedResult<ChargeRefundSummaryResult> getRefunds(UUID memberId, int page, int size) {
+    public PagedResult<ChargeRefundSummaryResult> findAllRefunds(UUID memberId, int page, int size) {
         Page<ChargeRefund> refundPage = chargeRefundRepository.findByMemberId(
                 memberId,
                 createPageRequest(page, size, "requestedAt")
@@ -118,7 +118,7 @@ public class PaymentQueryService implements PaymentQueryUseCase {
     }
 
     @Override
-    public PagedResult<WalletTransactionItemResult> getTransactions(UUID memberId, int page, int size) {
+    public PagedResult<WalletTransactionItemResult> findAllTransactions(UUID memberId, int page, int size) {
         Wallet wallet = findWallet(memberId);
         Page<WalletTransaction> transactionPage = walletTransactionRepository.findByWalletId(
                 wallet.getWalletId(),
@@ -129,7 +129,7 @@ public class PaymentQueryService implements PaymentQueryUseCase {
     }
 
     @Override
-    public PagedResult<PendingSellerIncomeItemResult> getPendingSellerIncomes(UUID memberId, int page, int size) {
+    public PagedResult<PendingSellerIncomeItemResult> findAllPendingSellerIncomes(UUID memberId, int page, int size) {
         Page<Escrow> escrowPage = escrowRepository.findPendingBySellerMemberId(
                 memberId,
                 createPageRequest(page, size, "createdAt")
