@@ -30,9 +30,9 @@ public class MonthlySettlementAggregationScheduler {
     }
 
     /**
-     * KST 기준으로 직전월 집계를 실행하고 처리 결과를 로그로 남긴다.
+     * KST 기준으로 직전월 집계를 실행하고 일반 지급 요청까지 처리 결과를 로그로 남긴다.
      * <p>
-     * 집계/일반 지급 요청 이후 RETRYABLE 실패 정산건 재지급 오케스트레이션을 같은 연월에 대해 이어서 수행한다.
+     * RETRYABLE 실패 재시도 배치는 별도 스케줄러가 담당한다.
      */
     @Scheduled(
             cron = "${settlement.batch.monthly-aggregation.cron:0 5 3 1 * *}",
@@ -45,19 +45,14 @@ public class MonthlySettlementAggregationScheduler {
                 result.settlementYear(),
                 result.settlementMonth()
         );
-        int retriedPayoutCount = settlementPayoutService.requestRetryableFailedPayouts(
-                result.settlementYear(),
-                result.settlementMonth()
-        );
         log.info(
-                "Monthly settlement aggregation finished. targetYear={}, targetMonth={}, created={}, updated={}, items={}, payoutRequested={}, payoutRetried={}",
+                "Monthly settlement aggregation finished. targetYear={}, targetMonth={}, created={}, updated={}, items={}, payoutRequested={}",
                 result.settlementYear(),
                 result.settlementMonth(),
                 result.createdSettlementCount(),
                 result.updatedSettlementCount(),
                 result.aggregatedItemCount(),
-                requestedPayoutCount,
-                retriedPayoutCount
+                requestedPayoutCount
         );
     }
 }
