@@ -4,6 +4,7 @@ import com.example.payment.infrastructure.messaging.kafka.contract.MemberCreated
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderDeliveryCompletedMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPaymentRequestedMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPurchaseConfirmedMessage;
+import com.example.payment.infrastructure.messaging.kafka.contract.SellerSettlementPayoutRequestedMessage;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -92,6 +93,25 @@ public class KafkaConsumerConfig {
         ConcurrentKafkaListenerContainerFactory<String, OrderPurchaseConfirmedMessage> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(orderPurchaseConfirmedConsumerFactory);
+        return factory;
+    }
+
+    @Bean
+    public ConsumerFactory<String, SellerSettlementPayoutRequestedMessage> sellerSettlementPayoutRequestedConsumerFactory(
+            @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers,
+            @Value("${payment.kafka.consumer-groups.settlement-payout-requested:payment-service}") String groupId
+    ) {
+        return createConsumerFactory(bootstrapServers, groupId, SellerSettlementPayoutRequestedMessage.class);
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, SellerSettlementPayoutRequestedMessage>
+        sellerSettlementPayoutRequestedKafkaListenerContainerFactory(
+            ConsumerFactory<String, SellerSettlementPayoutRequestedMessage> sellerSettlementPayoutRequestedConsumerFactory
+    ) {
+        ConcurrentKafkaListenerContainerFactory<String, SellerSettlementPayoutRequestedMessage> factory =
+                new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(sellerSettlementPayoutRequestedConsumerFactory);
         return factory;
     }
 

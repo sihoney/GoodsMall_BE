@@ -1,6 +1,7 @@
 package com.example.settlement.infrastructure.scheduler;
 
 import com.example.settlement.application.service.MonthlySettlementService;
+import com.example.settlement.application.service.SettlementPayoutService;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import org.slf4j.Logger;
@@ -18,9 +19,14 @@ public class MonthlySettlementAggregationScheduler {
     private static final ZoneId KOREA_ZONE_ID = ZoneId.of("Asia/Seoul");
 
     private final MonthlySettlementService monthlySettlementService;
+    private final SettlementPayoutService settlementPayoutService;
 
-    public MonthlySettlementAggregationScheduler(MonthlySettlementService monthlySettlementService) {
+    public MonthlySettlementAggregationScheduler(
+            MonthlySettlementService monthlySettlementService,
+            SettlementPayoutService settlementPayoutService
+    ) {
         this.monthlySettlementService = monthlySettlementService;
+        this.settlementPayoutService = settlementPayoutService;
     }
 
     /**
@@ -33,13 +39,18 @@ public class MonthlySettlementAggregationScheduler {
     public void aggregatePreviousMonth() {
         LocalDateTime nowInKorea = LocalDateTime.now(KOREA_ZONE_ID);
         var result = monthlySettlementService.aggregatePreviousMonth(nowInKorea);
+        int requestedPayoutCount = settlementPayoutService.requestMonthlyPayouts(
+                result.settlementYear(),
+                result.settlementMonth()
+        );
         log.info(
-                "Monthly settlement aggregation finished. targetYear={}, targetMonth={}, created={}, updated={}, items={}",
+                "Monthly settlement aggregation finished. targetYear={}, targetMonth={}, created={}, updated={}, items={}, payoutRequested={}",
                 result.settlementYear(),
                 result.settlementMonth(),
                 result.createdSettlementCount(),
                 result.updatedSettlementCount(),
-                result.aggregatedItemCount()
+                result.aggregatedItemCount(),
+                requestedPayoutCount
         );
     }
 }
