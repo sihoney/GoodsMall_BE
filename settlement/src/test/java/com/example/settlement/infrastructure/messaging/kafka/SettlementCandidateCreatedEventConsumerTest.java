@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 
 import com.example.settlement.application.dto.SettlementItemCreateCommand;
-import com.example.settlement.application.service.MonthlySettlementService;
+import com.example.settlement.application.usecase.MonthlySettlementUseCase;
 import com.example.settlement.infrastructure.messaging.kafka.contract.SettlementCandidateCreatedMessage;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -22,7 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class SettlementCandidateCreatedEventConsumerTest {
 
     @Mock
-    private MonthlySettlementService monthlySettlementService;
+    private MonthlySettlementUseCase monthlySettlementService;
 
     @InjectMocks
     private SettlementCandidateCreatedEventConsumer consumer;

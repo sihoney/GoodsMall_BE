@@ -5,7 +5,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.example.settlement.application.dto.FailedPayoutReplayResult;
-import com.example.settlement.application.service.SettlementPayoutService;
+import com.example.settlement.application.usecase.SettlementPayoutUseCase;
 import com.example.settlement.presentation.dto.request.FailedPayoutReplayRequest;
 import com.example.settlement.presentation.dto.request.ManualFailedPayoutRequest;
 import com.example.settlement.presentation.dto.response.ApiResponse;
@@ -27,7 +27,7 @@ import org.springframework.http.ResponseEntity;
 class SettlementOpsControllerTest {
 
     @Mock
-    private SettlementPayoutService settlementPayoutService;
+    private SettlementPayoutUseCase settlementPayoutService;
 
     @InjectMocks
     private SettlementOpsController settlementOpsController;

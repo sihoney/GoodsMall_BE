@@ -1,6 +1,7 @@
 package com.example.settlement.application.service;
 
 import com.example.settlement.application.dto.FailedPayoutReplayResult;
+import com.example.settlement.application.usecase.SettlementPayoutUseCase;
 import com.example.settlement.domain.entity.Settlement;
 import com.example.settlement.domain.enumtype.SettlementStatus;
 import com.example.settlement.domain.repository.SettlementRepository;
@@ -24,7 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 @Transactional
-public class SettlementPayoutService {
+public class SettlementPayoutService implements SettlementPayoutUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(SettlementPayoutService.class);
 
@@ -42,6 +43,7 @@ public class SettlementPayoutService {
     /**
      * 대상 연월의 PENDING 정산건에 대해 지급 요청 이벤트를 발행한다.
      */
+    @Override
     public int requestMonthlyPayouts(int settlementYear, int settlementMonth) {
         if (settlementYear <= 0) {
             throw new IllegalArgumentException("settlementYear must be positive.");
@@ -76,6 +78,7 @@ public class SettlementPayoutService {
     /**
      * payment 모듈의 지급 결과 이벤트를 settlement 상태로 반영한다.
      */
+    @Override
     public void applyPayoutResult(SellerSettlementPayoutResultMessage event) {
         validatePayoutResult(event);
 
@@ -115,6 +118,7 @@ public class SettlementPayoutService {
      * - failureReason이 PayoutFailureReason으로 파싱 가능
      * - reason.isRetryable() == true
      */
+    @Override
     public int requestRetryableFailedPayouts(int settlementYear, int settlementMonth) {
         if (settlementYear <= 0) {
             throw new IllegalArgumentException("settlementYear must be positive.");
@@ -155,6 +159,7 @@ public class SettlementPayoutService {
      * 수동 재지급은 NON_RETRYABLE 또는 알 수 없는 실패 사유에만 허용한다.
      * RETRYABLE 실패 사유는 자동 재시도 오케스트레이션 경로를 사용한다.
      */
+    @Override
     public boolean requestManualFailedPayout(UUID settlementId) {
         Objects.requireNonNull(settlementId, "settlementId is required.");
 
@@ -235,6 +240,7 @@ public class SettlementPayoutService {
      * - FAILED 외 상태: skip 처리
      * - 미존재 settlementId: not found로 집계
      */
+    @Override
     public FailedPayoutReplayResult replayFailedPayouts(List<UUID> settlementIds) {
         Objects.requireNonNull(settlementIds, "settlementIds is required.");
 

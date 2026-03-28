@@ -4,7 +4,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.example.settlement.application.service.SettlementPayoutService;
+import com.example.settlement.application.usecase.SettlementPayoutUseCase;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,7 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class RetryableFailedPayoutSchedulerTest {
 
     @Mock
-    private SettlementPayoutService settlementPayoutService;
+    private SettlementPayoutUseCase settlementPayoutService;
 
     @InjectMocks
     private RetryableFailedPayoutScheduler scheduler;

@@ -1,7 +1,7 @@
 package com.example.settlement.infrastructure.messaging.kafka;
 
 import com.example.settlement.application.dto.SettlementItemCreateCommand;
-import com.example.settlement.application.service.MonthlySettlementService;
+import com.example.settlement.application.usecase.MonthlySettlementUseCase;
 import com.example.settlement.infrastructure.messaging.kafka.contract.SettlementCandidateCreatedMessage;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
@@ -9,9 +9,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class SettlementCandidateCreatedEventConsumer {
 
-    private final MonthlySettlementService monthlySettlementService;
+    private final MonthlySettlementUseCase monthlySettlementService;
 
-    public SettlementCandidateCreatedEventConsumer(MonthlySettlementService monthlySettlementService) {
+    public SettlementCandidateCreatedEventConsumer(MonthlySettlementUseCase monthlySettlementService) {
         this.monthlySettlementService = monthlySettlementService;
     }
 

@@ -1,6 +1,6 @@
 package com.example.settlement.infrastructure.messaging.kafka;
 
-import com.example.settlement.application.service.SettlementPayoutService;
+import com.example.settlement.application.usecase.SettlementPayoutUseCase;
 import com.example.settlement.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultMessage;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
@@ -11,9 +11,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class SellerSettlementPayoutResultEventConsumer {
 
-    private final SettlementPayoutService settlementPayoutService;
+    private final SettlementPayoutUseCase settlementPayoutService;
 
-    public SellerSettlementPayoutResultEventConsumer(SettlementPayoutService settlementPayoutService) {
+    public SellerSettlementPayoutResultEventConsumer(SettlementPayoutUseCase settlementPayoutService) {
         this.settlementPayoutService = settlementPayoutService;
     }
 

@@ -1,6 +1,6 @@
 package com.example.settlement.presentation.controller;
 
-import com.example.settlement.application.service.SettlementPayoutService;
+import com.example.settlement.application.usecase.SettlementPayoutUseCase;
 import com.example.settlement.common.exception.ErrorCode;
 import com.example.settlement.presentation.dto.request.FailedPayoutReplayRequest;
 import com.example.settlement.presentation.dto.request.ManualFailedPayoutRequest;
@@ -29,9 +29,9 @@ public class SettlementOpsController {
 
     private static final int MAX_REPLAY_BATCH_SIZE = 100;
 
-    private final SettlementPayoutService settlementPayoutService;
+    private final SettlementPayoutUseCase settlementPayoutService;
 
-    public SettlementOpsController(SettlementPayoutService settlementPayoutService) {
+    public SettlementOpsController(SettlementPayoutUseCase settlementPayoutService) {
         this.settlementPayoutService = settlementPayoutService;
     }
 

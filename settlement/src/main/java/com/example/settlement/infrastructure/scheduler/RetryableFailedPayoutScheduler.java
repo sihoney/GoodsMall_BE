@@ -1,6 +1,6 @@
 package com.example.settlement.infrastructure.scheduler;
 
-import com.example.settlement.application.service.SettlementPayoutService;
+import com.example.settlement.application.usecase.SettlementPayoutUseCase;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import org.slf4j.Logger;
@@ -17,9 +17,9 @@ public class RetryableFailedPayoutScheduler {
     private static final Logger log = LoggerFactory.getLogger(RetryableFailedPayoutScheduler.class);
     private static final ZoneId KOREA_ZONE_ID = ZoneId.of("Asia/Seoul");
 
-    private final SettlementPayoutService settlementPayoutService;
+    private final SettlementPayoutUseCase settlementPayoutService;
 
-    public RetryableFailedPayoutScheduler(SettlementPayoutService settlementPayoutService) {
+    public RetryableFailedPayoutScheduler(SettlementPayoutUseCase settlementPayoutService) {
         this.settlementPayoutService = settlementPayoutService;
     }
 
