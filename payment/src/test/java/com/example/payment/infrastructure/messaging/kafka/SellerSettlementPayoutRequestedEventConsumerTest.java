@@ -153,4 +153,33 @@ class SellerSettlementPayoutRequestedEventConsumerTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("settlementId");
     }
+    @Test
+    @DisplayName("지급 처리 중 RuntimeException이 발생하면 Kafka 재시도를 위해 예외를 전파한다")
+    void listen_runtimeException_propagatesExceptionForKafkaRetry() {
+        UUID settlementId = UUID.randomUUID();
+        UUID sellerMemberId = UUID.randomUUID();
+        LocalDateTime now = LocalDateTime.of(2026, 4, 1, 3, 10);
+        SellerSettlementPayoutRequestedMessage event = new SellerSettlementPayoutRequestedMessage(
+                UUID.randomUUID(),
+                settlementId,
+                sellerMemberId,
+                2026,
+                3,
+                9_000L,
+                LocalDateTime.of(2026, 4, 1, 3, 5)
+        );
+        Wallet wallet = Wallet.create(UUID.randomUUID(), sellerMemberId, 1_000L, now, now.minusDays(1));
+
+        when(timeProvider.now()).thenReturn(now);
+        when(walletTransactionRepository.findByReferenceIdAndReferenceType(settlementId, "SETTLEMENT"))
+                .thenReturn(Optional.empty());
+        when(walletRepository.findByMemberId(sellerMemberId)).thenReturn(Optional.of(wallet));
+        when(walletRepository.save(any(Wallet.class))).thenThrow(new RuntimeException("temporary db error"));
+
+        assertThatThrownBy(() -> consumer.listen(event))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("temporary db error");
+
+        verify(payoutResultEventPublisher, never()).publish(any());
+    }
 }

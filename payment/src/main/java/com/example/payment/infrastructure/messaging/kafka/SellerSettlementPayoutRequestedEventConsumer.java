@@ -52,6 +52,9 @@ public class SellerSettlementPayoutRequestedEventConsumer {
 
     /**
      * 지급 요청 이벤트를 처리하고 결과를 payment -> settlement 이벤트로 발행한다.
+     * <p>
+     * - 비재시도 비즈니스 실패(예: WALLET_NOT_FOUND)는 FAILED 결과 이벤트로 반영한다.
+     * - 그 외 예외는 Kafka 에러 처리기로 전파해 retry(재시도)/DLQ(사후처리큐) 정책에 위임한다.
      */
     @KafkaListener(
             topics = "${payment.kafka.topics.settlement-payout-requested:settlement.seller-payout-requested}",
@@ -93,10 +96,11 @@ public class SellerSettlementPayoutRequestedEventConsumer {
             publishSuccess(event, now);
         } catch (WalletNotFoundException e) {
             log.error("[PayoutFailure] settlementId={} reason={}", event.settlementId(), PayoutFailureReason.WALLET_NOT_FOUND);
-            publishFailure(event, now, PayoutFailureReason.WALLET_NOT_FOUND);
+            publishFailure(event, now);
         } catch (RuntimeException e) {
-            log.error("[PayoutFailure] settlementId={} reason={} message={}", event.settlementId(), PayoutFailureReason.INTERNAL_ERROR, e.getMessage(), e);
-            publishFailure(event, now, PayoutFailureReason.INTERNAL_ERROR);
+            // RETRYABLE 오류는 Kafka 에러 처리기에서 재시도/백오프를 수행하도록 전파한다.
+            log.warn("[PayoutRetryDelegated] settlementId={} message={}", event.settlementId(), e.getMessage(), e);
+            throw e;
         }
     }
 
@@ -113,8 +117,7 @@ public class SellerSettlementPayoutRequestedEventConsumer {
         ));
     }
 
-    private void publishFailure(SellerSettlementPayoutRequestedMessage event, LocalDateTime processedAt,
-            PayoutFailureReason reason) {
+    private void publishFailure(SellerSettlementPayoutRequestedMessage event, LocalDateTime processedAt) {
         payoutResultEventPublisher.publish(new SellerSettlementPayoutResultMessage(
                 identifierGenerator.generateUuid(),
                 event.eventId(),
@@ -122,7 +125,7 @@ public class SellerSettlementPayoutRequestedEventConsumer {
                 event.sellerMemberId(),
                 event.payoutAmount(),
                 SellerSettlementPayoutResultStatus.FAILED,
-                reason,
+                PayoutFailureReason.WALLET_NOT_FOUND,
                 processedAt
         ));
     }
