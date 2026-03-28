@@ -293,4 +293,63 @@ class SettlementPayoutServiceTest {
         verify(settlementRepository, never()).save(failedSettlement);
         verify(payoutRequestedEventPublisher, never()).publish(any());
     }
+
+    @Test
+    @DisplayName("NON_RETRYABLE 실패 정산건은 수동 재지급 요청을 허용한다")
+    void requestManualFailedPayout_nonRetryableFailure_allowsManualRetry() {
+        UUID settlementId = UUID.randomUUID();
+        Settlement failedSettlement = Settlement.create(
+                settlementId,
+                UUID.randomUUID(),
+                2026,
+                3,
+                10_000L,
+                1_000L,
+                9_000L,
+                0L,
+                SettlementStatus.FAILED,
+                null,
+                PayoutFailureReason.WALLET_NOT_FOUND.name(),
+                LocalDateTime.of(2026, 4, 1, 3, 5),
+                LocalDateTime.of(2026, 4, 1, 3, 10)
+        );
+        when(settlementRepository.findBySettlementId(settlementId)).thenReturn(Optional.of(failedSettlement));
+
+        boolean requested = settlementPayoutService.requestManualFailedPayout(settlementId);
+
+        assertThat(requested).isTrue();
+        assertThat(failedSettlement.getSettlementStatus()).isEqualTo(SettlementStatus.PENDING);
+        assertThat(failedSettlement.getLastFailureReason()).isNull();
+        verify(settlementRepository).save(failedSettlement);
+        verify(payoutRequestedEventPublisher).publish(any());
+    }
+
+    @Test
+    @DisplayName("RETRYABLE 실패 정산건은 수동 재지급 요청을 차단한다")
+    void requestManualFailedPayout_retryableFailure_skipsManualRetry() {
+        UUID settlementId = UUID.randomUUID();
+        Settlement failedSettlement = Settlement.create(
+                settlementId,
+                UUID.randomUUID(),
+                2026,
+                3,
+                10_000L,
+                1_000L,
+                9_000L,
+                0L,
+                SettlementStatus.FAILED,
+                null,
+                PayoutFailureReason.INTERNAL_ERROR.name(),
+                LocalDateTime.of(2026, 4, 1, 3, 5),
+                LocalDateTime.of(2026, 4, 1, 3, 10)
+        );
+        when(settlementRepository.findBySettlementId(settlementId)).thenReturn(Optional.of(failedSettlement));
+
+        boolean requested = settlementPayoutService.requestManualFailedPayout(settlementId);
+
+        assertThat(requested).isFalse();
+        assertThat(failedSettlement.getSettlementStatus()).isEqualTo(SettlementStatus.FAILED);
+        verify(settlementRepository, never()).save(any());
+        verify(payoutRequestedEventPublisher, never()).publish(any());
+    }
 }

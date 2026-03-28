@@ -96,7 +96,11 @@ public class SellerSettlementPayoutRequestedEventConsumer {
             publishSuccess(event, now);
         } catch (WalletNotFoundException e) {
             log.error("[PayoutFailure] settlementId={} reason={}", event.settlementId(), PayoutFailureReason.WALLET_NOT_FOUND);
-            publishFailure(event, now, PayoutFailureReason.WALLET_NOT_FOUND);
+            publishFailure(event, now);
+        } catch (RuntimeException e) {
+            // RETRYABLE 오류는 Kafka 에러 처리기에서 재시도/백오프를 수행하도록 전파한다.
+            log.warn("[PayoutRetryDelegated] settlementId={} message={}", event.settlementId(), e.getMessage(), e);
+            throw e;
         }
     }
 
@@ -113,8 +117,7 @@ public class SellerSettlementPayoutRequestedEventConsumer {
         ));
     }
 
-    private void publishFailure(SellerSettlementPayoutRequestedMessage event, LocalDateTime processedAt,
-            PayoutFailureReason reason) {
+    private void publishFailure(SellerSettlementPayoutRequestedMessage event, LocalDateTime processedAt) {
         payoutResultEventPublisher.publish(new SellerSettlementPayoutResultMessage(
                 identifierGenerator.generateUuid(),
                 event.eventId(),
@@ -122,7 +125,7 @@ public class SellerSettlementPayoutRequestedEventConsumer {
                 event.sellerMemberId(),
                 event.payoutAmount(),
                 SellerSettlementPayoutResultStatus.FAILED,
-                reason,
+                PayoutFailureReason.WALLET_NOT_FOUND,
                 processedAt
         ));
     }

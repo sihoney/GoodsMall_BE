@@ -138,22 +138,62 @@ public class SettlementPayoutService {
 
             settlement.requeueForPayout(now);
             settlementRepository.save(settlement);
-
-            payoutRequestedEventPublisher.publish(new SellerSettlementPayoutRequestedMessage(
-                    UUID.randomUUID(),
-                    settlement.getSettlementId(),
-                    settlement.getSellerId(),
-                    settlement.getSettlementYear(),
-                    settlement.getSettlementMonth(),
-                    settlement.getFinalSettlementAmount(),
-                    now
-            ));
+            publishPayoutRequest(settlement, now);
             retriedCount++;
 
             log.info("[PayoutRetryRequested] settlementId={} reason={}", settlement.getSettlementId(), reason);
         }
 
         return retriedCount;
+    }
+
+    /**
+     * 운영자가 지정한 FAILED 정산건을 수동 재지급 대상으로 복구해 재요청을 발행한다.
+     * <p>
+     * 수동 재지급은 NON_RETRYABLE 또는 알 수 없는 실패 사유에만 허용한다.
+     * RETRYABLE 실패 사유는 자동 재시도 오케스트레이션 경로를 사용한다.
+     */
+    public boolean requestManualFailedPayout(UUID settlementId) {
+        Objects.requireNonNull(settlementId, "settlementId is required.");
+
+        Settlement settlement = settlementRepository.findBySettlementId(settlementId)
+                .orElseThrow(() -> new IllegalArgumentException("Settlement not found: " + settlementId));
+
+        if (settlement.getSettlementStatus() != SettlementStatus.FAILED) {
+            log.warn("[ManualPayoutRetrySkipped] settlementId={} status={}",
+                    settlement.getSettlementId(), settlement.getSettlementStatus());
+            return false;
+        }
+
+        PayoutFailureReason reason = resolveFailureReason(settlement.getLastFailureReason());
+        if (reason != null && reason.isRetryable()) {
+            log.warn("[ManualPayoutRetrySkipped] settlementId={} reason={} auto-retry target",
+                    settlement.getSettlementId(), reason);
+            return false;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        settlement.requeueForPayout(now);
+        settlementRepository.save(settlement);
+        publishPayoutRequest(settlement, now);
+
+        log.info("[ManualPayoutRetryRequested] settlementId={} reason={}", settlement.getSettlementId(), reason);
+        return true;
+    }
+
+    /**
+     * settlement 지급 요청 이벤트를 공통 형식으로 발행한다.
+     */
+    private void publishPayoutRequest(Settlement settlement, LocalDateTime requestedAt) {
+        payoutRequestedEventPublisher.publish(new SellerSettlementPayoutRequestedMessage(
+                UUID.randomUUID(),
+                settlement.getSettlementId(),
+                settlement.getSellerId(),
+                settlement.getSettlementYear(),
+                settlement.getSettlementMonth(),
+                settlement.getFinalSettlementAmount(),
+                requestedAt
+        ));
     }
 
     private void validatePayoutResult(SellerSettlementPayoutResultMessage event) {
