@@ -11,6 +11,13 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+/**
+ * 정산 원천 항목 엔티티(entity)다.
+ *
+ * <p>payment 모듈에서 escrow(에스크로)가 release(해제)될 때 생성된다.
+ * escrowId에 unique constraint(유니크 제약)를 적용해 DB 레벨에서 중복 적재를 방지한다.
+ * settlementId가 null이면 아직 월 집계에 포함되지 않은 미집계 항목이다.
+ */
 @Getter
 @Entity
 @Table(name = "settlement_item")
@@ -21,13 +28,20 @@ public class SettlementItem {
     @Column(name = "settlement_item_id", updatable = false)
     private UUID settlementItemId;
 
+    /**
+     * 집계된 정산서 ID다. null이면 아직 월 집계에 포함되지 않은 미집계 상태다.
+     */
     @Column(name = "settlement_id")
     private UUID settlementId;
 
     @Column(name = "order_id", nullable = false)
     private UUID orderId;
 
-    @Column(name = "escrow_id", nullable = false)
+    /**
+     * 중복 적재 방지(dedup) 기준 키다. escrowId는 전체 시스템에서 유일하게 발급된다.
+     * unique = true로 DB 레벨 dedup(중복 방지)를 보장한다.
+     */
+    @Column(name = "escrow_id", nullable = false, unique = true)
     private UUID escrowId;
 
     @Column(name = "seller_id", nullable = false)
@@ -72,6 +86,10 @@ public class SettlementItem {
         this.createdAt = Objects.requireNonNull(createdAt);
     }
 
+    /**
+     * 정산 원천 항목을 생성한다.
+     * settlementId는 집계 전에는 null로 넘긴다.
+     */
     public static SettlementItem create(
             UUID settlementItemId,
             UUID settlementId,
@@ -98,7 +116,19 @@ public class SettlementItem {
         );
     }
 
+    /**
+     * 월 집계 시 정산서 ID를 연결한다.
+     * 한번 연결된 항목은 이미 집계 완료 상태로 간주한다.
+     */
     public void assignSettlement(UUID settlementId) {
         this.settlementId = Objects.requireNonNull(settlementId);
+    }
+
+    /**
+     * 이미 월 집계에 포함된 항목인지 확인한다.
+     * settlementId가 존재하면 집계 완료(aggregated) 항목이다.
+     */
+    public boolean isAlreadyAggregated() {
+        return this.settlementId != null;
     }
 }
