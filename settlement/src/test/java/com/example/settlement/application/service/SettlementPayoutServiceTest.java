@@ -3,6 +3,7 @@ package com.example.settlement.application.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -438,5 +439,37 @@ class SettlementPayoutServiceTest {
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> settlementPayoutService.replayFailedPayouts(null))
                 .isInstanceOf(NullPointerException.class)
                 .hasMessageContaining("settlementIds");
+    }
+
+    @Test
+    @DisplayName("DLQ replay에 같은 settlementId가 중복되면 1회만 처리한다")
+    void replayFailedPayouts_duplicateSettlementId_processesOnce() {
+        UUID duplicatedId = UUID.randomUUID();
+
+        Settlement retryableFailedSettlement = Settlement.create(
+                duplicatedId,
+                UUID.randomUUID(),
+                2026,
+                3,
+                10_000L,
+                1_000L,
+                9_000L,
+                0L,
+                SettlementStatus.FAILED,
+                null,
+                PayoutFailureReason.INTERNAL_ERROR.name(),
+                LocalDateTime.of(2026, 4, 1, 3, 5),
+                LocalDateTime.of(2026, 4, 1, 3, 10)
+        );
+        when(settlementRepository.findBySettlementId(duplicatedId)).thenReturn(Optional.of(retryableFailedSettlement));
+
+        var result = settlementPayoutService.replayFailedPayouts(List.of(duplicatedId, duplicatedId));
+
+        assertThat(result.requestedRetryCount()).isEqualTo(1);
+        assertThat(result.manualActionRequiredCount()).isZero();
+        assertThat(result.skippedCount()).isZero();
+        assertThat(result.notFoundCount()).isZero();
+        verify(settlementRepository, times(1)).findBySettlementId(duplicatedId);
+        verify(payoutRequestedEventPublisher, times(1)).publish(any());
     }
 }

@@ -10,6 +10,7 @@ import com.example.settlement.infrastructure.messaging.kafka.contract.SellerSett
 import com.example.settlement.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultMessage;
 import com.example.settlement.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultStatus;
 import java.time.LocalDateTime;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -242,13 +243,18 @@ public class SettlementPayoutService {
         int skippedCount = 0;
         int notFoundCount = 0;
 
-        LocalDateTime now = LocalDateTime.now();
+        // 서비스가 직접 호출되더라도 중복 ID는 한 번만 처리해 재발행 중복을 방지한다.
+        LinkedHashSet<UUID> uniqueSettlementIds = new LinkedHashSet<>();
         for (UUID settlementId : settlementIds) {
             if (settlementId == null) {
                 skippedCount++;
                 continue;
             }
+            uniqueSettlementIds.add(settlementId);
+        }
 
+        LocalDateTime now = LocalDateTime.now();
+        for (UUID settlementId : uniqueSettlementIds) {
             Settlement settlement = settlementRepository.findBySettlementId(settlementId).orElse(null);
             if (settlement == null) {
                 notFoundCount++;
@@ -273,6 +279,16 @@ public class SettlementPayoutService {
             manualActionRequiredCount++;
             log.warn("[DlqReplay/ManualRequired] settlementId={} reason={}", settlement.getSettlementId(), reason);
         }
+
+        log.info(
+                "[DlqReplay/Summary] totalInput={}, uniqueInput={}, retryRequested={}, manualRequired={}, skipped={}, notFound={}",
+                settlementIds.size(),
+                uniqueSettlementIds.size(),
+                requestedRetryCount,
+                manualActionRequiredCount,
+                skippedCount,
+                notFoundCount
+        );
 
         return new FailedPayoutReplayResult(
                 requestedRetryCount,
