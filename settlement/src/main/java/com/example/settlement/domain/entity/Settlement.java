@@ -176,6 +176,18 @@ public class Settlement {
         this.settlementStatus = SettlementStatus.FAILED;
     }
 
+    /**
+     * RETRYABLE 실패 정산건을 재지급 요청 대상으로 되돌린다.
+     * <p>
+     * 실패 사유를 초기화하고 상태를 PENDING으로 복귀시켜
+     * settlement 오케스트레이션이 재요청을 발행할 수 있게 한다.
+     */
+    public void requeueForPayout(LocalDateTime updatedAt) {
+        this.lastFailureReason = null;
+        this.updatedAt = Objects.requireNonNull(updatedAt);
+        this.settlementStatus = SettlementStatus.PENDING;
+    }
+
     private static Long validateNonNegative(Long amount, String fieldName) {
         if (Objects.requireNonNull(amount) < 0) {
             throw new IllegalArgumentException(fieldName + " must not be negative.");

@@ -106,6 +106,56 @@ public class SettlementPayoutService {
         settlementRepository.save(settlement);
     }
 
+    /**
+     * 대상 연월의 FAILED 정산건 중 RETRYABLE 실패 사유만 재지급 대상으로 복구해 재요청을 발행한다.
+     * <p>
+     * 복구 기준:
+     * - failureReason이 PayoutFailureReason으로 파싱 가능
+     * - reason.isRetryable() == true
+     */
+    public int requestRetryableFailedPayouts(int settlementYear, int settlementMonth) {
+        if (settlementYear <= 0) {
+            throw new IllegalArgumentException("settlementYear must be positive.");
+        }
+        if (settlementMonth < 1 || settlementMonth > 12) {
+            throw new IllegalArgumentException("settlementMonth must be between 1 and 12.");
+        }
+
+        List<Settlement> failedSettlements = settlementRepository
+                .findBySettlementYearAndSettlementMonthAndSettlementStatus(
+                        settlementYear,
+                        settlementMonth,
+                        SettlementStatus.FAILED
+                );
+
+        LocalDateTime now = LocalDateTime.now();
+        int retriedCount = 0;
+        for (Settlement settlement : failedSettlements) {
+            PayoutFailureReason reason = resolveFailureReason(settlement.getLastFailureReason());
+            if (reason == null || !reason.isRetryable()) {
+                continue;
+            }
+
+            settlement.requeueForPayout(now);
+            settlementRepository.save(settlement);
+
+            payoutRequestedEventPublisher.publish(new SellerSettlementPayoutRequestedMessage(
+                    UUID.randomUUID(),
+                    settlement.getSettlementId(),
+                    settlement.getSellerId(),
+                    settlement.getSettlementYear(),
+                    settlement.getSettlementMonth(),
+                    settlement.getFinalSettlementAmount(),
+                    now
+            ));
+            retriedCount++;
+
+            log.info("[PayoutRetryRequested] settlementId={} reason={}", settlement.getSettlementId(), reason);
+        }
+
+        return retriedCount;
+    }
+
     private void validatePayoutResult(SellerSettlementPayoutResultMessage event) {
         Objects.requireNonNull(event, "sellerSettlementPayoutResult event is required.");
         if (event.settlementId() == null) {
@@ -119,6 +169,18 @@ public class SettlementPayoutService {
         }
         if (event.payoutAmount() == null || event.payoutAmount() <= 0) {
             throw new IllegalArgumentException("payoutAmount must be positive.");
+        }
+    }
+
+    private PayoutFailureReason resolveFailureReason(String failureReason) {
+        if (failureReason == null || failureReason.isBlank()) {
+            return null;
+        }
+        try {
+            return PayoutFailureReason.valueOf(failureReason);
+        } catch (IllegalArgumentException ignored) {
+            // 알 수 없는 코드 값은 재지급 자동화 대상에서 제외한다.
+            return null;
         }
     }
 }

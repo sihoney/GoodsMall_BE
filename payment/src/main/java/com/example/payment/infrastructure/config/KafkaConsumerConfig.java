@@ -1,5 +1,6 @@
 package com.example.payment.infrastructure.config;
 
+import com.example.payment.common.exception.WalletNotFoundException;
 import com.example.payment.infrastructure.messaging.kafka.contract.MemberCreatedMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderDeliveryCompletedMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPaymentRequestedMessage;
@@ -167,7 +168,7 @@ public class KafkaConsumerConfig {
      * <p>
      * - RETRYABLE 예외: 지수 백오프 재시도
      * - 재시도 소진: DLQ 토픽으로 발행
-     * - IllegalArgumentException: 비재시도 예외로 즉시 DLQ 처리
+     * - IllegalArgumentException, WalletNotFoundException: 비재시도 예외로 즉시 DLQ 처리
      */
     private DefaultErrorHandler createPayoutRequestedErrorHandler(
             KafkaTemplate<String, Object> kafkaTemplate,
@@ -188,7 +189,7 @@ public class KafkaConsumerConfig {
         );
 
         DefaultErrorHandler errorHandler = new DefaultErrorHandler(recoverer, backOff);
-        errorHandler.addNotRetryableExceptions(IllegalArgumentException.class);
+        errorHandler.addNotRetryableExceptions(IllegalArgumentException.class, WalletNotFoundException.class);
         return errorHandler;
     }
 }

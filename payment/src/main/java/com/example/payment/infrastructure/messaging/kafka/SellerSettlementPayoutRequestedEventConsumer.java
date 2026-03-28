@@ -52,6 +52,9 @@ public class SellerSettlementPayoutRequestedEventConsumer {
 
     /**
      * 지급 요청 이벤트를 처리하고 결과를 payment -> settlement 이벤트로 발행한다.
+     * <p>
+     * - 비재시도 비즈니스 실패(예: WALLET_NOT_FOUND)는 FAILED 결과 이벤트로 반영한다.
+     * - 그 외 예외는 Kafka 에러 처리기로 전파해 retry(재시도)/DLQ(사후처리큐) 정책에 위임한다.
      */
     @KafkaListener(
             topics = "${payment.kafka.topics.settlement-payout-requested:settlement.seller-payout-requested}",
@@ -94,9 +97,6 @@ public class SellerSettlementPayoutRequestedEventConsumer {
         } catch (WalletNotFoundException e) {
             log.error("[PayoutFailure] settlementId={} reason={}", event.settlementId(), PayoutFailureReason.WALLET_NOT_FOUND);
             publishFailure(event, now, PayoutFailureReason.WALLET_NOT_FOUND);
-        } catch (RuntimeException e) {
-            log.error("[PayoutFailure] settlementId={} reason={} message={}", event.settlementId(), PayoutFailureReason.INTERNAL_ERROR, e.getMessage(), e);
-            publishFailure(event, now, PayoutFailureReason.INTERNAL_ERROR);
         }
     }
 

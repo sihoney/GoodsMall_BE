@@ -227,4 +227,70 @@ class SettlementPayoutServiceTest {
         assertThat(settlement.getLastFailureReason()).isEqualTo(PayoutFailureReason.INTERNAL_ERROR.name());
         verify(settlementRepository).save(settlement);
     }
+
+    @Test
+    @DisplayName("RETRYABLE 실패 정산건은 PENDING으로 복구 후 재지급 요청을 발행한다")
+    void requestRetryableFailedPayouts_retryableFailure_requeuesAndPublishes() {
+        UUID settlementId = UUID.randomUUID();
+        Settlement failedSettlement = Settlement.create(
+                settlementId,
+                UUID.randomUUID(),
+                2026,
+                3,
+                10_000L,
+                1_000L,
+                9_000L,
+                0L,
+                SettlementStatus.FAILED,
+                null,
+                PayoutFailureReason.INTERNAL_ERROR.name(),
+                LocalDateTime.of(2026, 4, 1, 3, 5),
+                LocalDateTime.of(2026, 4, 1, 3, 10)
+        );
+        when(settlementRepository.findBySettlementYearAndSettlementMonthAndSettlementStatus(
+                2026,
+                3,
+                SettlementStatus.FAILED
+        )).thenReturn(List.of(failedSettlement));
+
+        int retriedCount = settlementPayoutService.requestRetryableFailedPayouts(2026, 3);
+
+        assertThat(retriedCount).isEqualTo(1);
+        assertThat(failedSettlement.getSettlementStatus()).isEqualTo(SettlementStatus.PENDING);
+        assertThat(failedSettlement.getLastFailureReason()).isNull();
+        verify(settlementRepository).save(failedSettlement);
+        verify(payoutRequestedEventPublisher).publish(any());
+    }
+
+    @Test
+    @DisplayName("NON_RETRYABLE 실패 정산건은 재지급 요청에서 제외한다")
+    void requestRetryableFailedPayouts_nonRetryableFailure_skipsRetry() {
+        Settlement failedSettlement = Settlement.create(
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                2026,
+                3,
+                10_000L,
+                1_000L,
+                9_000L,
+                0L,
+                SettlementStatus.FAILED,
+                null,
+                PayoutFailureReason.WALLET_NOT_FOUND.name(),
+                LocalDateTime.of(2026, 4, 1, 3, 5),
+                LocalDateTime.of(2026, 4, 1, 3, 10)
+        );
+        when(settlementRepository.findBySettlementYearAndSettlementMonthAndSettlementStatus(
+                2026,
+                3,
+                SettlementStatus.FAILED
+        )).thenReturn(List.of(failedSettlement));
+
+        int retriedCount = settlementPayoutService.requestRetryableFailedPayouts(2026, 3);
+
+        assertThat(retriedCount).isZero();
+        assertThat(failedSettlement.getSettlementStatus()).isEqualTo(SettlementStatus.FAILED);
+        verify(settlementRepository, never()).save(failedSettlement);
+        verify(payoutRequestedEventPublisher, never()).publish(any());
+    }
 }
