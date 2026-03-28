@@ -8,6 +8,7 @@ import com.example.payment.infrastructure.messaging.kafka.contract.SellerSettlem
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -15,8 +16,17 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.listener.DefaultErrorHandler;
+import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
+import org.springframework.kafka.support.ExponentialBackOffWithMaxRetries;
 import org.springframework.kafka.support.serializer.JacksonJsonDeserializer;
 
+/**
+ * payment 모듈 Kafka consumer(소비기) 설정을 담당한다.
+ * <p>
+ * 정산 지급 요청 소비 경로에는 retry(재시도)/backoff(백오프)/DLQ(사후처리큐) 정책을 연결한다.
+ */
 @Configuration
 public class KafkaConsumerConfig {
 
@@ -104,14 +114,33 @@ public class KafkaConsumerConfig {
         return createConsumerFactory(bootstrapServers, groupId, SellerSettlementPayoutRequestedMessage.class);
     }
 
+    /**
+     * settlement 지급 요청 소비 전용 리스너 팩토리를 생성한다.
+     * <p>
+     * 처리 실패 시 공통 에러 처리기로 백오프 재시도 후 DLQ 발행을 수행한다.
+     */
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, SellerSettlementPayoutRequestedMessage>
         sellerSettlementPayoutRequestedKafkaListenerContainerFactory(
-            ConsumerFactory<String, SellerSettlementPayoutRequestedMessage> sellerSettlementPayoutRequestedConsumerFactory
+            ConsumerFactory<String, SellerSettlementPayoutRequestedMessage> sellerSettlementPayoutRequestedConsumerFactory,
+            KafkaTemplate<String, Object> kafkaTemplate,
+            @Value("${payment.kafka.retry.settlement-payout-requested.dlq-topic:settlement.seller-payout-requested.dlq}") String dlqTopic,
+            @Value("${payment.kafka.retry.settlement-payout-requested.initial-interval-ms:1000}") long initialIntervalMs,
+            @Value("${payment.kafka.retry.settlement-payout-requested.multiplier:2.0}") double multiplier,
+            @Value("${payment.kafka.retry.settlement-payout-requested.max-interval-ms:10000}") long maxIntervalMs,
+            @Value("${payment.kafka.retry.settlement-payout-requested.max-retries:3}") int maxRetries
     ) {
         ConcurrentKafkaListenerContainerFactory<String, SellerSettlementPayoutRequestedMessage> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(sellerSettlementPayoutRequestedConsumerFactory);
+        factory.setCommonErrorHandler(createPayoutRequestedErrorHandler(
+                kafkaTemplate,
+                dlqTopic,
+                initialIntervalMs,
+                multiplier,
+                maxIntervalMs,
+                maxRetries
+        ));
         return factory;
     }
 
@@ -131,5 +160,35 @@ public class KafkaConsumerConfig {
         props.put("spring.json.value.default.type", targetType.getName());
 
         return new DefaultKafkaConsumerFactory<>(props);
+    }
+
+    /**
+     * 정산 지급 요청 소비 실패에 대한 공통 에러 처리기를 생성한다.
+     * <p>
+     * - RETRYABLE 예외: 지수 백오프 재시도
+     * - 재시도 소진: DLQ 토픽으로 발행
+     * - IllegalArgumentException: 비재시도 예외로 즉시 DLQ 처리
+     */
+    private DefaultErrorHandler createPayoutRequestedErrorHandler(
+            KafkaTemplate<String, Object> kafkaTemplate,
+            String dlqTopic,
+            long initialIntervalMs,
+            double multiplier,
+            long maxIntervalMs,
+            int maxRetries
+    ) {
+        ExponentialBackOffWithMaxRetries backOff = new ExponentialBackOffWithMaxRetries(maxRetries);
+        backOff.setInitialInterval(initialIntervalMs);
+        backOff.setMultiplier(multiplier);
+        backOff.setMaxInterval(maxIntervalMs);
+
+        DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(
+                kafkaTemplate,
+                (record, exception) -> new TopicPartition(dlqTopic, record.partition())
+        );
+
+        DefaultErrorHandler errorHandler = new DefaultErrorHandler(recoverer, backOff);
+        errorHandler.addNotRetryableExceptions(IllegalArgumentException.class);
+        return errorHandler;
     }
 }
