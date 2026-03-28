@@ -2,6 +2,7 @@ package com.example.settlement.application.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -182,5 +183,24 @@ class MonthlySettlementServiceTest {
         assertThat(result.createdSettlementCount()).isZero();
         assertThat(result.updatedSettlementCount()).isEqualTo(1);
         verify(settlementRepository, times(1)).save(existingSettlement);
+    }
+
+    @Test
+    void aggregatePreviousMonthUsesKstMonthlyBoundary() {
+        LocalDateTime referenceDateTime = LocalDateTime.of(2026, 4, 1, 3, 5);
+        when(settlementItemRepository.findByReleasedAtBetween(
+                eq(LocalDateTime.of(2026, 3, 1, 0, 0)),
+                eq(LocalDateTime.of(2026, 4, 1, 0, 0))
+        )).thenReturn(List.of());
+
+        MonthlySettlementAggregateResult result = monthlySettlementService.aggregatePreviousMonth(referenceDateTime);
+
+        assertThat(result.settlementYear()).isEqualTo(2026);
+        assertThat(result.settlementMonth()).isEqualTo(3);
+        assertThat(result.aggregatedItemCount()).isZero();
+        verify(settlementItemRepository, times(1)).findByReleasedAtBetween(
+                LocalDateTime.of(2026, 3, 1, 0, 0),
+                LocalDateTime.of(2026, 4, 1, 0, 0)
+        );
     }
 }

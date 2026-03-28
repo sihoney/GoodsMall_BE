@@ -8,6 +8,7 @@ import com.example.settlement.domain.entity.SettlementItem;
 import com.example.settlement.domain.repository.SettlementItemRepository;
 import com.example.settlement.domain.repository.SettlementRepository;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -16,6 +17,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional
+/**
+ * 정산 원천 항목 적재와 월 단위 집계를 담당하는 애플리케이션 서비스다.
+ */
 public class MonthlySettlementService {
 
     private static final long FEE_RATE_PERCENT = 10L;
@@ -31,6 +35,9 @@ public class MonthlySettlementService {
         this.settlementItemRepository = settlementItemRepository;
     }
 
+    /**
+     * payment 원천 이벤트를 월 정산 항목으로 멱등 적재한다.
+     */
     public SettlementItem registerSettlementItem(SettlementItemCreateCommand command) {
         validateSettlementItemCommand(command);
 
@@ -56,6 +63,9 @@ public class MonthlySettlementService {
         ));
     }
 
+    /**
+     * 지정된 기간의 정산 항목을 판매자/연월 기준으로 집계해 정산서를 생성 또는 누적 갱신한다.
+     */
     public MonthlySettlementAggregateResult aggregateMonthlySettlements(MonthlySettlementAggregateCommand command) {
         validateAggregateCommand(command);
 
@@ -111,6 +121,24 @@ public class MonthlySettlementService {
                 updatedSettlementCount,
                 settlementItems.size()
         );
+    }
+
+    /**
+     * 기준 시각의 직전월 기간을 계산해 월 정산 집계를 실행한다.
+     */
+    public MonthlySettlementAggregateResult aggregatePreviousMonth(LocalDateTime referenceDateTime) {
+        Objects.requireNonNull(referenceDateTime, "referenceDateTime must not be null.");
+
+        YearMonth targetMonth = YearMonth.from(referenceDateTime.minusMonths(1));
+        LocalDateTime releasedAtFrom = targetMonth.atDay(1).atStartOfDay();
+        LocalDateTime releasedAtTo = targetMonth.plusMonths(1).atDay(1).atStartOfDay();
+
+        return aggregateMonthlySettlements(new MonthlySettlementAggregateCommand(
+                targetMonth.getYear(),
+                targetMonth.getMonthValue(),
+                releasedAtFrom,
+                releasedAtTo
+        ));
     }
 
     private void validateSettlementItemCommand(SettlementItemCreateCommand command) {
