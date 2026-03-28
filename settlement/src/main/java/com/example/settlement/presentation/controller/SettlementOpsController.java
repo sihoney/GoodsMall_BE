@@ -8,6 +8,7 @@ import com.example.settlement.presentation.dto.response.ApiResponse;
 import com.example.settlement.presentation.dto.response.FailedPayoutReplayResponse;
 import com.example.settlement.presentation.dto.response.ManualFailedPayoutResponse;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -25,6 +26,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/settlement")
 public class SettlementOpsController {
+
+    private static final int MAX_REPLAY_BATCH_SIZE = 100;
 
     private final SettlementPayoutService settlementPayoutService;
 
@@ -76,7 +79,7 @@ public class SettlementOpsController {
      * DLQ replay 대상 settlementId 목록을 재처리한다.
      * <p>
      * - 200: replay 실행 성공(자동 재요청/수동조치 대상 집계 반환)
-     * - 400: settlementIds 누락/비어있음/UUID 형식 오류
+     * - 400: settlementIds 누락/비어있음/UUID 형식 오류/허용 배치 초과
      */
     @PostMapping("/failed-payout/replay")
     public ResponseEntity<ApiResponse<?>> replayFailedPayouts(@RequestBody FailedPayoutReplayRequest request) {
@@ -85,22 +88,28 @@ public class SettlementOpsController {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.fail(ErrorCode.INVALID_INPUT_VALUE, "settlementIds is required."));
         }
+        if (rawIds.size() > MAX_REPLAY_BATCH_SIZE) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail(
+                    ErrorCode.INVALID_INPUT_VALUE,
+                    "settlementIds size must be less than or equal to " + MAX_REPLAY_BATCH_SIZE + "."
+            ));
+        }
 
-        List<UUID> settlementIds = new ArrayList<>();
+        LinkedHashSet<UUID> uniqueSettlementIds = new LinkedHashSet<>();
         for (String rawId : rawIds) {
             if (rawId == null || rawId.isBlank()) {
                 return ResponseEntity.badRequest()
                         .body(ApiResponse.fail(ErrorCode.INVALID_INPUT_VALUE, "settlementIds must not contain blank values."));
             }
             try {
-                settlementIds.add(UUID.fromString(rawId));
+                uniqueSettlementIds.add(UUID.fromString(rawId));
             } catch (IllegalArgumentException e) {
                 return ResponseEntity.badRequest()
                         .body(ApiResponse.fail(ErrorCode.INVALID_INPUT_VALUE, "settlementIds must be UUID format."));
             }
         }
 
-        var result = settlementPayoutService.replayFailedPayouts(settlementIds);
+        var result = settlementPayoutService.replayFailedPayouts(new ArrayList<>(uniqueSettlementIds));
         return ResponseEntity.ok(ApiResponse.success(FailedPayoutReplayResponse.from(result)));
     }
 }

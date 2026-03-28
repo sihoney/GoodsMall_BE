@@ -144,5 +144,43 @@ class SettlementOpsControllerTest {
         assertThat(response.getBody().error()).isNotNull();
         assertThat(response.getBody().error().code()).isEqualTo("INVALID_INPUT_VALUE");
     }
-}
 
+    @Test
+    @DisplayName("DLQ replay 요청 목록에 중복 settlementId가 있으면 중복 제거 후 서비스로 전달한다")
+    void replayFailedPayouts_whenDuplicateIds_deduplicatesBeforeServiceCall() {
+        UUID settlementId1 = UUID.randomUUID();
+        UUID settlementId2 = UUID.randomUUID();
+        when(settlementPayoutService.replayFailedPayouts(List.of(settlementId1, settlementId2)))
+                .thenReturn(new FailedPayoutReplayResult(1, 0, 0, 0));
+
+        ResponseEntity<ApiResponse<?>> response = settlementOpsController.replayFailedPayouts(
+                new FailedPayoutReplayRequest(List.of(
+                        settlementId1.toString(),
+                        settlementId2.toString(),
+                        settlementId1.toString()
+                ))
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        verify(settlementPayoutService).replayFailedPayouts(List.of(settlementId1, settlementId2));
+    }
+
+    @Test
+    @DisplayName("DLQ replay 요청 목록이 허용 배치 크기를 초과하면 400 응답을 반환한다")
+    void replayFailedPayouts_whenExceedsMaxBatchSize_returnsBadRequest() {
+        java.util.ArrayList<String> largeIds = new java.util.ArrayList<>();
+        for (int index = 0; index < 101; index++) {
+            largeIds.add(UUID.randomUUID().toString());
+        }
+
+        ResponseEntity<ApiResponse<?>> response = settlementOpsController.replayFailedPayouts(
+                new FailedPayoutReplayRequest(largeIds)
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().success()).isFalse();
+        assertThat(response.getBody().error()).isNotNull();
+        assertThat(response.getBody().error().code()).isEqualTo("INVALID_INPUT_VALUE");
+    }
+}
