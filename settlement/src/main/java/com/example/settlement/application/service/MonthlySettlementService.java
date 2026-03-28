@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class MonthlySettlementService {
 
     private static final long FEE_RATE_PERCENT = 10L;
+    private static final long HUNDRED_PERCENT = 100L;
 
     private final SettlementRepository settlementRepository;
     private final SettlementItemRepository settlementItemRepository;
@@ -170,8 +171,14 @@ public class MonthlySettlementService {
         }
     }
 
+    /**
+     * MVP 수수료 정책으로 feeAmount를 계산한다.
+     * <p>
+     * 정책: feeAmount = grossAmount * 10% 이며 Long 정수 나눗셈으로
+     * 소수점 이하는 floor(버림) 처리한다.
+     */
     private long calculateFeeAmount(long grossAmount) {
-        return grossAmount * FEE_RATE_PERCENT / 100;
+        return Math.floorDiv(grossAmount * FEE_RATE_PERCENT, HUNDRED_PERCENT);
     }
 
     private void requireUuid(UUID value, String fieldName) {

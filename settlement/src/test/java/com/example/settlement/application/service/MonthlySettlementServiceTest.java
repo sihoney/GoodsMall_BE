@@ -22,6 +22,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -86,6 +88,33 @@ class MonthlySettlementServiceTest {
         assertThat(result.getGrossAmount()).isEqualTo(10_000L);
         assertThat(result.getFeeAmount()).isEqualTo(1_000L);
         assertThat(result.getNetAmount()).isEqualTo(9_000L);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "1,0,1",
+            "9,0,9",
+            "10,1,9",
+            "11,1,10",
+            "99,9,90",
+            "101,10,91"
+    })
+    void registerSettlementItemAppliesFloorFeePolicy(long grossAmount, long expectedFeeAmount, long expectedNetAmount) {
+        UUID escrowId = UUID.randomUUID();
+        when(settlementItemRepository.findByEscrowId(escrowId)).thenReturn(Optional.empty());
+        when(settlementItemRepository.save(any(SettlementItem.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        SettlementItem result = monthlySettlementService.registerSettlementItem(new SettlementItemCreateCommand(
+                UUID.randomUUID(),
+                escrowId,
+                UUID.randomUUID(),
+                grossAmount,
+                LocalDateTime.now()
+        ));
+
+        assertThat(result.getFeeAmount()).isEqualTo(expectedFeeAmount);
+        assertThat(result.getNetAmount()).isEqualTo(expectedNetAmount);
+        assertThat(result.getGrossAmount() - result.getFeeAmount()).isEqualTo(result.getNetAmount());
     }
 
     @Test
