@@ -2,9 +2,13 @@ package com.example.settlement.presentation.controller;
 
 import com.example.settlement.application.service.SettlementPayoutService;
 import com.example.settlement.common.exception.ErrorCode;
+import com.example.settlement.presentation.dto.request.FailedPayoutReplayRequest;
 import com.example.settlement.presentation.dto.request.ManualFailedPayoutRequest;
 import com.example.settlement.presentation.dto.response.ApiResponse;
+import com.example.settlement.presentation.dto.response.FailedPayoutReplayResponse;
 import com.example.settlement.presentation.dto.response.ManualFailedPayoutResponse;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 보상 트랜잭션 운영 시나리오에서 FAILED 정산건 수동 재지급을 트리거한다.
  */
 @RestController
-@RequestMapping("/api/settlement/ops")
+@RequestMapping("/api/settlement")
 public class SettlementOpsController {
 
     private final SettlementPayoutService settlementPayoutService;
@@ -66,5 +70,37 @@ public class SettlementOpsController {
             }
             return ResponseEntity.badRequest().body(ApiResponse.fail(ErrorCode.INVALID_INPUT_VALUE, message));
         }
+    }
+
+    /**
+     * DLQ replay 대상 settlementId 목록을 재처리한다.
+     * <p>
+     * - 200: replay 실행 성공(자동 재요청/수동조치 대상 집계 반환)
+     * - 400: settlementIds 누락/비어있음/UUID 형식 오류
+     */
+    @PostMapping("/failed-payout/replay")
+    public ResponseEntity<ApiResponse<?>> replayFailedPayouts(@RequestBody FailedPayoutReplayRequest request) {
+        List<String> rawIds = request == null ? null : request.settlementIds();
+        if (rawIds == null || rawIds.isEmpty()) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.fail(ErrorCode.INVALID_INPUT_VALUE, "settlementIds is required."));
+        }
+
+        List<UUID> settlementIds = new ArrayList<>();
+        for (String rawId : rawIds) {
+            if (rawId == null || rawId.isBlank()) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.fail(ErrorCode.INVALID_INPUT_VALUE, "settlementIds must not contain blank values."));
+            }
+            try {
+                settlementIds.add(UUID.fromString(rawId));
+            } catch (IllegalArgumentException e) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.fail(ErrorCode.INVALID_INPUT_VALUE, "settlementIds must be UUID format."));
+            }
+        }
+
+        var result = settlementPayoutService.replayFailedPayouts(settlementIds);
+        return ResponseEntity.ok(ApiResponse.success(FailedPayoutReplayResponse.from(result)));
     }
 }

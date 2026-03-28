@@ -352,4 +352,91 @@ class SettlementPayoutServiceTest {
         verify(settlementRepository, never()).save(any());
         verify(payoutRequestedEventPublisher, never()).publish(any());
     }
+
+    @Test
+    @DisplayName("DLQ replay 대상 목록을 처리할 때 RETRYABLE은 자동 재요청하고 나머지는 정책에 맞게 집계한다")
+    void replayFailedPayouts_classifiesAndProcessesByReason() {
+        UUID retryableId = UUID.randomUUID();
+        UUID nonRetryableId = UUID.randomUUID();
+        UUID notFailedStatusId = UUID.randomUUID();
+        UUID notFoundId = UUID.randomUUID();
+
+        Settlement retryableFailedSettlement = Settlement.create(
+                retryableId,
+                UUID.randomUUID(),
+                2026,
+                3,
+                10_000L,
+                1_000L,
+                9_000L,
+                0L,
+                SettlementStatus.FAILED,
+                null,
+                PayoutFailureReason.INTERNAL_ERROR.name(),
+                LocalDateTime.of(2026, 4, 1, 3, 5),
+                LocalDateTime.of(2026, 4, 1, 3, 10)
+        );
+        Settlement nonRetryableFailedSettlement = Settlement.create(
+                nonRetryableId,
+                UUID.randomUUID(),
+                2026,
+                3,
+                10_000L,
+                1_000L,
+                9_000L,
+                0L,
+                SettlementStatus.FAILED,
+                null,
+                PayoutFailureReason.WALLET_NOT_FOUND.name(),
+                LocalDateTime.of(2026, 4, 1, 3, 5),
+                LocalDateTime.of(2026, 4, 1, 3, 10)
+        );
+        Settlement completedSettlement = Settlement.create(
+                notFailedStatusId,
+                UUID.randomUUID(),
+                2026,
+                3,
+                10_000L,
+                1_000L,
+                9_000L,
+                9_000L,
+                SettlementStatus.COMPLETED,
+                LocalDateTime.of(2026, 4, 1, 3, 10),
+                null,
+                LocalDateTime.of(2026, 4, 1, 3, 5),
+                LocalDateTime.of(2026, 4, 1, 3, 10)
+        );
+
+        when(settlementRepository.findBySettlementId(retryableId)).thenReturn(Optional.of(retryableFailedSettlement));
+        when(settlementRepository.findBySettlementId(nonRetryableId)).thenReturn(Optional.of(nonRetryableFailedSettlement));
+        when(settlementRepository.findBySettlementId(notFailedStatusId)).thenReturn(Optional.of(completedSettlement));
+        when(settlementRepository.findBySettlementId(notFoundId)).thenReturn(Optional.empty());
+
+        java.util.List<UUID> replayTargets = new java.util.ArrayList<>();
+        replayTargets.add(retryableId);
+        replayTargets.add(nonRetryableId);
+        replayTargets.add(notFailedStatusId);
+        replayTargets.add(notFoundId);
+        replayTargets.add(null);
+
+        var result = settlementPayoutService.replayFailedPayouts(replayTargets);
+
+        assertThat(result.requestedRetryCount()).isEqualTo(1);
+        assertThat(result.manualActionRequiredCount()).isEqualTo(1);
+        assertThat(result.skippedCount()).isEqualTo(2);
+        assertThat(result.notFoundCount()).isEqualTo(1);
+
+        assertThat(retryableFailedSettlement.getSettlementStatus()).isEqualTo(SettlementStatus.PENDING);
+        verify(settlementRepository).save(retryableFailedSettlement);
+        verify(payoutRequestedEventPublisher).publish(any());
+        verify(settlementRepository, never()).save(nonRetryableFailedSettlement);
+    }
+
+    @Test
+    @DisplayName("DLQ replay 목록이 null이면 예외가 발생한다")
+    void replayFailedPayouts_nullList_throwsException() {
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> settlementPayoutService.replayFailedPayouts(null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessageContaining("settlementIds");
+    }
 }

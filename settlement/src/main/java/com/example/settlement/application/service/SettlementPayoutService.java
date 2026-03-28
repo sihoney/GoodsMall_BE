@@ -1,5 +1,6 @@
 package com.example.settlement.application.service;
 
+import com.example.settlement.application.dto.FailedPayoutReplayResult;
 import com.example.settlement.domain.entity.Settlement;
 import com.example.settlement.domain.enumtype.SettlementStatus;
 import com.example.settlement.domain.repository.SettlementRepository;
@@ -223,5 +224,61 @@ public class SettlementPayoutService {
             return null;
         }
     }
-}
 
+    /**
+     * 운영자가 확정한 DLQ replay 대상 settlementId 목록을 재처리한다.
+     * <p>
+     * 분류 기준:
+     * - FAILED + RETRYABLE: 자동 재지급 요청 발행
+     * - FAILED + NON_RETRYABLE(또는 미분류): 수동 조치 대상으로 집계
+     * - FAILED 외 상태: skip 처리
+     * - 미존재 settlementId: not found로 집계
+     */
+    public FailedPayoutReplayResult replayFailedPayouts(List<UUID> settlementIds) {
+        Objects.requireNonNull(settlementIds, "settlementIds is required.");
+
+        int requestedRetryCount = 0;
+        int manualActionRequiredCount = 0;
+        int skippedCount = 0;
+        int notFoundCount = 0;
+
+        LocalDateTime now = LocalDateTime.now();
+        for (UUID settlementId : settlementIds) {
+            if (settlementId == null) {
+                skippedCount++;
+                continue;
+            }
+
+            Settlement settlement = settlementRepository.findBySettlementId(settlementId).orElse(null);
+            if (settlement == null) {
+                notFoundCount++;
+                continue;
+            }
+
+            if (settlement.getSettlementStatus() != SettlementStatus.FAILED) {
+                skippedCount++;
+                continue;
+            }
+
+            PayoutFailureReason reason = resolveFailureReason(settlement.getLastFailureReason());
+            if (reason != null && reason.isRetryable()) {
+                settlement.requeueForPayout(now);
+                settlementRepository.save(settlement);
+                publishPayoutRequest(settlement, now);
+                requestedRetryCount++;
+                log.info("[DlqReplay/RetryRequested] settlementId={} reason={}", settlement.getSettlementId(), reason);
+                continue;
+            }
+
+            manualActionRequiredCount++;
+            log.warn("[DlqReplay/ManualRequired] settlementId={} reason={}", settlement.getSettlementId(), reason);
+        }
+
+        return new FailedPayoutReplayResult(
+                requestedRetryCount,
+                manualActionRequiredCount,
+                skippedCount,
+                notFoundCount
+        );
+    }
+}
