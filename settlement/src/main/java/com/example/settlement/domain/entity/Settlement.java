@@ -52,6 +52,9 @@ public class Settlement {
     @Column(name = "settled_at")
     private LocalDateTime settledAt;
 
+    @Column(name = "last_failure_reason")
+    private String lastFailureReason;
+
     @Column(name = "requested_at", nullable = false, updatable = false)
     private LocalDateTime requestedAt;
 
@@ -69,6 +72,7 @@ public class Settlement {
             Long settledAmount,
             SettlementStatus settlementStatus,
             LocalDateTime settledAt,
+            String lastFailureReason,
             LocalDateTime requestedAt,
             LocalDateTime updatedAt
     ) {
@@ -82,6 +86,7 @@ public class Settlement {
         this.settledAmount = Objects.requireNonNull(settledAmount);
         this.settlementStatus = Objects.requireNonNull(settlementStatus);
         this.settledAt = settledAt;
+        this.lastFailureReason = lastFailureReason;
         this.requestedAt = Objects.requireNonNull(requestedAt);
         this.updatedAt = Objects.requireNonNull(updatedAt);
     }
@@ -97,6 +102,7 @@ public class Settlement {
             Long settledAmount,
             SettlementStatus settlementStatus,
             LocalDateTime settledAt,
+            String lastFailureReason,
             LocalDateTime requestedAt,
             LocalDateTime updatedAt
     ) {
@@ -111,6 +117,7 @@ public class Settlement {
                 settledAmount,
                 settlementStatus,
                 settledAt,
+                lastFailureReason,
                 requestedAt,
                 updatedAt
         );
@@ -138,6 +145,7 @@ public class Settlement {
                 0L,
                 SettlementStatus.PENDING,
                 null,
+                null,
                 now,
                 now
         );
@@ -162,7 +170,8 @@ public class Settlement {
         this.settlementStatus = SettlementStatus.COMPLETED;
     }
 
-    public void fail(LocalDateTime updatedAt) {
+    public void fail(String failureReason, LocalDateTime updatedAt) {
+        this.lastFailureReason = failureReason;
         this.updatedAt = Objects.requireNonNull(updatedAt);
         this.settlementStatus = SettlementStatus.FAILED;
     }

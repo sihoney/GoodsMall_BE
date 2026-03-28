@@ -10,6 +10,7 @@ import com.example.settlement.domain.entity.Settlement;
 import com.example.settlement.domain.enumtype.SettlementStatus;
 import com.example.settlement.domain.repository.SettlementRepository;
 import com.example.settlement.infrastructure.messaging.kafka.KafkaSellerSettlementPayoutRequestedEventPublisher;
+import com.example.settlement.infrastructure.messaging.kafka.contract.PayoutFailureReason;
 import com.example.settlement.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultMessage;
 import com.example.settlement.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultStatus;
 import java.time.LocalDateTime;
@@ -111,6 +112,7 @@ class SettlementPayoutServiceTest {
                 9_000L,
                 SettlementStatus.COMPLETED,
                 LocalDateTime.of(2026, 4, 1, 3, 10),
+                null,
                 LocalDateTime.of(2026, 4, 1, 3, 5),
                 LocalDateTime.of(2026, 4, 1, 3, 10)
         );
@@ -129,5 +131,100 @@ class SettlementPayoutServiceTest {
 
         verify(settlementRepository, never()).save(any());
     }
-}
 
+    @Test
+    @DisplayName("NON_RETRYABLE 실패 결과를 받으면 settlement 상태를 FAILED로 반영하고 failureReason을 저장한다")
+    void applyPayoutResult_nonRetryableFailure_failsSettlementWithReason() {
+        UUID settlementId = UUID.randomUUID();
+        Settlement settlement = Settlement.createPending(
+                settlementId,
+                UUID.randomUUID(),
+                2026,
+                3,
+                10_000L,
+                1_000L,
+                9_000L,
+                LocalDateTime.of(2026, 4, 1, 3, 5)
+        );
+        when(settlementRepository.findBySettlementId(settlementId)).thenReturn(Optional.of(settlement));
+
+        settlementPayoutService.applyPayoutResult(new SellerSettlementPayoutResultMessage(
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                settlementId,
+                settlement.getSellerId(),
+                9_000L,
+                SellerSettlementPayoutResultStatus.FAILED,
+                PayoutFailureReason.WALLET_NOT_FOUND,
+                LocalDateTime.of(2026, 4, 1, 3, 10)
+        ));
+
+        assertThat(settlement.getSettlementStatus()).isEqualTo(SettlementStatus.FAILED);
+        assertThat(settlement.getLastFailureReason()).isEqualTo(PayoutFailureReason.WALLET_NOT_FOUND.name());
+        verify(settlementRepository).save(settlement);
+    }
+
+    @Test
+    @DisplayName("RETRYABLE 실패 결과를 받으면 settlement 상태를 FAILED로 반영하고 failureReason을 저장한다")
+    void applyPayoutResult_retryableFailure_failsSettlementWithReason() {
+        UUID settlementId = UUID.randomUUID();
+        Settlement settlement = Settlement.createPending(
+                settlementId,
+                UUID.randomUUID(),
+                2026,
+                3,
+                10_000L,
+                1_000L,
+                9_000L,
+                LocalDateTime.of(2026, 4, 1, 3, 5)
+        );
+        when(settlementRepository.findBySettlementId(settlementId)).thenReturn(Optional.of(settlement));
+
+        settlementPayoutService.applyPayoutResult(new SellerSettlementPayoutResultMessage(
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                settlementId,
+                settlement.getSellerId(),
+                9_000L,
+                SellerSettlementPayoutResultStatus.FAILED,
+                PayoutFailureReason.INTERNAL_ERROR,
+                LocalDateTime.of(2026, 4, 1, 3, 10)
+        ));
+
+        assertThat(settlement.getSettlementStatus()).isEqualTo(SettlementStatus.FAILED);
+        assertThat(settlement.getLastFailureReason()).isEqualTo(PayoutFailureReason.INTERNAL_ERROR.name());
+        verify(settlementRepository).save(settlement);
+    }
+
+    @Test
+    @DisplayName("failureReason 없이 FAILED 결과를 받으면 INTERNAL_ERROR로 처리한다")
+    void applyPayoutResult_failedWithNullReason_usesInternalError() {
+        UUID settlementId = UUID.randomUUID();
+        Settlement settlement = Settlement.createPending(
+                settlementId,
+                UUID.randomUUID(),
+                2026,
+                3,
+                10_000L,
+                1_000L,
+                9_000L,
+                LocalDateTime.of(2026, 4, 1, 3, 5)
+        );
+        when(settlementRepository.findBySettlementId(settlementId)).thenReturn(Optional.of(settlement));
+
+        settlementPayoutService.applyPayoutResult(new SellerSettlementPayoutResultMessage(
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                settlementId,
+                settlement.getSellerId(),
+                9_000L,
+                SellerSettlementPayoutResultStatus.FAILED,
+                null,
+                LocalDateTime.of(2026, 4, 1, 3, 10)
+        ));
+
+        assertThat(settlement.getSettlementStatus()).isEqualTo(SettlementStatus.FAILED);
+        assertThat(settlement.getLastFailureReason()).isEqualTo(PayoutFailureReason.INTERNAL_ERROR.name());
+        verify(settlementRepository).save(settlement);
+    }
+}

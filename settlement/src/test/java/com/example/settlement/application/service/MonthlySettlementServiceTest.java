@@ -143,6 +143,7 @@ class MonthlySettlementServiceTest {
                 0L,
                 SettlementStatus.PENDING,
                 null,
+                null,
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );

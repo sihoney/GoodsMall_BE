@@ -1,5 +1,6 @@
 package com.example.payment.infrastructure.messaging.kafka;
 
+import com.example.payment.common.exception.WalletNotFoundException;
 import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.entity.WalletTransaction;
 import com.example.payment.domain.enumtype.WalletTransactionType;
@@ -7,11 +8,14 @@ import com.example.payment.domain.repository.WalletRepository;
 import com.example.payment.domain.repository.WalletTransactionRepository;
 import com.example.payment.domain.service.IdentifierGenerator;
 import com.example.payment.domain.service.TimeProvider;
+import com.example.payment.infrastructure.messaging.kafka.contract.PayoutFailureReason;
 import com.example.payment.infrastructure.messaging.kafka.contract.SellerSettlementPayoutRequestedMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultStatus;
 import java.time.LocalDateTime;
 import java.util.Objects;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class SellerSettlementPayoutRequestedEventConsumer {
 
+    private static final Logger log = LoggerFactory.getLogger(SellerSettlementPayoutRequestedEventConsumer.class);
     private static final String SETTLEMENT_REFERENCE_TYPE = "SETTLEMENT";
 
     private final WalletRepository walletRepository;
@@ -67,7 +72,7 @@ public class SellerSettlementPayoutRequestedEventConsumer {
             }
 
             Wallet wallet = walletRepository.findByMemberId(event.sellerMemberId())
-                    .orElseThrow(() -> new IllegalArgumentException("Seller wallet not found."));
+                    .orElseThrow(WalletNotFoundException::new);
 
             Long balanceAfter = wallet.increaseBalance(event.payoutAmount(), now);
             walletRepository.save(wallet);
@@ -86,17 +91,12 @@ public class SellerSettlementPayoutRequestedEventConsumer {
             walletTransactionRepository.save(settlementTransaction);
 
             publishSuccess(event, now);
+        } catch (WalletNotFoundException e) {
+            log.error("[PayoutFailure] settlementId={} reason={}", event.settlementId(), PayoutFailureReason.WALLET_NOT_FOUND);
+            publishFailure(event, now, PayoutFailureReason.WALLET_NOT_FOUND);
         } catch (RuntimeException e) {
-            payoutResultEventPublisher.publish(new SellerSettlementPayoutResultMessage(
-                    identifierGenerator.generateUuid(),
-                    event.eventId(),
-                    event.settlementId(),
-                    event.sellerMemberId(),
-                    event.payoutAmount(),
-                    SellerSettlementPayoutResultStatus.FAILED,
-                    e.getMessage(),
-                    now
-            ));
+            log.error("[PayoutFailure] settlementId={} reason={} message={}", event.settlementId(), PayoutFailureReason.INTERNAL_ERROR, e.getMessage(), e);
+            publishFailure(event, now, PayoutFailureReason.INTERNAL_ERROR);
         }
     }
 
@@ -109,6 +109,20 @@ public class SellerSettlementPayoutRequestedEventConsumer {
                 event.payoutAmount(),
                 SellerSettlementPayoutResultStatus.SUCCESS,
                 null,
+                processedAt
+        ));
+    }
+
+    private void publishFailure(SellerSettlementPayoutRequestedMessage event, LocalDateTime processedAt,
+            PayoutFailureReason reason) {
+        payoutResultEventPublisher.publish(new SellerSettlementPayoutResultMessage(
+                identifierGenerator.generateUuid(),
+                event.eventId(),
+                event.settlementId(),
+                event.sellerMemberId(),
+                event.payoutAmount(),
+                SellerSettlementPayoutResultStatus.FAILED,
+                reason,
                 processedAt
         ));
     }

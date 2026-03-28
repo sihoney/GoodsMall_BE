@@ -4,6 +4,7 @@ import com.example.settlement.domain.entity.Settlement;
 import com.example.settlement.domain.enumtype.SettlementStatus;
 import com.example.settlement.domain.repository.SettlementRepository;
 import com.example.settlement.infrastructure.messaging.kafka.KafkaSellerSettlementPayoutRequestedEventPublisher;
+import com.example.settlement.infrastructure.messaging.kafka.contract.PayoutFailureReason;
 import com.example.settlement.infrastructure.messaging.kafka.contract.SellerSettlementPayoutRequestedMessage;
 import com.example.settlement.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultMessage;
 import com.example.settlement.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultStatus;
@@ -11,6 +12,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional
 public class SettlementPayoutService {
+
+    private static final Logger log = LoggerFactory.getLogger(SettlementPayoutService.class);
 
     private final SettlementRepository settlementRepository;
     private final KafkaSellerSettlementPayoutRequestedEventPublisher payoutRequestedEventPublisher;
@@ -85,7 +90,19 @@ public class SettlementPayoutService {
             return;
         }
 
-        settlement.fail(LocalDateTime.now());
+        PayoutFailureReason reason = event.failureReason() != null
+                ? event.failureReason()
+                : PayoutFailureReason.INTERNAL_ERROR;
+
+        if (reason.isRetryable()) {
+            log.warn("[PayoutFailed/RETRYABLE] settlementId={} reason={} requestEventId={}",
+                    event.settlementId(), reason, event.requestEventId());
+        } else {
+            log.error("[PayoutFailed/NON_RETRYABLE] settlementId={} reason={} requestEventId={} — 수동 조치 필요",
+                    event.settlementId(), reason, event.requestEventId());
+        }
+
+        settlement.fail(reason.name(), LocalDateTime.now());
         settlementRepository.save(settlement);
     }
 
