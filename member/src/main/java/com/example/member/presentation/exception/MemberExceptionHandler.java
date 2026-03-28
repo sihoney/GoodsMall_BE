@@ -1,8 +1,12 @@
 package com.example.member.presentation.exception;
 
+import com.example.member.common.exception.AdminAccessDeniedException;
+import com.example.member.common.exception.DuplicateActiveRestrictionException;
 import com.example.member.common.exception.DuplicateMemberEmailException;
 import com.example.member.common.exception.InvalidLoginException;
 import com.example.member.common.exception.MemberNotFoundException;
+import com.example.member.common.exception.MemberRestrictedException;
+import com.example.member.common.exception.MemberRestrictionNotFoundException;
 import com.example.member.common.exception.RefreshTokenNotFoundException;
 import com.example.member.common.exception.SellerAlreadyRegisteredException;
 import com.example.member.common.exception.SellerNotFoundException;
@@ -47,6 +51,34 @@ public class MemberExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleInvalidLogin(InvalidLoginException exception) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(ApiResponse.fail("INVALID_LOGIN", exception.getMessage()));
+    }
+
+    @ExceptionHandler(MemberRestrictedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleMemberRestricted(MemberRestrictedException exception) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.fail("MEMBER_RESTRICTED", exception.getMessage()));
+    }
+
+    @ExceptionHandler(AdminAccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleAdminAccessDenied(AdminAccessDeniedException exception) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.fail("ADMIN_ACCESS_DENIED", exception.getMessage()));
+    }
+
+    @ExceptionHandler(DuplicateActiveRestrictionException.class)
+    public ResponseEntity<ApiResponse<Object>> handleDuplicateActiveRestriction(
+            DuplicateActiveRestrictionException exception
+    ) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.fail("DUPLICATE_ACTIVE_RESTRICTION", exception.getMessage()));
+    }
+
+    @ExceptionHandler(MemberRestrictionNotFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> handleMemberRestrictionNotFound(
+            MemberRestrictionNotFoundException exception
+    ) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.fail("MEMBER_RESTRICTION_NOT_FOUND", exception.getMessage()));
     }
 
     @ExceptionHandler({InvalidTokenException.class, RefreshTokenNotFoundException.class})

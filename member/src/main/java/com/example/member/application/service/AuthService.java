@@ -2,8 +2,10 @@ package com.example.member.application.service;
 
 import com.example.member.application.usecase.AuthUsecase;
 import com.example.member.common.exception.InvalidLoginException;
+import com.example.member.common.exception.MemberRestrictedException;
 import com.example.member.common.exception.RefreshTokenNotFoundException;
 import com.example.member.domain.entity.Member;
+import com.example.member.domain.entity.MemberRestriction;
 import com.example.member.infrastructure.redis.RefreshTokenStore;
 import com.example.member.infrastructure.repository.MemberRepository;
 import com.example.member.presentation.dto.LoginRequest;
@@ -13,6 +15,7 @@ import com.example.member.presentation.dto.TokenRefreshResponse;
 import com.example.member.security.JwtTokenProvider;
 import com.todaylunch.common.security.exception.InvalidTokenException;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -26,24 +29,25 @@ public class AuthService implements AuthUsecase {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenStore refreshTokenStore;
+    private final MemberRestrictionService memberRestrictionService;
 
+    @Override
     public LoginResponse login(LoginRequest request) {
         validateLoginRequest(request);
 
-        // 이메일로 회원 조회
-        Member member = memberRepository.findByEmail(normalizeRequired(request.email(), "email"))
+        String email = normalizeRequired(request.email(), "email");
+        Member member = memberRepository.findByEmail(email)
                 .orElseThrow(InvalidLoginException::new);
 
-        // 비밀번호 검증
         if (!passwordEncoder.matches(normalizeRequired(request.password(), "password"), member.getPassword())) {
             throw new InvalidLoginException();
         }
 
-        // 토큰 발급 
+        validateLoginRestriction(member);
+
         String accessToken = jwtTokenProvider.createAccessToken(member);
         String refreshToken = jwtTokenProvider.createRefreshToken(member);
 
-        // Redis에 리프레시 토큰 저장 (memberId를 키로 사용)
         refreshTokenStore.save(
                 member.getMemberId(),
                 refreshToken,
@@ -59,6 +63,7 @@ public class AuthService implements AuthUsecase {
         );
     }
 
+    @Override
     public TokenRefreshResponse refresh(TokenRefreshRequest request) {
         validateRefreshRequest(request);
 
@@ -66,6 +71,11 @@ public class AuthService implements AuthUsecase {
         jwtTokenProvider.validateRefreshToken(refreshToken);
 
         UUID memberId = jwtTokenProvider.extractMemberId(refreshToken);
+        MemberRestriction memberRestriction = memberRestrictionService.getActiveLoginRestriction(memberId, LocalDateTime.now());
+        if (memberRestriction != null) {
+            throw new MemberRestrictedException(memberRestriction.getEndAt());
+        }
+
         String storedToken = refreshTokenStore.findByMemberId(memberId)
                 .orElseThrow(RefreshTokenNotFoundException::new);
 
@@ -85,8 +95,8 @@ public class AuthService implements AuthUsecase {
         );
     }
 
+    @Override
     public void logout(UUID memberId) {
-        // Redis에서 리프레시 토큰 삭제
         refreshTokenStore.delete(memberId);
     }
 
@@ -107,5 +117,15 @@ public class AuthService implements AuthUsecase {
             throw new IllegalArgumentException(fieldName + " is required.");
         }
         return value.trim();
+    }
+
+    private void validateLoginRestriction(Member member) {
+        MemberRestriction memberRestriction = memberRestrictionService.getActiveLoginRestriction(
+                member.getMemberId(),
+                LocalDateTime.now()
+        );
+        if (memberRestriction != null) {
+            throw new MemberRestrictedException(memberRestriction.getEndAt());
+        }
     }
 }
