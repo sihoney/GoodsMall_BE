@@ -64,12 +64,17 @@ public class MonthlySettlementService {
     }
 
     /**
-     * 지정된 기간의 정산 항목을 판매자/연월 기준으로 집계해 정산서를 생성 또는 누적 갱신한다.
+     * 지정된 기간의 미집계 정산 원천 항목을 판매자/연월 기준으로 집계해 정산서를 생성 또는 누적 갱신한다.
+     *
+     * 이미 settlementId가 연결된 항목은 조회 단계에서 제외하므로
+     * 같은 기간에 집계를 재실행해도 중복 누적이 발생하지 않는다.
+     * 이 방식으로 배치(batch) 재실행 시 idempotency(멱등성)를 보장한다.
      */
     public MonthlySettlementAggregateResult aggregateMonthlySettlements(MonthlySettlementAggregateCommand command) {
         validateAggregateCommand(command);
 
-        List<SettlementItem> settlementItems = settlementItemRepository.findByReleasedAtBetween(
+        // settlementId가 null인 미집계 항목만 조회해 dedup(중복 방지)를 보장한다.
+        List<SettlementItem> settlementItems = settlementItemRepository.findUnassignedByReleasedAtBetween(
                 command.releasedAtFrom(),
                 command.releasedAtTo()
         );

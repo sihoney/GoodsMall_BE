@@ -117,7 +117,7 @@ class MonthlySettlementServiceTest {
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );
-        when(settlementItemRepository.findByReleasedAtBetween(any(), any())).thenReturn(List.of(settlementItem));
+        when(settlementItemRepository.findUnassignedByReleasedAtBetween(any(), any())).thenReturn(List.of(settlementItem));
         when(settlementRepository.findBySellerIdAndSettlementYearAndSettlementMonth(sellerId, 2026, 3))
                 .thenReturn(Optional.empty());
         when(settlementRepository.save(any(Settlement.class))).thenReturn(createdSettlement);
@@ -162,7 +162,7 @@ class MonthlySettlementServiceTest {
                 9_000L,
                 LocalDateTime.now()
         );
-        when(settlementItemRepository.findByReleasedAtBetween(any(), any())).thenReturn(List.of(settlementItem));
+        when(settlementItemRepository.findUnassignedByReleasedAtBetween(any(), any())).thenReturn(List.of(settlementItem));
         when(settlementRepository.findBySellerIdAndSettlementYearAndSettlementMonth(sellerId, 2026, 3))
                 .thenReturn(Optional.of(existingSettlement));
         when(settlementRepository.save(any(Settlement.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -188,7 +188,7 @@ class MonthlySettlementServiceTest {
     @Test
     void aggregatePreviousMonthUsesKstMonthlyBoundary() {
         LocalDateTime referenceDateTime = LocalDateTime.of(2026, 4, 1, 3, 5);
-        when(settlementItemRepository.findByReleasedAtBetween(
+        when(settlementItemRepository.findUnassignedByReleasedAtBetween(
                 eq(LocalDateTime.of(2026, 3, 1, 0, 0)),
                 eq(LocalDateTime.of(2026, 4, 1, 0, 0))
         )).thenReturn(List.of());
@@ -198,9 +198,54 @@ class MonthlySettlementServiceTest {
         assertThat(result.settlementYear()).isEqualTo(2026);
         assertThat(result.settlementMonth()).isEqualTo(3);
         assertThat(result.aggregatedItemCount()).isZero();
-        verify(settlementItemRepository, times(1)).findByReleasedAtBetween(
+        verify(settlementItemRepository, times(1)).findUnassignedByReleasedAtBetween(
                 LocalDateTime.of(2026, 3, 1, 0, 0),
                 LocalDateTime.of(2026, 4, 1, 0, 0)
         );
+    }
+
+    @Test
+    void aggregateMonthlySettlementsSkipsAlreadyAggregatedItems() {
+        // given: settlementId가 이미 설정된 집계 완료(aggregated) 항목은 조회 자체에서 제외된다.
+        // findUnassignedByReleasedAtBetween이 빈 목록을 반환하면
+        // 집계 실행 횟수가 0이어야 한다.
+        when(settlementItemRepository.findUnassignedByReleasedAtBetween(any(), any()))
+                .thenReturn(List.of());
+
+        MonthlySettlementAggregateResult result = monthlySettlementService.aggregateMonthlySettlements(
+                new MonthlySettlementAggregateCommand(
+                        2026,
+                        3,
+                        LocalDateTime.of(2026, 3, 1, 0, 0),
+                        LocalDateTime.of(2026, 4, 1, 0, 0)
+                )
+        );
+
+        assertThat(result.aggregatedItemCount()).isZero();
+        assertThat(result.createdSettlementCount()).isZero();
+        assertThat(result.updatedSettlementCount()).isZero();
+    }
+
+    @Test
+    void isAlreadyAggregatedReturnsTrueWhenSettlementIdIsSet() {
+        // given: assignSettlement 호출 후 isAlreadyAggregated 가 true를 반환해야 한다.
+        UUID settlementId = UUID.randomUUID();
+        SettlementItem item = SettlementItem.create(
+                UUID.randomUUID(),
+                null,
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                10_000L,
+                1_000L,
+                9_000L,
+                LocalDateTime.now(),
+                LocalDateTime.now()
+        );
+        assertThat(item.isAlreadyAggregated()).isFalse();
+
+        item.assignSettlement(settlementId);
+
+        assertThat(item.isAlreadyAggregated()).isTrue();
     }
 }
