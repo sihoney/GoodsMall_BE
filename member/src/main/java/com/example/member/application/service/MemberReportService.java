@@ -89,6 +89,15 @@ public class MemberReportService implements MemberReportUsecase {
                 .toList();
     }
 
+    @Override
+    public MemberReportResponse getReportDetail(AuthenticatedMember authenticatedMember, UUID reportId) {
+        validateAdmin(authenticatedMember);
+        return MemberReportResponse.from(
+                memberReportRepository.findById(reportId)
+                        .orElseThrow(MemberReportNotFoundException::new)
+        );
+    }
+
     @Transactional
     @Override
     public MemberReportResponse approveReport(

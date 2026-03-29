@@ -35,6 +35,17 @@ public class AdminMemberReportController {
         return ResponseEntity.ok(ApiResponse.success(memberReportUsecase.getAllReports(authenticatedMember)));
     }
 
+    @GetMapping("/{reportId}")
+    @Operation(summary = "회원 신고 상세 조회", description = "특정 신고 건의 상세 정보를 조회하는 API입니다.")
+    public ResponseEntity<ApiResponse<MemberReportResponse>> getReportDetail(
+            @CurrentMember AuthenticatedMember authenticatedMember,
+            @PathVariable UUID reportId
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                memberReportUsecase.getReportDetail(authenticatedMember, reportId)
+        ));
+    }
+
     @GetMapping("/members/{memberId}")
     @Operation(summary = "회원 신고 조회", description = "특정 회원에 대한 신고를 조회하는 API입니다.")
     public ResponseEntity<ApiResponse<List<MemberReportResponse>>> getReportsForMember(

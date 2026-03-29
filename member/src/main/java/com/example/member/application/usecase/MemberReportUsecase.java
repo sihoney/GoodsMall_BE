@@ -17,6 +17,8 @@ public interface MemberReportUsecase {
 
     List<MemberReportResponse> getAllReports(AuthenticatedMember authenticatedMember);
 
+    MemberReportResponse getReportDetail(AuthenticatedMember authenticatedMember, UUID reportId);
+
     MemberReportResponse approveReport(
             AuthenticatedMember authenticatedMember,
             UUID reportId,
