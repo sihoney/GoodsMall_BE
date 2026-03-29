@@ -1,5 +1,7 @@
 package com.example.payment.presentation.controller;
 
+import com.todaylunch.common.security.auth.annotation.CurrentMember;
+import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import com.example.payment.application.dto.ChargeConfirmCommand;
@@ -33,7 +35,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -69,8 +70,12 @@ public class PaymentController {
      */
     @GetMapping("/wallet")
     @Operation(summary = "내 지갑 요약 조회")
-    public ResponseEntity<ApiResponse<WalletSummaryResponse>> findWalletSummary(@RequestHeader("X-Member-Id") UUID memberId) {
-        WalletSummaryResponse response = WalletSummaryResponse.from(paymentSearchUseCase.findWalletSummary(memberId));
+    public ResponseEntity<ApiResponse<WalletSummaryResponse>> findWalletSummary(
+            @CurrentMember AuthenticatedMember authenticatedMember
+    ) {
+        WalletSummaryResponse response = WalletSummaryResponse.from(
+                paymentSearchUseCase.findWalletSummary(authenticatedMember.memberId())
+        );
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -80,11 +85,11 @@ public class PaymentController {
     @GetMapping("/charges")
     @Operation(summary = "내 충전 목록 조회")
     public ResponseEntity<ApiResponse<PagedResponse<ChargeListItemResponse>>> findAllCharges(
-            @RequestHeader("X-Member-Id") UUID memberId,
+            @CurrentMember AuthenticatedMember authenticatedMember,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        var result = paymentSearchUseCase.findAllCharges(memberId, page, size);
+        var result = paymentSearchUseCase.findAllCharges(authenticatedMember.memberId(), page, size);
         List<ChargeListItemResponse> items = result.items().stream()
                 .map(ChargeListItemResponse::from)
                 .toList();
@@ -105,10 +110,12 @@ public class PaymentController {
     @GetMapping("/charges/{chargeId}")
     @Operation(summary = "충전 상세 조회")
     public ResponseEntity<ApiResponse<ChargeDetailResponse>> findChargeDetail(
-            @RequestHeader("X-Member-Id") UUID memberId,
+            @CurrentMember AuthenticatedMember authenticatedMember,
             @PathVariable UUID chargeId
     ) {
-        ChargeDetailResponse response = ChargeDetailResponse.from(paymentSearchUseCase.findChargeDetail(memberId, chargeId));
+        ChargeDetailResponse response = ChargeDetailResponse.from(
+                paymentSearchUseCase.findChargeDetail(authenticatedMember.memberId(), chargeId)
+        );
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -118,11 +125,11 @@ public class PaymentController {
     @GetMapping("/refunds")
     @Operation(summary = "내 환불 목록 조회")
     public ResponseEntity<ApiResponse<PagedResponse<ChargeRefundSummaryResponse>>> findAllRefunds(
-            @RequestHeader("X-Member-Id") UUID memberId,
+            @CurrentMember AuthenticatedMember authenticatedMember,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        var result = paymentSearchUseCase.findAllRefunds(memberId, page, size);
+        var result = paymentSearchUseCase.findAllRefunds(authenticatedMember.memberId(), page, size);
         List<ChargeRefundSummaryResponse> items = result.items().stream()
                 .map(ChargeRefundSummaryResponse::from)
                 .toList();
@@ -143,11 +150,11 @@ public class PaymentController {
     @GetMapping("/transactions")
     @Operation(summary = "지갑 거래내역 조회")
     public ResponseEntity<ApiResponse<PagedResponse<WalletTransactionItemResponse>>> findAllTransactions(
-            @RequestHeader("X-Member-Id") UUID memberId,
+            @CurrentMember AuthenticatedMember authenticatedMember,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        var result = paymentSearchUseCase.findAllTransactions(memberId, page, size);
+        var result = paymentSearchUseCase.findAllTransactions(authenticatedMember.memberId(), page, size);
         List<WalletTransactionItemResponse> items = result.items().stream()
                 .map(WalletTransactionItemResponse::from)
                 .toList();
@@ -168,11 +175,11 @@ public class PaymentController {
     @GetMapping("/seller/pending-incomes")
     @Operation(summary = "판매자 지급 대기 내역 조회")
     public ResponseEntity<ApiResponse<PagedResponse<PendingSellerIncomeItemResponse>>> findAllPendingSellerIncomes(
-            @RequestHeader("X-Member-Id") UUID memberId,
+            @CurrentMember AuthenticatedMember authenticatedMember,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        var result = paymentSearchUseCase.findAllPendingSellerIncomes(memberId, page, size);
+        var result = paymentSearchUseCase.findAllPendingSellerIncomes(authenticatedMember.memberId(), page, size);
         List<PendingSellerIncomeItemResponse> items = result.items().stream()
                 .map(PendingSellerIncomeItemResponse::from)
                 .toList();
@@ -193,10 +200,14 @@ public class PaymentController {
     @PostMapping("/charge")
     @Operation(summary = "충전 요청 생성")
     public ResponseEntity<ApiResponse<ChargeCreateResponse>> createCharge(
-            @RequestHeader("X-Member-Id") UUID memberId,
+            @CurrentMember AuthenticatedMember authenticatedMember,
             @Valid @RequestBody ChargeCreateRequest request
     ) {
-        ChargeCreateCommand command = new ChargeCreateCommand(memberId, request.amount(), PgProvider.TOSS);
+        ChargeCreateCommand command = new ChargeCreateCommand(
+                authenticatedMember.memberId(),
+                request.amount(),
+                PgProvider.TOSS
+        );
         ChargeCreateResponse response = ChargeCreateResponse.from(chargeCreateUseCase.createCharge(command));
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
