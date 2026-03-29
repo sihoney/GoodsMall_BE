@@ -1,7 +1,7 @@
 package com.example.member.domain.entity;
 
-import com.example.member.domain.enumtype.MemberRole;
 import com.example.member.domain.enumtype.MemberStatus;
+import com.todaylunch.common.security.auth.enumtype.MemberRole;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -146,6 +146,11 @@ public class Member {
 
     public void changeStatus(MemberStatus status, LocalDateTime updatedAt) {
         this.status = Objects.requireNonNull(status);
+        this.updatedAt = Objects.requireNonNull(updatedAt);
+    }
+
+    public void changeRole(MemberRole role, LocalDateTime updatedAt) {
+        this.role = Objects.requireNonNull(role);
         this.updatedAt = Objects.requireNonNull(updatedAt);
     }
 }

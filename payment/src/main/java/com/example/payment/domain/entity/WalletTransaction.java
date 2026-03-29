@@ -18,10 +18,6 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "wallet_transaction", schema = "payment")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-/**
- * wallet 잔액 변경 이력을 남기는 엔티티다.
- * charge, refund, purchase, sale income 같은 거래 유형별 팩토리 메서드를 제공한다.
- */
 public class WalletTransaction {
 
     @Id
@@ -99,9 +95,6 @@ public class WalletTransaction {
         );
     }
 
-    /**
-     * 충전 승인으로 증가한 wallet 이력을 생성한다.
-     */
     public static WalletTransaction charge(
             UUID transactionId,
             UUID walletId,
@@ -125,9 +118,6 @@ public class WalletTransaction {
         );
     }
 
-    /**
-     * 충전 환불로 감소한 wallet 이력을 생성한다.
-     */
     public static WalletTransaction refund(
             UUID transactionId,
             UUID walletId,
@@ -151,9 +141,6 @@ public class WalletTransaction {
         );
     }
 
-    /**
-     * 주문 결제로 감소한 구매자 wallet 이력을 생성한다.
-     */
     public static WalletTransaction purchase(
             UUID transactionId,
             UUID walletId,
@@ -177,35 +164,6 @@ public class WalletTransaction {
         );
     }
 
-    /**
-     * escrow release로 증가한 판매자 정산 이력을 생성한다.
-     */
-    public static WalletTransaction saleIncome(
-            UUID transactionId,
-            UUID walletId,
-            Long amount,
-            Long balanceAfter,
-            UUID orderId,
-            LocalDateTime createdAt
-    ) {
-        validatePositiveAmount(amount, "Sale income amount must be positive.");
-
-        return create(
-                transactionId,
-                walletId,
-                amount,
-                balanceAfter,
-                WalletTransactionType.SALE_INCOME,
-                orderId,
-                "ORDER",
-                "sale income release",
-                createdAt
-        );
-    }
-
-    /**
-     * 거래 이력 생성에 사용하는 금액은 항상 양수 기준으로 검증한다.
-     */
     private static void validatePositiveAmount(Long amount, String message) {
         if (Objects.requireNonNull(amount) <= 0) {
             throw new IllegalArgumentException(message);

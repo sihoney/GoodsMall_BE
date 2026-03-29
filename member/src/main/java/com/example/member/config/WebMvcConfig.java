@@ -1,20 +1,10 @@
 package com.example.member.config;
 
-import com.example.member.presentation.resolver.CurrentMemberArgumentResolver;
-import java.util.List;
-import lombok.RequiredArgsConstructor;
+import com.todaylunch.common.security.auth.config.CurrentMemberWebConfig;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.method.support.HandlerMethodArgumentResolver;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.context.annotation.Import;
 
 @Configuration
-@RequiredArgsConstructor
-public class WebMvcConfig implements WebMvcConfigurer {
-
-    private final CurrentMemberArgumentResolver currentMemberArgumentResolver;
-
-    @Override
-    public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
-        resolvers.add(currentMemberArgumentResolver);
-    }
+@Import(CurrentMemberWebConfig.class)
+public class WebMvcConfig {
 }

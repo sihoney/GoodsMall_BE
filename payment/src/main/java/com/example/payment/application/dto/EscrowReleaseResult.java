@@ -6,9 +6,7 @@ import java.util.UUID;
 
 public record EscrowReleaseResult(
         UUID orderId,
-        UUID sellerWalletId,
         Long releasedAmount,
-        Long sellerWalletBalance,
         EscrowStatus escrowStatus,
         LocalDateTime releasedAt
 ) {

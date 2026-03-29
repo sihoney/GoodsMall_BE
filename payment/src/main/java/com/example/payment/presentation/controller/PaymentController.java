@@ -1,5 +1,9 @@
 package com.example.payment.presentation.controller;
 
+import com.todaylunch.common.security.auth.annotation.CurrentMember;
+import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.example.payment.application.dto.ChargeConfirmCommand;
 import com.example.payment.application.dto.ChargeCreateCommand;
 import com.example.payment.application.dto.ChargeRefundCommand;
@@ -31,13 +35,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/payments")
+@Tag(name = "Payment", description = "충전/지갑/환불 API")
 /**
  * payment 충전 API 진입점이다.
  * HTTP 요청을 application command로 변환하고, usecase 결과를 presentation 응답 DTO로 매핑한다.
@@ -65,8 +69,13 @@ public class PaymentController {
      * 네비게이션과 마이페이지에서 공통으로 사용하는 wallet 요약을 반환한다.
      */
     @GetMapping("/wallet")
-    public ResponseEntity<ApiResponse<WalletSummaryResponse>> findWalletSummary(@RequestHeader("X-Member-Id") UUID memberId) {
-        WalletSummaryResponse response = WalletSummaryResponse.from(paymentSearchUseCase.findWalletSummary(memberId));
+    @Operation(summary = "내 지갑 요약 조회")
+    public ResponseEntity<ApiResponse<WalletSummaryResponse>> findWalletSummary(
+            @CurrentMember AuthenticatedMember authenticatedMember
+    ) {
+        WalletSummaryResponse response = WalletSummaryResponse.from(
+                paymentSearchUseCase.findWalletSummary(authenticatedMember.memberId())
+        );
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -74,12 +83,13 @@ public class PaymentController {
      * 회원의 charge 목록을 최신순 페이지 응답으로 반환한다.
      */
     @GetMapping("/charges")
+    @Operation(summary = "내 충전 목록 조회")
     public ResponseEntity<ApiResponse<PagedResponse<ChargeListItemResponse>>> findAllCharges(
-            @RequestHeader("X-Member-Id") UUID memberId,
+            @CurrentMember AuthenticatedMember authenticatedMember,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        var result = paymentSearchUseCase.findAllCharges(memberId, page, size);
+        var result = paymentSearchUseCase.findAllCharges(authenticatedMember.memberId(), page, size);
         List<ChargeListItemResponse> items = result.items().stream()
                 .map(ChargeListItemResponse::from)
                 .toList();
@@ -98,11 +108,14 @@ public class PaymentController {
      * 단건 charge 상세와 최신 refund 이력을 함께 반환한다.
      */
     @GetMapping("/charges/{chargeId}")
+    @Operation(summary = "충전 상세 조회")
     public ResponseEntity<ApiResponse<ChargeDetailResponse>> findChargeDetail(
-            @RequestHeader("X-Member-Id") UUID memberId,
+            @CurrentMember AuthenticatedMember authenticatedMember,
             @PathVariable UUID chargeId
     ) {
-        ChargeDetailResponse response = ChargeDetailResponse.from(paymentSearchUseCase.findChargeDetail(memberId, chargeId));
+        ChargeDetailResponse response = ChargeDetailResponse.from(
+                paymentSearchUseCase.findChargeDetail(authenticatedMember.memberId(), chargeId)
+        );
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -110,12 +123,13 @@ public class PaymentController {
      * 회원의 charge refund 목록을 최신순 페이지 응답으로 반환한다.
      */
     @GetMapping("/refunds")
+    @Operation(summary = "내 환불 목록 조회")
     public ResponseEntity<ApiResponse<PagedResponse<ChargeRefundSummaryResponse>>> findAllRefunds(
-            @RequestHeader("X-Member-Id") UUID memberId,
+            @CurrentMember AuthenticatedMember authenticatedMember,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        var result = paymentSearchUseCase.findAllRefunds(memberId, page, size);
+        var result = paymentSearchUseCase.findAllRefunds(authenticatedMember.memberId(), page, size);
         List<ChargeRefundSummaryResponse> items = result.items().stream()
                 .map(ChargeRefundSummaryResponse::from)
                 .toList();
@@ -134,12 +148,13 @@ public class PaymentController {
      * wallet 거래 내역을 프론트 표시용 페이지 응답으로 반환한다.
      */
     @GetMapping("/transactions")
+    @Operation(summary = "지갑 거래내역 조회")
     public ResponseEntity<ApiResponse<PagedResponse<WalletTransactionItemResponse>>> findAllTransactions(
-            @RequestHeader("X-Member-Id") UUID memberId,
+            @CurrentMember AuthenticatedMember authenticatedMember,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        var result = paymentSearchUseCase.findAllTransactions(memberId, page, size);
+        var result = paymentSearchUseCase.findAllTransactions(authenticatedMember.memberId(), page, size);
         List<WalletTransactionItemResponse> items = result.items().stream()
                 .map(WalletTransactionItemResponse::from)
                 .toList();
@@ -158,12 +173,13 @@ public class PaymentController {
      * 판매자 기준으로 아직 wallet에 반영되지 않은 HELD escrow를 반환한다.
      */
     @GetMapping("/seller/pending-incomes")
+    @Operation(summary = "판매자 지급 대기 내역 조회")
     public ResponseEntity<ApiResponse<PagedResponse<PendingSellerIncomeItemResponse>>> findAllPendingSellerIncomes(
-            @RequestHeader("X-Member-Id") UUID memberId,
+            @CurrentMember AuthenticatedMember authenticatedMember,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        var result = paymentSearchUseCase.findAllPendingSellerIncomes(memberId, page, size);
+        var result = paymentSearchUseCase.findAllPendingSellerIncomes(authenticatedMember.memberId(), page, size);
         List<PendingSellerIncomeItemResponse> items = result.items().stream()
                 .map(PendingSellerIncomeItemResponse::from)
                 .toList();
@@ -182,11 +198,16 @@ public class PaymentController {
      * 충전 요청을 생성하고 PG 승인에 필요한 charge 식별 정보를 반환한다.
      */
     @PostMapping("/charge")
+    @Operation(summary = "충전 요청 생성")
     public ResponseEntity<ApiResponse<ChargeCreateResponse>> createCharge(
-            @RequestHeader("X-Member-Id") UUID memberId,
+            @CurrentMember AuthenticatedMember authenticatedMember,
             @Valid @RequestBody ChargeCreateRequest request
     ) {
-        ChargeCreateCommand command = new ChargeCreateCommand(memberId, request.amount(), PgProvider.TOSS);
+        ChargeCreateCommand command = new ChargeCreateCommand(
+                authenticatedMember.memberId(),
+                request.amount(),
+                PgProvider.TOSS
+        );
         ChargeCreateResponse response = ChargeCreateResponse.from(chargeCreateUseCase.createCharge(command));
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
@@ -195,6 +216,7 @@ public class PaymentController {
      * PG 승인 결과를 받아 charge와 wallet 상태를 확정한다.
      */
     @PostMapping("/confirm")
+    @Operation(summary = "충전 승인 확정")
     public ResponseEntity<ApiResponse<ChargeConfirmResponse>> confirmCharge(@Valid @RequestBody ChargeConfirmRequest request) {
         ChargeConfirmCommand command = new ChargeConfirmCommand(
                 request.chargeId(),
@@ -210,6 +232,7 @@ public class PaymentController {
      * 승인된 charge를 환불하고 wallet 잔액을 차감한다.
      */
     @PostMapping("/charges/{chargeId}/refund")
+    @Operation(summary = "충전 환불")
     public ResponseEntity<ApiResponse<ChargeRefundResponse>> refundCharge(
             @PathVariable UUID chargeId,
             @Valid @RequestBody ChargeRefundRequest request

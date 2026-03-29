@@ -15,6 +15,8 @@ import com.example.payment.presentation.dto.request.ChargeCreateRequest;
 import com.example.payment.presentation.dto.response.ApiResponse;
 import com.example.payment.presentation.dto.response.ChargeCreateResponse;
 import com.example.payment.presentation.dto.response.WalletSummaryResponse;
+import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
+import com.todaylunch.common.security.auth.enumtype.MemberRole;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -48,6 +50,7 @@ class PaymentControllerTest {
     @Test
     void createChargeReturnsCreatedApiResponse() {
         UUID memberId = UUID.randomUUID();
+        AuthenticatedMember authenticatedMember = new AuthenticatedMember(memberId, MemberRole.USER);
         UUID chargeId = UUID.randomUUID();
         UUID walletId = UUID.randomUUID();
 
@@ -62,7 +65,7 @@ class PaymentControllerTest {
                 ));
 
         ResponseEntity<ApiResponse<ChargeCreateResponse>> response = paymentController.createCharge(
-                memberId,
+                authenticatedMember,
                 new ChargeCreateRequest(1000L)
         );
 
@@ -80,6 +83,7 @@ class PaymentControllerTest {
     @Test
     void findWalletSummaryReturnsOkApiResponse() {
         UUID memberId = UUID.randomUUID();
+        AuthenticatedMember authenticatedMember = new AuthenticatedMember(memberId, MemberRole.USER);
         UUID walletId = UUID.randomUUID();
 
         given(paymentSearchUseCase.findWalletSummary(memberId)).willReturn(new WalletSummaryResult(
@@ -89,7 +93,7 @@ class PaymentControllerTest {
                 LocalDateTime.of(2026, 3, 27, 10, 0)
         ));
 
-        ResponseEntity<ApiResponse<WalletSummaryResponse>> response = paymentController.findWalletSummary(memberId);
+        ResponseEntity<ApiResponse<WalletSummaryResponse>> response = paymentController.findWalletSummary(authenticatedMember);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
