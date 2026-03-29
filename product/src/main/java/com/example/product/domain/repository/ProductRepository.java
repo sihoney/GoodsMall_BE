@@ -1,6 +1,8 @@
 package com.example.product.domain.repository;
 
 import com.example.product.domain.entity.Product;
+import com.example.product.domain.entity.ProductImage;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,5 +19,5 @@ public interface ProductRepository {
 
     Product findById(UUID productId);
 
-
+    Optional<ProductImage> findThumbnailImageByProductId(UUID productId);
 }

@@ -1,8 +1,10 @@
 package com.example.product.infrastructure.repository;
 
 import com.example.product.domain.entity.Product;
+import com.example.product.domain.entity.ProductImage;
 import com.example.product.domain.repository.ProductRepository;
 import com.example.product.common.exception.ProductNotFoundException;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -14,6 +16,7 @@ import org.springframework.stereotype.Repository;
 public class ProductRepositoryImpl implements ProductRepository {
 
     private final ProductJpaRepository jpaRepository;
+    private final ProductImageJpaRepository imageJpaRepository;
 
     @Override
     public Product save(Product product) {
@@ -38,5 +41,10 @@ public class ProductRepositoryImpl implements ProductRepository {
     @Override
     public Product findById(UUID productId) {
         return  jpaRepository.findById(productId).orElseThrow(ProductNotFoundException::new);
+    }
+
+    @Override
+    public Optional<ProductImage> findThumbnailImageByProductId(UUID productId) {
+        return imageJpaRepository.findThumbnailByProductId(productId);
     }
 }

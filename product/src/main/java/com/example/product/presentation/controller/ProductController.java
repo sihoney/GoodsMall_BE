@@ -1,13 +1,19 @@
 package com.example.product.presentation.controller;
 
+import com.example.product.application.usecase.ProductCheckUseCase;
 import com.example.product.application.usecase.ProductCreateUseCase;
 import com.example.product.application.usecase.ProductDeleteUseCase;
 import com.example.product.application.usecase.ProductSearchUseCase;
 import com.example.product.application.usecase.ProductUpdateUseCase;
+import com.example.product.presentation.dto.request.ProductCheckRequest;
 import com.example.product.presentation.dto.request.ProductCreateRequest;
 import com.example.product.presentation.dto.request.ProductUpdateRequest;
+import com.example.product.presentation.dto.response.ProductAvailabilityResponse;
 import com.example.product.presentation.dto.response.ProductResponse;
+import com.todaylunch.common.security.auth.annotation.CurrentMember;
+import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -19,7 +25,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -33,23 +38,39 @@ public class ProductController {
     private final ProductSearchUseCase productSearchUseCase;
     private final ProductUpdateUseCase productUpdateUseCase;
     private final ProductDeleteUseCase productDeleteUseCase;
+    private final ProductCheckUseCase productCheckUseCase;
 
     /**
      * 상품 등록 API
      * API Gateway에서 검증된 사용자 정보를 Header로 전달받음
      *
-     * @param userId   API Gateway에서 전달된 사용자 ID (Header: X-User-Id)
-     *                 개발 중에는 Postman에서 직접 Header 추가하여 테스트
+     * @param authenticatedMember 인증된 사용자 정보 (Header: X-Member-Id, X-Member-Role)
      * @param request  상품 등록 요청 (sellerId는 포함하지 않음)
      * @return 생성된 상품 정보 (201 Created)
      */
     @PostMapping
     public ResponseEntity<ProductResponse> createProduct(
-        @RequestHeader(value = "X-User-Id", required = false) String userId,
+        @CurrentMember AuthenticatedMember authenticatedMember,
         @Valid @RequestBody ProductCreateRequest request
     ) {
-        ProductResponse response = productCreateUseCase.createProduct(userId, request);
+        String sellerId = authenticatedMember.memberId().toString();
+        ProductResponse response = productCreateUseCase.createProduct(sellerId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    /**
+     * 상품 구매 가능 여부 조회 API (Order 모듈에서 사용)
+     * 상품의 재고와 상태를 확인하여 구매 가능 여부 반환
+     *
+     * @param productRequests 검사할 상품 목록 (productId, quantity)
+     * @return 상품 구매 가능 상태 목록 (200 OK)
+     */
+    @PostMapping("/check-availability")
+    public ResponseEntity<List<ProductAvailabilityResponse>> checkAvailability(
+        @Valid @RequestBody List<ProductCheckRequest> productRequests
+    ) {
+        List<ProductAvailabilityResponse> response = productCheckUseCase.checkAvailability(productRequests);
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -79,8 +100,10 @@ public class ProductController {
 
     @GetMapping("/seller")
     public ResponseEntity<Page<ProductResponse>> findSellerProducts(
-        @RequestHeader(value = "X-User-Id", required = false) String sellerId,
-                                                              Pageable pageable) {
+        @CurrentMember AuthenticatedMember authenticatedMember,
+        Pageable pageable
+    ) {
+        String sellerId = authenticatedMember.memberId().toString();
         Page<ProductResponse> response = productSearchUseCase.findBySellerId(sellerId, pageable);
         return ResponseEntity.ok(response);
     }
@@ -93,34 +116,36 @@ public class ProductController {
     /**
      * 상품 수정 API
      *
-     * @param userId    판매자 ID (Header: X-User-Id)
+     * @param authenticatedMember 인증된 사용자 정보 (Header: X-Member-Id, X-Member-Role)
      * @param productId 수정할 상품 ID
      * @param request   수정 요청 데이터
      * @return 수정된 상품 정보 (200 OK)
      */
     @PutMapping("/{productId}")
     public ResponseEntity<ProductResponse> updateProduct(
-        @RequestHeader(value = "X-User-Id", required = false) String userId,
+        @CurrentMember AuthenticatedMember authenticatedMember,
         @PathVariable String productId,
         @Valid @RequestBody ProductUpdateRequest request
     ) {
-        ProductResponse response = productUpdateUseCase.updateProduct(userId, productId, request);
+        String sellerId = authenticatedMember.memberId().toString();
+        ProductResponse response = productUpdateUseCase.updateProduct(sellerId, productId, request);
         return ResponseEntity.ok(response);
     }
 
     /**
      * 상품 삭제 API (소프트 삭제)
      *
-     * @param userId    판매자 ID (Header: X-User-Id)
+     * @param authenticatedMember 인증된 사용자 정보 (Header: X-Member-Id, X-Member-Role)
      * @param productId 삭제할 상품 ID
      * @return 204 No Content
      */
     @DeleteMapping("/{productId}")
     public ResponseEntity<Void> deleteProduct(
-        @RequestHeader(value = "X-User-Id", required = false) String userId,
+        @CurrentMember AuthenticatedMember authenticatedMember,
         @PathVariable String productId
     ) {
-        productDeleteUseCase.deleteProduct(userId, productId);
+        String sellerId = authenticatedMember.memberId().toString();
+        productDeleteUseCase.deleteProduct(sellerId, productId);
         return ResponseEntity.noContent().build();
     }
 }

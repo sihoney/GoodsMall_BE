@@ -11,7 +11,9 @@ CREATE TABLE product
     view_count     INTEGER   DEFAULT 0                                              NOT NULL,
     created_at     TIMESTAMP                                                        NOT NULL,
     updated_at     TIMESTAMP                                                        NOT NULL,
-    deleted_at     TIMESTAMP DEFAULT NULL
+    deleted_at     TIMESTAMP DEFAULT NULL,
+
+    FOREIGN KEY (category_id) REFERENCES category (category_id)
 );
 
 -- 인덱스 생성
