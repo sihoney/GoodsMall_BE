@@ -11,6 +11,8 @@ import com.example.settlement.presentation.dto.request.ManualFailedPayoutRequest
 import com.example.settlement.presentation.dto.response.ApiResponse;
 import com.example.settlement.presentation.dto.response.FailedPayoutReplayResponse;
 import com.example.settlement.presentation.dto.response.ManualFailedPayoutResponse;
+import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
+import com.todaylunch.common.security.auth.enumtype.MemberRole;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -26,6 +28,9 @@ import org.springframework.http.ResponseEntity;
 @DisplayName("SettlementOpsController 테스트")
 class SettlementOpsControllerTest {
 
+    private static final AuthenticatedMember AUTHENTICATED_MEMBER =
+            new AuthenticatedMember(UUID.randomUUID(), MemberRole.ADMIN);
+
     @Mock
     private SettlementPayoutUseCase settlementPayoutService;
 
@@ -39,6 +44,7 @@ class SettlementOpsControllerTest {
         when(settlementPayoutService.requestManualFailedPayout(settlementId)).thenReturn(true);
 
         ResponseEntity<ApiResponse<?>> response = settlementOpsController.requestManualFailedPayout(
+                AUTHENTICATED_MEMBER,
                 new ManualFailedPayoutRequest(settlementId.toString())
         );
 
@@ -53,6 +59,7 @@ class SettlementOpsControllerTest {
     @DisplayName("settlementId 형식이 잘못되면 400 응답을 반환한다")
     void requestManualFailedPayout_whenInvalidUuid_returnsBadRequest() {
         ResponseEntity<ApiResponse<?>> response = settlementOpsController.requestManualFailedPayout(
+                AUTHENTICATED_MEMBER,
                 new ManualFailedPayoutRequest("invalid-uuid")
         );
 
@@ -71,6 +78,7 @@ class SettlementOpsControllerTest {
                 .thenThrow(new IllegalArgumentException("Settlement not found: " + settlementId));
 
         ResponseEntity<ApiResponse<?>> response = settlementOpsController.requestManualFailedPayout(
+                AUTHENTICATED_MEMBER,
                 new ManualFailedPayoutRequest(settlementId.toString())
         );
 
@@ -88,6 +96,7 @@ class SettlementOpsControllerTest {
         when(settlementPayoutService.requestManualFailedPayout(settlementId)).thenReturn(false);
 
         ResponseEntity<ApiResponse<?>> response = settlementOpsController.requestManualFailedPayout(
+                AUTHENTICATED_MEMBER,
                 new ManualFailedPayoutRequest(settlementId.toString())
         );
 
@@ -108,6 +117,7 @@ class SettlementOpsControllerTest {
                 .thenReturn(new FailedPayoutReplayResult(1, 1, 0, 0));
 
         ResponseEntity<ApiResponse<?>> response = settlementOpsController.replayFailedPayouts(
+                AUTHENTICATED_MEMBER,
                 new FailedPayoutReplayRequest(List.of(settlementId1.toString(), settlementId2.toString()))
         );
 
@@ -121,6 +131,7 @@ class SettlementOpsControllerTest {
     @DisplayName("DLQ replay 요청 목록이 비어 있으면 400 응답을 반환한다")
     void replayFailedPayouts_whenEmptyRequest_returnsBadRequest() {
         ResponseEntity<ApiResponse<?>> response = settlementOpsController.replayFailedPayouts(
+                AUTHENTICATED_MEMBER,
                 new FailedPayoutReplayRequest(List.of())
         );
 
@@ -135,6 +146,7 @@ class SettlementOpsControllerTest {
     @DisplayName("DLQ replay 요청 목록에 UUID 형식이 아니면 400 응답을 반환한다")
     void replayFailedPayouts_whenInvalidUuid_returnsBadRequest() {
         ResponseEntity<ApiResponse<?>> response = settlementOpsController.replayFailedPayouts(
+                AUTHENTICATED_MEMBER,
                 new FailedPayoutReplayRequest(List.of("invalid-uuid"))
         );
 
@@ -154,6 +166,7 @@ class SettlementOpsControllerTest {
                 .thenReturn(new FailedPayoutReplayResult(1, 0, 0, 0));
 
         ResponseEntity<ApiResponse<?>> response = settlementOpsController.replayFailedPayouts(
+                AUTHENTICATED_MEMBER,
                 new FailedPayoutReplayRequest(List.of(
                         settlementId1.toString(),
                         settlementId2.toString(),
@@ -174,6 +187,7 @@ class SettlementOpsControllerTest {
         }
 
         ResponseEntity<ApiResponse<?>> response = settlementOpsController.replayFailedPayouts(
+                AUTHENTICATED_MEMBER,
                 new FailedPayoutReplayRequest(largeIds)
         );
 

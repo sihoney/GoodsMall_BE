@@ -7,6 +7,8 @@ import com.example.settlement.presentation.dto.request.ManualFailedPayoutRequest
 import com.example.settlement.presentation.dto.response.ApiResponse;
 import com.example.settlement.presentation.dto.response.FailedPayoutReplayResponse;
 import com.example.settlement.presentation.dto.response.ManualFailedPayoutResponse;
+import com.todaylunch.common.security.auth.annotation.CurrentMember;
+import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.ArrayList;
@@ -48,7 +50,10 @@ public class SettlementOpsController {
      */
     @PostMapping("/failed-payout/manual-retry")
     @Operation(summary = "FAILED 정산건 수동 재지급 요청")
-    public ResponseEntity<ApiResponse<?>> requestManualFailedPayout(@RequestBody ManualFailedPayoutRequest request) {
+    public ResponseEntity<ApiResponse<?>> requestManualFailedPayout(
+            @CurrentMember AuthenticatedMember authenticatedMember,
+            @RequestBody ManualFailedPayoutRequest request
+    ) {
         String rawSettlementId = request == null ? null : request.settlementId();
         if (rawSettlementId == null || rawSettlementId.isBlank()) {
             return ResponseEntity.badRequest().body(ApiResponse.fail(ErrorCode.INVALID_INPUT_VALUE, "settlementId is required."));
@@ -87,7 +92,10 @@ public class SettlementOpsController {
      */
     @PostMapping("/failed-payout/replay")
     @Operation(summary = "FAILED 정산건 DLQ replay 처리")
-    public ResponseEntity<ApiResponse<?>> replayFailedPayouts(@RequestBody FailedPayoutReplayRequest request) {
+    public ResponseEntity<ApiResponse<?>> replayFailedPayouts(
+            @CurrentMember AuthenticatedMember authenticatedMember,
+            @RequestBody FailedPayoutReplayRequest request
+    ) {
         List<String> rawIds = request == null ? null : request.settlementIds();
         if (rawIds == null || rawIds.isEmpty()) {
             return ResponseEntity.badRequest()
