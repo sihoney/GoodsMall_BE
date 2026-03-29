@@ -28,6 +28,11 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
 
+logging:
+  level:
+    com.example.settlement: INFO
+    org.hibernate.SQL: WARN
+
 settlement:
   kafka:
     topics:
