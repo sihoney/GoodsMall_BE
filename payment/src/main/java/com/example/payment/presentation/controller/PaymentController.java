@@ -45,7 +45,7 @@ import org.springframework.web.bind.annotation.RestController;
  * request DTO를 application command로 변환해 use case에 위임한다.
  */
 @RestController
-@RequestMapping("/api/payments")
+@RequestMapping("/api/payment")
 @Tag(name = "Payment", description = "충전/지갑/환불 API")
 public class PaymentController {
 
