@@ -7,6 +7,8 @@ import com.example.settlement.presentation.dto.request.ManualFailedPayoutRequest
 import com.example.settlement.presentation.dto.response.ApiResponse;
 import com.example.settlement.presentation.dto.response.FailedPayoutReplayResponse;
 import com.example.settlement.presentation.dto.response.ManualFailedPayoutResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -25,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api/settlement")
+@Tag(name = "Settlement Ops", description = "정산 운영 조치 API")
 public class SettlementOpsController {
 
     private static final int MAX_REPLAY_BATCH_SIZE = 100;
@@ -44,6 +47,7 @@ public class SettlementOpsController {
      * - 409: 현재 상태/실패 사유 정책상 수동 재지급 불가
      */
     @PostMapping("/failed-payout/manual-retry")
+    @Operation(summary = "FAILED 정산건 수동 재지급 요청")
     public ResponseEntity<ApiResponse<?>> requestManualFailedPayout(@RequestBody ManualFailedPayoutRequest request) {
         String rawSettlementId = request == null ? null : request.settlementId();
         if (rawSettlementId == null || rawSettlementId.isBlank()) {
@@ -82,6 +86,7 @@ public class SettlementOpsController {
      * - 400: settlementIds 누락/비어있음/UUID 형식 오류/허용 배치 초과
      */
     @PostMapping("/failed-payout/replay")
+    @Operation(summary = "FAILED 정산건 DLQ replay 처리")
     public ResponseEntity<ApiResponse<?>> replayFailedPayouts(@RequestBody FailedPayoutReplayRequest request) {
         List<String> rawIds = request == null ? null : request.settlementIds();
         if (rawIds == null || rawIds.isEmpty()) {

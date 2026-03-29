@@ -25,10 +25,16 @@ spring:
 server:
   port: 8082
 
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
 logging:
   level:
-    com.example.payment: DEBUG
-    org.hibernate.SQL: DEBUG
+    com.example.payment: INFO
+    org.hibernate.SQL: WARN
 
 toss:
   payments:
@@ -47,13 +53,23 @@ payment:
       order-payment-result: ${PAYMENT_KAFKA_TOPIC_ORDER_PAYMENT_RESULT:payment.order-payment-result}
       order-delivery-completed: ${PAYMENT_KAFKA_TOPIC_ORDER_DELIVERY_COMPLETED:order.delivery-completed}
       order-purchase-confirmed: ${PAYMENT_KAFKA_TOPIC_ORDER_PURCHASE_CONFIRMED:order.purchase-confirmed}
-      seller-income-released: ${PAYMENT_KAFKA_TOPIC_SELLER_INCOME_RELEASED:payment.seller-income-released}
+      settlement-candidate-created: ${PAYMENT_KAFKA_TOPIC_SETTLEMENT_CANDIDATE_CREATED:payment.settlement-candidate-created}
+      settlement-payout-requested: ${PAYMENT_KAFKA_TOPIC_SETTLEMENT_PAYOUT_REQUESTED:settlement.seller-payout-requested}
+      settlement-payout-result: ${PAYMENT_KAFKA_TOPIC_SETTLEMENT_PAYOUT_RESULT:payment.seller-payout-result}
       auto-purchase-confirmed: ${PAYMENT_KAFKA_TOPIC_AUTO_PURCHASE_CONFIRMED:payment.auto-purchase-confirmed}
     consumer-groups:
       member-created: ${PAYMENT_KAFKA_CONSUMER_GROUP_MEMBER_CREATED:payment-service}
       order-payment-requested: ${PAYMENT_KAFKA_CONSUMER_GROUP_ORDER_PAYMENT_REQUESTED:payment-service}
       order-delivery-completed: ${PAYMENT_KAFKA_CONSUMER_GROUP_ORDER_DELIVERY_COMPLETED:payment-service}
       order-purchase-confirmed: ${PAYMENT_KAFKA_CONSUMER_GROUP_ORDER_PURCHASE_CONFIRMED:payment-service}
+      settlement-payout-requested: ${PAYMENT_KAFKA_CONSUMER_GROUP_SETTLEMENT_PAYOUT_REQUESTED:payment-service}
+    retry:
+      settlement-payout-requested:
+        dlq-topic: ${PAYMENT_KAFKA_RETRY_SETTLEMENT_PAYOUT_REQUESTED_DLQ_TOPIC:settlement.seller-payout-requested.dlq}
+        initial-interval-ms: ${PAYMENT_KAFKA_RETRY_SETTLEMENT_PAYOUT_REQUESTED_INITIAL_INTERVAL_MS:1000}
+        multiplier: ${PAYMENT_KAFKA_RETRY_SETTLEMENT_PAYOUT_REQUESTED_MULTIPLIER:2.0}
+        max-interval-ms: ${PAYMENT_KAFKA_RETRY_SETTLEMENT_PAYOUT_REQUESTED_MAX_INTERVAL_MS:10000}
+        max-retries: ${PAYMENT_KAFKA_RETRY_SETTLEMENT_PAYOUT_REQUESTED_MAX_RETRIES:3}
   escrow:
     auto-release:
       fixed-delay-ms: ${PAYMENT_ESCROW_AUTO_RELEASE_FIXED_DELAY_MS:60000}
