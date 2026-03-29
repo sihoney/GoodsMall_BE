@@ -25,6 +25,7 @@ public class RetryableFailedPayoutScheduler {
 
     /**
      * KST 현재 연월 기준으로 RETRYABLE 실패 정산건 재지급 요청을 실행한다.
+     * 발표/운영 MVP 기준에서는 최근 정산 주기의 실패건을 우선 복구하기 위해 현재 연월만 대상으로 삼는다.
      */
     @Scheduled(
             cron = "${settlement.batch.retryable-failed-payout.cron:0 */10 * * * *}",

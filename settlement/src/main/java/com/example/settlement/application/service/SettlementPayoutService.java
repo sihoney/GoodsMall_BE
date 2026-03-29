@@ -190,6 +190,8 @@ public class SettlementPayoutService implements SettlementPayoutUseCase {
 
     /**
      * settlement 지급 요청 이벤트를 공통 형식으로 발행한다.
+     * <p>
+     * 수동 재지급, 자동 재지급, 월 정산 지급 요청이 모두 같은 이벤트 포맷을 사용하도록 공통화한다.
      */
     private void publishPayoutRequest(Settlement settlement, LocalDateTime requestedAt) {
         payoutRequestedEventPublisher.publish(new SellerSettlementPayoutRequestedMessage(
@@ -203,6 +205,10 @@ public class SettlementPayoutService implements SettlementPayoutUseCase {
         ));
     }
 
+    /**
+     * payment 모듈에서 넘어온 지급 결과 이벤트의 필수 필드를 검증한다.
+     * 잘못된 이벤트는 상태 반영 전에 즉시 예외로 차단한다.
+     */
     private void validatePayoutResult(SellerSettlementPayoutResultMessage event) {
         Objects.requireNonNull(event, "sellerSettlementPayoutResult event is required.");
         if (event.settlementId() == null) {
@@ -219,6 +225,10 @@ public class SettlementPayoutService implements SettlementPayoutUseCase {
         }
     }
 
+    /**
+     * 저장된 실패 사유 문자열을 재시도 정책 판단용 enum으로 변환한다.
+     * 알 수 없는 값은 자동 재지급 대상에서 제외하기 위해 {@code null}로 취급한다.
+     */
     private PayoutFailureReason resolveFailureReason(String failureReason) {
         if (failureReason == null || failureReason.isBlank()) {
             return null;

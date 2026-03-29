@@ -39,13 +39,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * payment 충전/조회 API 진입점이다.
+ * 인증 정보는 {@code @CurrentMember}로 전달받고,
+ * request DTO를 application command로 변환해 use case에 위임한다.
+ */
 @RestController
 @RequestMapping("/api/payments")
 @Tag(name = "Payment", description = "충전/지갑/환불 API")
-/**
- * payment 충전 API 진입점이다.
- * HTTP 요청을 application command로 변환하고, usecase 결과를 presentation 응답 DTO로 매핑한다.
- */
 public class PaymentController {
 
     private final ChargeCreateUseCase chargeCreateUseCase;

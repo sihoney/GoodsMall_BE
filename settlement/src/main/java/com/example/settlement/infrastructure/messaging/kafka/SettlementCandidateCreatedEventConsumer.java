@@ -6,6 +6,9 @@ import com.example.settlement.infrastructure.messaging.kafka.contract.Settlement
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
+/**
+ * payment -> settlement 정산 원천 후보 이벤트를 소비해 settlement item을 적재한다.
+ */
 @Component
 public class SettlementCandidateCreatedEventConsumer {
 
@@ -15,6 +18,9 @@ public class SettlementCandidateCreatedEventConsumer {
         this.monthlySettlementService = monthlySettlementService;
     }
 
+    /**
+     * 지급 완료 이벤트의 정산 후보 데이터를 월 정산 원천 커맨드로 변환해 서비스에 위임한다.
+     */
     @KafkaListener(
             topics = "${settlement.kafka.topics.settlement-candidate-created:payment.settlement-candidate-created}",
             groupId = "${settlement.kafka.consumer-groups.settlement-candidate-created:settlement-service}",

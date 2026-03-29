@@ -24,6 +24,7 @@ public class KafkaSellerSettlementPayoutRequestedEventPublisher {
 
     /**
      * settlementId 키로 지급 요청 이벤트를 발행한다.
+     * 같은 정산건 이벤트가 동일 파티션에 모이도록 해 순서 추적과 멱등 처리 해석을 돕는다.
      */
     public void publish(SellerSettlementPayoutRequestedMessage message) {
         kafkaTemplate.send(topic, String.valueOf(message.settlementId()), message);

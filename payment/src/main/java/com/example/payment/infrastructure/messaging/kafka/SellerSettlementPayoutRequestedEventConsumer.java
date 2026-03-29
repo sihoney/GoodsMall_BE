@@ -104,6 +104,9 @@ public class SellerSettlementPayoutRequestedEventConsumer {
         }
     }
 
+    /**
+     * wallet 반영이 정상 완료된 경우 SUCCESS 결과 이벤트를 settlement로 발행한다.
+     */
     private void publishSuccess(SellerSettlementPayoutRequestedMessage event, LocalDateTime processedAt) {
         payoutResultEventPublisher.publish(new SellerSettlementPayoutResultMessage(
                 identifierGenerator.generateUuid(),
@@ -117,6 +120,13 @@ public class SellerSettlementPayoutRequestedEventConsumer {
         ));
     }
 
+    /**
+     * wallet 미존재처럼 즉시 실패로 확정 가능한 경우 FAILED 결과 이벤트를 settlement로 발행한다.
+     * 이 consumer에서는 현재 {@code WALLET_NOT_FOUND}만 비재시도 실패로 매핑한다.
+     * <p>
+     * settlement 모듈은 이 이벤트를 수신하여 settlement 상태를 FAILED로 변경하고,
+     * failureReason을 저장한다. NON_RETRYABLE 실패는 수동 조치 대상으로 플래그된다.
+     */
     private void publishFailure(SellerSettlementPayoutRequestedMessage event, LocalDateTime processedAt) {
         payoutResultEventPublisher.publish(new SellerSettlementPayoutResultMessage(
                 identifierGenerator.generateUuid(),
@@ -130,6 +140,9 @@ public class SellerSettlementPayoutRequestedEventConsumer {
         ));
     }
 
+    /**
+     * settlement payout 요청 이벤트의 필수 필드와 기본 형식을 검증한다.
+     */
     private void validateEvent(SellerSettlementPayoutRequestedMessage event) {
         Objects.requireNonNull(event, "sellerSettlementPayoutRequested event is required.");
         if (event.eventId() == null) {

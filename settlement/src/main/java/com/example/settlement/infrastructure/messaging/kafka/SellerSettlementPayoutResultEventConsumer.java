@@ -19,6 +19,8 @@ public class SellerSettlementPayoutResultEventConsumer {
 
     /**
      * 지급 결과 이벤트를 settlement 상태 반영 서비스로 전달한다.
+     * transport 계층에서는 비즈니스 분기 없이 이벤트를 그대로 전달하고,
+     * 상태 전이 정책은 application service가 전담한다.
      */
     @KafkaListener(
             topics = "${settlement.kafka.topics.settlement-payout-result:payment.seller-payout-result}",

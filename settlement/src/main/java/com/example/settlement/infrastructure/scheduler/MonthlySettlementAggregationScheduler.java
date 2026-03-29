@@ -32,6 +32,9 @@ public class MonthlySettlementAggregationScheduler {
     /**
      * KST 기준으로 직전월 집계를 실행하고 일반 지급 요청까지 처리 결과를 로그로 남긴다.
      * <p>
+     * 월 집계가 끝난 직후 같은 대상 연월의 PENDING 정산건에 대해 지급 요청까지 이어서 실행한다.
+     * 이렇게 하면 배치 운영 기준에서 "집계 완료 -> 지급 요청 준비" 흐름을 한 번에 추적할 수 있다.
+     * <p>
      * RETRYABLE 실패 재시도 배치는 별도 스케줄러가 담당한다.
      */
     @Scheduled(

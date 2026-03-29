@@ -24,6 +24,7 @@ public class KafkaSellerSettlementPayoutResultEventPublisher {
 
     /**
      * settlementId 키로 지급 결과 이벤트를 발행한다.
+     * 요청 이벤트와 동일한 정산건 기준으로 결과를 추적하기 쉽도록 settlementId를 key로 고정한다.
      */
     public void publish(SellerSettlementPayoutResultMessage event) {
         kafkaTemplate.send(topic, String.valueOf(event.settlementId()), event);
