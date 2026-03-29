@@ -3,6 +3,7 @@ package com.example.payment.presentation.exception;
 import com.example.payment.common.exception.CustomException;
 import com.example.payment.common.exception.ErrorCode;
 import com.example.payment.presentation.dto.response.ApiResponse;
+import com.todaylunch.common.security.exception.InvalidTokenException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -14,6 +15,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  * 공통 예외는 ErrorCode를 그대로 사용하고, 구조적 state/input guard는 별도 코드로 매핑한다.
  */
 public class PaymentExceptionHandler {
+
+    @ExceptionHandler(InvalidTokenException.class)
+    public ResponseEntity<ApiResponse<Object>> handleInvalidToken(InvalidTokenException exception) {
+        return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.fail("INVALID_TOKEN", exception.getMessage()));
+    }
 
     @ExceptionHandler(CustomException.class)
     /**
