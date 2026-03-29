@@ -25,4 +25,8 @@ public record ApiResponse<T>(
     public static ApiResponse<Object> fail(ErrorCode errorCode, String message) {
         return new ApiResponse<>(false, null, ApiErrorResponse.of(errorCode.name(), message));
     }
+
+    public static ApiResponse<Object> fail(String code, String message) {
+        return new ApiResponse<>(false, null, ApiErrorResponse.of(code, message));
+    }
 }
