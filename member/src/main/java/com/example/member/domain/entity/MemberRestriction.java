@@ -83,25 +83,47 @@ public class MemberRestriction {
             String reason,
             RestrictionType restrictionType,
             Integer durationHours,
-            LocalDateTime endAt,
             LocalDateTime createdAt
     ) {
+        validateReason(reason);
+        validateDurationHours(durationHours);
+        LocalDateTime normalizedCreatedAt = Objects.requireNonNull(createdAt);
+
         return new MemberRestriction(
                 restrictionId,
                 memberId,
                 adminId,
-                reason,
+                reason.trim(),
                 restrictionType,
                 durationHours,
-                endAt,
+                normalizedCreatedAt.plusHours(durationHours.longValue()),
                 true,
-                createdAt,
-                createdAt
+                normalizedCreatedAt,
+                normalizedCreatedAt
         );
     }
 
     public void deactivate(LocalDateTime updatedAt) {
+        if (!active) {
+            throw new IllegalStateException("Restriction is already inactive.");
+        }
         this.active = false;
         this.updatedAt = Objects.requireNonNull(updatedAt);
+    }
+
+    public boolean isEffectiveAt(LocalDateTime dateTime) {
+        return active && endAt.isAfter(Objects.requireNonNull(dateTime));
+    }
+
+    private static void validateReason(String reason) {
+        if (reason == null || reason.trim().isEmpty()) {
+            throw new IllegalArgumentException("reason is required.");
+        }
+    }
+
+    private static void validateDurationHours(Integer durationHours) {
+        if (durationHours == null || durationHours <= 0) {
+            throw new IllegalArgumentException("durationHours must be greater than zero.");
+        }
     }
 }

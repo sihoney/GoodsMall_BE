@@ -2,10 +2,10 @@ package com.example.member.domain.entity;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.example.member.domain.enumtype.MemberRole;
 import com.example.member.domain.enumtype.MemberStatus;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import com.todaylunch.common.security.auth.enumtype.MemberRole;
 import org.junit.jupiter.api.Test;
 
 class MemberTest {

@@ -1,9 +1,16 @@
 package com.example.member.presentation.exception;
 
+import com.example.member.common.exception.AdminAccessDeniedException;
+import com.example.member.common.exception.DuplicateActiveRestrictionException;
+import com.example.member.common.exception.DuplicateMemberReportException;
 import com.example.member.common.exception.DuplicateMemberEmailException;
 import com.example.member.common.exception.InvalidLoginException;
 import com.example.member.common.exception.MemberNotFoundException;
+import com.example.member.common.exception.MemberReportNotFoundException;
+import com.example.member.common.exception.MemberRestrictedException;
+import com.example.member.common.exception.MemberRestrictionNotFoundException;
 import com.example.member.common.exception.RefreshTokenNotFoundException;
+import com.example.member.common.exception.SelfReportNotAllowedException;
 import com.example.member.common.exception.SellerAlreadyRegisteredException;
 import com.example.member.common.exception.SellerNotFoundException;
 import com.example.member.presentation.dto.ApiResponse;
@@ -49,6 +56,52 @@ public class MemberExceptionHandler {
                 .body(ApiResponse.fail("INVALID_LOGIN", exception.getMessage()));
     }
 
+    @ExceptionHandler(MemberRestrictedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleMemberRestricted(MemberRestrictedException exception) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.fail("MEMBER_RESTRICTED", exception.getMessage()));
+    }
+
+    @ExceptionHandler(AdminAccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleAdminAccessDenied(AdminAccessDeniedException exception) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.fail("ADMIN_ACCESS_DENIED", exception.getMessage()));
+    }
+
+    @ExceptionHandler(DuplicateActiveRestrictionException.class)
+    public ResponseEntity<ApiResponse<Object>> handleDuplicateActiveRestriction(
+            DuplicateActiveRestrictionException exception
+    ) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.fail("DUPLICATE_ACTIVE_RESTRICTION", exception.getMessage()));
+    }
+
+    @ExceptionHandler(DuplicateMemberReportException.class)
+    public ResponseEntity<ApiResponse<Object>> handleDuplicateMemberReport(DuplicateMemberReportException exception) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.fail("DUPLICATE_MEMBER_REPORT", exception.getMessage()));
+    }
+
+    @ExceptionHandler(SelfReportNotAllowedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleSelfReportNotAllowed(SelfReportNotAllowedException exception) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.fail("SELF_REPORT_NOT_ALLOWED", exception.getMessage()));
+    }
+
+    @ExceptionHandler(MemberReportNotFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> handleMemberReportNotFound(MemberReportNotFoundException exception) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.fail("MEMBER_REPORT_NOT_FOUND", exception.getMessage()));
+    }
+
+    @ExceptionHandler(MemberRestrictionNotFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> handleMemberRestrictionNotFound(
+            MemberRestrictionNotFoundException exception
+    ) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.fail("MEMBER_RESTRICTION_NOT_FOUND", exception.getMessage()));
+    }
+
     @ExceptionHandler({InvalidTokenException.class, RefreshTokenNotFoundException.class})
     public ResponseEntity<ApiResponse<Object>> handleInvalidToken(RuntimeException exception) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -59,5 +112,11 @@ public class MemberExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleIllegalArgument(IllegalArgumentException exception) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.fail("BAD_REQUEST", exception.getMessage()));
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiResponse<Object>> handleIllegalState(IllegalStateException exception) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.fail("INVALID_STATE", exception.getMessage()));
     }
 }
