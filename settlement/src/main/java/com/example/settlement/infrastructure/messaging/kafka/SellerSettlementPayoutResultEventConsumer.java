@@ -2,19 +2,24 @@ package com.example.settlement.infrastructure.messaging.kafka;
 
 import com.example.settlement.application.usecase.SettlementPayoutUseCase;
 import com.example.settlement.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultMessage;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
 /**
  * payment -> settlement 정산 지급 결과 이벤트를 소비하는 Kafka consumer(소비기)다.
  */
+@Slf4j
 @Component
 public class SellerSettlementPayoutResultEventConsumer {
 
     private final SettlementPayoutUseCase settlementPayoutService;
+    private final ObjectMapper objectMapper;
 
-    public SellerSettlementPayoutResultEventConsumer(SettlementPayoutUseCase settlementPayoutService) {
+    public SellerSettlementPayoutResultEventConsumer(SettlementPayoutUseCase settlementPayoutService, ObjectMapper objectMapper) {
         this.settlementPayoutService = settlementPayoutService;
+        this.objectMapper = objectMapper;
     }
 
     /**
@@ -27,8 +32,14 @@ public class SellerSettlementPayoutResultEventConsumer {
             groupId = "${settlement.kafka.consumer-groups.settlement-payout-result:settlement-service}",
             containerFactory = "sellerSettlementPayoutResultKafkaListenerContainerFactory"
     )
-    public void listen(SellerSettlementPayoutResultMessage event) {
-        settlementPayoutService.applyPayoutResult(event);
+    public void listen(String eventJson) {
+        try {
+            SellerSettlementPayoutResultMessage event = objectMapper.readValue(eventJson, SellerSettlementPayoutResultMessage.class);
+            settlementPayoutService.applyPayoutResult(event);
+        } catch (Exception e) {
+            log.error("Failed to process SellerSettlementPayoutResultMessage", e);
+            throw new RuntimeException("Failed to deserialize SellerSettlementPayoutResultMessage", e);
+        }
     }
 }
 

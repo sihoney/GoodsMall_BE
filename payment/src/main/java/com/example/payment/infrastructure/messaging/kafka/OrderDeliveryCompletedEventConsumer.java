@@ -4,9 +4,12 @@ import com.example.payment.application.dto.EscrowReleaseScheduleCommand;
 import com.example.payment.application.usecase.EscrowReleaseScheduleUseCase;
 import com.example.payment.common.exception.InvalidOrderPaymentRequestException;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderDeliveryCompletedMessage;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 /**
  * 배송완료 이벤트를 escrow 자동 구매확정 예약 유스케이스로 연결하는 Kafka consumer다.
@@ -15,9 +18,11 @@ import org.springframework.stereotype.Component;
 public class OrderDeliveryCompletedEventConsumer {
 
     private final EscrowReleaseScheduleUseCase escrowReleaseScheduleUseCase;
+    private final ObjectMapper objectMapper;
 
-    public OrderDeliveryCompletedEventConsumer(EscrowReleaseScheduleUseCase escrowReleaseScheduleUseCase) {
+    public OrderDeliveryCompletedEventConsumer(EscrowReleaseScheduleUseCase escrowReleaseScheduleUseCase, ObjectMapper objectMapper) {
         this.escrowReleaseScheduleUseCase = escrowReleaseScheduleUseCase;
+        this.objectMapper = objectMapper;
     }
 
     @KafkaListener(
@@ -29,12 +34,18 @@ public class OrderDeliveryCompletedEventConsumer {
      * 배송완료 이벤트를 수신하면 deliveredAt 기준의 release schedule 요청으로 변환한다.
      * 중복 배송완료 이벤트는 usecase의 no-op 정책에서 흡수한다.
      */
-    public void listen(OrderDeliveryCompletedMessage event) {
-        validateEvent(event);
-        escrowReleaseScheduleUseCase.scheduleRelease(new EscrowReleaseScheduleCommand(
-                event.orderId(),
-                event.deliveredAt()
-        ));
+    public void listen(String eventJson) {
+        try {
+            OrderDeliveryCompletedMessage event = objectMapper.readValue(eventJson, OrderDeliveryCompletedMessage.class);
+            validateEvent(event);
+            escrowReleaseScheduleUseCase.scheduleRelease(new EscrowReleaseScheduleCommand(
+                    event.orderId(),
+                    event.deliveredAt()
+            ));
+        } catch (Exception e) {
+            log.error("Failed to process OrderDeliveryCompletedMessage", e);
+            throw new RuntimeException("Failed to deserialize OrderDeliveryCompletedMessage", e);
+        }
     }
 
     /**

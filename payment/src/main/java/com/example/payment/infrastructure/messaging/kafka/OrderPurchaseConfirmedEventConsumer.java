@@ -5,9 +5,12 @@ import com.example.payment.application.dto.EscrowReleaseCommand;
 import com.example.payment.application.usecase.EscrowReleaseUseCase;
 import com.example.payment.domain.enumtype.ConfirmationType;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPurchaseConfirmedMessage;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 /**
  * 수동 구매확정 이벤트를 escrow release 유스케이스로 연결하는 Kafka consumer다.
@@ -16,9 +19,11 @@ import org.springframework.stereotype.Component;
 public class OrderPurchaseConfirmedEventConsumer {
 
     private final EscrowReleaseUseCase escrowReleaseUseCase;
+    private final ObjectMapper objectMapper;
 
-    public OrderPurchaseConfirmedEventConsumer(EscrowReleaseUseCase escrowReleaseUseCase) {
+    public OrderPurchaseConfirmedEventConsumer(EscrowReleaseUseCase escrowReleaseUseCase, ObjectMapper objectMapper) {
         this.escrowReleaseUseCase = escrowReleaseUseCase;
+        this.objectMapper = objectMapper;
     }
 
     @KafkaListener(
@@ -30,13 +35,19 @@ public class OrderPurchaseConfirmedEventConsumer {
      * 수동 구매확정 이벤트만 escrow release 요청으로 전달한다.
      * AUTO 구매확정은 scheduler 경로에서 처리되므로 consumer 단계에서 차단한다.
      */
-    public void listen(OrderPurchaseConfirmedMessage event) {
-        validateEvent(event);
-        escrowReleaseUseCase.releaseEscrow(new EscrowReleaseCommand(
-                event.orderId(),
-                event.sellerMemberId(),
-                event.confirmationType()
-        ));
+    public void listen(String eventJson) {
+        try {
+            OrderPurchaseConfirmedMessage event = objectMapper.readValue(eventJson, OrderPurchaseConfirmedMessage.class);
+            validateEvent(event);
+            escrowReleaseUseCase.releaseEscrow(new EscrowReleaseCommand(
+                    event.orderId(),
+                    event.sellerMemberId(),
+                    event.confirmationType()
+            ));
+        } catch (Exception e) {
+            log.error("Failed to process OrderPurchaseConfirmedMessage", e);
+            throw new RuntimeException("Failed to deserialize OrderPurchaseConfirmedMessage", e);
+        }
     }
 
     /**

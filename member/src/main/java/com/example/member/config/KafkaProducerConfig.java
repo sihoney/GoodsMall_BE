@@ -21,20 +21,19 @@ public class KafkaProducerConfig {
 
     // KafkaProducer를 위한 ProducerFactory 빈 정의
     @Bean
-    public ProducerFactory<String, MemberSignedUpEvent> memberSignedUpEventProducerFactory() {
+    public ProducerFactory<String, String> memberSignedUpEventProducerFactory() {
         Map<String, Object> configProps = new HashMap<>();
         // ProducerConfig 설정: Kafka 클라이언트 라이브러리에서 제공하는 상수 클래스, 키를 문자열로 직접 쓰지 않게 해주는 상수 모음
         configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-        configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
-        configProps.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, false);
+        configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         return new DefaultKafkaProducerFactory<>(configProps);
     }
 
     // KafkaTemplate 빈 정의 : KafkaProducer 역할을 하는 컴포넌트에서 주입받아 사용
     @Bean
-    public KafkaTemplate<String, MemberSignedUpEvent> memberSignedUpEventKafkaTemplate(
-            ProducerFactory<String, MemberSignedUpEvent> memberSignedUpEventProducerFactory
+    public KafkaTemplate<String, String> memberSignedUpEventKafkaTemplate(
+            ProducerFactory<String, String> memberSignedUpEventProducerFactory
     ) {
         return new KafkaTemplate<>(memberSignedUpEventProducerFactory);
     }
