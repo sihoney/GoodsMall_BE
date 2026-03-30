@@ -2,6 +2,7 @@ package com.example.member.application.service;
 
 import com.example.member.application.dto.MemberCreateCommand;
 import com.example.member.application.event.MemberEventPublisher;
+import com.example.member.application.support.ProfileImageUrlResolver;
 import com.example.member.application.usecase.MemberUsecase;
 import com.example.member.common.exception.DuplicateMemberEmailException;
 import com.example.member.common.exception.MemberNotFoundException;
@@ -28,6 +29,7 @@ public class MemberService implements MemberUsecase {
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
     private final MemberEventPublisher memberEventPublisher;
+    private final ProfileImageUrlResolver profileImageUrlResolver;
 
     @Transactional
     @Override
@@ -48,7 +50,7 @@ public class MemberService implements MemberUsecase {
                 normalizeRequired(command.nickname(), "nickname"),
                 normalizeNullable(command.phone()),
                 normalizeNullable(command.address()),
-                normalizeNullable(command.profileImageUrl()),
+                normalizeProfileImageKey(command.profileImageKey()),
                 command.role() == null ? MemberRole.USER : command.role(),
                 MemberStatus.ACTIVE,
                 now,
@@ -56,18 +58,22 @@ public class MemberService implements MemberUsecase {
         );
 
         Member savedMember = memberRepository.save(member);
+
         memberEventPublisher.publishMemberSignedUp(savedMember); // 회원 가입 이벤트 발행
-        return CreateMemberResponse.from(savedMember);
+        
+        return CreateMemberResponse.from(savedMember, resolveProfileImageUrl(savedMember));
     }
 
     @Override
     public MemberResponse getMember(UUID memberId) {
-        return MemberResponse.from(getMemberEntity(memberId));
+        Member member = getMemberEntity(memberId);
+        return MemberResponse.from(member, resolveProfileImageUrl(member));
     }
 
     @Override
     public MemberResponse getCurrentMember(UUID memberId) {
-        return MemberResponse.from(getMemberEntity(memberId));
+        Member member = getMemberEntity(memberId);
+        return MemberResponse.from(member, resolveProfileImageUrl(member));
     }
 
     @Transactional
@@ -87,11 +93,11 @@ public class MemberService implements MemberUsecase {
                 normalizeRequired(request.nickname(), "nickname"),
                 normalizeNullable(request.phone()),
                 normalizeNullable(request.address()),
-                normalizeNullable(request.profileImageUrl()),
+                normalizeProfileImageKey(request.profileImageKey()),
                 LocalDateTime.now()
         );
 
-        return MemberResponse.from(member);
+        return MemberResponse.from(member, resolveProfileImageUrl(member));
     }
 
     @Transactional
@@ -131,5 +137,22 @@ public class MemberService implements MemberUsecase {
         }
         String normalized = value.trim();
         return normalized.isEmpty() ? null : normalized;
+    }
+
+    // 프로필 이미지 키를 검증하고 정규화하는 메서드
+    private String normalizeProfileImageKey(String profileImageKey) {
+        String normalized = normalizeNullable(profileImageKey);
+        if (normalized == null) {
+            return null;
+        }
+        if (!profileImageUrlResolver.isSupportedKey(normalized)) {
+            throw new IllegalArgumentException("profileImageKey is invalid.");
+        }
+        return normalized;
+    }
+
+    // S3에 저장된 회원 프로필 이미지의 URL을 생성하는 메서드
+    private String resolveProfileImageUrl(Member member) {
+        return profileImageUrlResolver.resolve(member.getProfileImageKey());
     }
 }
