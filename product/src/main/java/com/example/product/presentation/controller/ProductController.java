@@ -10,10 +10,23 @@ import com.example.product.presentation.dto.request.ProductCreateRequest;
 import com.example.product.presentation.dto.request.ProductUpdateRequest;
 import com.example.product.presentation.dto.response.ProductAvailabilityResponse;
 import com.example.product.presentation.dto.response.ProductResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.todaylunch.common.security.auth.annotation.CurrentMember;
 import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.Parameters;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Valid;
+import jakarta.validation.Validator;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -26,9 +39,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 
+@Tag(name = "Product", description = "상품 관리 API")
 @RestController
 @RequestMapping("/api/product")
 @RequiredArgsConstructor
@@ -39,43 +56,73 @@ public class ProductController {
     private final ProductUpdateUseCase productUpdateUseCase;
     private final ProductDeleteUseCase productDeleteUseCase;
     private final ProductCheckUseCase productCheckUseCase;
+    private final ObjectMapper objectMapper;
+    private final Validator validator;
 
-    /**
-     * 상품 등록 API
-     * API Gateway에서 검증된 사용자 정보를 Header로 전달받음
-     *
-     * @param authenticatedMember 인증된 사용자 정보 (Header: X-Member-Id, X-Member-Role)
-     * @param request  상품 등록 요청 (sellerId는 포함하지 않음)
-     * @return 생성된 상품 정보 (201 Created)
-     */
-    @PostMapping
+    @Operation(
+            summary = "상품 등록",
+            description = "상품 정보와 이미지를 함께 등록합니다. 이미지는 선택사항입니다.",
+            responses = {
+                    @ApiResponse(responseCode = "201", description = "상품 생성 성공",
+                            content = @Content(schema = @Schema(implementation = ProductResponse.class))),
+                    @ApiResponse(responseCode = "400", description = "잘못된 요청"),
+                    @ApiResponse(responseCode = "401", description = "인증 실패")
+            }
+    )
+    @Parameters({
+            @Parameter(name = "X-Member-Id", description = "회원 ID (UUID)", required = true,
+                    in = ParameterIn.HEADER, example = "550e8400-e29b-41d4-a716-446655440000"),
+            @Parameter(name = "X-Member-Role", description = "회원 역할 (USER, SELLER, ADMIN)", required = true,
+                    in = ParameterIn.HEADER, example = "SELLER")
+    })
+    @PostMapping(consumes = "multipart/form-data")
     public ResponseEntity<ProductResponse> createProduct(
-        @CurrentMember AuthenticatedMember authenticatedMember,
-        @Valid @RequestBody ProductCreateRequest request
+            @Parameter(hidden = true) @CurrentMember AuthenticatedMember authenticatedMember,
+            @Parameter(description = "상품 정보 (JSON 문자열)", required = true,
+                    example = "{\"title\":\"햄버거포카\",\"description\":\"햄버거 포토 카드\",\"price\":1000,\"stockQuantity\":90000,\"categoryId\":\"c325102d-2853-42b8-a5f4-23cd7b9adcac\"}")
+            @RequestPart("productData") String productDataJson,
+            @Parameter(description = "상품 이미지 파일 배열 (최대 10개)", required = false)
+            @RequestPart(value = "images", required = false) MultipartFile[] images,
+            @Parameter(description = "썸네일 이미지 인덱스 (기본값: 0)", example = "0")
+            @RequestParam(value = "thumbnailIndex", required = false, defaultValue = "0") Integer thumbnailIndex
     ) {
-        String sellerId = authenticatedMember.memberId().toString();
-        ProductResponse response = productCreateUseCase.createProduct(sellerId, request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        try {
+            // JSON 문자열을 객체로 변환 (Swagger UI 호환)
+            ProductCreateRequest request = objectMapper.readValue(productDataJson, ProductCreateRequest.class);
+
+            // Validation 수행
+            Set<ConstraintViolation<ProductCreateRequest>> violations = validator.validate(request);
+            if (!violations.isEmpty()) {
+                String errorMessage = violations.stream()
+                        .map(ConstraintViolation::getMessage)
+                        .collect(Collectors.joining(", "));
+                throw new IllegalArgumentException("Validation failed: " + errorMessage);
+            }
+
+            String sellerId = authenticatedMember.memberId().toString();
+            ProductResponse response = productCreateUseCase.createProduct(sellerId, request, images, thumbnailIndex);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid product data: " + e.getMessage(), e);
+        }
     }
 
     /**
-     * 상품 구매 가능 여부 조회 API (Order 모듈에서 사용)
-     * 상품의 재고와 상태를 확인하여 구매 가능 여부 반환
+     * 상품 구매 가능 여부 조회 API (Order 모듈에서 사용) 상품의 재고와 상태를 확인하여 구매 가능 여부 반환
      *
      * @param productRequests 검사할 상품 목록 (productId, quantity)
      * @return 상품 구매 가능 상태 목록 (200 OK)
      */
     @PostMapping("/check-availability")
     public ResponseEntity<List<ProductAvailabilityResponse>> checkAvailability(
-        @Valid @RequestBody List<ProductCheckRequest> productRequests
+            @Valid @RequestBody List<ProductCheckRequest> productRequests
     ) {
         List<ProductAvailabilityResponse> response = productCheckUseCase.checkAvailability(productRequests);
         return ResponseEntity.ok(response);
     }
 
     /**
-     * 사용자용 상품 조회 API (ACTIVE 상품만, 페이징)
-     * 구매 가능한 상품만 조회
+     * 사용자용 상품 조회 API (ACTIVE 상품만, 페이징) 구매 가능한 상품만 조회
      *
      * @param pageable 페이징 정보 (page, size, sort)
      * @return 활성 상품 목록 (200 OK)
@@ -88,6 +135,7 @@ public class ProductController {
 
     /**
      * 관리자용 전체 상품 조회 API (모든 상태, 페이징)
+     *
      * @param pageable 페이징 정보 (page, size, sort)
      * @return 전체 상품 목록 (200 OK)
      * TODO: 추후 @PreAuthorize("hasRole('ADMIN')") 추가 필요
@@ -100,8 +148,8 @@ public class ProductController {
 
     @GetMapping("/seller")
     public ResponseEntity<Page<ProductResponse>> findSellerProducts(
-        @CurrentMember AuthenticatedMember authenticatedMember,
-        Pageable pageable
+            @CurrentMember AuthenticatedMember authenticatedMember,
+            Pageable pageable
     ) {
         String sellerId = authenticatedMember.memberId().toString();
         Page<ProductResponse> response = productSearchUseCase.findBySellerId(sellerId, pageable);
@@ -117,15 +165,15 @@ public class ProductController {
      * 상품 수정 API
      *
      * @param authenticatedMember 인증된 사용자 정보 (Header: X-Member-Id, X-Member-Role)
-     * @param productId 수정할 상품 ID
-     * @param request   수정 요청 데이터
+     * @param productId           수정할 상품 ID
+     * @param request             수정 요청 데이터
      * @return 수정된 상품 정보 (200 OK)
      */
     @PutMapping("/{productId}")
     public ResponseEntity<ProductResponse> updateProduct(
-        @CurrentMember AuthenticatedMember authenticatedMember,
-        @PathVariable String productId,
-        @Valid @RequestBody ProductUpdateRequest request
+            @CurrentMember AuthenticatedMember authenticatedMember,
+            @PathVariable String productId,
+            @Valid @RequestBody ProductUpdateRequest request
     ) {
         String sellerId = authenticatedMember.memberId().toString();
         ProductResponse response = productUpdateUseCase.updateProduct(sellerId, productId, request);
@@ -136,13 +184,13 @@ public class ProductController {
      * 상품 삭제 API (소프트 삭제)
      *
      * @param authenticatedMember 인증된 사용자 정보 (Header: X-Member-Id, X-Member-Role)
-     * @param productId 삭제할 상품 ID
+     * @param productId           삭제할 상품 ID
      * @return 204 No Content
      */
     @DeleteMapping("/{productId}")
     public ResponseEntity<Void> deleteProduct(
-        @CurrentMember AuthenticatedMember authenticatedMember,
-        @PathVariable String productId
+            @CurrentMember AuthenticatedMember authenticatedMember,
+            @PathVariable String productId
     ) {
         String sellerId = authenticatedMember.memberId().toString();
         productDeleteUseCase.deleteProduct(sellerId, productId);
