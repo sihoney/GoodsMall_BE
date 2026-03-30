@@ -1,0 +1,54 @@
+server:
+  port: 8087
+
+spring:
+  application:
+    name: notification-service
+  config:
+    import: optional:file:notification/.env[.properties],optional:file:.env[.properties]
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:postgres}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:1q2w3e4r}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: notification_service
+        format_sql: true
+      show-sql: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+eureka:
+  instance:
+    prefer-ip-address: true
+    ip-address: 127.0.0.1
+    instance-id: ${spring.application.name}
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+notification:
+  kafka:
+    consumer-groups: # 각 알림 유형에 대한 Kafka Consumer Group 설정
+      auto-purchase-confirmed: ${NOTIFICATION_AUTO_PURCHASE_CONFIRMED_GROUP:notification-service}
+      order-payment-result: ${NOTIFICATION_ORDER_PAYMENT_RESULT_GROUP:notification-service}
+      seller-settlement-payout-result: ${NOTIFICATION_SELLER_SETTLEMENT_PAYOUT_RESULT_GROUP:notification-service}
+    topics: # 각 알림 유형에 대한 Kafka Topic 설정
+      auto-purchase-confirmed: ${NOTIFICATION_AUTO_PURCHASE_CONFIRMED_TOPIC:payment.auto-purchase-confirmed}
+      order-payment-result: ${NOTIFICATION_ORDER_PAYMENT_RESULT_TOPIC:payment.order-payment-result}
+      seller-settlement-payout-result: ${NOTIFICATION_SELLER_SETTLEMENT_PAYOUT_RESULT_TOPIC:payment.seller-payout-result}
+      # payment-completed: ${NOTIFICATION_PAYMENT_COMPLETED_TOPIC:payment.completed}
+      # payment-cancelled: ${NOTIFICATION_PAYMENT_CANCELLED_TOPIC:payment.cancelled}
+      # order-confirmed: ${NOTIFICATION_ORDER_CONFIRMED_TOPIC:order.confirmed}
+      # settlement-completed: ${NOTIFICATION_SETTLEMENT_COMPLETED_TOPIC:settlement.completed}
+      # withdrawal-requested: ${NOTIFICATION_WITHDRAWAL_REQUESTED_TOPIC:withdrawal.requested}

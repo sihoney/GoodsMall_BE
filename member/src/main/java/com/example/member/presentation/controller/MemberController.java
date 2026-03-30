@@ -22,7 +22,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/v1/members")
+@RequestMapping("/api/members")
 @RequiredArgsConstructor
 @Tag(name = "Member", description = "사용자 CRUD API")
 public class MemberController {

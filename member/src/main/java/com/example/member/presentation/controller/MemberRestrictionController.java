@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/admin/member-restrictions")
+@RequestMapping("/api/admin/member-restrictions")
 @RequiredArgsConstructor
 @Tag(name = "Member Restriction", description = "Admin member restriction APIs")
 public class MemberRestrictionController {
