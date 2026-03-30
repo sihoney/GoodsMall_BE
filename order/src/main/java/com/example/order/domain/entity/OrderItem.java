@@ -5,10 +5,16 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+
+import java.math.BigDecimal;
 import java.util.Objects;
 import java.util.UUID;
+
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -26,8 +32,9 @@ public class OrderItem {
     @Column(name = "product_id", nullable = false)
     private UUID productId;
 
-    @Column(name = "order_id", nullable = false)
-    private UUID orderId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id")
+    private Order order;
 
     @Column(name = "seller_id", nullable = false)
     private UUID sellerId;
@@ -36,7 +43,7 @@ public class OrderItem {
     private String productNameSnapshot;
 
     @Column(name = "unit_price_snapshot")
-    private Integer unitPriceSnapshot;
+    private BigDecimal unitPriceSnapshot;
 
     @Column(name = "quantity")
     private Integer quantity;
@@ -45,45 +52,58 @@ public class OrderItem {
     @Column(name = "status")
     private OrderItemStatus status;
 
+    @Column(name = "thumbnail_key_snapshot")
+    private String thumbnailKeySnapshot;
+
     private OrderItem(
             UUID orderItemId,
             UUID productId,
-            UUID orderId,
+            Order order,
             UUID sellerId,
             String productNameSnapshot,
-            Integer unitPriceSnapshot,
+            BigDecimal unitPriceSnapshot,
             Integer quantity,
-            OrderItemStatus status
+            OrderItemStatus status,
+            String thumbnailKeySnapshot
     ) {
         this.orderItemId = Objects.requireNonNull(orderItemId);
         this.productId = Objects.requireNonNull(productId);
-        this.orderId = Objects.requireNonNull(orderId);
+        this.order = Objects.requireNonNull(order);
         this.sellerId = Objects.requireNonNull(sellerId);
         this.productNameSnapshot = productNameSnapshot;
         this.unitPriceSnapshot = unitPriceSnapshot;
         this.quantity = quantity;
         this.status = status;
+        this.thumbnailKeySnapshot = thumbnailKeySnapshot;
     }
 
     public static OrderItem create(
-            UUID orderItemId,
             UUID productId,
-            UUID orderId,
+            Order order,
             UUID sellerId,
             String productNameSnapshot,
-            Integer unitPriceSnapshot,
+            BigDecimal unitPriceSnapshot,
             Integer quantity,
-            OrderItemStatus status
+            String thumbnailKeySnapshot
     ) {
+        if (quantity == null || quantity <= 0) {
+            throw new IllegalArgumentException("수량은 0개보다 많아야 합니다.");
+        }
+
+        if (unitPriceSnapshot == null || unitPriceSnapshot.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("가격이 0원보다 높아야 합니다.");
+        }
+
         return new OrderItem(
-                orderItemId,
+                UUID.randomUUID(),
                 productId,
-                orderId,
+                order,
                 sellerId,
                 productNameSnapshot,
                 unitPriceSnapshot,
                 quantity,
-                status
+                OrderItemStatus.PENDING,
+                thumbnailKeySnapshot
         );
     }
 
