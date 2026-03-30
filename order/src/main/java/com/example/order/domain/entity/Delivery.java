@@ -5,14 +5,18 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import java.time.LocalDateTime;
-import java.util.Objects;
-import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+import java.util.Objects;
+import java.util.UUID;
 
 @Getter
 @Entity
@@ -27,14 +31,18 @@ public class Delivery {
     @Column(name = "seller_id", nullable = false)
     private UUID sellerId;
 
-    @Column(name = "order_item_id", nullable = false)
-    private UUID orderItemId;
+    @Column(name = "buyer_id", nullable = false)
+    private UUID buyerId;
 
-    @Column(name = "courier")
-    private String courier;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_item_id")
+    private OrderItem orderItem;
 
-    @Column(name = "tracking_number")
-    private String trackingNumber;
+    @Column(name = "courier_code")
+    private String courierCode;
+
+    @Column(name = "invoice_number")
+    private String invoiceNumber;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
@@ -55,9 +63,10 @@ public class Delivery {
     private Delivery(
             UUID deliveryId,
             UUID sellerId,
-            UUID orderItemId,
-            String courier,
-            String trackingNumber,
+            UUID buyerId,
+            OrderItem orderItem,
+            String courierCode,
+            String invoiceNumber,
             DeliveryStatus status,
             LocalDateTime shippedAt,
             LocalDateTime deliveredAt,
@@ -66,9 +75,10 @@ public class Delivery {
     ) {
         this.deliveryId = Objects.requireNonNull(deliveryId);
         this.sellerId = Objects.requireNonNull(sellerId);
-        this.orderItemId = Objects.requireNonNull(orderItemId);
-        this.courier = courier;
-        this.trackingNumber = trackingNumber;
+        this.buyerId = Objects.requireNonNull(buyerId);
+        this.orderItem = Objects.requireNonNull(orderItem);
+        this.courierCode = courierCode;
+        this.invoiceNumber = invoiceNumber;
         this.status = status;
         this.shippedAt = shippedAt;
         this.deliveredAt = deliveredAt;
@@ -79,9 +89,10 @@ public class Delivery {
     public static Delivery create(
             UUID deliveryId,
             UUID sellerId,
-            UUID orderItemId,
-            String courier,
-            String trackingNumber,
+            UUID buyerId,
+            OrderItem orderItem,
+            String courierCode,
+            String invoiceNumber,
             DeliveryStatus status,
             LocalDateTime shippedAt,
             LocalDateTime deliveredAt,
@@ -91,25 +102,15 @@ public class Delivery {
         return new Delivery(
                 deliveryId,
                 sellerId,
-                orderItemId,
-                courier,
-                trackingNumber,
+                buyerId,
+                orderItem,
+                courierCode,
+                invoiceNumber,
                 status,
                 shippedAt,
                 deliveredAt,
                 createdAt,
                 updatedAt
         );
-    }
-
-    public void updateTracking(String courier, String trackingNumber, LocalDateTime updatedAt) {
-        this.courier = courier;
-        this.trackingNumber = trackingNumber;
-        this.updatedAt = updatedAt;
-    }
-
-    public void changeStatus(DeliveryStatus status, LocalDateTime updatedAt) {
-        this.status = status;
-        this.updatedAt = updatedAt;
     }
 }
