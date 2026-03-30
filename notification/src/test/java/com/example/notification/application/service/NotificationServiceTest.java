@@ -10,6 +10,7 @@ import com.example.notification.domain.entity.Notification;
 import com.example.notification.domain.enumtype.NotificationReferenceType;
 import com.example.notification.domain.enumtype.NotificationType;
 import com.example.notification.infrastructure.messaging.kafka.contract.OrderPaymentFailureReason;
+import com.example.notification.infrastructure.messaging.kafka.contract.PayoutFailureReason;
 import com.example.notification.infrastructure.repository.NotificationJpaRepository;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -115,5 +116,59 @@ class NotificationServiceTest {
         assertThat(saved.getType()).isEqualTo(NotificationType.ORDER_PAYMENT_FAILED);
         assertThat(saved.getTitle()).isEqualTo("Payment failed");
         assertThat(saved.getContent()).isEqualTo("Payment failed due to insufficient balance.");
+    }
+
+    @Test
+    void createSellerSettlementPayoutSucceededNotification_savesNotification() {
+        UUID settlementId = UUID.randomUUID();
+        UUID sellerMemberId = UUID.randomUUID();
+        LocalDateTime processedAt = LocalDateTime.of(2026, 3, 29, 10, 20, 4);
+
+        when(notificationJpaRepository.save(any(Notification.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        notificationService.createSellerSettlementPayoutSucceededNotification(
+                settlementId,
+                sellerMemberId,
+                180000L,
+                processedAt
+        );
+
+        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationJpaRepository).save(captor.capture());
+
+        Notification saved = captor.getValue();
+        assertThat(saved.getMemberId()).isEqualTo(sellerMemberId);
+        assertThat(saved.getType()).isEqualTo(NotificationType.SELLER_SETTLEMENT_PAYOUT_SUCCEEDED);
+        assertThat(saved.getReferenceId()).isEqualTo(settlementId);
+        assertThat(saved.getReferenceType()).isEqualTo(NotificationReferenceType.SETTLEMENT);
+        assertThat(saved.getTitle()).isEqualTo("Settlement payout completed");
+        assertThat(saved.getContent()).isEqualTo("Your settlement payout was completed. Amount: 180000");
+        assertThat(saved.getCreatedAt()).isEqualTo(processedAt);
+    }
+
+    @Test
+    void createSellerSettlementPayoutFailedNotification_savesNotification() {
+        UUID settlementId = UUID.randomUUID();
+        UUID sellerMemberId = UUID.randomUUID();
+        LocalDateTime processedAt = LocalDateTime.of(2026, 3, 29, 10, 20, 4);
+
+        when(notificationJpaRepository.save(any(Notification.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        notificationService.createSellerSettlementPayoutFailedNotification(
+                settlementId,
+                sellerMemberId,
+                PayoutFailureReason.WALLET_NOT_FOUND,
+                processedAt
+        );
+
+        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationJpaRepository).save(captor.capture());
+
+        Notification saved = captor.getValue();
+        assertThat(saved.getType()).isEqualTo(NotificationType.SELLER_SETTLEMENT_PAYOUT_FAILED);
+        assertThat(saved.getTitle()).isEqualTo("Settlement payout failed");
+        assertThat(saved.getContent()).isEqualTo("Settlement payout failed because no wallet information was found.");
     }
 }
