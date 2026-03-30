@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS member_service.member (
     nickname VARCHAR(100) NOT NULL,
     phone VARCHAR(50),
     address VARCHAR(255),
-    profile_image_url VARCHAR(500),
+    profile_image_key VARCHAR(500),
     role VARCHAR(30) NOT NULL,
     status VARCHAR(30) NOT NULL,
     created_at TIMESTAMP NOT NULL,
@@ -23,3 +23,4 @@ CREATE INDEX IF NOT EXISTS idx_member_role
 
 CREATE INDEX IF NOT EXISTS idx_member_status
     ON member_service.member (status);
+
