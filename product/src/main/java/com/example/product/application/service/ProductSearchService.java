@@ -12,6 +12,7 @@ import com.example.product.presentation.dto.request.ProductCheckRequest;
 import com.example.product.presentation.dto.response.ProductAvailabilityResponse;
 import com.example.product.presentation.dto.response.ProductImageResponse;
 import com.example.product.presentation.dto.response.ProductResponse;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -32,20 +33,37 @@ public class ProductSearchService implements ProductSearchUseCase {
     private final ImageUploadService imageUploadService;
 
     @Override
-    public Page<ProductResponse> findDisplayProductsByCategory(String categoryId, Pageable pageable) {
+    public Page<ProductResponse> findDisplayProducts(
+            String categoryId,
+            String keyword,
+            BigDecimal minPrice,
+            BigDecimal maxPrice,
+            Pageable pageable
+    ) {
+        List<UUID> categoryIds = collectCategoryIds(categoryId);
+
+        // 통합 검색 (카테고리 + 키워드 + 가격 필터 + 정렬)
+        Page<Product> products = productRepository.findDisplayProductsWithFilters(
+                categoryIds,
+                keyword,
+                minPrice,
+                maxPrice,
+                pageable
+        );
+
+        return products.map(ProductResponse::from);
+    }
+
+    private List<UUID> collectCategoryIds(String categoryId) {
         if (categoryId == null || categoryId.isBlank()) {
-            Page<Product> products = productRepository.findDisplayProducts(pageable);
-            return products.map(ProductResponse::from);
+            return null;
         }
 
         UUID categoryUuid = UUID.fromString(categoryId);
-
         List<UUID> categoryIds = new ArrayList<>();
-        categoryIds.add(categoryUuid);  // 현재 카테고리 포함
-        categoryIds.addAll(categoryRepository.findAllDescendantIds(categoryUuid));  // 하위 카테고리 포함
-
-        Page<Product> products = productRepository.findDisplayProductsByCategoryIds(categoryIds, pageable);
-        return products.map(ProductResponse::from);
+        categoryIds.add(categoryUuid);
+        categoryIds.addAll(categoryRepository.findAllDescendantIds(categoryUuid));
+        return categoryIds;
     }
 
     @Override
@@ -70,27 +88,15 @@ public class ProductSearchService implements ProductSearchUseCase {
 
     @Override
     public List<ProductAvailabilityResponse> checkAvailability(List<ProductCheckRequest> productRequests) {
-        if (productRequests == null || productRequests.isEmpty()) {
-            throw new IllegalArgumentException("상품 목록은 필수입니다");
-        }
-
         return productRequests.stream()
                 .map(this::checkSingleProduct)
                 .toList();
     }
 
     private ProductAvailabilityResponse checkSingleProduct(ProductCheckRequest request) {
-        if (request.productId() == null) {
-            throw new IllegalArgumentException("상품 ID는 필수입니다");
-        }
-        if (request.quantity() == null || request.quantity() < 1) {
-            throw new IllegalArgumentException("수량은 1개 이상이어야 합니다");
-        }
-
         Product product = productRepository.findById(request.productId())
                 .orElseThrow(ProductNotFoundException::new);
 
-        // ProductImage에서 썸네일 조회
         String thumbnailKeySnapshot = productRepository.findThumbnailImageByProductId(request.productId())
                 .map(ProductImage::getS3Key)
                 .orElse(null);

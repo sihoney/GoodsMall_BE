@@ -2,6 +2,7 @@ package com.example.product.domain.repository;
 
 import com.example.product.domain.entity.Product;
 import com.example.product.domain.entity.ProductImage;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -19,6 +20,14 @@ public interface ProductRepository {
     Page<Product> findDisplayProductsByCategoryId(UUID categoryId, Pageable pageable);
 
     Page<Product> findDisplayProductsByCategoryIds(List<UUID> categoryIds, Pageable pageable);
+
+    Page<Product> findDisplayProductsWithFilters(
+            List<UUID> categoryIds,
+            String keyword,
+            BigDecimal minPrice,
+            BigDecimal maxPrice,
+            Pageable pageable
+    );
 
     Page<Product> findBySellerId(UUID sellerId, Pageable pageable);
 

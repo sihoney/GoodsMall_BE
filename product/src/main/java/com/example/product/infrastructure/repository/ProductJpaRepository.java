@@ -1,6 +1,7 @@
 package com.example.product.infrastructure.repository;
 
 import com.example.product.domain.entity.Product;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -37,6 +38,24 @@ public interface ProductJpaRepository extends JpaRepository<Product, UUID> {
           AND p.deletedAt IS NULL
         """)
     Page<Product> findDisplayProductsByCategoryIds(@Param("categoryIds") List<UUID> categoryIds, Pageable pageable);
+
+    @Query("""
+        SELECT p
+        FROM Product p
+        WHERE p.status = 'ACTIVE'
+          AND p.deletedAt IS NULL
+          AND (:categoryIds IS NULL OR SIZE(:categoryIds) = 0 OR p.category.categoryId IN :categoryIds)
+          AND (:keyword IS NULL OR :keyword = '' OR p.title LIKE %:keyword% OR p.description LIKE %:keyword%)
+          AND (:minPrice IS NULL OR p.price >= :minPrice)
+          AND (:maxPrice IS NULL OR p.price <= :maxPrice)
+        """)
+    Page<Product> findDisplayProductsWithFilters(
+            @Param("categoryIds") List<UUID> categoryIds,
+            @Param("keyword") String keyword,
+            @Param("minPrice") BigDecimal minPrice,
+            @Param("maxPrice") BigDecimal maxPrice,
+            Pageable pageable
+    );
 
     Page<Product> findBySellerId(UUID sellerId, Pageable pageable);
 

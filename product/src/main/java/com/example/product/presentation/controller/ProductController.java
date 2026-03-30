@@ -100,20 +100,30 @@ public class ProductController {
     }
 
     /**
-     * 사용자용 상품 조회 API (ACTIVE 상품만, 페이징)
-     * 구매 가능한 상품만 조회
-     * categoryId가 제공되면 해당 카테고리 + 하위 카테고리의 상품 조회
+     * 상품 통합 검색 API (ACTIVE 상품만, 페이징)
      *
-     * @param categoryId 카테고리 ID (선택, null이면 전체 조회)
-     * @param pageable   페이징 정보 (page, size, sort)
-     * @return 활성 상품 목록 (200 OK)
+     * @param categoryId 카테고리 ID (선택, 하위 카테고리 포함)
+     * @param keyword 검색 키워드 (선택, 상품명/설명 검색)
+     * @param minPrice 최소 가격 (선택)
+     * @param maxPrice 최대 가격 (선택)
+     * @param pageable 페이징 및 정렬 (page, size, sort)
+     * @return 상품 목록 (200 OK)
      */
     @GetMapping
     public ResponseEntity<Page<ProductResponse>> findDisplayProducts(
             @RequestParam(required = false) String categoryId,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) java.math.BigDecimal minPrice,
+            @RequestParam(required = false) java.math.BigDecimal maxPrice,
             Pageable pageable
     ) {
-        Page<ProductResponse> response = productSearchUseCase.findDisplayProductsByCategory(categoryId, pageable);
+        Page<ProductResponse> response = productSearchUseCase.findDisplayProducts(
+                categoryId,
+                keyword,
+                minPrice,
+                maxPrice,
+                pageable
+        );
         return ResponseEntity.ok(response);
     }
 

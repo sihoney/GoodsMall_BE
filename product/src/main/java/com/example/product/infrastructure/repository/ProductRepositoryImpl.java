@@ -3,7 +3,7 @@ package com.example.product.infrastructure.repository;
 import com.example.product.domain.entity.Product;
 import com.example.product.domain.entity.ProductImage;
 import com.example.product.domain.repository.ProductRepository;
-import com.example.product.common.exception.ProductNotFoundException;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -42,6 +42,17 @@ public class ProductRepositoryImpl implements ProductRepository {
     @Override
     public Page<Product> findDisplayProductsByCategoryIds(List<UUID> categoryIds, Pageable pageable) {
         return jpaRepository.findDisplayProductsByCategoryIds(categoryIds, pageable);
+    }
+
+    @Override
+    public Page<Product> findDisplayProductsWithFilters(
+            List<UUID> categoryIds,
+            String keyword,
+            BigDecimal minPrice,
+            BigDecimal maxPrice,
+            Pageable pageable
+    ) {
+        return jpaRepository.findDisplayProductsWithFilters(categoryIds, keyword, minPrice, maxPrice, pageable);
     }
 
     @Override

@@ -129,12 +129,9 @@ public class Category {
             String description,
             Integer sortOrder
     ) {
-        if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("카테고리명은 비어있을 수 없습니다");
-        }
         this.name = name;
         this.description = description;
-        this.sortOrder = Objects.requireNonNull(sortOrder);
+        this.sortOrder = sortOrder;
         this.updatedAt = LocalDateTime.now();
     }
 
