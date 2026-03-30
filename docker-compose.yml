@@ -72,6 +72,8 @@ services:
       context: .
       dockerfile: discovery/Dockerfile
     container_name: goods-mall-discovery
+    env_file:
+      - .env
     ports:
       - "8761:8761"
 
@@ -80,6 +82,8 @@ services:
       context: .
       dockerfile: payment/Dockerfile
     container_name: goods-mall-payment
+    env_file:
+      - .env
     depends_on:
       postgres:
         condition: service_healthy
@@ -104,6 +108,8 @@ services:
       context: .
       dockerfile: settlement/Dockerfile
     container_name: goods-mall-settlement
+    env_file:
+      - .env
     depends_on:
       postgres:
         condition: service_healthy
@@ -122,6 +128,8 @@ services:
       context: .
       dockerfile: gateway/Dockerfile
     container_name: goods-mall-gateway
+    env_file:
+      - .env
     depends_on:
       discovery:
         condition: service_started
@@ -146,6 +154,8 @@ services:
       context: .
       dockerfile: member/Dockerfile
     container_name: goods-mall-member
+    env_file:
+      - .env
     depends_on:
       discovery:
         condition: service_started
@@ -168,6 +178,8 @@ services:
       context: .
       dockerfile: product/Dockerfile
     container_name: goods-mall-product
+    env_file:
+      - .env
     depends_on:
       discovery:
         condition: service_started
@@ -189,6 +201,8 @@ services:
       context: .
       dockerfile: order/Dockerfile
     container_name: goods-mall-order
+    env_file:
+      - .env
     depends_on:
       discovery:
         condition: service_started
@@ -210,6 +224,8 @@ services:
       context: .
       dockerfile: notification/Dockerfile
     container_name: goods-mall-notification
+    env_file:
+      - .env
     depends_on:
       discovery:
         condition: service_started
