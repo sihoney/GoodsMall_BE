@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 보상 트랜잭션 운영 시나리오에서 FAILED 정산건 수동 재지급을 트리거한다.
  */
 @RestController
-@RequestMapping("/api/settlement")
+@RequestMapping("/api/settlements")
 @Tag(name = "Settlement Ops", description = "정산 운영 조치 API")
 public class SettlementOpsController {
 
