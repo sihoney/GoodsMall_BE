@@ -2,6 +2,7 @@ package com.todaylunch.gateway.filter;
 
 import com.todaylunch.gateway.security.GatewayJwtValidator;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
@@ -21,6 +22,9 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     private static final String PUBLIC_AUTH_PREFIX = "/api/auth";
 
     private final GatewayJwtValidator gatewayJwtValidator;
+
+    @Value("${gateway.auth.jwt-validation-enabled:true}")
+    private boolean jwtValidationEnabled;
 
     @Override
     public Mono<Void> filter(
@@ -45,6 +49,9 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         }
 
         // Authorization 헤더에서 Bearer 토큰 추출
+        if (!jwtValidationEnabled) { // TODO: 개발 시, 토큰 검증 비활성화 기능 (application.yml에서 설정)
+            return chain.filter(exchange);
+        }
         String authorizationHeader = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
             return unauthorized(exchange);

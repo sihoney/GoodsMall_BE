@@ -95,6 +95,10 @@ jwt:
   secret: ${JWT_SECRET_KEY}
   issuer: member-service
 
+gateway:
+  auth:
+    jwt-validation-enabled: ${GATEWAY_JWT_VALIDATION_ENABLED:false}
+
 logging:
   level:
     com.todaylunch.gateway: INFO
