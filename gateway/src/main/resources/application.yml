@@ -30,32 +30,32 @@ spring:
             - id: member-auth-service
               uri: lb://member-service
               predicates:
-                - Path=/api/v1/auth/**
+                - Path=/api/auth/**
 
             - id: member-service-v1
               uri: lb://member-service
               predicates:
-                - Path=/api/v1/members/**
+                - Path=/api/members/**
 
             - id: member-seller-service
               uri: lb://member-service
               predicates:
-                - Path=/api/v1/sellers/**
+                - Path=/api/sellers/**
 
             - id: member-report-service
               uri: lb://member-service
               predicates:
-                - Path=/api/v1/member-reports/**
+                - Path=/api/member-reports/**
 
             - id: member-admin-report-service
               uri: lb://member-service
               predicates:
-                - Path=/api/v1/admin/member-reports/**
+                - Path=/api/admin/member-reports/**
 
             - id: member-admin-restriction-service
               uri: lb://member-service
               predicates:
-                - Path=/api/v1/admin/member-restrictions/**
+                - Path=/api/admin/member-restrictions/**
 
             - id: product-service
               uri: lb://product-service

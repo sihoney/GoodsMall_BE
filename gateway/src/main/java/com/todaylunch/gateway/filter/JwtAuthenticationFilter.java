@@ -18,7 +18,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     private static final String MEMBER_ID_HEADER = "X-Member-Id";
     private static final String MEMBER_ROLE_HEADER = "X-Member-Role";
-    private static final String PUBLIC_AUTH_PREFIX = "/api/v1/auth";
+    private static final String PUBLIC_AUTH_PREFIX = "/api/auth";
 
     private final GatewayJwtValidator gatewayJwtValidator;
 
@@ -27,15 +27,15 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         ServerWebExchange exchange,
         GatewayFilterChain chain
     ) {
-        // OPTIONS 요청과 /api/v1/ 이하가 아닌 경로는 
+        // OPTIONS 요청과 /api/ 이하가 아닌 경로는 
         // 인증 필터를 적용하지 않고 바로 다음 필터로 전달
         if ("OPTIONS".equalsIgnoreCase(exchange.getRequest().getMethod().name())) {
             return chain.filter(exchange);
         }
         
-        // /api/v1/ 이하의 경로에 대해서만 인증 필터 적용
+        // /api/ 이하의 경로에 대해서만 인증 필터 적용
         String path = exchange.getRequest().getURI().getPath();
-        if (!path.startsWith("/api/v1/")) {
+        if (!path.startsWith("/api/")) {
             return chain.filter(exchange);
         }
 

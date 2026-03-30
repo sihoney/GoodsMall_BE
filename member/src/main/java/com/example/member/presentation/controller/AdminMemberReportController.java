@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/admin/member-reports")
+@RequestMapping("/api/admin/member-reports")
 @RequiredArgsConstructor
 @Tag(name = "Admin Member Report", description = "Admin member report review APIs")
 public class AdminMemberReportController {
