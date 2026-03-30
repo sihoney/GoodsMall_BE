@@ -3,5 +3,7 @@ package com.example.notification.domain.enumtype;
 public enum NotificationType {
     AUTO_PURCHASE_CONFIRMED,
     ORDER_PAYMENT_SUCCEEDED,
-    ORDER_PAYMENT_FAILED
+    ORDER_PAYMENT_FAILED,
+    SELLER_SETTLEMENT_PAYOUT_SUCCEEDED,
+    SELLER_SETTLEMENT_PAYOUT_FAILED
 }

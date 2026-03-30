@@ -1,4 +1,4 @@
-package com.example.notification.infrastructure.messaging.kafka.consumer;
+package com.example.notification.infrastructure.messaging.kafka;
 
 import com.example.notification.application.usecase.NotificationUsecase;
 import com.example.notification.infrastructure.messaging.kafka.contract.OrderPaymentResultMessage;

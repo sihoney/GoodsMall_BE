@@ -2,6 +2,7 @@ package com.example.notification.infrastructure.config;
 
 import com.example.notification.infrastructure.messaging.kafka.contract.AutoPurchaseConfirmedMessage;
 import com.example.notification.infrastructure.messaging.kafka.contract.OrderPaymentResultMessage;
+import com.example.notification.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultMessage;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -53,6 +54,25 @@ public class KafkaConsumerConfig {
         ConcurrentKafkaListenerContainerFactory<String, OrderPaymentResultMessage> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(orderPaymentResultConsumerFactory);
+        return factory;
+    }
+
+    @Bean
+    public ConsumerFactory<String, SellerSettlementPayoutResultMessage> sellerSettlementPayoutResultConsumerFactory(
+            @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers,
+            @Value("${notification.kafka.consumer-groups.seller-settlement-payout-result:notification-service}") String groupId
+    ) {
+        return createConsumerFactory(bootstrapServers, groupId, SellerSettlementPayoutResultMessage.class);
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, SellerSettlementPayoutResultMessage>
+        sellerSettlementPayoutResultKafkaListenerContainerFactory(
+            ConsumerFactory<String, SellerSettlementPayoutResultMessage> sellerSettlementPayoutResultConsumerFactory
+    ) {
+        ConcurrentKafkaListenerContainerFactory<String, SellerSettlementPayoutResultMessage> factory =
+                new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(sellerSettlementPayoutResultConsumerFactory);
         return factory;
     }
 

@@ -6,6 +6,7 @@ import com.example.notification.domain.entity.Notification;
 import com.example.notification.domain.enumtype.NotificationReferenceType;
 import com.example.notification.domain.enumtype.NotificationType;
 import com.example.notification.infrastructure.messaging.kafka.contract.OrderPaymentFailureReason;
+import com.example.notification.infrastructure.messaging.kafka.contract.PayoutFailureReason;
 import com.example.notification.infrastructure.repository.NotificationJpaRepository;
 import com.example.notification.presentation.dto.NotificationResponse;
 import com.example.notification.presentation.dto.NotificationUnreadCountResponse;
@@ -180,6 +181,84 @@ public class NotificationService implements NotificationUsecase {
             case INVALID_REQUEST -> "Payment failed because the request was invalid.";
             case DUPLICATE_ORDER_PAYMENT -> "Payment was already processed for this order.";
             case INTERNAL_ERROR -> "Payment failed due to a temporary internal error.";
+        };
+    }
+
+    @Override
+    @Transactional
+    public void createSellerSettlementPayoutSucceededNotification(
+            UUID settlementId,
+            UUID sellerMemberId,
+            Long payoutAmount,
+            LocalDateTime processedAt
+    ) {
+        validateSettlementArguments(settlementId, sellerMemberId, processedAt);
+        if (payoutAmount == null || payoutAmount <= 0) {
+            throw new IllegalArgumentException("payoutAmount must be positive.");
+        }
+
+        Notification notification = Notification.create(
+                UUID.randomUUID(),
+                sellerMemberId,
+                NotificationType.SELLER_SETTLEMENT_PAYOUT_SUCCEEDED,
+                "Settlement payout completed",
+                "Your settlement payout was completed. Amount: " + payoutAmount,
+                settlementId,
+                NotificationReferenceType.SETTLEMENT,
+                processedAt
+        );
+
+        notificationJpaRepository.save(notification);
+    }
+
+    @Override
+    @Transactional
+    public void createSellerSettlementPayoutFailedNotification(
+            UUID settlementId,
+            UUID sellerMemberId,
+            PayoutFailureReason failureReason,
+            LocalDateTime processedAt
+    ) {
+        validateSettlementArguments(settlementId, sellerMemberId, processedAt);
+        if (failureReason == null) {
+            throw new IllegalArgumentException("failureReason is required.");
+        }
+
+        Notification notification = Notification.create(
+                UUID.randomUUID(),
+                sellerMemberId,
+                NotificationType.SELLER_SETTLEMENT_PAYOUT_FAILED,
+                "Settlement payout failed",
+                mapPayoutFailureReasonToContent(failureReason),
+                settlementId,
+                NotificationReferenceType.SETTLEMENT,
+                processedAt
+        );
+
+        notificationJpaRepository.save(notification);
+    }
+
+    private void validateSettlementArguments(UUID settlementId, UUID sellerMemberId, LocalDateTime processedAt) {
+        if (settlementId == null) {
+            throw new IllegalArgumentException("settlementId is required.");
+        }
+        if (sellerMemberId == null) {
+            throw new IllegalArgumentException("sellerMemberId is required.");
+        }
+        if (processedAt == null) {
+            throw new IllegalArgumentException("processedAt is required.");
+        }
+    }
+
+    private String mapPayoutFailureReasonToContent(PayoutFailureReason failureReason) {
+        return switch (failureReason) {
+            case WALLET_NOT_FOUND -> "Settlement payout failed because no wallet information was found.";
+            case INVALID_PAYOUT_AMOUNT -> "Settlement payout failed because the payout amount was invalid.";
+            case DUPLICATE_PAYOUT -> "Settlement payout was already processed for this settlement.";
+            case SETTLEMENT_NOT_FOUND -> "Settlement payout failed because the settlement could not be found.";
+            case TEMPORARY_DB_ERROR -> "Settlement payout failed due to a temporary database error.";
+            case KAFKA_PUBLISH_ERROR -> "Settlement payout failed during event publishing.";
+            case INTERNAL_ERROR -> "Settlement payout failed due to a temporary internal error.";
         };
     }
 }

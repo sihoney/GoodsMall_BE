@@ -1,6 +1,7 @@
 package com.example.notification.application.usecase;
 
 import com.example.notification.infrastructure.messaging.kafka.contract.OrderPaymentFailureReason;
+import com.example.notification.infrastructure.messaging.kafka.contract.PayoutFailureReason;
 import com.example.notification.presentation.dto.NotificationResponse;
 import com.example.notification.presentation.dto.NotificationUnreadCountResponse;
 import com.example.notification.presentation.dto.PagedResponse;
@@ -29,5 +30,19 @@ public interface NotificationUsecase {
             UUID buyerMemberId,
             OrderPaymentFailureReason failureReason,
             LocalDateTime occurredAt
+    );
+
+    void createSellerSettlementPayoutSucceededNotification(
+            UUID settlementId,
+            UUID sellerMemberId,
+            Long payoutAmount,
+            LocalDateTime processedAt
+    );
+
+    void createSellerSettlementPayoutFailedNotification(
+            UUID settlementId,
+            UUID sellerMemberId,
+            PayoutFailureReason failureReason,
+            LocalDateTime processedAt
     );
 }
