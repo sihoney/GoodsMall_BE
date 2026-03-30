@@ -136,5 +136,94 @@ services:
     ports:
       - "8080:8080"
 
+  # Placeholder services for other modules.
+  # These are not part of the current payment/settlement verification scope.
+  # Use `docker compose --profile future up --build` after each module is ready.
+
+  member:
+    profiles: ["future"]
+    build:
+      context: .
+      dockerfile: member/Dockerfile
+    container_name: goods-mall-member
+    depends_on:
+      discovery:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
+      EUREKA_INSTANCE_IP: ${EUREKA_INSTANCE_IP}
+      # TODO(member): add module-specific DB/env values if member adopts compose runtime.
+      # TODO(member): add REDIS_HOST/REDIS_PORT or remove if not needed in docker runtime.
+      # TODO(member): confirm JWT and Kafka env names used by member application.yml.
+    ports:
+      - "8081:8081"
+
+  product:
+    profiles: ["future"]
+    build:
+      context: .
+      dockerfile: product/Dockerfile
+    container_name: goods-mall-product
+    depends_on:
+      discovery:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
+      EUREKA_INSTANCE_IP: ${EUREKA_INSTANCE_IP}
+      # TODO(product): add product DB/env values.
+      # TODO(product): confirm whether kafka is required at runtime.
+    ports:
+      - "8084:8084"
+
+  order:
+    profiles: ["future"]
+    build:
+      context: .
+      dockerfile: order/Dockerfile
+    container_name: goods-mall-order
+    depends_on:
+      discovery:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
+      EUREKA_INSTANCE_IP: ${EUREKA_INSTANCE_IP}
+      # TODO(order): add order DB/env values.
+      # TODO(order): confirm payment/product/member integration env requirements.
+    ports:
+      - "8086:8086"
+
+  notification:
+    profiles: ["future"]
+    build:
+      context: .
+      dockerfile: notification/Dockerfile
+    container_name: goods-mall-notification
+    depends_on:
+      discovery:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
+      EUREKA_INSTANCE_IP: ${EUREKA_INSTANCE_IP}
+      # TODO(notification): add notification DB/env values.
+      # TODO(notification): confirm email/sse/redis external settings if needed.
+    ports:
+      - "8087:8087"
+
 volumes:
   goods_mall_postgres_data:
