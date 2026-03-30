@@ -49,7 +49,7 @@ public class KafkaConsumerConfig {
     public ConcurrentKafkaListenerContainerFactory<String, SettlementCandidateCreatedMessage>
         settlementCandidateCreatedKafkaListenerContainerFactory(
             ConsumerFactory<String, SettlementCandidateCreatedMessage> settlementCandidateCreatedConsumerFactory,
-            KafkaTemplate<String, Object> kafkaTemplate,
+            KafkaTemplate<String, String> kafkaTemplate,
             @Value("${settlement.kafka.retry.settlement-candidate-created.dlq-topic:payment.settlement-candidate-created.dlq}") String dlqTopic,
             @Value("${settlement.kafka.retry.settlement-candidate-created.initial-interval-ms:1000}") long initialIntervalMs,
             @Value("${settlement.kafka.retry.settlement-candidate-created.multiplier:2.0}") double multiplier,
@@ -93,7 +93,7 @@ public class KafkaConsumerConfig {
     public ConcurrentKafkaListenerContainerFactory<String, SellerSettlementPayoutResultMessage>
         sellerSettlementPayoutResultKafkaListenerContainerFactory(
             ConsumerFactory<String, SellerSettlementPayoutResultMessage> sellerSettlementPayoutResultConsumerFactory,
-            KafkaTemplate<String, Object> kafkaTemplate,
+            KafkaTemplate<String, String> kafkaTemplate,
             @Value("${settlement.kafka.retry.settlement-payout-result.dlq-topic:payment.seller-payout-result.dlq}") String dlqTopic,
             @Value("${settlement.kafka.retry.settlement-payout-result.initial-interval-ms:1000}") long initialIntervalMs,
             @Value("${settlement.kafka.retry.settlement-payout-result.multiplier:2.0}") double multiplier,
@@ -122,7 +122,7 @@ public class KafkaConsumerConfig {
      * - IllegalArgumentException: 비재시도 예외로 즉시 DLQ 처리
      */
     private DefaultErrorHandler createCommonErrorHandler(
-            KafkaTemplate<String, Object> kafkaTemplate,
+            KafkaTemplate<String, String> kafkaTemplate,
             String dlqTopic,
             long initialIntervalMs,
             double multiplier,

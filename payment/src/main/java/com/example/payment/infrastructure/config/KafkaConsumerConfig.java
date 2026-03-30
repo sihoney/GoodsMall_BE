@@ -123,7 +123,7 @@ public class KafkaConsumerConfig {
     public ConcurrentKafkaListenerContainerFactory<String, SellerSettlementPayoutRequestedMessage>
         sellerSettlementPayoutRequestedKafkaListenerContainerFactory(
             ConsumerFactory<String, SellerSettlementPayoutRequestedMessage> sellerSettlementPayoutRequestedConsumerFactory,
-            KafkaTemplate<String, Object> kafkaTemplate,
+            KafkaTemplate<String, String> kafkaTemplate,
             @Value("${payment.kafka.retry.settlement-payout-requested.dlq-topic:settlement.seller-payout-requested.dlq}") String dlqTopic,
             @Value("${payment.kafka.retry.settlement-payout-requested.initial-interval-ms:1000}") long initialIntervalMs,
             @Value("${payment.kafka.retry.settlement-payout-requested.multiplier:2.0}") double multiplier,
@@ -167,7 +167,7 @@ public class KafkaConsumerConfig {
      * - IllegalArgumentException, WalletNotFoundException: 비재시도 예외로 즉시 DLQ 처리
      */
     private DefaultErrorHandler createPayoutRequestedErrorHandler(
-            KafkaTemplate<String, Object> kafkaTemplate,
+            KafkaTemplate<String, String> kafkaTemplate,
             String dlqTopic,
             long initialIntervalMs,
             double multiplier,
