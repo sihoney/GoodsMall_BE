@@ -18,6 +18,7 @@ import com.example.payment.infrastructure.messaging.kafka.contract.OrderPaymentF
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPaymentRequestedMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPaymentResultMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPaymentResultStatus;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -38,12 +39,15 @@ class OrderPaymentRequestedEventConsumerTest {
     @Mock
     private OrderPaymentResultEventPublisher orderPaymentResultEventPublisher;
 
+    @Mock
+    private ObjectMapper objectMapper;
+
     @InjectMocks
     private OrderPaymentRequestedEventConsumer consumer;
 
     @Test
     @DisplayName("정상 이벤트를 수신하면 주문 결제 usecase를 호출한다")
-    void listen_validEvent_callsOrderPaymentUseCase() {
+    void listen_validEvent_callsOrderPaymentUseCase() throws Exception {
         UUID orderId = UUID.randomUUID();
         UUID buyerMemberId = UUID.randomUUID();
         UUID sellerMemberId = UUID.randomUUID();
@@ -65,10 +69,12 @@ class OrderPaymentRequestedEventConsumerTest {
                 null,
                 null
         );
+        String eventJson = "{\"eventId\":\"evt-1\"}";
 
+        given(objectMapper.readValue(eventJson, OrderPaymentRequestedMessage.class)).willReturn(event);
         given(orderPaymentUseCase.payOrder(any(OrderPaymentCommand.class))).willReturn(result);
 
-        consumer.listen(event);
+        consumer.listen(eventJson);
 
         ArgumentCaptor<OrderPaymentCommand> captor = ArgumentCaptor.forClass(OrderPaymentCommand.class);
         verify(orderPaymentUseCase).payOrder(captor.capture());
@@ -86,7 +92,7 @@ class OrderPaymentRequestedEventConsumerTest {
 
     @Test
     @DisplayName("중복 결제 요청도 성공 결과를 재발행한다")
-    void listen_duplicateEvent_publishesSuccessResult() {
+    void listen_duplicateEvent_publishesSuccessResult() throws Exception {
         UUID orderId = UUID.randomUUID();
         UUID buyerMemberId = UUID.randomUUID();
         UUID sellerMemberId = UUID.randomUUID();
@@ -110,9 +116,11 @@ class OrderPaymentRequestedEventConsumerTest {
                 null,
                 null
         );
+        String eventJson = "{\"eventId\":\"evt-1\"}";
+        given(objectMapper.readValue(eventJson, OrderPaymentRequestedMessage.class)).willReturn(event);
         given(orderPaymentUseCase.payOrder(any(OrderPaymentCommand.class))).willReturn(result);
 
-        consumer.listen(event);
+        consumer.listen(eventJson);
 
         ArgumentCaptor<OrderPaymentResultMessage> captor = ArgumentCaptor.forClass(OrderPaymentResultMessage.class);
         verify(orderPaymentResultEventPublisher).publish(captor.capture());
@@ -123,7 +131,7 @@ class OrderPaymentRequestedEventConsumerTest {
 
     @Test
     @DisplayName("wallet 없음 실패는 FAILED 결과 이벤트를 발행한다")
-    void listen_walletNotFound_publishesFailedResult() {
+    void listen_walletNotFound_publishesFailedResult() throws Exception {
         UUID orderId = UUID.randomUUID();
         UUID buyerMemberId = UUID.randomUUID();
         UUID sellerMemberId = UUID.randomUUID();
@@ -136,11 +144,13 @@ class OrderPaymentRequestedEventConsumerTest {
                 10_000L,
                 LocalDateTime.of(2024, 1, 3, 10, 0, 0)
         );
+        String eventJson = "{\"eventId\":\"evt-1\"}";
+        given(objectMapper.readValue(eventJson, OrderPaymentRequestedMessage.class)).willReturn(event);
 
         doThrow(new WalletNotFoundException()).when(orderPaymentUseCase)
                 .payOrder(new OrderPaymentCommand(orderId, buyerMemberId, sellerMemberId, 12_000L, 10_000L, null));
 
-        consumer.listen(event);
+        consumer.listen(eventJson);
 
         ArgumentCaptor<OrderPaymentResultMessage> captor = ArgumentCaptor.forClass(OrderPaymentResultMessage.class);
         verify(orderPaymentResultEventPublisher).publish(captor.capture());
@@ -150,7 +160,7 @@ class OrderPaymentRequestedEventConsumerTest {
 
     @Test
     @DisplayName("buyerMemberId가 없으면 예외가 발생한다")
-    void listen_missingBuyerMemberId_throwsException() {
+    void listen_missingBuyerMemberId_throwsException() throws Exception {
         OrderPaymentRequestedMessage event = new OrderPaymentRequestedMessage(
                 "evt-1",
                 UUID.randomUUID(),
@@ -160,10 +170,13 @@ class OrderPaymentRequestedEventConsumerTest {
                 10_000L,
                 LocalDateTime.of(2024, 1, 3, 10, 0, 0)
         );
+        String eventJson = "{\"eventId\":\"evt-1\"}";
+        given(objectMapper.readValue(eventJson, OrderPaymentRequestedMessage.class)).willReturn(event);
 
-        assertThatThrownBy(() -> consumer.listen(event))
-                .isInstanceOf(InvalidOrderPaymentRequestException.class)
-                .hasMessageContaining("buyerMemberId is required.");
+        assertThatThrownBy(() -> consumer.listen(eventJson))
+                .isInstanceOf(RuntimeException.class)
+                .hasCauseInstanceOf(InvalidOrderPaymentRequestException.class)
+                .hasMessageContaining("Failed to deserialize OrderPaymentRequestedMessage");
 
         verifyNoInteractions(orderPaymentUseCase);
     }

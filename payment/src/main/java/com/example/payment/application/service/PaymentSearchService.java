@@ -28,12 +28,12 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * 프론트 마이페이지에서 필요한 payment 조회 유스케이스를 담당한다.
+ * 모든 조회는 인증 컨텍스트의 memberId 기준으로 본인 데이터만 읽도록 제한한다.
+ */
 @Service
 @Transactional(readOnly = true)
-/**
- * 프론트 마이페이지에서 필요한 payment 조회를 담당한다.
- * 모든 조회는 gateway가 전달한 memberId 기준으로 자기 데이터만 읽도록 제한한다.
- */
 public class PaymentSearchService implements PaymentSearchUseCase {
 
     private static final int MAX_PAGE_SIZE = 100;
@@ -58,10 +58,10 @@ public class PaymentSearchService implements PaymentSearchUseCase {
         this.escrowRepository = escrowRepository;
     }
 
-    @Override
     /**
      * wallet aggregate에서 네비/마이페이지 공통 요약 정보를 꺼낸다.
      */
+    @Override
     public WalletSummaryResult findWalletSummary(UUID memberId) {
         Wallet wallet = findWallet(memberId);
         return new WalletSummaryResult(
@@ -72,10 +72,10 @@ public class PaymentSearchService implements PaymentSearchUseCase {
         );
     }
 
-    @Override
     /**
      * charge 엔티티 목록을 최신 요청 시각 기준으로 페이지 조회한다.
      */
+    @Override
     public PagedResult<ChargeListItemResult> findAllCharges(UUID memberId, int page, int size) {
         Page<Charge> chargePage = chargeRepository.findByMemberId(
                 memberId,
@@ -85,10 +85,10 @@ public class PaymentSearchService implements PaymentSearchUseCase {
         return toPagedResult(chargePage.map(this::toChargeListItemResult));
     }
 
-    @Override
     /**
      * 단건 charge를 본인 소유 여부까지 함께 확인해 상세 응답으로 조립한다.
      */
+    @Override
     public ChargeDetailResult findChargeDetail(UUID memberId, UUID chargeId) {
         Charge charge = chargeRepository.findByChargeIdAndMemberId(chargeId, memberId)
                 .orElseThrow(ChargeNotFoundException::new);
@@ -116,10 +116,10 @@ public class PaymentSearchService implements PaymentSearchUseCase {
         );
     }
 
-    @Override
     /**
      * refund 엔티티를 charge 소유 기준으로 필터링해 목록 응답으로 변환한다.
      */
+    @Override
     public PagedResult<ChargeRefundSummaryResult> findAllRefunds(UUID memberId, int page, int size) {
         Page<ChargeRefund> refundPage = chargeRefundRepository.findByMemberId(
                 memberId,
@@ -129,10 +129,10 @@ public class PaymentSearchService implements PaymentSearchUseCase {
         return toPagedResult(refundPage.map(this::toChargeRefundSummaryResult));
     }
 
-    @Override
     /**
      * wallet 거래 이력을 walletId 기준으로 조회해 프론트 표시용 응답으로 변환한다.
      */
+    @Override
     public PagedResult<WalletTransactionItemResult> findAllTransactions(UUID memberId, int page, int size) {
         Wallet wallet = findWallet(memberId);
         Page<WalletTransaction> transactionPage = walletTransactionRepository.findByWalletId(
@@ -143,10 +143,10 @@ public class PaymentSearchService implements PaymentSearchUseCase {
         return toPagedResult(transactionPage.map(this::toWalletTransactionItemResult));
     }
 
-    @Override
     /**
      * 판매자 wallet에 아직 반영되지 않은 HELD escrow를 목록으로 반환한다.
      */
+    @Override
     public PagedResult<PendingSellerIncomeItemResult> findAllPendingSellerIncomes(UUID memberId, int page, int size) {
         Page<Escrow> escrowPage = escrowRepository.findPendingBySellerMemberId(
                 memberId,
@@ -158,6 +158,7 @@ public class PaymentSearchService implements PaymentSearchUseCase {
 
     /**
      * 모든 wallet 기반 조회의 공통 시작점이다.
+     * wallet 미존재는 비즈니스 예외로 변환해 상위 응답 계층에서 일관되게 처리한다.
      */
     private Wallet findWallet(UUID memberId) {
         return walletRepository.findByMemberId(memberId)
@@ -166,6 +167,9 @@ public class PaymentSearchService implements PaymentSearchUseCase {
 
     /**
      * 목록 조회 공통 페이지 조건을 검증하고 최신순 Pageable을 생성한다.
+     * <p>
+     * 모든 조회 API가 동일한 page/size 정책을 사용하도록 guard를 한 곳에 모아서,
+     * MAX_PAGE_SIZE 초과/음수 입력 같은 비즈니스 규칙을 일괄 적용한다.
      */
     private Pageable createPageRequest(int page, int size, String sortBy) {
         if (page < 0) {

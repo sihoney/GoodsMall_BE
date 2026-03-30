@@ -21,7 +21,6 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.support.ExponentialBackOffWithMaxRetries;
-import org.springframework.kafka.support.serializer.JacksonJsonDeserializer;
 
 /**
  * payment 모듈 Kafka consumer(소비기) 설정을 담당한다.
@@ -124,7 +123,7 @@ public class KafkaConsumerConfig {
     public ConcurrentKafkaListenerContainerFactory<String, SellerSettlementPayoutRequestedMessage>
         sellerSettlementPayoutRequestedKafkaListenerContainerFactory(
             ConsumerFactory<String, SellerSettlementPayoutRequestedMessage> sellerSettlementPayoutRequestedConsumerFactory,
-            KafkaTemplate<String, Object> kafkaTemplate,
+            KafkaTemplate<String, String> kafkaTemplate,
             @Value("${payment.kafka.retry.settlement-payout-requested.dlq-topic:settlement.seller-payout-requested.dlq}") String dlqTopic,
             @Value("${payment.kafka.retry.settlement-payout-requested.initial-interval-ms:1000}") long initialIntervalMs,
             @Value("${payment.kafka.retry.settlement-payout-requested.multiplier:2.0}") double multiplier,
@@ -155,10 +154,7 @@ public class KafkaConsumerConfig {
         props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JacksonJsonDeserializer.class);
-        props.put("spring.json.trusted.packages", "com.example.payment.infrastructure.messaging.kafka.contract");
-        props.put("spring.json.use.type.headers", false);
-        props.put("spring.json.value.default.type", targetType.getName());
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
 
         return new DefaultKafkaConsumerFactory<>(props);
     }
@@ -171,7 +167,7 @@ public class KafkaConsumerConfig {
      * - IllegalArgumentException, WalletNotFoundException: 비재시도 예외로 즉시 DLQ 처리
      */
     private DefaultErrorHandler createPayoutRequestedErrorHandler(
-            KafkaTemplate<String, Object> kafkaTemplate,
+            KafkaTemplate<String, String> kafkaTemplate,
             String dlqTopic,
             long initialIntervalMs,
             double multiplier,

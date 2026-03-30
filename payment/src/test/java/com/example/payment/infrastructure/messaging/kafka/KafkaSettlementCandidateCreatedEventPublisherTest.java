@@ -5,27 +5,35 @@ import static org.mockito.Mockito.verify;
 import com.example.payment.application.event.SettlementCandidateCreatedEvent;
 import com.example.payment.domain.enumtype.ConfirmationType;
 import com.example.payment.infrastructure.messaging.kafka.contract.SettlementCandidateCreatedMessage;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("KafkaSettlementCandidateCreatedEventPublisher 테스트")
 class KafkaSettlementCandidateCreatedEventPublisherTest {
 
     @Mock
-    private org.springframework.kafka.core.KafkaTemplate<String, Object> kafkaTemplate;
+    private org.springframework.kafka.core.KafkaTemplate<String, String> kafkaTemplate;
+
+    @Mock
+    private ObjectMapper objectMapper;
 
     @Test
     @DisplayName("정산 원천 이벤트를 escrowId 키로 Kafka에 발행한다")
-    void publish_sendsEventToKafka() {
+    void publish_sendsEventToKafka() throws Exception {
         String topic = "payment.settlement-candidate-created";
         KafkaSettlementCandidateCreatedEventPublisher publisher =
-                new KafkaSettlementCandidateCreatedEventPublisher(kafkaTemplate, topic);
+                new KafkaSettlementCandidateCreatedEventPublisher(kafkaTemplate, objectMapper, topic);
         UUID eventId = UUID.randomUUID();
         UUID orderId = UUID.randomUUID();
         UUID escrowId = UUID.randomUUID();
@@ -39,18 +47,21 @@ class KafkaSettlementCandidateCreatedEventPublisherTest {
                 ConfirmationType.AUTO,
                 LocalDateTime.of(2024, 1, 1, 12, 0, 1)
         );
+        given(objectMapper.writeValueAsString(org.mockito.ArgumentMatchers.any(SettlementCandidateCreatedMessage.class)))
+                .willReturn("serialized-message");
 
         publisher.publish(event);
 
-        verify(kafkaTemplate).send(topic, String.valueOf(escrowId), new SettlementCandidateCreatedMessage(
-                event.eventId(),
-                event.orderId(),
-                event.escrowId(),
-                event.sellerMemberId(),
-                event.grossAmount(),
-                event.releasedAt(),
-                event.confirmationType(),
-                event.occurredAt()
-        ));
+        ArgumentCaptor<SettlementCandidateCreatedMessage> captor = ArgumentCaptor.forClass(SettlementCandidateCreatedMessage.class);
+        verify(objectMapper).writeValueAsString(captor.capture());
+        assertThat(captor.getValue().eventId()).isEqualTo(event.eventId());
+        assertThat(captor.getValue().orderId()).isEqualTo(event.orderId());
+        assertThat(captor.getValue().escrowId()).isEqualTo(event.escrowId());
+        assertThat(captor.getValue().sellerMemberId()).isEqualTo(event.sellerMemberId());
+        assertThat(captor.getValue().grossAmount()).isEqualTo(event.grossAmount());
+        assertThat(captor.getValue().releasedAt()).isEqualTo(event.releasedAt());
+        assertThat(captor.getValue().confirmationType()).isEqualTo(event.confirmationType());
+        assertThat(captor.getValue().occurredAt()).isEqualTo(event.occurredAt());
+        verify(kafkaTemplate).send(topic, String.valueOf(escrowId), "serialized-message");
     }
 }

@@ -4,9 +4,12 @@ import com.example.payment.application.dto.CreateWalletCommand;
 import com.example.payment.application.usecase.CreateWalletUseCase;
 import com.example.payment.common.exception.InvalidChargeRequestException;
 import com.example.payment.infrastructure.messaging.kafka.contract.MemberCreatedMessage;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 /**
  * 회원 생성 이벤트를 payment wallet 생성 유스케이스로 연결하는 Kafka consumer다.
@@ -15,25 +18,33 @@ import org.springframework.stereotype.Component;
 public class MemberCreatedEventConsumer {
 
     private final CreateWalletUseCase createWalletUseCase;
+    private final ObjectMapper objectMapper;
 
-    public MemberCreatedEventConsumer(CreateWalletUseCase createWalletUseCase) {
+    public MemberCreatedEventConsumer(CreateWalletUseCase createWalletUseCase, ObjectMapper objectMapper) {
         this.createWalletUseCase = createWalletUseCase;
+        this.objectMapper = objectMapper;
     }
 
     @KafkaListener(
-            topics = "${payment.kafka.topics.member-created:member.created}",
+            topics = "${payment.kafka.topics.member-created:member-signed-up}",
             groupId = "${payment.kafka.consumer-groups.member-created:payment-service}",
             containerFactory = "memberCreatedKafkaListenerContainerFactory"
     )
     /**
      * 회원 생성 이벤트를 wallet 생성 요청으로 변환한다.
      */
-    public void listen(MemberCreatedMessage event) {
-        validateEvent(event);
-        createWalletUseCase.createWallet(new CreateWalletCommand(
-                event.memberId(),
-                event.occurredAt()
-        ));
+    public void listen(String eventJson) {
+        try {
+            MemberCreatedMessage event = objectMapper.readValue(eventJson, MemberCreatedMessage.class);
+            validateEvent(event);
+            createWalletUseCase.createWallet(new CreateWalletCommand(
+                    event.memberId(),
+                    event.occurredAt()
+            ));
+        } catch (Exception e) {
+            log.error("Failed to process MemberCreatedMessage", e);
+            throw new RuntimeException("Failed to deserialize MemberCreatedMessage", e);
+        }
     }
 
     /**
