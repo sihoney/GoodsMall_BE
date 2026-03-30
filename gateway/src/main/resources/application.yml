@@ -97,7 +97,7 @@ jwt:
 
 gateway:
   auth:
-    jwt-validation-enabled: ${GATEWAY_JWT_VALIDATION_ENABLED:false}
+    jwt-validation-enabled: ${GATEWAY_JWT_VALIDATION_ENABLED:true}
 
 logging:
   level:
