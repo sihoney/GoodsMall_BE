@@ -6,6 +6,7 @@ import com.example.product.application.usecase.ProductSearchUseCase;
 import com.example.product.application.usecase.ProductUpdateUseCase;
 import com.example.product.presentation.dto.request.ProductCheckRequest;
 import com.example.product.presentation.dto.request.ProductCreateRequest;
+import com.example.product.presentation.dto.request.ProductStatusUpdateRequest;
 import com.example.product.presentation.dto.request.ProductUpdateRequest;
 import com.example.product.presentation.dto.request.StockAdjustmentRequest;
 import com.example.product.presentation.dto.response.ProductAvailabilityResponse;
@@ -234,6 +235,28 @@ public class ProductController {
     ) {
         String sellerId = authenticatedMember.memberId().toString();
         ProductResponse response = productUpdateUseCase.decreaseStock(sellerId, productId, request.quantity());
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "상품 상태 변경",
+            description = "상품의 판매 상태를 변경합니다 (ACTIVE: 판매중, INACTIVE: 판매중지, SOLD_OUT: 품절). 재고가 남아있는 상품은 SOLD_OUT으로 변경할 수 없습니다.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "상태 변경 성공",
+                            content = @Content(schema = @Schema(implementation = ProductResponse.class))),
+                    @ApiResponse(responseCode = "400", description = "잘못된 요청 (재고 있는 상품을 품절로 변경 등)"),
+                    @ApiResponse(responseCode = "403", description = "권한 없음 (판매자 불일치)"),
+                    @ApiResponse(responseCode = "404", description = "상품을 찾을 수 없음")
+            }
+    )
+    @PatchMapping("/{productId}/status")
+    public ResponseEntity<ProductResponse> updateStatus(
+            @CurrentMember AuthenticatedMember authenticatedMember,
+            @PathVariable String productId,
+            @Valid @RequestBody ProductStatusUpdateRequest request
+    ) {
+        String sellerId = authenticatedMember.memberId().toString();
+        ProductResponse response = productUpdateUseCase.updateStatus(sellerId, productId, request.status());
         return ResponseEntity.ok(response);
     }
 }

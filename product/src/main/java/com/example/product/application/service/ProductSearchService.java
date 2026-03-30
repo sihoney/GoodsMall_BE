@@ -79,9 +79,13 @@ public class ProductSearchService implements ProductSearchUseCase {
     }
 
     @Override
+    @Transactional
     public ProductResponse findById(String productId) {
         Product product = productRepository.findById(UUID.fromString(productId))
                 .orElseThrow(ProductNotFoundException::new);
+        product.increaseViewCount();
+        productRepository.save(product);
+
         List<ProductImage> images = productImageRepository.findByProductId(UUID.fromString(productId));
         return buildProductResponse(product, images);
     }

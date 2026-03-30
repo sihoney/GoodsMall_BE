@@ -4,6 +4,7 @@ import com.example.product.application.usecase.ProductUpdateUseCase;
 import com.example.product.common.exception.ProductNotFoundException;
 import com.example.product.domain.entity.Category;
 import com.example.product.domain.entity.Product;
+import com.example.product.domain.enumtype.ProductStatus;
 import com.example.product.domain.repository.CategoryRepository;
 import com.example.product.domain.repository.ProductRepository;
 import com.example.product.presentation.dto.request.ProductUpdateRequest;
@@ -50,6 +51,15 @@ public class ProductUpdateService implements ProductUpdateUseCase {
         Product product = findProduct(productId);
         validateSellerAuthorization(product, sellerId);
         product.decreaseStock(quantity);
+        Product saved = saveProduct(product);
+        return ProductResponse.from(saved);
+    }
+
+    @Override
+    public ProductResponse updateStatus(String sellerId, String productId, ProductStatus status) {
+        Product product = findProduct(productId);
+        validateSellerAuthorization(product, sellerId);
+        product.updateStatus(status);
         Product saved = saveProduct(product);
         return ProductResponse.from(saved);
     }
