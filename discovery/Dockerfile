@@ -4,7 +4,7 @@ WORKDIR /workspace
 
 COPY . .
 
-RUN chmod +x gradlew && ./gradlew :discovery:bootJar --no-daemon
+RUN gradle :discovery:bootJar --no-daemon
 
 FROM eclipse-temurin:21-jre
 

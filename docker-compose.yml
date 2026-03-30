@@ -15,7 +15,7 @@ services:
       timeout: 5s
       retries: 10
     volumes:
-      - goods_mall_postgres_data:/var/lib/postgresql/data
+      - goods_mall_postgres_data:/var/lib/postgresql
       - ./docs/settlement-payment/sql/00_schema_create.sql:/docker-entrypoint-initdb.d/00_schema_create.sql:ro
       - ./docs/settlement-payment/sql/01_ddl_payment.sql:/docker-entrypoint-initdb.d/01_ddl_payment.sql:ro
       - ./docs/settlement-payment/sql/02_ddl_settlement.sql:/docker-entrypoint-initdb.d/02_ddl_settlement.sql:ro
