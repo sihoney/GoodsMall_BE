@@ -48,7 +48,7 @@ toss:
 payment:
   kafka:
     topics:
-      member-created: ${PAYMENT_KAFKA_TOPIC_MEMBER_CREATED:member.created}
+      member-created: ${PAYMENT_KAFKA_TOPIC_MEMBER_CREATED:member-signed-up}
       order-payment-requested: ${PAYMENT_KAFKA_TOPIC_ORDER_PAYMENT_REQUESTED:order.payment-requested}
       order-payment-result: ${PAYMENT_KAFKA_TOPIC_ORDER_PAYMENT_RESULT:payment.order-payment-result}
       order-delivery-completed: ${PAYMENT_KAFKA_TOPIC_ORDER_DELIVERY_COMPLETED:order.delivery-completed}

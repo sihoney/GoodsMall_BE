@@ -26,7 +26,7 @@ public class MemberCreatedEventConsumer {
     }
 
     @KafkaListener(
-            topics = "${payment.kafka.topics.member-created:member.created}",
+            topics = "${payment.kafka.topics.member-created:member-signed-up}",
             groupId = "${payment.kafka.consumer-groups.member-created:payment-service}",
             containerFactory = "memberCreatedKafkaListenerContainerFactory"
     )
