@@ -19,6 +19,8 @@ public record ProductResponse(
         BigDecimal price,
         Integer count,
         ProductStatus status,
+        UUID categoryId,
+        String categoryName,
         LocalDateTime createdAt,
         List<ProductImageResponse> images
 ) {
@@ -31,10 +33,13 @@ public record ProductResponse(
                 product.getPrice(),
                 product.getStockQuantity(),
                 product.getStatus(),
+                product.getCategory().getCategoryId(),
+                product.getCategory().getName(),
                 product.getCreatedAt(),
                 Collections.emptyList()
         );
     }
+
     public static ProductResponse from(Product product, List<ProductImage> images) {
         List<ProductImageResponse> imageResponses = images.stream()
                 .map(ProductImageResponse::from)
@@ -47,6 +52,8 @@ public record ProductResponse(
                 product.getPrice(),
                 product.getStockQuantity(),
                 product.getStatus(),
+                product.getCategory().getCategoryId(),
+                product.getCategory().getName(),
                 product.getCreatedAt(),
                 imageResponses
         );

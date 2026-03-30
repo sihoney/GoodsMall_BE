@@ -14,6 +14,7 @@ public enum ErrorCode {
     //404
     PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "상품을 찾을 수 없습니다"),
     CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "카테고리를 찾을 수 없습니다"),
+    PRODUCT_IMAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "이미지를 찾을 수 없습니다"),
 
     INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, "입력값이 올바르지 않습니다"),
     INVALID_PRICE(HttpStatus.BAD_REQUEST, "가격은 0보다 커야 합니다"),
@@ -22,6 +23,7 @@ public enum ErrorCode {
     SELLER_NOT_AUTHORIZED(HttpStatus.FORBIDDEN, "해당 상품에 대한 권한이 없습니다"),
     UNAUTHORIZED_ROLE(HttpStatus.FORBIDDEN, "해당 작업을 수행할 권한이 없습니다"),
     SELLER_CANNOT_CREATE_ROOT_CATEGORY(HttpStatus.FORBIDDEN, "판매자는 대분류를 생성할 수 없습니다"),
+    IMAGE_NOT_OWNED_BY_PRODUCT(HttpStatus.FORBIDDEN, "해당 상품의 이미지가 아닙니다"),
 
     //409
     PRODUCT_ALREADY_DELETED(HttpStatus.CONFLICT, "이미 삭제된 상품입니다"),

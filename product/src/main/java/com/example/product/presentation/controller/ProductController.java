@@ -10,7 +10,7 @@ import com.example.product.presentation.dto.request.ProductCreateRequest;
 import com.example.product.presentation.dto.request.ProductUpdateRequest;
 import com.example.product.presentation.dto.response.ProductAvailabilityResponse;
 import com.example.product.presentation.dto.response.ProductResponse;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.example.product.presentation.util.MultipartJsonParser;
 import com.todaylunch.common.security.auth.annotation.CurrentMember;
 import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
 import io.swagger.v3.oas.annotations.Operation;
@@ -21,12 +21,8 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Valid;
-import jakarta.validation.Validator;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -56,8 +52,7 @@ public class ProductController {
     private final ProductUpdateUseCase productUpdateUseCase;
     private final ProductDeleteUseCase productDeleteUseCase;
     private final ProductCheckUseCase productCheckUseCase;
-    private final ObjectMapper objectMapper;
-    private final Validator validator;
+    private final MultipartJsonParser jsonParser;
 
     @Operation(
             summary = "상품 등록",
@@ -86,25 +81,10 @@ public class ProductController {
             @Parameter(description = "썸네일 이미지 인덱스 (기본값: 0)", example = "0")
             @RequestParam(value = "thumbnailIndex", required = false, defaultValue = "0") Integer thumbnailIndex
     ) {
-        try {
-            // JSON 문자열을 객체로 변환 (Swagger UI 호환)
-            ProductCreateRequest request = objectMapper.readValue(productDataJson, ProductCreateRequest.class);
-
-            // Validation 수행
-            Set<ConstraintViolation<ProductCreateRequest>> violations = validator.validate(request);
-            if (!violations.isEmpty()) {
-                String errorMessage = violations.stream()
-                        .map(ConstraintViolation::getMessage)
-                        .collect(Collectors.joining(", "));
-                throw new IllegalArgumentException("Validation failed: " + errorMessage);
-            }
-
-            String sellerId = authenticatedMember.memberId().toString();
-            ProductResponse response = productCreateUseCase.createProduct(sellerId, request, images, thumbnailIndex);
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Invalid product data: " + e.getMessage(), e);
-        }
+        ProductCreateRequest request = jsonParser.parseAndValidate(productDataJson, ProductCreateRequest.class);
+        String sellerId = authenticatedMember.memberId().toString();
+        ProductResponse response = productCreateUseCase.createProduct(sellerId, request, images, thumbnailIndex);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     /**

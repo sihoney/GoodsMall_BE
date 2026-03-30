@@ -17,7 +17,7 @@ public interface ProductRepository {
 
     Page<Product> findBySellerId(UUID sellerId, Pageable pageable);
 
-    Product findById(UUID productId);
+    Optional<Product> findById(UUID productId);
 
     Optional<ProductImage> findThumbnailImageByProductId(UUID productId);
 }

@@ -1,6 +1,7 @@
 package com.example.product.application.service;
 
 import com.example.product.application.usecase.ProductImageUploadUseCase;
+import com.example.product.common.exception.ProductNotFoundException;
 import com.example.product.domain.entity.Product;
 import com.example.product.domain.entity.ProductImage;
 import com.example.product.domain.repository.ProductImageRepository;
@@ -34,7 +35,8 @@ public class ProductImageUploadService implements ProductImageUploadUseCase {
             Integer sortOrder,
             Boolean isThumbnail
     ) {
-        Product product = productRepository.findById(productId);
+        Product product = productRepository.findById(productId)
+                .orElseThrow(ProductNotFoundException::new);
         if (product == null) {
             throw new IllegalArgumentException("상품을 찾을 수 없습니다: " + productId);
         }

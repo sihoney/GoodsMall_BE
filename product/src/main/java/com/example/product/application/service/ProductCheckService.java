@@ -37,7 +37,8 @@ public class ProductCheckService implements ProductCheckUseCase {
             throw new IllegalArgumentException("수량은 1개 이상이어야 합니다");
         }
 
-        Product product = productRepository.findById(request.productId());
+        Product product = productRepository.findById(request.productId())
+                .orElseThrow(ProductNotFoundException::new);
 
         // ProductImage에서 썸네일 조회
         String thumbnailKeySnapshot = productRepository.findThumbnailImageByProductId(request.productId())

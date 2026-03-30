@@ -34,4 +34,5 @@ cloud:
 
 logging:
   level:
-    org.springframework.boot.context.config: TRACE
+    root: INFO
+    com.example.product: DEBUG

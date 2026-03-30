@@ -76,6 +76,8 @@ public class ProductCreateService implements ProductCreateUseCase {
                 product.getPrice(),
                 product.getStockQuantity(),
                 product.getStatus(),
+                product.getCategory().getCategoryId(),
+                product.getCategory().getName(),
                 product.getCreatedAt(),
                 imageResponses
         );

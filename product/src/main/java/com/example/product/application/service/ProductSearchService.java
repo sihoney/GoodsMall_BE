@@ -1,6 +1,7 @@
 package com.example.product.application.service;
 
 import com.example.product.application.usecase.ProductSearchUseCase;
+import com.example.product.common.exception.ProductNotFoundException;
 import com.example.product.domain.entity.Product;
 import com.example.product.domain.entity.ProductImage;
 import com.example.product.domain.repository.ProductImageRepository;
@@ -44,13 +45,14 @@ public class ProductSearchService implements ProductSearchUseCase {
     }
     @Override
     public ProductResponse findById(String productId) {
-        Product product = productRepository.findById(UUID.fromString(productId));
+        Product product = productRepository.findById(UUID.fromString(productId))
+                .orElseThrow(ProductNotFoundException::new);
         List<ProductImage> images = productImageRepository.findByProductId(UUID.fromString(productId));
         return buildProductResponse(product, images);
     }
 
     /**
-     * ProductResponse 생성 (Presigned URL 포함)
+     * ProductResponse 생成 (Presigned URL 포함)
      */
     private ProductResponse buildProductResponse(Product product, List<ProductImage> images) {
         List<ProductImageResponse> imageResponses = images.stream()
@@ -67,6 +69,8 @@ public class ProductSearchService implements ProductSearchUseCase {
                 product.getPrice(),
                 product.getStockQuantity(),
                 product.getStatus(),
+                product.getCategory().getCategoryId(),
+                product.getCategory().getName(),
                 product.getCreatedAt(),
                 imageResponses
         );

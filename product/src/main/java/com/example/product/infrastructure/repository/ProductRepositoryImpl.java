@@ -39,8 +39,8 @@ public class ProductRepositoryImpl implements ProductRepository {
     }
 
     @Override
-    public Product findById(UUID productId) {
-        return  jpaRepository.findById(productId).orElseThrow(ProductNotFoundException::new);
+    public Optional<Product> findById(UUID productId) {
+        return jpaRepository.findById(productId);
     }
 
     @Override
