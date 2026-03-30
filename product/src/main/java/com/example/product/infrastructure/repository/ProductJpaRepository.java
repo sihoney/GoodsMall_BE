@@ -31,6 +31,15 @@ public interface ProductJpaRepository extends JpaRepository<Product, UUID> {
             Pageable pageable
     );
 
+    @Query("""
+        SELECT p
+        FROM Product p
+        WHERE p.status = 'ACTIVE'
+          AND p.deletedAt IS NULL
+        ORDER BY p.viewCount DESC, p.createdAt DESC
+        """)
+    Page<Product> findPopularProducts(Pageable pageable);
+
     Page<Product> findBySellerId(UUID sellerId, Pageable pageable);
 
     Optional<Product> findById(UUID productId);

@@ -130,6 +130,20 @@ public class ProductController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(
+            summary = "인기 상품 조회",
+            description = "조회수 기준 인기 상품 목록을 조회합니다 (ACTIVE 상품만). 조회수가 같으면 최신 등록순으로 정렬됩니다.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "조회 성공",
+                            content = @Content(schema = @Schema(implementation = Page.class)))
+            }
+    )
+    @GetMapping("/popular")
+    public ResponseEntity<Page<ProductResponse>> findPopularProducts(Pageable pageable) {
+        Page<ProductResponse> response = productSearchUseCase.findPopularProducts(pageable);
+        return ResponseEntity.ok(response);
+    }
+
     /**
      * 관리자용 전체 상품 조회 API (모든 상태, 페이징)
      *
@@ -257,6 +271,27 @@ public class ProductController {
     ) {
         String sellerId = authenticatedMember.memberId().toString();
         ProductResponse response = productUpdateUseCase.updateStatus(sellerId, productId, request.status());
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "삭제된 상품 복구",
+            description = "소프트 삭제된 상품을 복구합니다. 복구 시 상태는 ACTIVE로 변경됩니다.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "복구 성공",
+                            content = @Content(schema = @Schema(implementation = ProductResponse.class))),
+                    @ApiResponse(responseCode = "400", description = "잘못된 요청 (이미 활성 상품 등)"),
+                    @ApiResponse(responseCode = "403", description = "권한 없음 (판매자 불일치)"),
+                    @ApiResponse(responseCode = "404", description = "상품을 찾을 수 없음")
+            }
+    )
+    @PostMapping("/{productId}/restore")
+    public ResponseEntity<ProductResponse> restoreProduct(
+            @CurrentMember AuthenticatedMember authenticatedMember,
+            @PathVariable String productId
+    ) {
+        String sellerId = authenticatedMember.memberId().toString();
+        ProductResponse response = productUpdateUseCase.restoreProduct(sellerId, productId);
         return ResponseEntity.ok(response);
     }
 }

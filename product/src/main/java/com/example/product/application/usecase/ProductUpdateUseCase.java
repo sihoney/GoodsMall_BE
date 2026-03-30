@@ -9,4 +9,5 @@ public interface ProductUpdateUseCase {
     ProductResponse increaseStock(String sellerId, String productId, Integer quantity);
     ProductResponse decreaseStock(String sellerId, String productId, Integer quantity);
     ProductResponse updateStatus(String sellerId, String productId, ProductStatus status);
+    ProductResponse restoreProduct(String sellerId, String productId);
 }

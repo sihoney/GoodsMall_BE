@@ -67,6 +67,12 @@ public class ProductSearchService implements ProductSearchUseCase {
     }
 
     @Override
+    public Page<ProductResponse> findPopularProducts(Pageable pageable) {
+        Page<Product> products = productRepository.findPopularProducts(pageable);
+        return products.map(ProductResponse::from);
+    }
+
+    @Override
     public Page<ProductResponse> getAllProducts(Pageable pageable) {
         Page<Product> products = productRepository.findAll(pageable);
         return products.map(ProductResponse::from);

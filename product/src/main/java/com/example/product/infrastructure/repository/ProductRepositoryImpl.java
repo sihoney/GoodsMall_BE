@@ -41,6 +41,11 @@ public class ProductRepositoryImpl implements ProductRepository {
     }
 
     @Override
+    public Page<Product> findPopularProducts(Pageable pageable) {
+        return jpaRepository.findPopularProducts(pageable);
+    }
+
+    @Override
     public Page<Product> findBySellerId(UUID sellerId, Pageable pageable) {
         return jpaRepository.findBySellerId(sellerId, pageable);
     }

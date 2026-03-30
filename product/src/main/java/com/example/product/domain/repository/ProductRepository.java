@@ -23,6 +23,8 @@ public interface ProductRepository {
             Pageable pageable
     );
 
+    Page<Product> findPopularProducts(Pageable pageable);
+
     Page<Product> findBySellerId(UUID sellerId, Pageable pageable);
 
     Optional<Product> findById(UUID productId);

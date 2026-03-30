@@ -64,6 +64,15 @@ public class ProductUpdateService implements ProductUpdateUseCase {
         return ProductResponse.from(saved);
     }
 
+    @Override
+    public ProductResponse restoreProduct(String sellerId, String productId) {
+        Product product = findProduct(productId);
+        validateSellerAuthorization(product, sellerId);
+        product.restore();
+        Product saved = saveProduct(product);
+        return ProductResponse.from(saved);
+    }
+
     private Product findProduct(String productId) {
         return productRepository.findById(UUID.fromString(productId))
                 .orElseThrow(ProductNotFoundException::new);

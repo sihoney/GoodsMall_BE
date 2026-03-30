@@ -18,6 +18,8 @@ public interface ProductSearchUseCase {
             Pageable pageable
     );
 
+    Page<ProductResponse> findPopularProducts(Pageable pageable);
+
     Page<ProductResponse> getAllProducts(Pageable pageable);
     Page<ProductResponse> findBySellerId(String sellerId, Pageable pageable);
     ProductResponse findById(String productId);
