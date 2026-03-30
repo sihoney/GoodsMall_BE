@@ -23,10 +23,8 @@ public class ProductUpdateService implements ProductUpdateUseCase {
 
     @Override
     public ProductResponse updateProduct(String sellerId, String productId, ProductUpdateRequest request) {
-        Product product = productRepository.findById(UUID.fromString(productId))
-                .orElseThrow(ProductNotFoundException::new);
-
-        product.validateSeller(UUID.fromString(sellerId));
+        Product product = findProduct(productId);
+        validateSellerAuthorization(product, sellerId);
 
         Category category = categoryRepository.findById(request.categoryId());
 
@@ -34,6 +32,38 @@ public class ProductUpdateService implements ProductUpdateUseCase {
         product.updateCategory(category);
         product.updateStock(request.stockQuantity());
 
-        return ProductResponse.from(product);
+        Product saved = saveProduct(product);
+        return ProductResponse.from(saved);
+    }
+
+    @Override
+    public ProductResponse increaseStock(String sellerId, String productId, Integer quantity) {
+        Product product = findProduct(productId);
+        validateSellerAuthorization(product, sellerId);
+        product.increaseStock(quantity);
+        Product saved = saveProduct(product);
+        return ProductResponse.from(saved);
+    }
+
+    @Override
+    public ProductResponse decreaseStock(String sellerId, String productId, Integer quantity) {
+        Product product = findProduct(productId);
+        validateSellerAuthorization(product, sellerId);
+        product.decreaseStock(quantity);
+        Product saved = saveProduct(product);
+        return ProductResponse.from(saved);
+    }
+
+    private Product findProduct(String productId) {
+        return productRepository.findById(UUID.fromString(productId))
+                .orElseThrow(ProductNotFoundException::new);
+    }
+
+    private void validateSellerAuthorization(Product product, String sellerId) {
+        product.validateSeller(UUID.fromString(sellerId));
+    }
+
+    private Product saveProduct(Product product) {
+        return productRepository.save(product);
     }
 }

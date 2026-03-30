@@ -7,6 +7,7 @@ import com.example.product.application.usecase.ProductUpdateUseCase;
 import com.example.product.presentation.dto.request.ProductCheckRequest;
 import com.example.product.presentation.dto.request.ProductCreateRequest;
 import com.example.product.presentation.dto.request.ProductUpdateRequest;
+import com.example.product.presentation.dto.request.StockAdjustmentRequest;
 import com.example.product.presentation.dto.response.ProductAvailabilityResponse;
 import com.example.product.presentation.dto.response.ProductResponse;
 import com.example.product.presentation.util.MultipartJsonParser;
@@ -29,6 +30,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -189,5 +191,49 @@ public class ProductController {
         String sellerId = authenticatedMember.memberId().toString();
         productDeleteUseCase.deleteProduct(sellerId, productId);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(
+            summary = "재고 증가",
+            description = "상품의 재고를 증가시킵니다 (입고). 재고가 0이었다면 SOLD_OUT → ACTIVE 상태로 자동 전환됩니다.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "재고 증가 성공",
+                            content = @Content(schema = @Schema(implementation = ProductResponse.class))),
+                    @ApiResponse(responseCode = "400", description = "잘못된 요청"),
+                    @ApiResponse(responseCode = "403", description = "권한 없음 (판매자 불일치)"),
+                    @ApiResponse(responseCode = "404", description = "상품을 찾을 수 없음")
+            }
+    )
+    @PatchMapping("/{productId}/stock/increase")
+    public ResponseEntity<ProductResponse> increaseStock(
+            @CurrentMember AuthenticatedMember authenticatedMember,
+            @PathVariable String productId,
+            @Valid @RequestBody StockAdjustmentRequest request
+    ) {
+        String sellerId = authenticatedMember.memberId().toString();
+        ProductResponse response = productUpdateUseCase.increaseStock(sellerId, productId, request.quantity());
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "재고 감소",
+            description = "상품의 재고를 감소시킵니다 (출고, 판매 등). 재고가 부족하면 예외가 발생합니다. 재고가 0이 되면 ACTIVE → SOLD_OUT 상태로 자동 전환됩니다.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "재고 감소 성공",
+                            content = @Content(schema = @Schema(implementation = ProductResponse.class))),
+                    @ApiResponse(responseCode = "400", description = "잘못된 요청 (재고 부족 등)"),
+                    @ApiResponse(responseCode = "403", description = "권한 없음 (판매자 불일치)"),
+                    @ApiResponse(responseCode = "404", description = "상품을 찾을 수 없음")
+            }
+    )
+    @PatchMapping("/{productId}/stock/decrease")
+    public ResponseEntity<ProductResponse> decreaseStock(
+            @CurrentMember AuthenticatedMember authenticatedMember,
+            @PathVariable String productId,
+            @Valid @RequestBody StockAdjustmentRequest request
+    ) {
+        String sellerId = authenticatedMember.memberId().toString();
+        ProductResponse response = productUpdateUseCase.decreaseStock(sellerId, productId, request.quantity());
+        return ResponseEntity.ok(response);
     }
 }
