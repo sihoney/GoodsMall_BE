@@ -30,21 +30,6 @@ public class ProductRepositoryImpl implements ProductRepository {
     }
 
     @Override
-    public Page<Product> findDisplayProducts(Pageable pageable) {
-        return jpaRepository.findDisplayProducts(pageable);
-    }
-
-    @Override
-    public Page<Product> findDisplayProductsByCategoryId(UUID categoryId, Pageable pageable) {
-        return jpaRepository.findDisplayProductsByCategoryId(categoryId, pageable);
-    }
-
-    @Override
-    public Page<Product> findDisplayProductsByCategoryIds(List<UUID> categoryIds, Pageable pageable) {
-        return jpaRepository.findDisplayProductsByCategoryIds(categoryIds, pageable);
-    }
-
-    @Override
     public Page<Product> findDisplayProductsWithFilters(
             List<UUID> categoryIds,
             String keyword,

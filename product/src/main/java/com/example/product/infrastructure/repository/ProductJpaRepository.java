@@ -18,32 +18,6 @@ public interface ProductJpaRepository extends JpaRepository<Product, UUID> {
         FROM Product p
         WHERE p.status = 'ACTIVE'
           AND p.deletedAt IS NULL
-        """)
-    Page<Product> findDisplayProducts(Pageable pageable);
-
-    @Query("""
-        SELECT p
-        FROM Product p
-        WHERE p.category.categoryId = :categoryId
-          AND p.status = 'ACTIVE'
-          AND p.deletedAt IS NULL
-        """)
-    Page<Product> findDisplayProductsByCategoryId(UUID categoryId, Pageable pageable);
-
-    @Query("""
-        SELECT p
-        FROM Product p
-        WHERE p.category.categoryId IN :categoryIds
-          AND p.status = 'ACTIVE'
-          AND p.deletedAt IS NULL
-        """)
-    Page<Product> findDisplayProductsByCategoryIds(@Param("categoryIds") List<UUID> categoryIds, Pageable pageable);
-
-    @Query("""
-        SELECT p
-        FROM Product p
-        WHERE p.status = 'ACTIVE'
-          AND p.deletedAt IS NULL
           AND (:categoryIds IS NULL OR SIZE(:categoryIds) = 0 OR p.category.categoryId IN :categoryIds)
           AND (:keyword IS NULL OR :keyword = '' OR p.title LIKE %:keyword% OR p.description LIKE %:keyword%)
           AND (:minPrice IS NULL OR p.price >= :minPrice)

@@ -15,12 +15,6 @@ public interface ProductRepository {
 
     Page<Product> findAll(Pageable pageable);
 
-    Page<Product> findDisplayProducts(Pageable pageable);
-
-    Page<Product> findDisplayProductsByCategoryId(UUID categoryId, Pageable pageable);
-
-    Page<Product> findDisplayProductsByCategoryIds(List<UUID> categoryIds, Pageable pageable);
-
     Page<Product> findDisplayProductsWithFilters(
             List<UUID> categoryIds,
             String keyword,
