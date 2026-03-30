@@ -16,6 +16,7 @@ services:
       retries: 10
     volumes:
       - goods_mall_postgres_data:/var/lib/postgresql
+      # Temporary bootstrap SQL until Flyway V*.sql files are fully migrated.
       - ./docs/settlement-payment/sql/00_schema_create.sql:/docker-entrypoint-initdb.d/00_schema_create.sql:ro
       - ./docs/settlement-payment/sql/01_ddl_payment.sql:/docker-entrypoint-initdb.d/01_ddl_payment.sql:ro
       - ./docs/settlement-payment/sql/02_ddl_settlement.sql:/docker-entrypoint-initdb.d/02_ddl_settlement.sql:ro
@@ -77,6 +78,23 @@ services:
     ports:
       - "8761:8761"
 
+  db-migration:
+    build:
+      context: .
+      dockerfile: db-migration/Dockerfile
+    container_name: goods-mall-db-migration
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: ${DB_URL}
+      DB_USER_NAME: ${DB_USER_NAME}
+      DB_USER_PASSWORD: ${DB_USER_PASSWORD}
+    restart: "no"
+
   payment:
     build:
       context: .
@@ -89,6 +107,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      db-migration:
+        condition: service_completed_successfully
     environment:
       DB_URL: ${DB_URL}
       DB_USER_NAME: ${DB_USER_NAME}
@@ -115,6 +135,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      db-migration:
+        condition: service_completed_successfully
     environment:
       DB_URL: ${DB_URL}
       DB_USER_NAME: ${DB_USER_NAME}

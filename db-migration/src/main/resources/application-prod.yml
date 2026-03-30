@@ -1,0 +1,25 @@
+spring:
+  config:
+    import: optional:file:.env[.properties]
+  application:
+    name: db-migration
+  main:
+    web-application-type: none
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER_NAME}
+    password: ${DB_USER_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
+    schemas:
+      - payment
+      - settlement
+    locations:
+      - classpath:db/migration
+
+logging:
+  level:
+    org.flywaydb: INFO
