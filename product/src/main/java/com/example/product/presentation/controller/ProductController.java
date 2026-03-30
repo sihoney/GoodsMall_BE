@@ -1,6 +1,5 @@
 package com.example.product.presentation.controller;
 
-import com.example.product.application.usecase.ProductCheckUseCase;
 import com.example.product.application.usecase.ProductCreateUseCase;
 import com.example.product.application.usecase.ProductDeleteUseCase;
 import com.example.product.application.usecase.ProductSearchUseCase;
@@ -51,7 +50,6 @@ public class ProductController {
     private final ProductSearchUseCase productSearchUseCase;
     private final ProductUpdateUseCase productUpdateUseCase;
     private final ProductDeleteUseCase productDeleteUseCase;
-    private final ProductCheckUseCase productCheckUseCase;
     private final MultipartJsonParser jsonParser;
 
     @Operation(
@@ -97,19 +95,25 @@ public class ProductController {
     public ResponseEntity<List<ProductAvailabilityResponse>> checkAvailability(
             @Valid @RequestBody List<ProductCheckRequest> productRequests
     ) {
-        List<ProductAvailabilityResponse> response = productCheckUseCase.checkAvailability(productRequests);
+        List<ProductAvailabilityResponse> response = productSearchUseCase.checkAvailability(productRequests);
         return ResponseEntity.ok(response);
     }
 
     /**
-     * 사용자용 상품 조회 API (ACTIVE 상품만, 페이징) 구매 가능한 상품만 조회
+     * 사용자용 상품 조회 API (ACTIVE 상품만, 페이징)
+     * 구매 가능한 상품만 조회
+     * categoryId가 제공되면 해당 카테고리 + 하위 카테고리의 상품 조회
      *
-     * @param pageable 페이징 정보 (page, size, sort)
+     * @param categoryId 카테고리 ID (선택, null이면 전체 조회)
+     * @param pageable   페이징 정보 (page, size, sort)
      * @return 활성 상품 목록 (200 OK)
      */
     @GetMapping
-    public ResponseEntity<Page<ProductResponse>> findDisplayProducts(Pageable pageable) {
-        Page<ProductResponse> response = productSearchUseCase.findDisplayProducts(pageable);
+    public ResponseEntity<Page<ProductResponse>> findDisplayProducts(
+            @RequestParam(required = false) String categoryId,
+            Pageable pageable
+    ) {
+        Page<ProductResponse> response = productSearchUseCase.findDisplayProductsByCategory(categoryId, pageable);
         return ResponseEntity.ok(response);
     }
 

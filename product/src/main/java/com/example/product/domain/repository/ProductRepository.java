@@ -2,6 +2,7 @@ package com.example.product.domain.repository;
 
 import com.example.product.domain.entity.Product;
 import com.example.product.domain.entity.ProductImage;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -14,6 +15,10 @@ public interface ProductRepository {
     Page<Product> findAll(Pageable pageable);
 
     Page<Product> findDisplayProducts(Pageable pageable);
+
+    Page<Product> findDisplayProductsByCategoryId(UUID categoryId, Pageable pageable);
+
+    Page<Product> findDisplayProductsByCategoryIds(List<UUID> categoryIds, Pageable pageable);
 
     Page<Product> findBySellerId(UUID sellerId, Pageable pageable);
 

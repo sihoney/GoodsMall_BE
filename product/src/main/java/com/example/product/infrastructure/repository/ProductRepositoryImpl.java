@@ -4,6 +4,7 @@ import com.example.product.domain.entity.Product;
 import com.example.product.domain.entity.ProductImage;
 import com.example.product.domain.repository.ProductRepository;
 import com.example.product.common.exception.ProductNotFoundException;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,16 @@ public class ProductRepositoryImpl implements ProductRepository {
     @Override
     public Page<Product> findDisplayProducts(Pageable pageable) {
         return jpaRepository.findDisplayProducts(pageable);
+    }
+
+    @Override
+    public Page<Product> findDisplayProductsByCategoryId(UUID categoryId, Pageable pageable) {
+        return jpaRepository.findDisplayProductsByCategoryId(categoryId, pageable);
+    }
+
+    @Override
+    public Page<Product> findDisplayProductsByCategoryIds(List<UUID> categoryIds, Pageable pageable) {
+        return jpaRepository.findDisplayProductsByCategoryIds(categoryIds, pageable);
     }
 
     @Override

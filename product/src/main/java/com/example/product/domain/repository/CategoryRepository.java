@@ -17,4 +17,6 @@ public interface CategoryRepository {
     List<Category> findByParentId(UUID parentId);
 
     boolean hasChildren(UUID parentId);
+
+    List<UUID> findAllDescendantIds(UUID categoryId);
 }
