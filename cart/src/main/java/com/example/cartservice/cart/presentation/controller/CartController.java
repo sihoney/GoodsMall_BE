@@ -1,6 +1,5 @@
 package com.example.cartservice.cart.presentation.controller;
 
-import com.example.cartservice.cart.application.usecase.CartCreateUseCase;
 import com.example.cartservice.cart.application.usecase.CartDeleteUseCase;
 import com.example.cartservice.cart.application.usecase.CartSearchUseCase;
 import com.example.cartservice.cart.application.usecase.CartUpdateUseCase;
@@ -30,7 +29,6 @@ import org.springframework.web.bind.annotation.RestController;
 @Validated
 public class CartController {
 
-    private final CartCreateUseCase cartCreateUseCase;
     private final CartSearchUseCase cartSearchUseCase;
     private final CartUpdateUseCase cartUpdateUseCase;
     private final CartDeleteUseCase cartDeleteUseCase;

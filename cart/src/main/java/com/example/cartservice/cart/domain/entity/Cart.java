@@ -2,13 +2,9 @@ package com.example.cartservice.cart.domain.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -22,69 +18,57 @@ import lombok.NoArgsConstructor;
 public class Cart {
 
     @Id
-    @Column(name = "id", nullable = false, updatable = false)
-    private UUID id;
+    @Column(name = "cart_item_id", nullable = false, updatable = false)
+    private UUID cartItemId;
 
     @Column(name = "member_id", nullable = false)
     private UUID memberId;
 
-    @OneToMany(mappedBy = "cart", fetch = FetchType.LAZY)
-    private List<CartItem> items = new ArrayList<>();
+    @Column(name = "product_id", nullable = false)
+    private UUID productId;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    @Column(name = "quantity", nullable = false)
+    private Integer quantity;
 
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
+    @Column(name = "added_at", nullable = false, updatable = false)
+    private LocalDateTime addedAt;
 
-    private Cart(UUID memberId) {
-        LocalDateTime now = LocalDateTime.now();
-        this.id = UUID.randomUUID();
-        validateMemberId(memberId);
+    private Cart(UUID memberId, UUID productId, Integer quantity) {
+        this.cartItemId = UUID.randomUUID();
+        validateConstructorParams(memberId, productId, quantity);
         this.memberId = memberId;
-        this.items = new ArrayList<>();
-        this.createdAt = now;
-        this.updatedAt = now;
+        this.productId = productId;
+        this.quantity = quantity;
+        this.addedAt = LocalDateTime.now();
     }
 
-    public static Cart create(UUID memberId) {
-        return new Cart(memberId);
+    public static Cart create(UUID memberId, UUID productId, Integer quantity) {
+        return new Cart(memberId, productId, quantity);
     }
 
-    public void addItem(CartItem item) {
-        validateItem(item);
-        this.items.add(item);
-        updateTimestamp();
+    public void updateQuantity(Integer newQuantity) {
+        validateQuantity(newQuantity);
+        this.quantity = newQuantity;
     }
 
-    public void removeItem(CartItem item) {
-        validateItem(item);
-        this.items.remove(item);
-        updateTimestamp();
+    public void validateOwner(UUID requestMemberId) {
+        if (!this.memberId.equals(requestMemberId)) {
+            throw new IllegalArgumentException("장바구니 소유자만 수정할 수 있습니다");
+        }
     }
 
-    public void clearItems() {
-        this.items.clear();
-        updateTimestamp();
-    }
-
-    public boolean isEmpty() {
-        return this.items.isEmpty();
-    }
-
-    public int getItemCount() {
-        return this.items.size();
-    }
-
-    private void validateMemberId(UUID memberId) {
+    private void validateConstructorParams(UUID memberId, UUID productId, Integer quantity) {
         Objects.requireNonNull(memberId, "회원 ID는 필수입니다");
+        Objects.requireNonNull(productId, "상품 ID는 필수입니다");
+        validateQuantity(quantity);
     }
 
-    private void validateItem(CartItem item) {
-        Objects.requireNonNull(item, "장바구니 항목은 필수입니다");
-    }
-
-    private void updateTimestamp() {
-        this.updatedAt = LocalDateTime.now();
+    private void validateQuantity(Integer quantity) {
+        if (quantity == null) {
+            throw new IllegalArgumentException("수량은 필수입니다");
+        }
+        if (quantity < 1) {
+            throw new IllegalArgumentException("수량은 최소 1개 이상이어야 합니다");
+        }
     }
 }

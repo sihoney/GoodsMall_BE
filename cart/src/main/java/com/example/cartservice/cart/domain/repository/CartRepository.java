@@ -1,6 +1,7 @@
 package com.example.cartservice.cart.domain.repository;
 
 import com.example.cartservice.cart.domain.entity.Cart;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -8,13 +9,17 @@ public interface CartRepository {
 
     Cart save(Cart cart);
 
-    Optional<Cart> findById(UUID cartId);
+    Optional<Cart> findById(UUID cartItemId);
 
-    Optional<Cart> findByMemberId(UUID memberId);
+    List<Cart> findAllByMemberId(UUID memberId);
+
+    Optional<Cart> findByMemberIdAndProductId(UUID memberId, UUID productId);
 
     void delete(Cart cart);
 
-    boolean existsById(UUID cartId);
+    void deleteAllByIdIn(List<UUID> cartItemIds);
 
-    boolean existsByMemberId(UUID memberId);
+    boolean existsById(UUID cartItemId);
+
+    boolean existsByMemberIdAndProductId(UUID memberId, UUID productId);
 }

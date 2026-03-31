@@ -2,6 +2,7 @@ package com.example.cartservice.cart.infrastructure.repository;
 
 import com.example.cartservice.cart.domain.entity.Cart;
 import com.example.cartservice.cart.domain.repository.CartRepository;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -19,13 +20,18 @@ public class CartRepositoryImpl implements CartRepository {
     }
 
     @Override
-    public Optional<Cart> findById(UUID cartId) {
-        return cartJpaRepository.findById(cartId);
+    public Optional<Cart> findById(UUID cartItemId) {
+        return cartJpaRepository.findById(cartItemId);
     }
 
     @Override
-    public Optional<Cart> findByMemberId(UUID memberId) {
-        return cartJpaRepository.findByMemberId(memberId);
+    public List<Cart> findAllByMemberId(UUID memberId) {
+        return cartJpaRepository.findAllByMemberId(memberId);
+    }
+
+    @Override
+    public Optional<Cart> findByMemberIdAndProductId(UUID memberId, UUID productId) {
+        return cartJpaRepository.findByMemberIdAndProductId(memberId, productId);
     }
 
     @Override
@@ -34,12 +40,17 @@ public class CartRepositoryImpl implements CartRepository {
     }
 
     @Override
-    public boolean existsById(UUID cartId) {
-        return cartJpaRepository.existsById(cartId);
+    public void deleteAllByIdIn(List<UUID> cartItemIds) {
+        cartJpaRepository.deleteAllByCartItemIdIn(cartItemIds);
     }
 
     @Override
-    public boolean existsByMemberId(UUID memberId) {
-        return cartJpaRepository.existsByMemberId(memberId);
+    public boolean existsById(UUID cartItemId) {
+        return cartJpaRepository.existsById(cartItemId);
+    }
+
+    @Override
+    public boolean existsByMemberIdAndProductId(UUID memberId, UUID productId) {
+        return cartJpaRepository.existsByMemberIdAndProductId(memberId, productId);
     }
 }
