@@ -77,6 +77,27 @@ spring:
               predicates:
                 - Path=/api/settlements/**
 
+            - id: member-service-docs
+              uri: lb://member-service
+              predicates:
+                - Path=/swagger/member/v3/api-docs
+              filters:
+                - SetPath=/v3/api-docs
+
+            - id: payment-service-docs
+              uri: lb://payment-service
+              predicates:
+                - Path=/swagger/payment/v3/api-docs
+              filters:
+                - SetPath=/v3/api-docs
+
+            - id: settlement-service-docs
+              uri: lb://settlement-service
+              predicates:
+                - Path=/swagger/settlement/v3/api-docs
+              filters:
+                - SetPath=/v3/api-docs
+
             - id: notification-service
               uri: lb://notification-service
               predicates:
@@ -103,3 +124,14 @@ logging:
   level:
     com.todaylunch.gateway: INFO
     org.springframework.cloud.gateway: INFO
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    urls:
+      - name: member-service
+        url: /swagger/member/v3/api-docs
+      - name: payment-service
+        url: /swagger/payment/v3/api-docs
+      - name: settlement-service
+        url: /swagger/settlement/v3/api-docs
