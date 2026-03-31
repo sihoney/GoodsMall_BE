@@ -16,6 +16,6 @@ public class S3Properties {
     private String accessKey;
     private String secretKey;
     private String profileImagePrefix;
-    private String publicBaseUrl;
-    private long presignExpirationSeconds;
+    private long putPresignExpirationSeconds;
+    private long getPresignExpirationSeconds;
 }

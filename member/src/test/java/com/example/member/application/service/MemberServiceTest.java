@@ -15,6 +15,7 @@ import com.example.member.domain.enumtype.MemberStatus;
 import com.example.member.infrastructure.repository.MemberRepository;
 import com.example.member.presentation.dto.CreateMemberRequest;
 import com.example.member.presentation.dto.CreateMemberResponse;
+import com.example.member.presentation.dto.UpdateMemberRequest;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import com.todaylunch.common.security.auth.enumtype.MemberRole;
@@ -120,5 +121,41 @@ class MemberServiceTest {
 
         verify(memberRepository, never()).save(any(Member.class));
         verify(memberEventPublisher, never()).publishMemberSignedUp(any(Member.class));
+    }
+
+    @Test
+    void updateMember_withoutProfileImageKey_keepsExistingProfileImageKey() {
+        UUID memberId = UUID.randomUUID();
+        Member member = Member.create(
+                memberId,
+                "member@test.com",
+                "encoded-password",
+                "tester",
+                null,
+                null,
+                "members/profile/existing.png",
+                MemberRole.USER,
+                MemberStatus.ACTIVE,
+                LocalDateTime.now().minusDays(1),
+                LocalDateTime.now().minusDays(1)
+        );
+        UpdateMemberRequest request = new UpdateMemberRequest(
+                "updated@test.com",
+                "plain-password",
+                "updated-tester",
+                "010-1111-2222",
+                "Seoul",
+                null
+        );
+
+        when(memberRepository.findById(memberId)).thenReturn(java.util.Optional.of(member));
+        when(memberRepository.existsByEmailAndMemberIdNot("updated@test.com", memberId)).thenReturn(false);
+        when(passwordEncoder.encode("plain-password")).thenReturn("new-encoded-password");
+        when(profileImageUrlResolver.resolve("members/profile/existing.png"))
+                .thenReturn("https://cdn.test/members/profile/existing.png");
+
+        memberService.updateMember(memberId, request);
+
+        assertEquals("members/profile/existing.png", member.getProfileImageKey());
     }
 }

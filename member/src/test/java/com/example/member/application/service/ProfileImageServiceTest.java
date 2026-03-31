@@ -19,7 +19,8 @@ class ProfileImageServiceTest {
         s3Properties.setBucket("bucket");
         s3Properties.setRegion("ap-northeast-2");
         s3Properties.setProfileImagePrefix("members/profile");
-        s3Properties.setPresignExpirationSeconds(300);
+        s3Properties.setPutPresignExpirationSeconds(300);
+        s3Properties.setGetPresignExpirationSeconds(600);
         profileImageService = new ProfileImageService(mock(S3Presigner.class), s3Properties);
     }
 

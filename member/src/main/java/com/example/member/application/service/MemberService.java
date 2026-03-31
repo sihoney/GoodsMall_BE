@@ -93,7 +93,9 @@ public class MemberService implements MemberUsecase {
                 normalizeRequired(request.nickname(), "nickname"),
                 normalizeNullable(request.phone()),
                 normalizeNullable(request.address()),
-                normalizeProfileImageKey(request.profileImageKey()),
+                request.profileImageKey() == null // 프로필 이미지 키가 요청에 명시적으로 포함되지 않은 경우 기존 키 유지 / 명시적으로 null인 경우 키 제거 / 유효한 키인 경우 정규화된 키 사용
+                        ? member.getProfileImageKey()
+                        : normalizeProfileImageKey(request.profileImageKey()),
                 LocalDateTime.now()
         );
 

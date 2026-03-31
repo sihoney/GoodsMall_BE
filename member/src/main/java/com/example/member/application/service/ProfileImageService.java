@@ -54,7 +54,7 @@ public class ProfileImageService {
                 .build();
 
         PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
-                .signatureDuration(Duration.ofSeconds(s3Properties.getPresignExpirationSeconds()))
+                .signatureDuration(Duration.ofSeconds(s3Properties.getPutPresignExpirationSeconds()))
                 .putObjectRequest(putObjectRequest)
                 .build();
 
@@ -64,7 +64,7 @@ public class ProfileImageService {
         return new ProfileImagePresignResponse(
                 objectKey,
                 uploadUrl.toString(),
-                s3Properties.getPresignExpirationSeconds()
+                s3Properties.getPutPresignExpirationSeconds()
         );
     }
 
