@@ -15,10 +15,16 @@ spring:
     baseline-on-migrate: true
     baseline-version: 0
     schemas:
+      - member_service
       - payment
       - settlement
     locations:
       - classpath:db/migration
+
+app:
+  seed:
+    enabled: ${DB_SEED_ENABLED:false}
+    locations: ${DB_SEED_LOCATIONS:}
 
 logging:
   level:
