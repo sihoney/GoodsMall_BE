@@ -9,10 +9,14 @@ import org.springframework.data.jpa.repository.Query;
 
 public interface CartJpaRepository extends JpaRepository<Cart, UUID> {
     List<Cart> findAllByMemberId(UUID memberId);
-    Optional<Cart> findByMemberIdAndProductId(UUID memberId, UUID productId);
+
     boolean existsByMemberIdAndProductId(UUID memberId, UUID productId);
-    void deleteAllByCartItemIdIn(List<UUID> cartItemIds);
+
+    void deleteAllByMemberIdAndCartIdIn(UUID memberId, List<UUID> cartIds);
+
     long countByMemberId(UUID memberId);
+
     void deleteAllByMemberId(UUID memberId);
+
     void deleteByMemberIdAndProductIdIn(UUID memberId, List<UUID> productIds);
 }

@@ -12,14 +12,14 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CartItemResponse {
 
-    private UUID cartItemId;
+    private UUID cartId;
     private UUID productId;
     private Integer quantity;
     private LocalDateTime addedAt;
 
     public static CartItemResponse from(Cart cart) {
         return new CartItemResponse(
-            cart.getCartItemId(),
+            cart.getCartId(),
             cart.getProductId(),
             cart.getQuantity(),
             cart.getAddedAt()

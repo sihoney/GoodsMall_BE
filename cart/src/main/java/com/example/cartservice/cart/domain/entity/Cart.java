@@ -18,8 +18,8 @@ import lombok.NoArgsConstructor;
 public class Cart {
 
     @Id
-    @Column(name = "cart_item_id", nullable = false, updatable = false)
-    private UUID cartItemId;
+    @Column(name = "cart_id", nullable = false, updatable = false)
+    private UUID cartId;
 
     @Column(name = "member_id", nullable = false)
     private UUID memberId;
@@ -34,7 +34,7 @@ public class Cart {
     private LocalDateTime addedAt;
 
     private Cart(UUID memberId, UUID productId, Integer quantity) {
-        this.cartItemId = UUID.randomUUID();
+        this.cartId = UUID.randomUUID();
         validateConstructorParams(memberId, productId, quantity);
         this.memberId = memberId;
         this.productId = productId;

@@ -53,9 +53,9 @@ public class CartUpdateService implements CartUpdateUseCase {
 
     @Override
     public CartResponse updateCartItem(UUID memberId,
-                                       UUID cartItemId,
+                                       UUID cartId,
                                        UpdateCartItemRequest request) {
-        Cart cart = findCartItem(cartItemId);
+        Cart cart = findCart(cartId);
         cart.validateOwner(memberId);
         cart.updateQuantity(request.getQuantity());
         cartRepository.save(cart);
@@ -64,8 +64,8 @@ public class CartUpdateService implements CartUpdateUseCase {
         return convertCartResponse(memberId);
     }
 
-    private Cart findCartItem(UUID cartItemId) {
-        return cartRepository.findById(cartItemId)
+    private Cart findCart(UUID cartId) {
+        return cartRepository.findById(cartId)
             .orElseThrow(CartItemNotFoundException::new);
     }
 

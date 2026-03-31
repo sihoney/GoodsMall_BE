@@ -3,7 +3,7 @@ create database cart_db;
 -- Cart 테이블 생성
 CREATE TABLE IF NOT EXISTS cart
 (
-    cart_item_id UUID PRIMARY KEY NOT NULL,
+    cart_id UUID PRIMARY KEY NOT NULL,
     member_id    UUID             NOT NULL,
     product_id   UUID             NOT NULL,
     quantity     INTEGER          NOT NULL CHECK (quantity >= 1),
@@ -19,7 +19,7 @@ CREATE INDEX IF NOT EXISTS idx_cart_added_at ON cart (added_at DESC);
 
 -- Cart 주석
 COMMENT ON TABLE cart IS '장바구니';
-COMMENT ON COLUMN cart.cart_item_id IS '장바구니 항목 ID (UUID)';
+COMMENT ON COLUMN cart.cart_id IS '장바구니 항목 ID (UUID)';
 COMMENT ON COLUMN cart.member_id IS '회원 ID (UUID)';
 COMMENT ON COLUMN cart.product_id IS '상품 ID (UUID)';
 COMMENT ON COLUMN cart.quantity IS '상품 수량';

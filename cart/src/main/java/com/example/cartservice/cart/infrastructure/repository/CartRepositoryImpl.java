@@ -20,8 +20,8 @@ public class CartRepositoryImpl implements CartRepository {
     }
 
     @Override
-    public Optional<Cart> findById(UUID cartItemId) {
-        return cartJpaRepository.findById(cartItemId);
+    public Optional<Cart> findById(UUID cartId) {
+        return cartJpaRepository.findById(cartId);
     }
 
     @Override
@@ -30,23 +30,8 @@ public class CartRepositoryImpl implements CartRepository {
     }
 
     @Override
-    public Optional<Cart> findByMemberIdAndProductId(UUID memberId, UUID productId) {
-        return cartJpaRepository.findByMemberIdAndProductId(memberId, productId);
-    }
-
-    @Override
-    public void delete(Cart cart) {
-        cartJpaRepository.delete(cart);
-    }
-
-    @Override
-    public void deleteAllByIdIn(List<UUID> cartItemIds) {
-        cartJpaRepository.deleteAllByCartItemIdIn(cartItemIds);
-    }
-
-    @Override
-    public boolean existsById(UUID cartItemId) {
-        return cartJpaRepository.existsById(cartItemId);
+    public void deleteAllByMemberIdAndCartIdIn(UUID memberId, List<UUID> cartIds) {
+        cartJpaRepository.deleteAllByMemberIdAndCartIdIn(memberId, cartIds);
     }
 
     @Override

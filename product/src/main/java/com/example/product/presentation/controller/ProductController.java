@@ -24,6 +24,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -99,6 +100,20 @@ public class ProductController {
             @Valid @RequestBody List<ProductCheckRequest> productRequests
     ) {
         List<ProductAvailabilityResponse> response = productSearchUseCase.checkAvailability(productRequests);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 상품 ID 목록으로 상품 조회 API (장바구니/찜 화면 구성용)
+     *
+     * @param productIds 조회할 상품 ID 목록
+     * @return 상품 목록 (200 OK)
+     */
+    @GetMapping("/by-ids")
+    public ResponseEntity<List<ProductResponse>> findProductsByIds(
+            @RequestParam List<UUID> productIds
+    ) {
+        List<ProductResponse> response = productSearchUseCase.findByProductIds(productIds);
         return ResponseEntity.ok(response);
     }
 

@@ -7,5 +7,5 @@ import java.util.UUID;
 
 public interface CartUpdateUseCase {
     CartResponse addCartItem(UUID memberId, AddCartItemRequest request);
-    CartResponse updateCartItem(UUID memberId, UUID cartItemId, UpdateCartItemRequest request);
+    CartResponse updateCartItem(UUID memberId, UUID cartId, UpdateCartItemRequest request);
 }

@@ -9,17 +9,11 @@ public interface CartRepository {
 
     Cart save(Cart cart);
 
-    Optional<Cart> findById(UUID cartItemId);
+    Optional<Cart> findById(UUID cartId);
 
     List<Cart> findAllByMemberId(UUID memberId);
 
-    Optional<Cart> findByMemberIdAndProductId(UUID memberId, UUID productId);
-
-    void delete(Cart cart);
-
-    void deleteAllByIdIn(List<UUID> cartItemIds);
-
-    boolean existsById(UUID cartItemId);
+    void deleteAllByMemberIdAndCartIdIn(UUID memberId, List<UUID> cartIds);
 
     boolean existsByMemberIdAndProductId(UUID memberId, UUID productId);
 

@@ -84,17 +84,17 @@ public class CartController {
      * 장바구니 상품 수량 변경 API
      *
      * @param authenticatedMember 인증된 회원 정보 -> GateWay 전달
-     * @param cartItemId 수량 변경할 장바구니 항목 ID
+     * @param cartId 수량 변경할 장바구니 항목 ID
      * @param request 변경할 수량 (quantity)
      * @return 갱신된 장바구니 (200 OK)
      */
-    @PatchMapping("/items/{cartItemId}")
+    @PatchMapping("/items/{cartId}")
     public ResponseEntity<CartResponse> updateQuantity(
         @CurrentMember AuthenticatedMember authenticatedMember,
-        @PathVariable UUID cartItemId,
+        @PathVariable UUID cartId,
         @Valid @RequestBody UpdateCartItemRequest request
     ) {
-        CartResponse response = cartUpdateUseCase.updateCartItem(authenticatedMember.memberId(), cartItemId, request);
+        CartResponse response = cartUpdateUseCase.updateCartItem(authenticatedMember.memberId(), cartId, request);
         return ResponseEntity.ok(response);
     }
 
