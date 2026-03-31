@@ -1,5 +1,6 @@
 package com.example.order.application.service;
 
+import com.example.order.application.event.OrderCreatedEvent;
 import com.example.order.application.port.ProductPort;
 import com.example.order.application.port.ProductPort.ProductInfo;
 import com.example.order.application.usecase.OrderCreateUseCase;
@@ -9,12 +10,16 @@ import com.example.order.domain.entity.Order;
 import com.example.order.domain.enumtype.ProductOrderStatus;
 import com.example.order.domain.repository.OrderRepository;
 import com.example.order.infrastructure.client.dto.request.ProductRequest;
+import com.example.order.infrastructure.kafka.OrderEventProducer;
 import com.example.order.presentation.dto.request.OrderCreateRequest;
 import com.example.order.presentation.dto.response.OrderCreateResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -27,6 +32,7 @@ public class OrderCreateService implements OrderCreateUseCase {
 
     private final OrderRepository orderRepository;
     private final ProductPort productPort;
+    private final OrderEventProducer orderEventProducer;
 
     /**
      * 주문 생성 처리
@@ -35,6 +41,7 @@ public class OrderCreateService implements OrderCreateUseCase {
      * - 상품 정보 조회 및 존재 여부 검증
      * - 상품 상태(재고, 판매 여부) 검증
      * - Order 및 OrderItem 생성 후 저장
+     * - OrderCreatedEvent 발행
      */
     @Transactional
     @Override
@@ -103,6 +110,37 @@ public class OrderCreateService implements OrderCreateUseCase {
                     product.thumbnailKeySnapshot());
         });
 
-        return OrderCreateResponse.from(orderRepository.save(order));
+        Order savedOrder = orderRepository.save(order);
+        publishOrderCreatedEvent(savedOrder);
+
+        return OrderCreateResponse.from(savedOrder);
+    }
+
+    private void publishOrderCreatedEvent(Order order) {
+        OrderCreatedEvent event = new OrderCreatedEvent(
+                order.getOrderId(),
+                order.getBuyerId(),
+                order.getTotalPrice(),
+                toInstant(order.getCreatedAt()),
+                Instant.now(),
+                order.getItems().stream()
+                        .map(item -> new OrderCreatedEvent.OrderLine(
+                                item.getOrderItemId(),
+                                item.getSellerId(),
+                                item.getUnitPriceSnapshot(),
+                                item.getQuantity(),
+                                item.getTotalPrice(item.getUnitPriceSnapshot(), item.getQuantity())
+                        ))
+                        .toList()
+        );
+
+        orderEventProducer.sendOrderCreated(event);
+    }
+
+    // 서울 시간 -> UTC 시간으로 변환
+    private Instant toInstant(LocalDateTime localDateTime) {
+        return localDateTime
+                .atZone(ZoneId.of("Asia/Seoul"))
+                .toInstant();
     }
 }
