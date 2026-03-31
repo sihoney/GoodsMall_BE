@@ -53,4 +53,19 @@ public class CartRepositoryImpl implements CartRepository {
     public boolean existsByMemberIdAndProductId(UUID memberId, UUID productId) {
         return cartJpaRepository.existsByMemberIdAndProductId(memberId, productId);
     }
+
+    @Override
+    public void deleteAllByMemberId(UUID memberId) {
+        cartJpaRepository.deleteAllByMemberId(memberId);
+    }
+
+    @Override
+    public long countCartItems(UUID memberId) {
+        return cartJpaRepository.countByMemberId(memberId);
+    }
+
+    @Override
+    public void deleteByMemberIdAndProductIdIn(UUID memberId, List<UUID> productIds) {
+        cartJpaRepository.deleteByMemberIdAndProductIdIn(memberId, productIds);
+    }
 }

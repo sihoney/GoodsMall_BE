@@ -9,6 +9,7 @@ import com.example.cartservice.cart.presentation.dto.response.CartItemResponse;
 import com.example.cartservice.cart.presentation.dto.response.CartResponse;
 import com.example.cartservice.cart.presentation.exception.CartItemDuplicateException;
 import com.example.cartservice.cart.presentation.exception.CartItemNotFoundException;
+import com.example.cartservice.cart.presentation.exception.CartLimitExceededException;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -21,53 +22,46 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class CartUpdateService implements CartUpdateUseCase {
 
+    private static final int MAX_CART_ITEMS = 10;
+
     private final CartRepository cartRepository;
 
     @Override
-    public CartResponse addCartItem(UUID memberId, AddCartItemRequest request) {
-        validateAddCartItemParams(memberId, request);
-
-        if (cartRepository.existsByMemberIdAndProductId(memberId, request.getProductId())) {
-            throw new CartItemDuplicateException();
-        }
+    public CartResponse addCartItem(UUID memberId,
+                                    AddCartItemRequest request) {
+        validateDuplicateItem(memberId, request);
+        validateCartItemRange(memberId);
 
         Cart cart = Cart.create(memberId, request.getProductId(), request.getQuantity());
         cartRepository.save(cart);
 
-        return getCartResponse(memberId);
+        return convertCartResponse(memberId);
+    }
+
+    private void validateCartItemRange(UUID memberId) {
+        if (cartRepository.countCartItems(memberId) >= MAX_CART_ITEMS) {
+            throw new CartLimitExceededException();
+        }
+    }
+
+    private void validateDuplicateItem(UUID memberId,
+                                       AddCartItemRequest request) {
+        if (cartRepository.existsByMemberIdAndProductId(memberId, request.getProductId())) {
+            throw new CartItemDuplicateException();
+        }
     }
 
     @Override
-    public CartResponse updateCartItem(UUID memberId, UUID cartItemId, UpdateCartItemRequest request) {
-        validateUpdateCartItemParams(memberId, cartItemId, request);
-
+    public CartResponse updateCartItem(UUID memberId,
+                                       UUID cartItemId,
+                                       UpdateCartItemRequest request) {
         Cart cart = findCartItem(cartItemId);
         cart.validateOwner(memberId);
         cart.updateQuantity(request.getQuantity());
         cartRepository.save(cart);
 
-        return getCartResponse(memberId);
-    }
-
-    private void validateAddCartItemParams(UUID memberId, AddCartItemRequest request) {
-        if (memberId == null) {
-            throw new IllegalArgumentException("회원 ID는 필수입니다");
-        }
-        if (request == null || request.getProductId() == null || request.getQuantity() == null) {
-            throw new IllegalArgumentException("상품 정보는 필수입니다");
-        }
-    }
-
-    private void validateUpdateCartItemParams(UUID memberId, UUID cartItemId, UpdateCartItemRequest request) {
-        if (memberId == null) {
-            throw new IllegalArgumentException("회원 ID는 필수입니다");
-        }
-        if (cartItemId == null) {
-            throw new IllegalArgumentException("장바구니 항목 ID는 필수입니다");
-        }
-        if (request == null || request.getQuantity() == null) {
-            throw new IllegalArgumentException("수량은 필수입니다");
-        }
+        // 다시 해당 회원의 전체 장바구니를 조회해서 반환 하는 형태
+        return convertCartResponse(memberId);
     }
 
     private Cart findCartItem(UUID cartItemId) {
@@ -75,7 +69,7 @@ public class CartUpdateService implements CartUpdateUseCase {
             .orElseThrow(CartItemNotFoundException::new);
     }
 
-    private CartResponse getCartResponse(UUID memberId) {
+    private CartResponse convertCartResponse(UUID memberId) {
         List<Cart> cartItems = cartRepository.findAllByMemberId(memberId);
         List<CartItemResponse> itemResponses = cartItems.stream()
             .map(CartItemResponse::from)

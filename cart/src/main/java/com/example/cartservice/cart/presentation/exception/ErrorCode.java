@@ -19,7 +19,8 @@ public enum ErrorCode {
     MEMBER_NOT_AUTHORIZED(HttpStatus.FORBIDDEN, "해당 장바구니에 접근할 권한이 없습니다"),
 
     // 409
-    CART_ITEM_DUPLICATE(HttpStatus.CONFLICT, "이미 장바구니에 있는 상품입니다");
+    CART_ITEM_DUPLICATE(HttpStatus.CONFLICT, "이미 장바구니에 있는 상품입니다"),
+    CART_LIMIT_EXCEEDED(HttpStatus.CONFLICT, "장바구니에는 최대 10개까지 담을 수 있습니다");
 
     private final HttpStatus httpStatus;
     private final String message;

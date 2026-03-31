@@ -20,9 +20,7 @@ public class CartSearchService implements CartSearchUseCase {
     private final CartRepository cartRepository;
 
     @Override
-    public CartResponse getMyCart(UUID memberId) {
-        validateMemberId(memberId);
-
+    public CartResponse findCart(UUID memberId) {
         List<Cart> cartItems = cartRepository.findAllByMemberId(memberId);
 
         List<CartItemResponse> itemResponses = cartItems.stream()
@@ -30,11 +28,5 @@ public class CartSearchService implements CartSearchUseCase {
             .collect(Collectors.toList());
 
         return CartResponse.of(memberId, itemResponses);
-    }
-
-    private void validateMemberId(UUID memberId) {
-        if (memberId == null) {
-            throw new IllegalArgumentException("회원 ID는 필수입니다");
-        }
     }
 }

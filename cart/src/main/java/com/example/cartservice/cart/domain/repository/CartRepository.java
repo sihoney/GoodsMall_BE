@@ -22,4 +22,10 @@ public interface CartRepository {
     boolean existsById(UUID cartItemId);
 
     boolean existsByMemberIdAndProductId(UUID memberId, UUID productId);
+
+    long countCartItems(UUID memberId);
+
+    void deleteAllByMemberId(UUID memberId);
+
+    void deleteByMemberIdAndProductIdIn(UUID memberId, List<UUID> productIds);
 }
