@@ -1,6 +1,7 @@
-package com.example.order.infrastructure.kafka;
+package com.example.order.infrastructure.kafka.producer;
 
-import com.example.order.application.event.OrderCreatedEvent;
+import com.example.order.infrastructure.kafka.KafkaTopics;
+import com.example.order.infrastructure.kafka.event.OrderCreatedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;

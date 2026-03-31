@@ -1,6 +1,6 @@
 package com.example.order.application.service;
 
-import com.example.order.application.event.OrderCreatedEvent;
+import com.example.order.infrastructure.kafka.event.OrderCreatedEvent;
 import com.example.order.application.port.ProductPort;
 import com.example.order.application.port.ProductPort.ProductInfo;
 import com.example.order.application.usecase.OrderCreateUseCase;
@@ -10,7 +10,7 @@ import com.example.order.domain.entity.Order;
 import com.example.order.domain.enumtype.ProductOrderStatus;
 import com.example.order.domain.repository.OrderRepository;
 import com.example.order.infrastructure.client.dto.request.ProductRequest;
-import com.example.order.infrastructure.kafka.OrderEventProducer;
+import com.example.order.infrastructure.kafka.producer.OrderEventProducer;
 import com.example.order.presentation.dto.request.OrderCreateRequest;
 import com.example.order.presentation.dto.response.OrderCreateResponse;
 import lombok.RequiredArgsConstructor;

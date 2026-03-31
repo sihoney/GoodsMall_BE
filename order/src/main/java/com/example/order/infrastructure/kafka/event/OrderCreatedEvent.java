@@ -1,4 +1,4 @@
-package com.example.order.application.event;
+package com.example.order.infrastructure.kafka.event;
 
 import java.math.BigDecimal;
 import java.time.Instant;
