@@ -36,7 +36,7 @@ public class SecurityConfig {
             .formLogin(FormLoginConfigurer::disable)
             // 인가
             .authorizeHttpRequests(auth -> {
-                auth.requestMatchers("/api/v1/**").permitAll()
+                auth.requestMatchers("/api/**").permitAll()
                     .requestMatchers("/swagger-ui/**").permitAll()
                     .requestMatchers("/swagger-ui.html").permitAll()
                     .requestMatchers("/v3/**").permitAll()
