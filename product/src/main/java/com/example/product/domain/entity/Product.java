@@ -69,12 +69,12 @@ public class Product {
      * 전체 필드 생성자 (테스트 또는 특수 상황용)
      */
     private Product(
-        String sellerId,
-        String title,
-        String description,
-        BigDecimal price,
-        Integer stock_quantity,
-        Category category   // 추가
+            String sellerId,
+            String title,
+            String description,
+            BigDecimal price,
+            Integer stock_quantity,
+            Category category   // 추가
     ) {
         LocalDateTime now = LocalDateTime.now();
         this.productId = UUID.randomUUID();
@@ -92,12 +92,12 @@ public class Product {
     }
 
     public static Product create(
-        String sellerId,
-        String title,
-        String description,
-        BigDecimal price,
-        Integer count,
-        Category category
+            String sellerId,
+            String title,
+            String description,
+            BigDecimal price,
+            Integer count,
+            Category category
     ) {
         return new Product(sellerId, title, description, price, count, category);
     }
@@ -111,7 +111,6 @@ public class Product {
 
     public void updateProductInfo(String title, String description, BigDecimal price) {
         validateTitle(title);
-        validatePrice(price);
         this.title = title;
         this.description = description;
         this.price = price;
@@ -124,7 +123,6 @@ public class Product {
     }
 
     public void updateStock(Integer newStock) {
-        validateStock(newStock);
         this.stockQuantity = newStock;
 
         if (newStock == 0 && this.status == ProductStatus.ACTIVE) {
@@ -136,30 +134,12 @@ public class Product {
         this.updatedAt = LocalDateTime.now();
     }
 
-    /**
-     * 재고 증가 메서드
-     *
-     * @param quantity 증가할 수량 (1 이상)
-     */
     public void increaseStock(Integer quantity) {
-        if (quantity == null || quantity < 1) {
-            throw new IllegalArgumentException("증가할 수량은 1개 이상이어야 합니다");
-        }
-
         int newStock = this.stockQuantity + quantity;
         updateStock(newStock);
     }
 
-    /**
-     * 재고 감소 메서드 (주문 처리용)
-     *
-     * @param quantity 감소할 수량 (1 이상)
-     */
     public void decreaseStock(Integer quantity) {
-        if (quantity == null || quantity < 1) {
-            throw new IllegalArgumentException("감소할 수량은 1개 이상이어야 합니다");
-        }
-
         if (this.stockQuantity < quantity) {
             throw new IllegalArgumentException("재고가 부족합니다");
         }
@@ -210,31 +190,10 @@ public class Product {
         return this.status == ProductStatus.ACTIVE && !isDeleted();
     }
 
-
+    // 도메인 규칙: 상품명 길이 제한
     private void validateTitle(String title) {
-        if (title == null || title.isBlank()) {
-            throw new IllegalArgumentException("상품명은 필수입니다");
-        }
         if (title.length() > 255) {
             throw new IllegalArgumentException("상품명은 255자를 초과할 수 없습니다");
-        }
-    }
-
-    private void validatePrice(BigDecimal price) {
-        if (price == null) {
-            throw new IllegalArgumentException("가격은 필수입니다");
-        }
-        if (price.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("가격은 0보다 커야 합니다");
-        }
-    }
-
-    private void validateStock(Integer stock) {
-        if (stock == null) {
-            throw new IllegalArgumentException("재고는 필수입니다");
-        }
-        if (stock < 0) {
-            throw new IllegalArgumentException("재고는 음수일 수 없습니다");
         }
     }
 }

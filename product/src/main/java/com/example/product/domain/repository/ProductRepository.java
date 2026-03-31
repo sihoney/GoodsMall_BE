@@ -2,6 +2,9 @@ package com.example.product.domain.repository;
 
 import com.example.product.domain.entity.Product;
 import com.example.product.domain.entity.ProductImage;
+import com.example.product.domain.enumtype.ProductStatus;
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -13,11 +16,19 @@ public interface ProductRepository {
 
     Page<Product> findAll(Pageable pageable);
 
-    Page<Product> findDisplayProducts(Pageable pageable);
+    Page<Product> findDisplayProductsWithFilters(
+            List<UUID> categoryIds,
+            String keyword,
+            BigDecimal minPrice,
+            BigDecimal maxPrice,
+            Pageable pageable
+    );
+
+    Page<Product> findPopularProducts(Pageable pageable);
 
     Page<Product> findBySellerId(UUID sellerId, Pageable pageable);
 
-    Product findById(UUID productId);
+    Optional<Product> findById(UUID productId);
 
     Optional<ProductImage> findThumbnailImageByProductId(UUID productId);
 }

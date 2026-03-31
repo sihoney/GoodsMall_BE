@@ -3,6 +3,7 @@ package com.example.product.infrastructure.repository;
 import com.example.product.domain.entity.Category;
 import com.example.product.domain.repository.CategoryRepository;
 import com.example.product.common.exception.CategoryNotFoundException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -36,12 +37,26 @@ public class CategoryRepositoryImpl implements CategoryRepository {
 
     @Override
     public List<Category> findByParentId(UUID parentId) {
-        // sortOrder로 정렬된 하위 카테고리 반환
         return jpaRepository.findByParentIdOrderBySortOrder(parentId);
     }
 
     @Override
     public boolean hasChildren(UUID parentId) {
         return jpaRepository.existsByParent_CategoryIdAndDeletedAtIsNull(parentId);
+    }
+
+    @Override
+    public List<UUID> findAllDescendantIds(UUID categoryId) {
+        List<UUID> descendantIds = new ArrayList<>();
+        collectDescendantIds(categoryId, descendantIds);
+        return descendantIds;
+    }
+
+    private void collectDescendantIds(UUID parentId, List<UUID> result) {
+        List<Category> children = findByParentId(parentId);
+        for (Category child : children) {
+            result.add(child.getCategoryId());
+            collectDescendantIds(child.getCategoryId(), result);
+        }
     }
 }

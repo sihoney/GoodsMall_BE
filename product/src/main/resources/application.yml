@@ -1,6 +1,8 @@
 spring:
   application:
     name: product-service
+  config:
+    import: "optional:file:.env.properties[.properties]"
 
   datasource:
     driver-class-name: org.postgresql.Driver
@@ -20,7 +22,17 @@ spring:
 server:
   port: 8081
 
+cloud:
+  aws:
+    credentials:
+      access-key: ${AWS_ACCESS_KEY}
+      secret-key: ${AWS_SECRET_KEY}
+    region:
+      static: ap-northeast-2
+    s3:
+      bucket: ${AWS_S3_BUCKET}
+
 logging:
   level:
+    root: INFO
     com.example.product: DEBUG
-    org.hibernate.SQL: DEBUG

@@ -38,17 +38,14 @@ public class ProductAvailabilityResponse {
     }
 
     private static ProductOrderStatus determineOrderStatus(Product product, Integer requestedQuantity) {
-        // 판매 불가 상태 (INACTIVE 또는 삭제된 상품)
         if (!product.isActive()) {
             return ProductOrderStatus.NOT_FOR_SALE;
         }
 
-        // 재고 부족
         if (product.getStockQuantity() < requestedQuantity) {
             return ProductOrderStatus.INSUFFICIENT_STOCK;
         }
 
-        // 구매 가능
         return ProductOrderStatus.ORDERABLE;
     }
 }
