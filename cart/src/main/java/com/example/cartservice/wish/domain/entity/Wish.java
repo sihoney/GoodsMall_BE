@@ -1,5 +1,6 @@
 package com.example.cartservice.wish.domain.entity;
 
+import com.example.cartservice.wish.presentation.exception.MemberNotAuthorizedException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -51,5 +52,11 @@ public class Wish {
     private void validateConstructorParams(UUID memberId, UUID productId) {
         Objects.requireNonNull(memberId, "회원 ID는 필수입니다");
         Objects.requireNonNull(productId, "상품 ID는 필수입니다");
+    }
+
+    public void validateWishOwner(UUID memberId) {
+        if (!this.getMemberId().equals(memberId)) {
+            throw new MemberNotAuthorizedException();
+        }
     }
 }

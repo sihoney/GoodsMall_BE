@@ -4,5 +4,5 @@ import com.example.cartservice.cart.presentation.dto.response.CartResponse;
 import java.util.UUID;
 
 public interface CartSearchUseCase {
-    CartResponse getMyCart(UUID memberId);
+    CartResponse findCart(UUID memberId);
 }

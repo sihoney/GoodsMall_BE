@@ -30,11 +30,6 @@ public class WishRepositoryImpl implements WishRepository {
     }
 
     @Override
-    public Optional<Wish> findByMemberIdAndProductId(UUID memberId, UUID productId) {
-        return wishJpaRepository.findByMemberIdAndProductId(memberId, productId);
-    }
-
-    @Override
     public void delete(Wish wish) {
         wishJpaRepository.delete(wish);
     }
@@ -45,17 +40,7 @@ public class WishRepositoryImpl implements WishRepository {
     }
 
     @Override
-    public boolean existsById(UUID wishId) {
-        return wishJpaRepository.existsById(wishId);
-    }
-
-    @Override
     public boolean existsByMemberIdAndProductId(UUID memberId, UUID productId) {
         return wishJpaRepository.existsByMemberIdAndProductId(memberId, productId);
-    }
-
-    @Override
-    public long countByMemberId(UUID memberId) {
-        return wishJpaRepository.countByMemberId(memberId);
     }
 }

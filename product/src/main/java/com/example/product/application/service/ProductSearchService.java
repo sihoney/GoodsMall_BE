@@ -106,6 +106,14 @@ public class ProductSearchService implements ProductSearchUseCase {
                 .toList();
     }
 
+    @Override
+    public List<ProductResponse> findByProductIds(List<UUID> productIds) {
+        List<Product> products = productRepository.findAllByProductIdIn(productIds);
+        return products.stream()
+                .map(ProductResponse::from)
+                .toList();
+    }
+
     private ProductAvailabilityResponse checkSingleProduct(ProductCheckRequest request) {
         Product product = productRepository.findById(request.productId())
                 .orElseThrow(ProductNotFoundException::new);

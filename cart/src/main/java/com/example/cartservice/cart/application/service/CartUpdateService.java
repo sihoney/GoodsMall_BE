@@ -2,16 +2,17 @@ package com.example.cartservice.cart.application.service;
 
 import com.example.cartservice.cart.application.usecase.CartUpdateUseCase;
 import com.example.cartservice.cart.domain.entity.Cart;
-import com.example.cartservice.cart.domain.entity.CartItem;
-import com.example.cartservice.cart.domain.repository.CartItemRepository;
 import com.example.cartservice.cart.domain.repository.CartRepository;
 import com.example.cartservice.cart.presentation.dto.request.AddCartItemRequest;
 import com.example.cartservice.cart.presentation.dto.request.UpdateCartItemRequest;
+import com.example.cartservice.cart.presentation.dto.response.CartItemResponse;
 import com.example.cartservice.cart.presentation.dto.response.CartResponse;
+import com.example.cartservice.cart.presentation.exception.CartItemDuplicateException;
 import com.example.cartservice.cart.presentation.exception.CartItemNotFoundException;
-import com.example.cartservice.cart.presentation.exception.CartNotFoundException;
-import com.example.cartservice.cart.presentation.exception.MemberNotAuthorizedException;
+import com.example.cartservice.cart.presentation.exception.CartLimitExceededException;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,65 +22,58 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class CartUpdateService implements CartUpdateUseCase {
 
+    private static final int MAX_CART_ITEMS = 10;
+
     private final CartRepository cartRepository;
-    private final CartItemRepository cartItemRepository;
 
     @Override
-    public CartResponse addCartItem(UUID memberId, AddCartItemRequest request) {
-        if (memberId == null) {
-            throw new IllegalArgumentException("회원 ID는 필수입니다");
-        }
-        if (request == null || request.getProductId() == null || request.getQuantity() == null) {
-            throw new IllegalArgumentException("상품 정보는 필수입니다");
-        }
+    public CartResponse addCartItem(UUID memberId,
+                                    AddCartItemRequest request) {
+        validateDuplicateItem(memberId, request);
+        validateCartItemRange(memberId);
 
-        Cart cart = cartRepository.findByMemberId(memberId)
-            .orElseGet(() -> cartRepository.save(Cart.create(memberId)));
-
-        CartItem existingItem = cartItemRepository.findByCartIdAndProductId(cart.getId(), request.getProductId())
-            .orElse(null);
-
-        if (existingItem != null) {
-            existingItem.updateQuantity(existingItem.getQuantity() + request.getQuantity());
-            cartItemRepository.save(existingItem);
-            return CartResponse.from(cart);
-        }
-
-        CartItem newItem = CartItem.create(cart, request.getProductId(), request.getQuantity());
-        cart.addItem(newItem);
-        cartItemRepository.save(newItem);
+        Cart cart = Cart.create(memberId, request.getProductId(), request.getQuantity());
         cartRepository.save(cart);
 
-        return CartResponse.from(cart);
+        return convertCartResponse(memberId);
+    }
+
+    private void validateCartItemRange(UUID memberId) {
+        if (cartRepository.countCartItems(memberId) >= MAX_CART_ITEMS) {
+            throw new CartLimitExceededException();
+        }
+    }
+
+    private void validateDuplicateItem(UUID memberId,
+                                       AddCartItemRequest request) {
+        if (cartRepository.existsByMemberIdAndProductId(memberId, request.getProductId())) {
+            throw new CartItemDuplicateException();
+        }
     }
 
     @Override
-    public CartResponse updateCartItem(UUID memberId, UUID cartItemId, UpdateCartItemRequest request) {
-        if (memberId == null) {
-            throw new IllegalArgumentException("회원 ID는 필수입니다");
-        }
-        if (cartItemId == null) {
-            throw new IllegalArgumentException("장바구니 항목 ID는 필수입니다");
-        }
-        if (request == null || request.getQuantity() == null) {
-            throw new IllegalArgumentException("수량은 필수입니다");
-        }
+    public CartResponse updateCartItem(UUID memberId,
+                                       UUID cartId,
+                                       UpdateCartItemRequest request) {
+        Cart cart = findCart(cartId);
+        cart.validateOwner(memberId);
+        cart.updateQuantity(request.getQuantity());
+        cartRepository.save(cart);
 
-        CartItem cartItem = cartItemRepository.findById(cartItemId)
-            .orElseThrow(CartItemNotFoundException::new);
-
-        Cart cart = cartItem.getCart();
-        validateCartOwnership(cart, memberId);
-
-        cartItem.updateQuantity(request.getQuantity());
-        cartItemRepository.save(cartItem);
-
-        return CartResponse.from(cart);
+        // 다시 해당 회원의 전체 장바구니를 조회해서 반환 하는 형태
+        return convertCartResponse(memberId);
     }
 
-    private void validateCartOwnership(Cart cart, UUID memberId) {
-        if (!cart.getMemberId().equals(memberId)) {
-            throw new MemberNotAuthorizedException();
-        }
+    private Cart findCart(UUID cartId) {
+        return cartRepository.findById(cartId)
+            .orElseThrow(CartItemNotFoundException::new);
+    }
+
+    private CartResponse convertCartResponse(UUID memberId) {
+        List<Cart> cartItems = cartRepository.findAllByMemberId(memberId);
+        List<CartItemResponse> itemResponses = cartItems.stream()
+            .map(CartItemResponse::from)
+            .collect(Collectors.toList());
+        return CartResponse.of(memberId, itemResponses);
     }
 }

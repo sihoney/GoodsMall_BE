@@ -15,10 +15,7 @@ public enum ErrorCode {
     WISH_NOT_FOUND(HttpStatus.NOT_FOUND, "찜을 찾을 수 없습니다"),
 
     // 403
-    MEMBER_NOT_AUTHORIZED(HttpStatus.FORBIDDEN, "해당 찜에 접근할 권한이 없습니다"),
-
-    // 409
-    WISH_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 찜한 상품입니다");
+    MEMBER_NOT_AUTHORIZED(HttpStatus.FORBIDDEN, "해당 찜에 접근할 권한이 없습니다");
 
     private final HttpStatus httpStatus;
     private final String message;

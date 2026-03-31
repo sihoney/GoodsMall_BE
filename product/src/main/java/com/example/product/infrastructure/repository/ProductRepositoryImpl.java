@@ -62,6 +62,11 @@ public class ProductRepositoryImpl implements ProductRepository {
     }
 
     @Override
+    public List<Product> findAllByProductIdIn(List<UUID> productIds) {
+        return jpaRepository.findAllByProductIdIn(productIds);
+    }
+
+    @Override
     public Optional<ProductImage> findThumbnailImageByProductId(UUID productId) {
         return imageJpaRepository.findThumbnailByProductId(productId);
     }

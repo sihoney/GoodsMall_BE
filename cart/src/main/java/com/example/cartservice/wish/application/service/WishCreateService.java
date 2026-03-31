@@ -18,13 +18,6 @@ public class WishCreateService implements WishCreateUseCase {
 
     @Override
     public WishToggleResponse toggleWish(UUID memberId, UUID productId) {
-        if (memberId == null) {
-            throw new IllegalArgumentException("회원 ID는 필수입니다");
-        }
-        if (productId == null) {
-            throw new IllegalArgumentException("상품 ID는 필수입니다");
-        }
-
         if (wishRepository.existsByMemberIdAndProductId(memberId, productId)) {
             wishRepository.deleteByMemberIdAndProductId(memberId, productId);
             return new WishToggleResponse(false);
