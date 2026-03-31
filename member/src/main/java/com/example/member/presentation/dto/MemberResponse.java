@@ -19,14 +19,14 @@ public record MemberResponse(
         LocalDateTime updatedAt
 ) {
 
-    public static MemberResponse from(Member member) {
+    public static MemberResponse from(Member member, String profileImageUrl) {
         return new MemberResponse(
                 member.getMemberId(),
                 member.getEmail(),
                 member.getNickname(),
                 member.getPhone(),
                 member.getAddress(),
-                member.getProfileImageUrl(),
+                profileImageUrl,
                 member.getRole(),
                 member.getStatus(),
                 member.getCreatedAt(),

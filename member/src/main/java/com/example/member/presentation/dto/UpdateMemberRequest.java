@@ -6,6 +6,6 @@ public record UpdateMemberRequest(
         String nickname,
         String phone,
         String address,
-        String profileImageUrl
+        String profileImageKey
 ) {
 }

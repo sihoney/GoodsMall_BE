@@ -43,7 +43,7 @@ class MemberTest {
         assertEquals("after-nickname", member.getNickname());
         assertEquals("010-9999-9999", member.getPhone());
         assertEquals("New address", member.getAddress());
-        assertEquals("new-image", member.getProfileImageUrl());
+        assertEquals("new-image", member.getProfileImageKey());
         assertEquals(updatedAt, member.getUpdatedAt());
     }
 }

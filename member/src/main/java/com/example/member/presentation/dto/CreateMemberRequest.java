@@ -8,7 +8,7 @@ public record CreateMemberRequest(
         String nickname,
         String phone,
         String address,
-        String profileImageUrl,
+        String profileImageKey,
         MemberRole role
 ) {
 }

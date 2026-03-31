@@ -9,7 +9,7 @@ public record MemberCreateCommand(
         String nickname,
         String phone,
         String address,
-        String profileImageUrl,
+        String profileImageKey,
         MemberRole role
 ) {
 
@@ -20,7 +20,7 @@ public record MemberCreateCommand(
                 request.nickname(),
                 request.phone(),
                 request.address(),
-                request.profileImageUrl(),
+                request.profileImageKey(),
                 request.role()
         );
     }

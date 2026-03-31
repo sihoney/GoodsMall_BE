@@ -15,11 +15,11 @@ public record CreateMemberResponse(
         LocalDateTime createdAt
 ) {
 
-    public static CreateMemberResponse from(Member member) {
+    public static CreateMemberResponse from(Member member, String profileImageUrl) {
         return new CreateMemberResponse(
                 member.getMemberId(),
                 member.getNickname(),
-                member.getProfileImageUrl(),
+                profileImageUrl,
                 member.getRole(),
                 member.getStatus(),
                 member.getCreatedAt()

@@ -55,6 +55,16 @@ eureka:
     service-url:
       defaultZone: http://localhost:8761/eureka/
 
+aws:
+  s3:
+    bucket: ${AWS_S3_BUCKET:todaylunch-local}
+    region: ${AWS_REGION:ap-northeast-2}
+    access-key: ${AWS_ACCESS_KEY_ID:test-access-key}
+    secret-key: ${AWS_SECRET_ACCESS_KEY:test-secret-key}
+    profile-image-prefix: ${AWS_S3_PROFILE_IMAGE_PREFIX:members/profile}
+    put-presign-expiration-seconds: ${AWS_S3_PUT_PRESIGN_EXPIRATION_SECONDS:300}
+    get-presign-expiration-seconds: ${AWS_S3_GET_PRESIGN_EXPIRATION_SECONDS:600}
+
 member:
   kafka:
     topic:

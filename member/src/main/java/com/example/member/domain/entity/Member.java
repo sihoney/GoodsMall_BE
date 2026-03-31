@@ -43,8 +43,8 @@ public class Member {
     @Column(name = "address")
     private String address;
 
-    @Column(name = "profile_image_url")
-    private String profileImageUrl;
+    @Column(name = "profile_image_key")
+    private String profileImageKey;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false)
@@ -67,7 +67,7 @@ public class Member {
         String nickname,
         String phone,
         String address,
-        String profileImageUrl,
+        String profileImageKey,
         MemberRole role,
         MemberStatus status,
         LocalDateTime createdAt,
@@ -79,7 +79,7 @@ public class Member {
         this.nickname = Objects.requireNonNull(nickname);
         this.phone = phone;
         this.address = address;
-        this.profileImageUrl = profileImageUrl;
+        this.profileImageKey = profileImageKey;
         this.role = Objects.requireNonNull(role);
         this.status = Objects.requireNonNull(status);
         this.createdAt = Objects.requireNonNull(createdAt);
@@ -93,7 +93,7 @@ public class Member {
         String nickname,
         String phone,
         String address,
-        String profileImageUrl,
+        String profileImageKey,
         MemberRole role,
         MemberStatus status,
         LocalDateTime createdAt,
@@ -106,7 +106,7 @@ public class Member {
             nickname,
             phone,
             address,
-            profileImageUrl,
+            profileImageKey,
             role,
             status,
             createdAt,
@@ -125,7 +125,7 @@ public class Member {
         String nickname,
         String phone,
         String address,
-        String profileImageUrl,
+        String profileImageKey,
         LocalDateTime updatedAt
     ) {
         this.email = Objects.requireNonNull(email);
@@ -133,14 +133,14 @@ public class Member {
         this.nickname = Objects.requireNonNull(nickname);
         this.phone = phone;
         this.address = address;
-        this.profileImageUrl = profileImageUrl;
+        this.profileImageKey = profileImageKey;
         this.updatedAt = Objects.requireNonNull(updatedAt);
     }
 
-    public void updateProfile(String phone, String address, String profileImageUrl, LocalDateTime updatedAt) {
+    public void updateProfile(String phone, String address, String profileImageKey, LocalDateTime updatedAt) {
         this.phone = phone;
         this.address = address;
-        this.profileImageUrl = profileImageUrl;
+        this.profileImageKey = profileImageKey;
         this.updatedAt = Objects.requireNonNull(updatedAt);
     }
 
