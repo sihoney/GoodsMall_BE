@@ -36,3 +36,12 @@ logging:
   level:
     root: INFO
     com.example.product: DEBUG
+
+eureka:
+  client:
+    service-url:
+      ## Docker 컨테이너의 호스트명은 랜덤 ID라 다른 서비스가 찾을 수 없기 때문에 IP로 등록
+      defaultZone: ${EUREKA_DEFAULT_ZONE:http://localhost:8761/eureka}
+  instance:
+    prefer-ip-address: true
+
