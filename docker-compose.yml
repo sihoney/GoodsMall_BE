@@ -16,11 +16,8 @@ services:
       retries: 10
     volumes:
       - goods_mall_postgres_data:/var/lib/postgresql
-      # Temporary bootstrap SQL until Flyway V*.sql files are fully migrated.
-      - ./docs/settlement-payment/sql/00_schema_create.sql:/docker-entrypoint-initdb.d/00_schema_create.sql:ro
-      - ./docs/settlement-payment/sql/01_ddl_payment.sql:/docker-entrypoint-initdb.d/01_ddl_payment.sql:ro
-      - ./docs/settlement-payment/sql/02_ddl_settlement.sql:/docker-entrypoint-initdb.d/02_ddl_settlement.sql:ro
-      - ./docs/settlement-payment/sql/03_seed_data.sql:/docker-entrypoint-initdb.d/03_seed_data.sql:ro
+      # 스키마 기준은 Flyway로 단일화합니다. seed SQL은 로컬 테스트 시 수동 실행용으로만 사용합니다.
+      - ./db-migration/src/main/resources/db/seed/dev_seed_payment_settlement.sql:/opt/seed/dev_seed_payment_settlement.sql:ro
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
