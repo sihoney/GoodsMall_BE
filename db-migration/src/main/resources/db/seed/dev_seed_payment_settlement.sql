@@ -1,3 +1,7 @@
+-- 개발/테스트 전용 seed 스크립트입니다.
+-- Flyway 적용이 끝난 뒤, 로컬 검증에 샘플 데이터가 필요할 때만 수동 실행해 주세요.
+-- 운영 배포 migration 경로에는 이 파일을 포함하지 않습니다.
+
 INSERT INTO payment.wallet (wallet_id, member_id, balance, updated_at, created_at)
 VALUES
     ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1',
