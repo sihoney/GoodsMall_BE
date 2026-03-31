@@ -4,6 +4,7 @@ import com.example.product.application.usecase.ProductSearchUseCase;
 import com.example.product.common.exception.ProductNotFoundException;
 import com.example.product.domain.entity.Product;
 import com.example.product.domain.entity.ProductImage;
+import com.example.product.domain.enumtype.ProductStatus;
 import com.example.product.domain.repository.CategoryRepository;
 import com.example.product.domain.repository.ProductImageRepository;
 import com.example.product.domain.repository.ProductRepository;
@@ -63,7 +64,9 @@ public class ProductSearchService implements ProductSearchUseCase {
         List<UUID> categoryIds = new ArrayList<>();
         categoryIds.add(categoryUuid);
         categoryIds.addAll(categoryRepository.findAllDescendantIds(categoryUuid));
-        return categoryIds;
+
+        // 빈 리스트는 null로 변환 (JPQL IN 절 처리를 위해)
+        return categoryIds.isEmpty() ? null : categoryIds;
     }
 
     @Override

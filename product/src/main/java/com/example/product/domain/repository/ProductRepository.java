@@ -2,6 +2,7 @@ package com.example.product.domain.repository;
 
 import com.example.product.domain.entity.Product;
 import com.example.product.domain.entity.ProductImage;
+import com.example.product.domain.enumtype.ProductStatus;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;

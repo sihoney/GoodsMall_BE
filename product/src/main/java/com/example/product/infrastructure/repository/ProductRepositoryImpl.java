@@ -2,6 +2,7 @@ package com.example.product.infrastructure.repository;
 
 import com.example.product.domain.entity.Product;
 import com.example.product.domain.entity.ProductImage;
+import com.example.product.domain.enumtype.ProductStatus;
 import com.example.product.domain.repository.ProductRepository;
 import java.math.BigDecimal;
 import java.util.List;
@@ -37,7 +38,12 @@ public class ProductRepositoryImpl implements ProductRepository {
             BigDecimal maxPrice,
             Pageable pageable
     ) {
-        return jpaRepository.findDisplayProductsWithFilters(categoryIds, keyword, minPrice, maxPrice, pageable);
+        return jpaRepository.findDisplayProductsWithFilters(categoryIds,
+                                                            keyword,
+                                                            minPrice,
+                                                            maxPrice,
+                                                            ProductStatus.ACTIVE,
+                                                            pageable);
     }
 
     @Override
