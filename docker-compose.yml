@@ -100,6 +100,8 @@ services:
     env_file:
       - .env
     depends_on:
+      discovery:
+        condition: service_started
       postgres:
         condition: service_healthy
       kafka:
@@ -111,6 +113,8 @@ services:
       DB_USER_NAME: ${DB_USER_NAME}
       DB_USER_PASSWORD: ${DB_USER_PASSWORD}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
+      EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
+      EUREKA_INSTANCE_IP: ${EUREKA_INSTANCE_IP}
       TOSS_PAYMENTS_BASE_URL: ${TOSS_PAYMENTS_BASE_URL}
       TOSS_PAYMENTS_CLIENT_KEY: ${TOSS_PAYMENTS_CLIENT_KEY}
       TOSS_PAYMENTS_SECRET_KEY: ${TOSS_PAYMENTS_SECRET_KEY}
@@ -128,6 +132,8 @@ services:
     env_file:
       - .env
     depends_on:
+      discovery:
+        condition: service_started
       postgres:
         condition: service_healthy
       kafka:
@@ -139,6 +145,8 @@ services:
       DB_USER_NAME: ${DB_USER_NAME}
       DB_USER_PASSWORD: ${DB_USER_PASSWORD}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
+      EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
+      EUREKA_INSTANCE_IP: ${EUREKA_INSTANCE_IP}
     ports:
       - "8085:8085"
 

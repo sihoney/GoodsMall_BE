@@ -13,15 +13,9 @@ public interface WishRepository {
 
     List<Wish> findByMemberId(UUID memberId);
 
-    Optional<Wish> findByMemberIdAndProductId(UUID memberId, UUID productId);
-
     void delete(Wish wish);
 
     void deleteByMemberIdAndProductId(UUID memberId, UUID productId);
 
-    boolean existsById(UUID wishId);
-
     boolean existsByMemberIdAndProductId(UUID memberId, UUID productId);
-
-    long countByMemberId(UUID memberId);
 }

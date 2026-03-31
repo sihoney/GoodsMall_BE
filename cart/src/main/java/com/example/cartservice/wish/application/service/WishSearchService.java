@@ -19,11 +19,7 @@ public class WishSearchService implements WishSearchUseCase {
     private final WishRepository wishRepository;
 
     @Override
-    public WishListResponse getMyWishes(UUID memberId) {
-        if (memberId == null) {
-            throw new IllegalArgumentException("회원 ID는 필수입니다");
-        }
-
+    public WishListResponse findWishes(UUID memberId) {
         List<Wish> wishes = wishRepository.findByMemberId(memberId);
         List<UUID> productIds = wishes.stream()
             .map(Wish::getProductId)

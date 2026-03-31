@@ -42,6 +42,14 @@ dependencies {
     runtimeOnly 'org.postgresql:postgresql'
     // Swagger
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8'
+    // Eureka Client
+    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:2025.1.1"
+    }
 }
 
 tasks.named('test') {

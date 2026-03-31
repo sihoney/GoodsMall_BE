@@ -9,10 +9,8 @@ import com.example.cartservice.wish.presentation.dto.response.WishListResponse;
 import com.example.cartservice.wish.presentation.dto.response.WishToggleResponse;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/wishes")
+@RequestMapping("/api/cart/wishes")
 @RequiredArgsConstructor
 @Validated
 public class WishController {
@@ -30,10 +28,10 @@ public class WishController {
     private final WishDeleteUseCase wishDeleteUseCase;
 
     @GetMapping
-    public ResponseEntity<WishListResponse> getMyWishes(
+    public ResponseEntity<WishListResponse> findWishes(
         @CurrentMember AuthenticatedMember authenticatedMember
     ) {
-        WishListResponse response = wishSearchUseCase.getMyWishes(authenticatedMember.memberId());
+        WishListResponse response = wishSearchUseCase.findWishes(authenticatedMember.memberId());
         return ResponseEntity.ok(response);
     }
 
@@ -51,7 +49,7 @@ public class WishController {
         @CurrentMember AuthenticatedMember authenticatedMember,
         @PathVariable UUID wishId
     ) {
-        wishDeleteUseCase.moveWishToCart(authenticatedMember.memberId(), wishId);
+        wishDeleteUseCase.moveToCart(authenticatedMember.memberId(), wishId);
         return ResponseEntity.noContent().build();
     }
 }
