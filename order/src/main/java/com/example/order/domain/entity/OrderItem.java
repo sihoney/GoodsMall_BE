@@ -107,6 +107,10 @@ public class OrderItem {
         );
     }
 
+    public BigDecimal getTotalPrice(BigDecimal unitPriceSnapshot, int quantity) {
+        return unitPriceSnapshot.multiply(BigDecimal.valueOf(quantity));
+    }
+
     public void changeStatus(OrderItemStatus status) {
         this.status = status;
     }
