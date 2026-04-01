@@ -4,13 +4,13 @@ spring:
   config:
     import:
       - "optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
-      - "optional:file:.env.properties[.properties]"
 
+  # 로컬 개발용 기본값 (Config Server 미연결 시 사용)
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/product_db
-    username: postgres
-    password: post1234
+    url: jdbc:postgresql://localhost:5432/goods_mall?currentSchema=product
+    username: goods
+    password: dhsmfwjatlaapsb
 
   jpa:
     hibernate:
@@ -19,32 +19,29 @@ spring:
     properties:
       hibernate:
         format_sql: true
-        dialect: org.hibernate.dialect.PostgreSQLDialect
 
 server:
   port: 8081
 
-cloud:
-  aws:
-    credentials:
-      access-key: ${AWS_ACCESS_KEY}
-      secret-key: ${AWS_SECRET_KEY}
-    region:
-      static: ap-northeast-2
-    s3:
-      bucket: ${AWS_S3_BUCKET}
-
-logging:
-  level:
-    root: INFO
-    com.example.product: DEBUG
-
 eureka:
   client:
     service-url:
-      ## Docker 컨테이너의 호스트명은 랜덤 ID라 다른 서비스가 찾을 수 없기 때문에 IP로 등록
       defaultZone: ${EUREKA_DEFAULT_ZONE:http://localhost:8761/eureka}
   instance:
     prefer-ip-address: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:true}
     hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
 
+cloud:
+  aws:
+    credentials:
+      access-key: ${AWS_ACCESS_KEY:test}
+      secret-key: ${AWS_SECRET_KEY:test}
+    region:
+      static: ap-northeast-2
+    s3:
+      bucket: ${AWS_S3_BUCKET:test-bucket}
+
+logging:
+  level:
+    com.example.product: DEBUG
+    org.hibernate.SQL: DEBUG
