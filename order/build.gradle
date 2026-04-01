@@ -48,8 +48,14 @@ dependencies {
     // Postgres
     runtimeOnly 'org.postgresql:postgresql'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2'
-    // kafka
-    implementation 'org.springframework.boot:spring-boot-starter-kafka'
+    // Kafka
+    implementation 'org.springframework.kafka:spring-kafka'
+    // Eureka Client
+    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
+    // Config Server
+    implementation 'org.springframework.cloud:spring-cloud-starter-config'
+    // Config Server retry
+    implementation 'org.springframework.retry:spring-retry'
 }
 
 tasks.named('test') {

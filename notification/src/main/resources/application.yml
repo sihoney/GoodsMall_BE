@@ -8,7 +8,15 @@ spring:
     name: notification-service
   config:
     import:
-      - "optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
+      - "configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
+  cloud:
+    config:
+      fail-fast: true
+      retry:
+        initial-interval: 1000
+        max-attempts: 20
+        max-interval: 5000
+        multiplier: 1.5
 
   # --- 데이터베이스 설정 (로컬 기본값) ---
   datasource:
