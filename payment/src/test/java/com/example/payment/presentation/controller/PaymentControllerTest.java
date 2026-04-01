@@ -8,16 +8,23 @@ import com.example.payment.application.dto.WalletSummaryResult;
 import com.example.payment.application.usecase.ChargeConfirmUseCase;
 import com.example.payment.application.usecase.ChargeCreateUseCase;
 import com.example.payment.application.usecase.ChargeRefundUseCase;
+import com.example.payment.application.usecase.OrderPaymentApiUseCase;
 import com.example.payment.application.usecase.PaymentSearchUseCase;
 import com.example.payment.domain.enumtype.ChargeStatus;
 import com.example.payment.domain.enumtype.PgProvider;
 import com.example.payment.presentation.dto.request.ChargeCreateRequest;
+import com.example.payment.presentation.dto.request.OrderPaymentApiOrderLineRequest;
+import com.example.payment.presentation.dto.request.OrderPaymentApiRequest;
 import com.example.payment.presentation.dto.response.ApiResponse;
 import com.example.payment.presentation.dto.response.ChargeCreateResponse;
+import com.example.payment.presentation.dto.response.OrderPaymentApiResponse;
 import com.example.payment.presentation.dto.response.WalletSummaryResponse;
+import java.math.BigDecimal;
+import java.time.Instant;
 import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
 import com.todaylunch.common.security.auth.enumtype.MemberRole;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -42,6 +49,9 @@ class PaymentControllerTest {
 
     @Mock
     private PaymentSearchUseCase paymentSearchUseCase;
+
+    @Mock
+    private OrderPaymentApiUseCase orderPaymentApiUseCase;
 
     @InjectMocks
     private PaymentController paymentController;
@@ -102,6 +112,43 @@ class PaymentControllerTest {
         assertThat(response.getBody().data().walletId()).isEqualTo(walletId);
         assertThat(response.getBody().data().memberId()).isEqualTo(memberId);
         assertThat(response.getBody().data().balance()).isEqualTo(5000L);
+        assertThat(response.getBody().error()).isNull();
+    }
+
+    @DisplayName("주문 결제 요청 성공 시 200과 공통 응답 래퍼를 반환한다")
+    @Test
+    void payOrderReturnsOkApiResponse() {
+        UUID orderId = UUID.randomUUID();
+        UUID buyerId = UUID.randomUUID();
+        OrderPaymentApiRequest request = new OrderPaymentApiRequest(
+                orderId,
+                buyerId,
+                BigDecimal.valueOf(12000L),
+                Instant.parse("2026-04-01T10:00:00Z"),
+                List.of(new OrderPaymentApiOrderLineRequest(
+                        UUID.randomUUID(),
+                        UUID.randomUUID(),
+                        BigDecimal.valueOf(12000L),
+                        1,
+                        BigDecimal.valueOf(12000L)
+                ))
+        );
+        given(orderPaymentApiUseCase.payOrder(request)).willReturn(new OrderPaymentApiResponse(
+                orderId,
+                buyerId,
+                BigDecimal.valueOf(12000L),
+                "SUCCESS",
+                null
+        ));
+
+        ResponseEntity<ApiResponse<OrderPaymentApiResponse>> response = paymentController.payOrder(request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().success()).isTrue();
+        assertThat(response.getBody().data()).isNotNull();
+        assertThat(response.getBody().data().orderId()).isEqualTo(orderId);
+        assertThat(response.getBody().data().status()).isEqualTo("SUCCESS");
         assertThat(response.getBody().error()).isNull();
     }
 }

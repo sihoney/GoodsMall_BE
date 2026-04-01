@@ -58,7 +58,6 @@ payment:
   kafka:
     topics:
       member-created: ${PAYMENT_KAFKA_TOPIC_MEMBER_CREATED:member-signed-up}
-      order-payment-requested: ${PAYMENT_KAFKA_TOPIC_ORDER_PAYMENT_REQUESTED:order.payment-requested}
       order-payment-result: ${PAYMENT_KAFKA_TOPIC_ORDER_PAYMENT_RESULT:payment.order-payment-result}
       order-delivery-completed: ${PAYMENT_KAFKA_TOPIC_ORDER_DELIVERY_COMPLETED:order.delivery-completed}
       order-purchase-confirmed: ${PAYMENT_KAFKA_TOPIC_ORDER_PURCHASE_CONFIRMED:order.purchase-confirmed}
@@ -68,7 +67,6 @@ payment:
       auto-purchase-confirmed: ${PAYMENT_KAFKA_TOPIC_AUTO_PURCHASE_CONFIRMED:payment.auto-purchase-confirmed}
     consumer-groups:
       member-created: ${PAYMENT_KAFKA_CONSUMER_GROUP_MEMBER_CREATED:payment-service}
-      order-payment-requested: ${PAYMENT_KAFKA_CONSUMER_GROUP_ORDER_PAYMENT_REQUESTED:payment-service}
       order-delivery-completed: ${PAYMENT_KAFKA_CONSUMER_GROUP_ORDER_DELIVERY_COMPLETED:payment-service}
       order-purchase-confirmed: ${PAYMENT_KAFKA_CONSUMER_GROUP_ORDER_PURCHASE_CONFIRMED:payment-service}
       settlement-payout-requested: ${PAYMENT_KAFKA_CONSUMER_GROUP_SETTLEMENT_PAYOUT_REQUESTED:payment-service}
