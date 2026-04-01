@@ -1,5 +1,6 @@
 package com.example.order.application.service;
 
+import com.example.order.domain.enumtype.OrderEventType;
 import com.example.order.infrastructure.kafka.event.OrderCreatedEvent;
 import com.example.order.application.port.ProductPort;
 import com.example.order.application.port.ProductPort.ProductInfo;
@@ -118,6 +119,8 @@ public class OrderCreateService implements OrderCreateUseCase {
 
     private void publishOrderCreatedEvent(Order order) {
         OrderCreatedEvent event = new OrderCreatedEvent(
+                UUID.randomUUID(),
+                OrderEventType.ORDER_CREATED.name(),
                 order.getOrderId(),
                 order.getBuyerId(),
                 order.getTotalPrice(),
