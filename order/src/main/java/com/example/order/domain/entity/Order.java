@@ -121,7 +121,7 @@ public class Order {
                 UUID.randomUUID(),
                 buyerId,
                 BigDecimal.ZERO,
-                OrderStatus.PENDING_PAYMENT,
+                OrderStatus.CREATED,
                 LocalDateTime.now(),
                 LocalDateTime.now(),
                 address,
@@ -157,24 +157,14 @@ public class Order {
         );
     }
 
-    public void changeStatus(OrderStatus orderStatus, LocalDateTime updatedAt) {
-        this.orderStatus = Objects.requireNonNull(orderStatus);
-        this.updatedAt = Objects.requireNonNull(updatedAt);
-    }
-
-    public void updateDeliveryAddress(
-            String address,
-            String addressDetail,
-            String zipCode,
-            String receiver,
-            String receiverPhone,
-            LocalDateTime updatedAt
-    ) {
-        this.address = address;
-        this.addressDetail = addressDetail;
-        this.zipCode = zipCode;
-        this.receiver = receiver;
-        this.receiverPhone = receiverPhone;
-        this.updatedAt = Objects.requireNonNull(updatedAt);
+    public void confirm() {
+        if (this.orderStatus == OrderStatus.CONFIRMED) {
+            return;
+        }
+        if (this.orderStatus == OrderStatus.CANCELED) {
+            return;
+        }
+        this.orderStatus = OrderStatus.CONFIRMED;
+        this.updatedAt = LocalDateTime.now();
     }
 }
