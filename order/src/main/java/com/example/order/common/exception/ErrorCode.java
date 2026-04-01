@@ -23,7 +23,14 @@ public enum ErrorCode {
 
     // 주문
     DUPLICATE_PRODUCT_REQUEST(HttpStatus.BAD_REQUEST, "ORDER_400_1", "상품이 중복되었습니다."),
-    ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "ORDER_404_1", "주문이 존재하지 않습니다.");
+    ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "ORDER_404_1", "주문이 존재하지 않습니다."),
+
+    // 배송
+    DELIVERY_NOT_FOUND(HttpStatus.NOT_FOUND, "DELIVERY_404_1", "배송이 존재하지 않습니다."),
+
+    // 결제
+    INVALID_PAYMENT_AMOUNT(HttpStatus.CONFLICT, "ORDER_409_1", "결제 금액이 주문 금액과 일치하지 않습니다."),
+    INVALID_PAYMENT_STATUS(HttpStatus.BAD_REQUEST, "PAYMENT_400_1", "유효하지 않은 결제 상태입니다.");
 
     private final HttpStatus status;
     private final String code;

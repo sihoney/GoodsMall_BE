@@ -6,6 +6,8 @@ import com.example.order.presentation.dto.request.OrderCreateRequest;
 import com.example.order.presentation.dto.response.OrderCreateResponse;
 import com.example.order.presentation.dto.response.OrderDetailResponse;
 import com.example.order.presentation.dto.response.OrderSummaryResponse;
+import com.todaylunch.common.security.auth.annotation.CurrentMember;
+import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
@@ -17,7 +19,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -33,25 +34,28 @@ public class OrderController {
 
     @PostMapping
     public ResponseEntity<OrderCreateResponse> createOrder(
-            @RequestHeader(value = "X-User-Id") UUID memberId,
+            @CurrentMember AuthenticatedMember authenticatedMember,
             @Valid @RequestBody OrderCreateRequest request
     ) {
+        UUID memberId = authenticatedMember.memberId();
         return ResponseEntity.status(HttpStatus.CREATED).body(orderCreateUseCase.create(memberId, request));
     }
 
     @GetMapping
     public ResponseEntity<Page<OrderSummaryResponse>> findOrders(
-            @RequestHeader(value = "X-User-Id") UUID memberId,
+            @CurrentMember AuthenticatedMember authenticatedMember,
             @ParameterObject Pageable pageable
     ) {
+        UUID memberId = authenticatedMember.memberId();
         return ResponseEntity.ok(orderSearchUseCase.findByMemberId(memberId, pageable));
     }
 
     @GetMapping("{orderId}")
     public ResponseEntity<OrderDetailResponse> getOrder(
-            @RequestHeader(value = "X-User-Id") UUID memberId,
+            @CurrentMember AuthenticatedMember authenticatedMember,
             @PathVariable UUID orderId
     ) {
+        UUID memberId = authenticatedMember.memberId();
         return ResponseEntity.ok(orderSearchUseCase.getOrderDetail(orderId, memberId));
     }
 }

@@ -32,6 +32,7 @@ dependencyManagement {
 }
 
 dependencies {
+    implementation project(':common-security')
     // Web
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
@@ -47,6 +48,8 @@ dependencies {
     // Postgres
     runtimeOnly 'org.postgresql:postgresql'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2'
+    // kafka
+    implementation 'org.springframework.boot:spring-boot-starter-kafka'
 }
 
 tasks.named('test') {

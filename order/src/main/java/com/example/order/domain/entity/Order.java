@@ -1,5 +1,7 @@
 package com.example.order.domain.entity;
 
+import com.example.order.common.exception.CustomException;
+import com.example.order.common.exception.ErrorCode;
 import com.example.order.domain.enumtype.OrderStatus;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -121,7 +123,7 @@ public class Order {
                 UUID.randomUUID(),
                 buyerId,
                 BigDecimal.ZERO,
-                OrderStatus.PENDING_PAYMENT,
+                OrderStatus.CREATED,
                 LocalDateTime.now(),
                 LocalDateTime.now(),
                 address,
@@ -157,24 +159,19 @@ public class Order {
         );
     }
 
-    public void changeStatus(OrderStatus orderStatus, LocalDateTime updatedAt) {
-        this.orderStatus = Objects.requireNonNull(orderStatus);
-        this.updatedAt = Objects.requireNonNull(updatedAt);
-    }
+    public boolean confirm(BigDecimal paidAmount) {
+        if (this.orderStatus == OrderStatus.CONFIRMED) {
+            return false;
+        }
+        if (this.orderStatus == OrderStatus.CANCELED) {
+            return false;
+        }
+        if (this.totalPrice.compareTo(paidAmount) != 0) {
+            throw new CustomException(ErrorCode.INVALID_PAYMENT_AMOUNT);
+        }
 
-    public void updateDeliveryAddress(
-            String address,
-            String addressDetail,
-            String zipCode,
-            String receiver,
-            String receiverPhone,
-            LocalDateTime updatedAt
-    ) {
-        this.address = address;
-        this.addressDetail = addressDetail;
-        this.zipCode = zipCode;
-        this.receiver = receiver;
-        this.receiverPhone = receiverPhone;
-        this.updatedAt = Objects.requireNonNull(updatedAt);
+        this.orderStatus = OrderStatus.CONFIRMED;
+        this.updatedAt = LocalDateTime.now();
+        return true;
     }
 }
