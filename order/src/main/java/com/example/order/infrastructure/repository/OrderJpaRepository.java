@@ -20,4 +20,6 @@ public interface OrderJpaRepository extends JpaRepository<Order, UUID> {
       and o.buyerId = :buyerId
 """)
     Optional<Order> findByOrderIdAndBuyerId(UUID orderId, UUID buyerId);
+
+    Optional<Order> findByOrderId(UUID orderId);
 }

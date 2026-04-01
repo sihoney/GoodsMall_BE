@@ -5,6 +5,7 @@ import com.example.order.domain.repository.DeliveryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -17,5 +18,10 @@ public class DeliveryRepositoryImpl implements DeliveryRepository {
     @Override
     public Optional<Delivery> findByDeliveryIdAndBuyerId(UUID deliveryId, UUID buyerId) {
         return deliveryJpaRepository.findByDeliveryIdAndBuyerId(deliveryId, buyerId);
+    }
+
+    @Override
+    public void saveAll(List<Delivery> deliveries) {
+        deliveryJpaRepository.saveAll(deliveries);
     }
 }

@@ -87,30 +87,22 @@ public class Delivery {
     }
 
     public static Delivery create(
-            UUID deliveryId,
             UUID sellerId,
             UUID buyerId,
-            OrderItem orderItem,
-            String courierCode,
-            String invoiceNumber,
-            DeliveryStatus status,
-            LocalDateTime shippedAt,
-            LocalDateTime deliveredAt,
-            LocalDateTime createdAt,
-            LocalDateTime updatedAt
+            OrderItem orderItem
     ) {
         return new Delivery(
-                deliveryId,
+                UUID.randomUUID(),
                 sellerId,
                 buyerId,
                 orderItem,
-                courierCode,
-                invoiceNumber,
-                status,
-                shippedAt,
-                deliveredAt,
-                createdAt,
-                updatedAt
+                null,
+                null,
+                DeliveryStatus.PREPARING,
+                null,
+                null,
+                LocalDateTime.now(),
+                LocalDateTime.now()
         );
     }
 }

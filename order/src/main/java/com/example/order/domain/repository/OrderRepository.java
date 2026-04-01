@@ -14,4 +14,6 @@ public interface OrderRepository {
     Page<Order> findByBuyerId(UUID buyerId, Pageable pageable);
 
     Optional<Order> findByOrderIdAndBuyerId(UUID orderId, UUID buyerId);
+
+    Optional<Order> findByOrderId(UUID orderId);
 }

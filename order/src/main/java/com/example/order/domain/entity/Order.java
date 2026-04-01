@@ -1,5 +1,7 @@
 package com.example.order.domain.entity;
 
+import com.example.order.common.exception.CustomException;
+import com.example.order.common.exception.ErrorCode;
 import com.example.order.domain.enumtype.OrderStatus;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -157,14 +159,19 @@ public class Order {
         );
     }
 
-    public void confirm() {
+    public boolean confirm(BigDecimal paidAmount) {
         if (this.orderStatus == OrderStatus.CONFIRMED) {
-            return;
+            return false;
         }
         if (this.orderStatus == OrderStatus.CANCELED) {
-            return;
+            return false;
         }
+        if (this.totalPrice.compareTo(paidAmount) != 0) {
+            throw new CustomException(ErrorCode.INVALID_PAYMENT_AMOUNT);
+        }
+
         this.orderStatus = OrderStatus.CONFIRMED;
         this.updatedAt = LocalDateTime.now();
+        return true;
     }
 }

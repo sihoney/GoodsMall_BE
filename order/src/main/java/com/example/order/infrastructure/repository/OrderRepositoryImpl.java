@@ -30,4 +30,9 @@ public class OrderRepositoryImpl implements OrderRepository {
     public Optional<Order> findByOrderIdAndBuyerId(UUID orderId, UUID buyerId) {
         return orderJpaRepository.findByOrderIdAndBuyerId(orderId, buyerId);
     }
+
+    @Override
+    public Optional<Order> findByOrderId(UUID orderId) {
+        return orderJpaRepository.findByOrderId(orderId);
+    }
 }
