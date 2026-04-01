@@ -1,11 +1,11 @@
 name: ci
 
 on:
-  # dev / master 대상으로 PR 생성 또는 업데이트 시 실행
+  # dev / main 대상으로 PR 생성 또는 업데이트 시 실행
   pull_request:
     branches:
       - dev
-      - master
+      - main
     paths:
       - "member/**"
       - "product/**"
@@ -14,6 +14,9 @@ on:
       - "notification/**"
       - "settlement/**"
       - "cart/**"
+      - "gateway/**"
+      - "discovery/**"
+      - "config/**"
 
 # 같은 PR에서 새 커밋이 올라오면 이전 실행 취소
 concurrency:
@@ -79,9 +82,21 @@ jobs:
           if echo "$CHANGED_FILES" | grep -q '^settlement/'; then
             MODULES+=('{"module_name":"settlement"}')
           fi
-          
+
           if echo "$CHANGED_FILES" | grep -q '^cart/'; then
-          MODULES+=('{"module_name":"cart"}')
+            MODULES+=('{"module_name":"cart"}')
+          fi
+
+          if echo "$CHANGED_FILES" | grep -q '^gateway/'; then
+            MODULES+=('{"module_name":"gateway"}')
+          fi
+
+          if echo "$CHANGED_FILES" | grep -q '^discovery/'; then
+            MODULES+=('{"module_name":"discovery"}')
+          fi
+
+          if echo "$CHANGED_FILES" | grep -q '^config/'; then
+            MODULES+=('{"module_name":"config"}')
           fi
           
           # 변경된 모듈이 없는 경우 → build job skip
