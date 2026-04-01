@@ -63,6 +63,9 @@ public class OrderPurchaseConfirmedEventConsumer {
         if (event.sellerMemberId() == null) {
             throw new InvalidOrderPaymentRequestException("sellerMemberId is required.");
         }
+        if (event.confirmedAt() == null) {
+            throw new InvalidOrderPaymentRequestException("confirmedAt is required.");
+        }
         if (event.confirmationType() != ConfirmationType.MANUAL) {
             throw new InvalidOrderPaymentRequestException("Only MANUAL confirmation event is allowed.");
         }

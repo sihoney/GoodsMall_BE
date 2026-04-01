@@ -1,20 +1,16 @@
 package com.example.notification.infrastructure.messaging.kafka.contract;
 
-import java.time.LocalDateTime;
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.UUID;
 
 public record OrderPaymentResultMessage(
-        String eventId,
+        UUID eventId,
         UUID orderId,
         UUID buyerMemberId,
-        UUID sellerMemberId,
+        BigDecimal amount,
         OrderPaymentResultStatus status,
-        Long paidAmount,
-        Long sellerReceivableAmount,
-        UUID buyerWalletId,
-        UUID escrowId,
-        OrderPaymentFailureReason failureReason,
-        String failureMessage,
-        LocalDateTime occurredAt
+        OrderPaymentFailureReason reasonCode,
+        Instant occurredAt
 ) {
 }

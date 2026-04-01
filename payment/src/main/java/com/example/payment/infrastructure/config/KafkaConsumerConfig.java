@@ -3,7 +3,6 @@ package com.example.payment.infrastructure.config;
 import com.example.payment.common.exception.WalletNotFoundException;
 import com.example.payment.infrastructure.messaging.kafka.contract.MemberCreatedMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderDeliveryCompletedMessage;
-import com.example.payment.infrastructure.messaging.kafka.contract.OrderPaymentRequestedMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPurchaseConfirmedMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.SellerSettlementPayoutRequestedMessage;
 import java.util.HashMap;
@@ -55,25 +54,6 @@ public class KafkaConsumerConfig {
             @Value("${payment.kafka.consumer-groups.order-purchase-confirmed:payment-service}") String groupId
     ) {
         return createConsumerFactory(bootstrapServers, groupId, OrderPurchaseConfirmedMessage.class);
-    }
-
-    @Bean
-    public ConsumerFactory<String, OrderPaymentRequestedMessage> orderPaymentRequestedConsumerFactory(
-            @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers,
-            @Value("${payment.kafka.consumer-groups.order-payment-requested:payment-service}") String groupId
-    ) {
-        return createConsumerFactory(bootstrapServers, groupId, OrderPaymentRequestedMessage.class);
-    }
-
-    @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, OrderPaymentRequestedMessage>
-        orderPaymentRequestedKafkaListenerContainerFactory(
-            ConsumerFactory<String, OrderPaymentRequestedMessage> orderPaymentRequestedConsumerFactory
-    ) {
-        ConcurrentKafkaListenerContainerFactory<String, OrderPaymentRequestedMessage> factory =
-                new ConcurrentKafkaListenerContainerFactory<>();
-        factory.setConsumerFactory(orderPaymentRequestedConsumerFactory);
-        return factory;
     }
 
     @Bean

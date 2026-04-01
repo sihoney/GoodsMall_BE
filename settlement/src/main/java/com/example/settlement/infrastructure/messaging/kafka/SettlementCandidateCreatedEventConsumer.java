@@ -4,16 +4,20 @@ import com.example.settlement.application.dto.SettlementItemCreateCommand;
 import com.example.settlement.application.usecase.MonthlySettlementUseCase;
 import com.example.settlement.infrastructure.messaging.kafka.contract.SettlementCandidateCreatedMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
 /**
- * payment -> settlement 정산 원천 후보 이벤트를 소비해 settlement item을 적재한다.
+ * payment -> settlement 정산 후보 알림 이벤트를 소비해 settlement item으로 적재한다.
  */
 @Slf4j
 @Component
 public class SettlementCandidateCreatedEventConsumer {
+
+    private static final ZoneId KOREA_ZONE_ID = ZoneId.of("Asia/Seoul");
 
     private final MonthlySettlementUseCase monthlySettlementService;
     private final ObjectMapper objectMapper;
@@ -23,9 +27,6 @@ public class SettlementCandidateCreatedEventConsumer {
         this.objectMapper = objectMapper;
     }
 
-    /**
-     * 지급 완료 이벤트의 정산 후보 데이터를 월 정산 원천 커맨드로 변환해 서비스에 위임한다.
-     */
     @KafkaListener(
             topics = "${settlement.kafka.topics.settlement-candidate-created:payment.settlement-candidate-created}",
             groupId = "${settlement.kafka.consumer-groups.settlement-candidate-created:settlement-service}",
@@ -40,7 +41,7 @@ public class SettlementCandidateCreatedEventConsumer {
                     event.escrowId(),
                     event.sellerMemberId(),
                     event.grossAmount(),
-                    event.releasedAt()
+                    toKoreaLocalDateTime(event.releasedAt())
             ));
         } catch (Exception e) {
             log.error("Failed to process SettlementCandidateCreatedMessage", e);
@@ -67,5 +68,9 @@ public class SettlementCandidateCreatedEventConsumer {
         if (event.releasedAt() == null) {
             throw new IllegalArgumentException("releasedAt is required.");
         }
+    }
+
+    private LocalDateTime toKoreaLocalDateTime(java.time.Instant instant) {
+        return LocalDateTime.ofInstant(instant, KOREA_ZONE_ID);
     }
 }
