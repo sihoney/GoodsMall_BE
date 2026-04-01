@@ -5,6 +5,8 @@ import com.example.payment.application.usecase.EscrowReleaseScheduleUseCase;
 import com.example.payment.common.exception.InvalidOrderPaymentRequestException;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderDeliveryCompletedMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
@@ -40,7 +42,7 @@ public class OrderDeliveryCompletedEventConsumer {
             validateEvent(event);
             escrowReleaseScheduleUseCase.scheduleRelease(new EscrowReleaseScheduleCommand(
                     event.orderId(),
-                    event.deliveredAt()
+                    toUtcLocalDateTime(event.deliveredAt())
             ));
         } catch (Exception e) {
             log.error("Failed to process OrderDeliveryCompletedMessage", e);
@@ -61,5 +63,12 @@ public class OrderDeliveryCompletedEventConsumer {
         if (event.deliveredAt() == null) {
             throw new InvalidOrderPaymentRequestException("deliveredAt is required.");
         }
+    }
+
+    /**
+     * 이벤트 계약의 UTC Instant를 기존 payment 내부 시간 모델인 LocalDateTime으로만 변환한다.
+     */
+    private LocalDateTime toUtcLocalDateTime(java.time.Instant instant) {
+        return LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
     }
 }

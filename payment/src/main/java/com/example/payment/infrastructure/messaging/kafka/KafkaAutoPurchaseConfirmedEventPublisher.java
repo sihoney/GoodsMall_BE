@@ -4,6 +4,7 @@ import com.example.payment.application.event.AutoPurchaseConfirmedEvent;
 import com.example.payment.domain.service.AutoPurchaseConfirmedEventPublisher;
 import com.example.payment.infrastructure.messaging.kafka.contract.AutoPurchaseConfirmedMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.ZoneOffset;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -39,7 +40,7 @@ public class KafkaAutoPurchaseConfirmedEventPublisher implements AutoPurchaseCon
             String message = objectMapper.writeValueAsString(new AutoPurchaseConfirmedMessage(
                     event.orderId(),
                     event.buyerMemberId(),
-                    event.confirmedAt()
+                    event.confirmedAt().toInstant(ZoneOffset.UTC)
             ));
             kafkaTemplate.send(topic, String.valueOf(event.orderId()), message);
         } catch (Exception e) {

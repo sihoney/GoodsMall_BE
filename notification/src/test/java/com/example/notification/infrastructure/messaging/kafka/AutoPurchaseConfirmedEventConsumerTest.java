@@ -5,6 +5,7 @@ import static org.mockito.Mockito.verify;
 
 import com.example.notification.application.usecase.NotificationUsecase;
 import com.example.notification.infrastructure.messaging.kafka.contract.AutoPurchaseConfirmedMessage;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,7 +32,11 @@ class AutoPurchaseConfirmedEventConsumerTest {
         UUID orderId = UUID.randomUUID();
         UUID buyerMemberId = UUID.randomUUID();
         LocalDateTime confirmedAt = LocalDateTime.of(2026, 3, 29, 9, 49, 58);
-        AutoPurchaseConfirmedMessage message = new AutoPurchaseConfirmedMessage(orderId, buyerMemberId, confirmedAt);
+        AutoPurchaseConfirmedMessage message = new AutoPurchaseConfirmedMessage(
+                orderId,
+                buyerMemberId,
+                Instant.parse("2026-03-29T09:49:58Z")
+        );
 
         consumer.listen(message);
 
@@ -43,7 +48,7 @@ class AutoPurchaseConfirmedEventConsumerTest {
         AutoPurchaseConfirmedMessage message = new AutoPurchaseConfirmedMessage(
                 UUID.randomUUID(),
                 null,
-                LocalDateTime.of(2026, 3, 29, 9, 49, 58)
+                Instant.parse("2026-03-29T09:49:58Z")
         );
 
         assertThatThrownBy(() -> consumer.listen(message))

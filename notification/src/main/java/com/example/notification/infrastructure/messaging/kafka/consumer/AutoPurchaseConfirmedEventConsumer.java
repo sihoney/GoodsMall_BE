@@ -2,6 +2,8 @@ package com.example.notification.infrastructure.messaging.kafka;
 
 import com.example.notification.application.usecase.NotificationUsecase;
 import com.example.notification.infrastructure.messaging.kafka.contract.AutoPurchaseConfirmedMessage;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
@@ -25,7 +27,7 @@ public class AutoPurchaseConfirmedEventConsumer {
         notificationUsecase.createAutoPurchaseConfirmedNotification(
                 event.orderId(),
                 event.buyerMemberId(),
-                event.confirmedAt()
+                toUtcLocalDateTime(event.confirmedAt())
         );
     }
 
@@ -42,5 +44,12 @@ public class AutoPurchaseConfirmedEventConsumer {
         if (event.confirmedAt() == null) {
             throw new IllegalArgumentException("confirmedAt is required.");
         }
+    }
+
+    /**
+     * Kafka 계약의 UTC Instant를 notification 내부에서 사용하는 LocalDateTime으로 변환한다.
+     */
+    private LocalDateTime toUtcLocalDateTime(java.time.Instant instant) {
+        return LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
     }
 }

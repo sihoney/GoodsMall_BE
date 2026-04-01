@@ -1,7 +1,7 @@
 package com.example.payment.infrastructure.messaging.kafka.contract;
 
 import com.example.payment.domain.enumtype.ConfirmationType;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 public record SettlementCandidateCreatedMessage(
@@ -10,8 +10,8 @@ public record SettlementCandidateCreatedMessage(
         UUID escrowId,
         UUID sellerMemberId,
         Long grossAmount,
-        LocalDateTime releasedAt,
+        Instant releasedAt,
         ConfirmationType confirmationType,
-        LocalDateTime occurredAt
+        Instant occurredAt
 ) {
 }

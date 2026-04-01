@@ -4,6 +4,8 @@ import com.example.settlement.application.dto.SettlementItemCreateCommand;
 import com.example.settlement.application.usecase.MonthlySettlementUseCase;
 import com.example.settlement.infrastructure.messaging.kafka.contract.SettlementCandidateCreatedMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
@@ -40,7 +42,7 @@ public class SettlementCandidateCreatedEventConsumer {
                     event.escrowId(),
                     event.sellerMemberId(),
                     event.grossAmount(),
-                    event.releasedAt()
+                    toUtcLocalDateTime(event.releasedAt())
             ));
         } catch (Exception e) {
             log.error("Failed to process SettlementCandidateCreatedMessage", e);
@@ -67,5 +69,12 @@ public class SettlementCandidateCreatedEventConsumer {
         if (event.releasedAt() == null) {
             throw new IllegalArgumentException("releasedAt is required.");
         }
+    }
+
+    /**
+     * Kafka 계약에서는 UTC Instant를 사용하고, settlement 내부 command에서는 기존 LocalDateTime을 유지한다.
+     */
+    private LocalDateTime toUtcLocalDateTime(java.time.Instant instant) {
+        return LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
     }
 }

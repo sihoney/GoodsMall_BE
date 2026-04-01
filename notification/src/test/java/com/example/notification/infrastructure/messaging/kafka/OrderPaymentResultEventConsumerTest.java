@@ -7,6 +7,7 @@ import com.example.notification.application.usecase.NotificationUsecase;
 import com.example.notification.infrastructure.messaging.kafka.contract.OrderPaymentFailureReason;
 import com.example.notification.infrastructure.messaging.kafka.contract.OrderPaymentResultMessage;
 import com.example.notification.infrastructure.messaging.kafka.contract.OrderPaymentResultStatus;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,7 +46,7 @@ class OrderPaymentResultEventConsumerTest {
                 UUID.randomUUID(),
                 null,
                 null,
-                occurredAt
+                Instant.parse("2026-03-29T09:10:02Z")
         );
 
         consumer.listen(event);
@@ -71,7 +72,7 @@ class OrderPaymentResultEventConsumerTest {
                 null,
                 OrderPaymentFailureReason.INSUFFICIENT_BALANCE,
                 "insufficient balance",
-                occurredAt
+                Instant.parse("2026-03-29T09:10:02Z")
         );
 
         consumer.listen(event);
@@ -98,7 +99,7 @@ class OrderPaymentResultEventConsumerTest {
                 null,
                 null,
                 "failed",
-                LocalDateTime.of(2026, 3, 29, 9, 10, 2)
+                Instant.parse("2026-03-29T09:10:02Z")
         );
 
         assertThatThrownBy(() -> consumer.listen(event))

@@ -4,6 +4,7 @@ import com.example.payment.application.event.SettlementCandidateCreatedEvent;
 import com.example.payment.domain.service.SettlementCandidateCreatedEventPublisher;
 import com.example.payment.infrastructure.messaging.kafka.contract.SettlementCandidateCreatedMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.ZoneOffset;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -30,15 +31,16 @@ public class KafkaSettlementCandidateCreatedEventPublisher implements Settlement
     @Override
     public void publish(SettlementCandidateCreatedEvent event) {
         try {
+            // 내부 도메인 시간은 유지하고, Kafka 경계에서만 UTC Instant 계약으로 변환한다.
             String message = objectMapper.writeValueAsString(new SettlementCandidateCreatedMessage(
                     event.eventId(),
                     event.orderId(),
                     event.escrowId(),
                     event.sellerMemberId(),
                     event.grossAmount(),
-                    event.releasedAt(),
+                    event.releasedAt().toInstant(ZoneOffset.UTC),
                     event.confirmationType(),
-                    event.occurredAt()
+                    event.occurredAt().toInstant(ZoneOffset.UTC)
             ));
             kafkaTemplate.send(topic, String.valueOf(event.escrowId()), message);
         } catch (Exception e) {

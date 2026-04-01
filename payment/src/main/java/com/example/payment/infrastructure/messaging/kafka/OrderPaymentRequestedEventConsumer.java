@@ -14,7 +14,7 @@ import com.example.payment.infrastructure.messaging.kafka.contract.OrderPaymentR
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPaymentResultStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -115,7 +115,7 @@ public class OrderPaymentRequestedEventConsumer {
                 singleEscrowId(result),
                 null,
                 null,
-                LocalDateTime.now()
+                Instant.now()
         );
     }
 
@@ -139,7 +139,7 @@ public class OrderPaymentRequestedEventConsumer {
                 null,
                 reason,
                 failureMessage,
-                LocalDateTime.now()
+                Instant.now()
         );
     }
 

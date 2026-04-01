@@ -3,6 +3,8 @@ package com.example.notification.infrastructure.messaging.kafka;
 import com.example.notification.application.usecase.NotificationUsecase;
 import com.example.notification.infrastructure.messaging.kafka.contract.OrderPaymentResultMessage;
 import com.example.notification.infrastructure.messaging.kafka.contract.OrderPaymentResultStatus;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
@@ -29,7 +31,7 @@ public class OrderPaymentResultEventConsumer {
                     event.orderId(),
                     event.buyerMemberId(),
                     event.paidAmount(),
-                    event.occurredAt()
+                    toUtcLocalDateTime(event.occurredAt())
             );
             return;
         }
@@ -38,7 +40,7 @@ public class OrderPaymentResultEventConsumer {
                 event.orderId(),
                 event.buyerMemberId(),
                 event.failureReason(),
-                event.occurredAt()
+                toUtcLocalDateTime(event.occurredAt())
         );
     }
 
@@ -65,5 +67,12 @@ public class OrderPaymentResultEventConsumer {
         if (event.status() == OrderPaymentResultStatus.FAILED && event.failureReason() == null) {
             throw new IllegalArgumentException("failureReason is required for failure.");
         }
+    }
+
+    /**
+     * notification 내부 모델을 유지하기 위해 Kafka UTC 시간을 LocalDateTime으로 변환한다.
+     */
+    private LocalDateTime toUtcLocalDateTime(java.time.Instant instant) {
+        return LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
     }
 }

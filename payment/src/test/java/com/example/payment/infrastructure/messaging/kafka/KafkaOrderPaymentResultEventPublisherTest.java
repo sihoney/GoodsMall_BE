@@ -4,7 +4,7 @@ import com.example.payment.infrastructure.messaging.kafka.contract.OrderPaymentF
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPaymentResultMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPaymentResultStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -44,7 +44,7 @@ class KafkaOrderPaymentResultEventPublisherTest {
                 null,
                 OrderPaymentFailureReason.WALLET_NOT_FOUND,
                 "지갑 정보를 찾을 수 없습니다.",
-                LocalDateTime.of(2024, 1, 1, 12, 0, 0)
+                Instant.parse("2024-01-01T12:00:00Z")
         );
         given(objectMapper.writeValueAsString(event)).willReturn("serialized-message");
 

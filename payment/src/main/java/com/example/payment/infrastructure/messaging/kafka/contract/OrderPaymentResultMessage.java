@@ -1,6 +1,6 @@
 package com.example.payment.infrastructure.messaging.kafka.contract;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 /**
@@ -18,6 +18,6 @@ public record OrderPaymentResultMessage(
         UUID escrowId,
         OrderPaymentFailureReason failureReason,
         String failureMessage,
-        LocalDateTime occurredAt
+        Instant occurredAt
 ) {
 }

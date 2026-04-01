@@ -8,6 +8,7 @@ import com.example.settlement.application.dto.SettlementItemCreateCommand;
 import com.example.settlement.application.usecase.MonthlySettlementUseCase;
 import com.example.settlement.infrastructure.messaging.kafka.contract.SettlementCandidateCreatedMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -42,9 +43,9 @@ class SettlementCandidateCreatedEventConsumerTest {
                 UUID.randomUUID(),
                 UUID.randomUUID(),
                 10_000L,
-                LocalDateTime.of(2024, 1, 1, 12, 0),
+                Instant.parse("2024-01-01T12:00:00Z"),
                 "MANUAL",
-                LocalDateTime.of(2024, 1, 1, 12, 0, 1)
+                Instant.parse("2024-01-01T12:00:01Z")
         );
         String eventJson = "{\"eventId\":\"evt-1\"}";
         given(objectMapper.readValue(eventJson, SettlementCandidateCreatedMessage.class)).willReturn(event);
@@ -69,9 +70,9 @@ class SettlementCandidateCreatedEventConsumerTest {
                 null,
                 UUID.randomUUID(),
                 10_000L,
-                LocalDateTime.of(2024, 1, 1, 12, 0),
+                Instant.parse("2024-01-01T12:00:00Z"),
                 "MANUAL",
-                LocalDateTime.of(2024, 1, 1, 12, 0, 1)
+                Instant.parse("2024-01-01T12:00:01Z")
         );
         String eventJson = "{\"eventId\":\"evt-1\"}";
         given(objectMapper.readValue(eventJson, SettlementCandidateCreatedMessage.class)).willReturn(event);
