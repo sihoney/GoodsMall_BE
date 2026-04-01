@@ -1,9 +1,21 @@
+# ==============================
+# Order Service - 로컬 개발 환경 설정
+# Config Server 미연결 시 사용되는 기본값
+# ==============================
+
 spring:
+  application:
+    name: order-service
+  config:
+    import:
+      - "optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
+
+  # --- 데이터베이스 설정 (로컬 기본값) ---
   datasource:
-    url: jdbc:postgresql://localhost:5432/order_db
-    username: park
-    password: 123123
     driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/goods_mall?currentSchema=order
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
 
   jpa:
     hibernate:
@@ -12,10 +24,12 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        default_schema: order
         dialect: org.hibernate.dialect.PostgreSQLDialect
         jdbc:
           time_zone: Asia/Seoul
 
+  # --- OpenFeign 설정 ---
   cloud:
     openfeign:
       client:
@@ -25,7 +39,8 @@ spring:
             readTimeout: 2000
             loggerLevel: basic
 
-  Kafka:
+  # --- Kafka 설정 (로컬 기본값) ---
+  kafka:
     bootstrap-servers: localhost:9092
     consumer:
       auto-offset-reset: earliest
@@ -37,10 +52,27 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
+# --- 서버 포트 ---
 server:
   port: 8084
 
+# --- Eureka 설정 (로컬 기본값) ---
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_DEFAULT_ZONE:http://localhost:8761/eureka}
+  instance:
+    prefer-ip-address: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:true}
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+
+# --- Sweet Tracker API 설정 ---
 sweet-tracker:
   api:
-    key: ${SWEET_TRACKER_API_KEY}
-    base-url: ${SWEET_TRACKER_API_BASE_URL}
+    key: ${SWEET_TRACKER_API_KEY:test-api-key}
+    base-url: ${SWEET_TRACKER_API_BASE_URL:https://info.sweettracker.co.kr}
+
+# --- 로깅 설정 (로컬: DEBUG) ---
+logging:
+  level:
+    com.example.order: DEBUG
+    org.hibernate.SQL: DEBUG

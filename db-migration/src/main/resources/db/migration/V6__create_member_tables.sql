@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS member_service.member (
+CREATE TABLE IF NOT EXISTS member.member (
     member_id         UUID          NOT NULL,
     email             VARCHAR(255)  NOT NULL,
     password          VARCHAR(255)  NOT NULL,
@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS member_service.member (
     CONSTRAINT uq_member_email UNIQUE (email)
 );
 
-CREATE TABLE IF NOT EXISTS member_service.seller (
+CREATE TABLE IF NOT EXISTS member.seller (
     seller_id   UUID         NOT NULL,
     member_id   UUID         NOT NULL,
     bank_name   VARCHAR(100),
@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS member_service.seller (
     CONSTRAINT uq_seller_member_id UNIQUE (member_id)
 );
 
-CREATE TABLE IF NOT EXISTS member_service.member_report (
+CREATE TABLE IF NOT EXISTS member.member_report (
     report_id          UUID          NOT NULL,
     reporter_id        UUID          NOT NULL,
     reported_member_id UUID          NOT NULL,
@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS member_service.member_report (
     CONSTRAINT pk_member_report PRIMARY KEY (report_id)
 );
 
-CREATE TABLE IF NOT EXISTS member_service.member_restriction (
+CREATE TABLE IF NOT EXISTS member.member_restriction (
     restriction_id   UUID          NOT NULL,
     member_id        UUID          NOT NULL,
     admin_id         UUID          NOT NULL,
@@ -54,16 +54,16 @@ CREATE TABLE IF NOT EXISTS member_service.member_restriction (
 );
 
 CREATE INDEX IF NOT EXISTS idx_member_restriction_member_type_active_end_at
-    ON member_service.member_restriction (member_id, restriction_type, is_active, end_at DESC);
+    ON member.member_restriction (member_id, restriction_type, is_active, end_at DESC);
 
 CREATE INDEX IF NOT EXISTS idx_member_restriction_member_created_at
-    ON member_service.member_restriction (member_id, created_at DESC);
+    ON member.member_restriction (member_id, created_at DESC);
 
 CREATE INDEX IF NOT EXISTS idx_member_report_reporter_created_at
-    ON member_service.member_report (reporter_id, created_at DESC);
+    ON member.member_report (reporter_id, created_at DESC);
 
 CREATE INDEX IF NOT EXISTS idx_member_report_reported_member_created_at
-    ON member_service.member_report (reported_member_id, created_at DESC);
+    ON member.member_report (reported_member_id, created_at DESC);
 
 CREATE INDEX IF NOT EXISTS idx_member_report_created_at
-    ON member_service.member_report (created_at DESC);
+    ON member.member_report (created_at DESC);

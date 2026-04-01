@@ -1,0 +1,70 @@
+# ==============================
+# Order Service - Docker 환경 설정
+# Config Server (native profile)에서 제공
+# ==============================
+
+# --- 데이터베이스 설정 ---
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: ${DB_URL}
+    username: ${DB_USER_NAME}
+    password: ${DB_USER_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: order
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          time_zone: Asia/Seoul
+
+  # --- OpenFeign 설정 ---
+  cloud:
+    openfeign:
+      client:
+        config:
+          product-service:
+            connectTimeout: 1000
+            readTimeout: 2000
+            loggerLevel: basic
+
+  # --- Kafka 설정 ---
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    consumer:
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+# --- 서버 포트 ---
+server:
+  port: 8084
+
+# --- Eureka 서비스 등록 설정 ---
+eureka:
+  instance:
+    prefer-ip-address: true
+    ip-address: ${EUREKA_INSTANCE_IP:127.0.0.1}
+    instance-id: ${spring.application.name}:${server.port}
+  client:
+    service-url:
+      defaultZone: ${EUREKA_DEFAULT_ZONE:http://localhost:8761/eureka/}
+
+# --- Sweet Tracker API 설정 ---
+sweet-tracker:
+  api:
+    key: ${SWEET_TRACKER_API_KEY}
+    base-url: ${SWEET_TRACKER_API_BASE_URL:https://info.sweettracker.co.kr}
+
+# --- 로깅 설정 ---
+logging:
+  level:
+    com.example.order: INFO
+    org.hibernate.SQL: WARN

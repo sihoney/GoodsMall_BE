@@ -15,11 +15,13 @@ spring:
     baseline-on-migrate: true
     baseline-version: 0
     schemas:
-      - member_service
+      - member
       - payment
       - settlement
       - product
       - cart
+      - notification
+      - order
     locations:
       - classpath:db/migration
 

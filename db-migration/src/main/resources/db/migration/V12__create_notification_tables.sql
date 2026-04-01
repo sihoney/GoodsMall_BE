@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS notification_service.notification (
+CREATE TABLE IF NOT EXISTS notification.notification (
     notification_id UUID PRIMARY KEY,
     member_id       UUID         NOT NULL,
     type            VARCHAR(50)  NOT NULL,
@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS notification_service.notification (
 );
 
 CREATE INDEX IF NOT EXISTS idx_notification_member_created_at
-    ON notification_service.notification (member_id, created_at DESC);
+    ON notification.notification (member_id, created_at DESC);
 
 CREATE INDEX IF NOT EXISTS idx_notification_member_is_read
-    ON notification_service.notification (member_id, is_read);
+    ON notification.notification (member_id, is_read);

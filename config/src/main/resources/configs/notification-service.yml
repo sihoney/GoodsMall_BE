@@ -1,0 +1,61 @@
+# ==============================
+# Notification Service - Docker 환경 설정
+# Config Server (native profile)에서 제공
+# ==============================
+
+# --- 데이터베이스 설정 ---
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: ${DB_URL}
+    username: ${DB_USER_NAME}
+    password: ${DB_USER_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: notification
+
+  # --- Kafka 설정 ---
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+
+# --- 서버 포트 ---
+server:
+  port: 8087
+
+# --- Eureka 서비스 등록 설정 ---
+eureka:
+  instance:
+    prefer-ip-address: true
+    ip-address: ${EUREKA_INSTANCE_IP:127.0.0.1}
+    instance-id: ${spring.application.name}:${server.port}
+  client:
+    service-url:
+      defaultZone: ${EUREKA_DEFAULT_ZONE:http://localhost:8761/eureka/}
+
+# --- Springdoc 설정 ---
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+# --- Notification Kafka Consumer/Topic 설정 ---
+notification:
+  kafka:
+    consumer-groups:
+      auto-purchase-confirmed: ${NOTIFICATION_AUTO_PURCHASE_CONFIRMED_GROUP:notification-service}
+      order-payment-result: ${NOTIFICATION_ORDER_PAYMENT_RESULT_GROUP:notification-service}
+      seller-settlement-payout-result: ${NOTIFICATION_SELLER_SETTLEMENT_PAYOUT_RESULT_GROUP:notification-service}
+    topics:
+      auto-purchase-confirmed: ${NOTIFICATION_AUTO_PURCHASE_CONFIRMED_TOPIC:payment.auto-purchase-confirmed}
+      order-payment-result: ${NOTIFICATION_ORDER_PAYMENT_RESULT_TOPIC:payment.order-payment-result}
+      seller-settlement-payout-result: ${NOTIFICATION_SELLER_SETTLEMENT_PAYOUT_RESULT_TOPIC:payment.seller-payout-result}
+
+# --- 로깅 설정 ---
+logging:
+  level:
+    com.example.notification: INFO
+    org.hibernate.SQL: WARN

@@ -1,6 +1,94 @@
+# ==============================
+# Settlement Service - 로컬 개발 환경 설정
+# Config Server 미연결 시 사용되는 기본값
+# ==============================
+
 spring:
   application:
     name: settlement-service
-  profiles:
-    active: local
+  config:
+    import:
+      - "optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
 
+  # --- 데이터베이스 설정 (로컬 기본값) ---
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/goods_mall?currentSchema=settlement
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        default_schema: settlement
+
+  # --- Kafka 설정 (로컬 기본값) ---
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.example.settlement.infrastructure.messaging.kafka.contract
+
+# --- 서버 포트 ---
+server:
+  port: 8085
+
+# --- Eureka 설정 (로컬 기본값) ---
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_DEFAULT_ZONE:http://localhost:8761/eureka}
+  instance:
+    prefer-ip-address: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:true}
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+
+# --- Springdoc 설정 ---
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+# --- Settlement Kafka Topic/Consumer Group 설정 (로컬 기본값) ---
+settlement:
+  kafka:
+    topics:
+      settlement-candidate-created: payment.settlement-candidate-created
+      settlement-payout-requested: settlement.seller-payout-requested
+      settlement-payout-result: payment.seller-payout-result
+    consumer-groups:
+      settlement-candidate-created: settlement-service
+      settlement-payout-result: settlement-service
+    retry:
+      settlement-candidate-created:
+        dlq-topic: payment.settlement-candidate-created.dlq
+        initial-interval-ms: 1000
+        multiplier: 2.0
+        max-interval-ms: 10000
+        max-retries: 3
+      settlement-payout-result:
+        dlq-topic: payment.seller-payout-result.dlq
+        initial-interval-ms: 1000
+        multiplier: 2.0
+        max-interval-ms: 10000
+        max-retries: 3
+  batch:
+    monthly-aggregation:
+      cron: "0 5 3 1 * *"
+      zone: Asia/Seoul
+    retryable-failed-payout:
+      cron: "0 */10 * * * *"
+      zone: Asia/Seoul
+
+# --- 로깅 설정 (로컬: DEBUG) ---
+logging:
+  level:
+    com.example.settlement: DEBUG
+    org.hibernate.SQL: DEBUG
