@@ -238,8 +238,7 @@ services:
       AWS_ACCESS_KEY: ${AWS_ACCESS_KEY}
       AWS_SECRET_KEY: ${AWS_SECRET_KEY}
       AWS_S3_BUCKET: ${AWS_S3_BUCKET}
-      # TODO(product): add product DB/env values.
-      # TODO(product): confirm whether kafka is required at runtime.
+      CONFIG_SERVER_URL: http://config:8888
     ports:
       - "8081:8081"
 
@@ -266,6 +265,7 @@ services:
       DB_USER_PASSWORD: ${DB_USER_PASSWORD}
       EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
       EUREKA_INSTANCE_IP: ${EUREKA_INSTANCE_IP}
+      CONFIG_SERVER_URL: http://config:8888
     ports:
       - "8086:8086"
 

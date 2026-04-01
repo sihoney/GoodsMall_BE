@@ -17,6 +17,8 @@ spring:
     schemas:
       - payment
       - settlement
+      - product
+      - cart
     locations:
       - classpath:db/migration
 

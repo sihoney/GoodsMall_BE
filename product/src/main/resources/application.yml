@@ -2,7 +2,9 @@ spring:
   application:
     name: product-service
   config:
-    import: "optional:file:.env.properties[.properties]"
+    import:
+      - "optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
+      - "optional:file:.env.properties[.properties]"
 
   datasource:
     driver-class-name: org.postgresql.Driver
