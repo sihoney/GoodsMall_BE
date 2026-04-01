@@ -3,12 +3,13 @@ package com.example.payment.application.service;
 import com.example.payment.application.dto.EscrowReleaseScheduleCommand;
 import com.example.payment.application.dto.EscrowReleaseScheduleResult;
 import com.example.payment.application.usecase.EscrowReleaseScheduleUseCase;
-import com.example.payment.domain.entity.Escrow;
 import com.example.payment.common.exception.EscrowNotFoundException;
 import com.example.payment.common.exception.InvalidOrderPaymentRequestException;
+import com.example.payment.domain.entity.Escrow;
 import com.example.payment.domain.repository.EscrowRepository;
 import com.example.payment.domain.service.TimeProvider;
 import java.time.LocalDateTime;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 /**
  * 배송완료 이후 자동 구매확정 시점을 예약하는 유스케이스를 담당한다.
- * 실제 정산은 release 단계에서 수행하고, 이 서비스는 releaseAt 계산과 저장만 책임진다.
+ * 주문에 속한 HELD escrow 전체에 같은 releaseAt을 설정한다.
  */
 public class EscrowReleaseScheduleService implements EscrowReleaseScheduleUseCase {
 
@@ -32,41 +33,49 @@ public class EscrowReleaseScheduleService implements EscrowReleaseScheduleUseCas
 
     @Override
     /**
-     * HELD 상태이면서 아직 예약되지 않은 escrow에만 자동 구매확정 시점을 저장한다.
-     * 이미 예약되었거나 종료된 escrow는 기존 값을 그대로 반환해 중복 이벤트를 흡수한다.
+     * 배송완료 시각을 기준으로 주문의 escrow 전체에 자동 구매확정 예약 시간을 설정한다.
+     * 이미 예약되었거나 종료된 escrow는 그대로 두고 중복 이벤트를 흡수한다.
      */
     public EscrowReleaseScheduleResult scheduleRelease(EscrowReleaseScheduleCommand command) {
         validateCommand(command);
 
-        Escrow escrow = escrowRepository.findByOrderId(command.orderId())
-                .orElseThrow(EscrowNotFoundException::new);
-
-        if (!escrow.isHeld() || escrow.getReleaseAt() != null) {
-            return new EscrowReleaseScheduleResult(
-                    escrow.getOrderId(),
-                    command.deliveredAt(),
-                    escrow.getReleaseAt()
-            );
+        // 배송완료는 주문 단위 이벤트이므로 해당 주문의 escrow 전체를 예약 대상으로 본다.
+        List<Escrow> escrows = escrowRepository.findAllByOrderId(command.orderId());
+        if (escrows.isEmpty()) {
+            throw new EscrowNotFoundException();
         }
 
         LocalDateTime releaseAt = command.deliveredAt().plusDays(AUTO_CONFIRM_DAYS);
         LocalDateTime now = timeProvider.now();
+        boolean updated = false;
 
-        escrow.scheduleReleaseAt(releaseAt, now);
-        escrowRepository.save(escrow);
+        for (Escrow escrow : escrows) {
+            // 이미 예약되었거나 종료된 escrow는 그대로 두고 중복 이벤트를 흡수한다.
+            if (!escrow.isHeld() || escrow.getReleaseAt() != null) {
+                continue;
+            }
+            escrow.scheduleReleaseAt(releaseAt, now);
+            updated = true;
+        }
+
+        if (updated) {
+            escrowRepository.saveAll(escrows);
+        }
 
         return new EscrowReleaseScheduleResult(
-                escrow.getOrderId(),
+                command.orderId(),
                 command.deliveredAt(),
-                escrow.getReleaseAt()
+                releaseAt
         );
     }
 
     /**
-     * schedule 단계에서 필요한 최소 입력만 검증한다.
-     * 실제 예약 가능 여부는 escrow 조회 이후 상태 기반으로 판단한다.
+     * 예약 처리에 필요한 최소 입력만 검증한다.
      */
     private void validateCommand(EscrowReleaseScheduleCommand command) {
+        if (command == null) {
+            throw new InvalidOrderPaymentRequestException("command is required.");
+        }
         if (command.orderId() == null) {
             throw new InvalidOrderPaymentRequestException("orderId is required.");
         }

@@ -5,10 +5,10 @@ import com.example.payment.application.dto.EscrowReleaseResult;
 import com.example.payment.application.event.AutoPurchaseConfirmedEvent;
 import com.example.payment.application.event.SettlementCandidateCreatedEvent;
 import com.example.payment.application.usecase.EscrowReleaseUseCase;
-import com.example.payment.domain.entity.Escrow;
-import com.example.payment.domain.enumtype.ConfirmationType;
 import com.example.payment.common.exception.EscrowNotFoundException;
 import com.example.payment.common.exception.InvalidOrderPaymentRequestException;
+import com.example.payment.domain.entity.Escrow;
+import com.example.payment.domain.enumtype.ConfirmationType;
 import com.example.payment.domain.repository.EscrowRepository;
 import com.example.payment.domain.service.AutoPurchaseConfirmedEventPublisher;
 import com.example.payment.domain.service.IdentifierGenerator;
@@ -22,7 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 /**
  * escrow 해제 유스케이스를 담당한다.
- * 구매확정 이후 판매자 지갑 정산과 후속 이벤트 발행을 하나의 흐름으로 묶어 처리한다.
+ * 구매확정 이후 seller별 escrow를 RELEASED로 전환하고 정산 후보 이벤트를 발행한다.
  */
 public class EscrowReleaseService implements EscrowReleaseUseCase {
 
@@ -48,17 +48,18 @@ public class EscrowReleaseService implements EscrowReleaseUseCase {
 
     @Override
     /**
-     * 이미 RELEASED인 escrow는 기존 결과를 재사용해 멱등하게 처리한다.
-     * 실제 해제 시에는 escrow 상태 변경, 판매자 wallet 증가, 정산 이력 저장을 함께 수행한다.
+     * orderId와 sellerMemberId에 해당하는 escrow를 해제하고 후속 이벤트를 발행한다.
+     * 이미 RELEASED 상태면 기존 결과를 그대로 반환해 멱등하게 처리한다.
      */
     public EscrowReleaseResult releaseEscrow(EscrowReleaseCommand command) {
         validateCommand(command);
 
-        Escrow escrow = escrowRepository.findByOrderId(command.orderId())
+        // 다중 seller 주문에서는 구매확정 단위를 orderId + sellerMemberId로 본다.
+        Escrow escrow = escrowRepository.findByOrderIdAndSellerMemberId(command.orderId(), command.sellerMemberId())
                 .orElseThrow(EscrowNotFoundException::new);
 
         if (escrow.isReleased()) {
-            return existingResult(command, escrow);
+            return existingResult(escrow);
         }
         if (escrow.isRefunded()) {
             throw new IllegalStateException("Escrow is not releasable.");
@@ -71,6 +72,7 @@ public class EscrowReleaseService implements EscrowReleaseUseCase {
         escrow.release(now, now);
 
         escrowRepository.save(escrow);
+        // settlement는 escrow 단위 원천 항목을 적재하므로, 해제된 escrow별로 후보를 발행한다.
         settlementCandidateCreatedEventPublisher.publish(new SettlementCandidateCreatedEvent(
                 identifierGenerator.generateUuid(),
                 escrow.getOrderId(),
@@ -98,10 +100,9 @@ public class EscrowReleaseService implements EscrowReleaseUseCase {
     }
 
     /**
-     * 중복 구매확정 이벤트가 들어온 경우 현재 seller wallet 상태를 포함한 기존 결과를 재구성한다.
-     * 추가 정산 없이 동일한 성공 결과를 반환하기 위한 보조 메서드다.
+     * 이미 해제된 escrow의 결과를 현재 응답 형식으로 재구성한다.
      */
-    private EscrowReleaseResult existingResult(EscrowReleaseCommand command, Escrow escrow) {
+    private EscrowReleaseResult existingResult(Escrow escrow) {
         return new EscrowReleaseResult(
                 escrow.getOrderId(),
                 escrow.getAmount(),
@@ -111,10 +112,12 @@ public class EscrowReleaseService implements EscrowReleaseUseCase {
     }
 
     /**
-     * release 단계에서 필요한 최소 입력만 검증한다.
-     * escrow 상태와 멱등 처리 정책은 조회 이후 본문에서 분기한다.
+     * escrow 해제 계약의 최소 필수 입력만 검증한다.
      */
     private void validateCommand(EscrowReleaseCommand command) {
+        if (command == null) {
+            throw new InvalidOrderPaymentRequestException("command is required.");
+        }
         if (command.orderId() == null) {
             throw new InvalidOrderPaymentRequestException("orderId is required.");
         }

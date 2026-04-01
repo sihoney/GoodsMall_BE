@@ -11,7 +11,7 @@ import com.example.payment.common.exception.InvalidOrderPaymentRequestException;
 import com.example.payment.domain.enumtype.ConfirmationType;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPurchaseConfirmedMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -45,7 +45,7 @@ class OrderPurchaseConfirmedEventConsumerTest {
                 "evt-1",
                 orderId,
                 sellerMemberId,
-                LocalDateTime.of(2024, 1, 3, 10, 0, 0),
+                Instant.parse("2024-01-03T10:00:00Z"),
                 ConfirmationType.MANUAL
         );
         String eventJson = "{\"eventId\":\"evt-1\"}";
@@ -67,7 +67,7 @@ class OrderPurchaseConfirmedEventConsumerTest {
                 "evt-1",
                 UUID.randomUUID(),
                 UUID.randomUUID(),
-                LocalDateTime.of(2024, 1, 3, 10, 0, 0),
+                Instant.parse("2024-01-03T10:00:00Z"),
                 ConfirmationType.AUTO
         );
         String eventJson = "{\"eventId\":\"evt-1\"}";
@@ -90,7 +90,7 @@ class OrderPurchaseConfirmedEventConsumerTest {
                 "evt-1",
                 orderId,
                 sellerMemberId,
-                LocalDateTime.of(2024, 1, 3, 10, 0, 0),
+                Instant.parse("2024-01-03T10:00:00Z"),
                 ConfirmationType.MANUAL
         );
         String eventJson = "{\"eventId\":\"evt-1\"}";

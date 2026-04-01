@@ -4,9 +4,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 
 import com.example.notification.application.usecase.NotificationUsecase;
+import com.example.notification.infrastructure.messaging.kafka.consumer.OrderPaymentResultEventConsumer;
 import com.example.notification.infrastructure.messaging.kafka.contract.OrderPaymentFailureReason;
 import com.example.notification.infrastructure.messaging.kafka.contract.OrderPaymentResultMessage;
 import com.example.notification.infrastructure.messaging.kafka.contract.OrderPaymentResultStatus;
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,46 +35,36 @@ class OrderPaymentResultEventConsumerTest {
     void listen_successDelegatesToSucceededNotification() {
         UUID orderId = UUID.randomUUID();
         UUID buyerMemberId = UUID.randomUUID();
-        LocalDateTime occurredAt = LocalDateTime.of(2026, 3, 29, 9, 10, 2);
+        LocalDateTime occurredAt = LocalDateTime.of(2026, 3, 29, 18, 10, 2);
         OrderPaymentResultMessage event = new OrderPaymentResultMessage(
-                UUID.randomUUID().toString(),
+                UUID.randomUUID(),
                 orderId,
                 buyerMemberId,
-                UUID.randomUUID(),
+                BigDecimal.valueOf(30_000L),
                 OrderPaymentResultStatus.SUCCESS,
-                30000L,
-                27000L,
-                UUID.randomUUID(),
-                UUID.randomUUID(),
                 null,
-                null,
-                occurredAt
+                Instant.parse("2026-03-29T09:10:02Z")
         );
 
         consumer.listen(event);
 
         verify(notificationUsecase)
-                .createOrderPaymentSucceededNotification(orderId, buyerMemberId, 30000L, occurredAt);
+                .createOrderPaymentSucceededNotification(orderId, buyerMemberId, 30_000L, occurredAt);
     }
 
     @Test
     void listen_failureDelegatesToFailedNotification() {
         UUID orderId = UUID.randomUUID();
         UUID buyerMemberId = UUID.randomUUID();
-        LocalDateTime occurredAt = LocalDateTime.of(2026, 3, 29, 9, 10, 2);
+        LocalDateTime occurredAt = LocalDateTime.of(2026, 3, 29, 18, 10, 2);
         OrderPaymentResultMessage event = new OrderPaymentResultMessage(
-                UUID.randomUUID().toString(),
+                UUID.randomUUID(),
                 orderId,
                 buyerMemberId,
-                UUID.randomUUID(),
+                BigDecimal.valueOf(30_000L),
                 OrderPaymentResultStatus.FAILED,
-                30000L,
-                27000L,
-                null,
-                null,
                 OrderPaymentFailureReason.INSUFFICIENT_BALANCE,
-                "insufficient balance",
-                occurredAt
+                Instant.parse("2026-03-29T09:10:02Z")
         );
 
         consumer.listen(event);
@@ -85,24 +78,19 @@ class OrderPaymentResultEventConsumerTest {
     }
 
     @Test
-    void listen_throwsWhenFailureReasonMissingOnFailure() {
+    void listen_throwsWhenReasonCodeMissingOnFailure() {
         OrderPaymentResultMessage event = new OrderPaymentResultMessage(
-                UUID.randomUUID().toString(),
                 UUID.randomUUID(),
                 UUID.randomUUID(),
                 UUID.randomUUID(),
+                BigDecimal.valueOf(30_000L),
                 OrderPaymentResultStatus.FAILED,
-                30000L,
-                27000L,
                 null,
-                null,
-                null,
-                "failed",
-                LocalDateTime.of(2026, 3, 29, 9, 10, 2)
+                Instant.parse("2026-03-29T09:10:02Z")
         );
 
         assertThatThrownBy(() -> consumer.listen(event))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("failureReason is required for failure.");
+                .hasMessage("reasonCode is required for failure.");
     }
 }

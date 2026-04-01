@@ -1,35 +1,28 @@
 package com.example.payment.presentation.dto.response;
 
 import com.example.payment.application.dto.OrderPaymentResult;
-import com.example.payment.domain.enumtype.EscrowStatus;
-import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 /**
- * 주문 결제 API의 응답 DTO다.
+ * 주문 결제 API 응답 DTO다.
+ * 다중 seller 주문을 표현할 수 있도록 escrowId 단건 대신 escrowIds 목록을 반환한다.
  */
 public record OrderPaymentResponse(
         UUID orderId,
         UUID buyerWalletId,
-        UUID escrowId,
+        List<UUID> escrowIds,
         Long paidAmount,
-        Long buyerWalletBalance,
-        EscrowStatus escrowStatus,
-        LocalDateTime releaseAt
+        Long buyerWalletBalance
 ) {
 
-    /**
-     * application 결과를 presentation 응답 형식으로 변환한다.
-     */
     public static OrderPaymentResponse from(OrderPaymentResult result) {
         return new OrderPaymentResponse(
                 result.orderId(),
                 result.buyerWalletId(),
-                result.escrowId(),
+                result.escrowIds(),
                 result.paidAmount(),
-                result.buyerWalletBalance(),
-                result.escrowStatus(),
-                result.releaseAt()
+                result.buyerWalletBalance()
         );
     }
 }

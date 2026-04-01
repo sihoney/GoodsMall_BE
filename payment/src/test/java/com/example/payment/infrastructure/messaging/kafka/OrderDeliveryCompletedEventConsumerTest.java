@@ -10,6 +10,7 @@ import com.example.payment.application.usecase.EscrowReleaseScheduleUseCase;
 import com.example.payment.common.exception.InvalidOrderPaymentRequestException;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderDeliveryCompletedMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -39,12 +40,12 @@ class OrderDeliveryCompletedEventConsumerTest {
     @DisplayName("정상 배송 완료 이벤트를 수신하면 releaseAt 설정 usecase를 호출한다")
     void listen_validEvent_callsEscrowReleaseScheduleUseCase() throws Exception {
         UUID orderId = UUID.randomUUID();
-        LocalDateTime deliveredAt = LocalDateTime.of(2024, 1, 5, 12, 0, 0);
+        LocalDateTime deliveredAt = LocalDateTime.of(2024, 1, 5, 21, 0, 0);
         OrderDeliveryCompletedMessage event = new OrderDeliveryCompletedMessage(
                 "evt-1",
                 orderId,
-                deliveredAt,
-                LocalDateTime.of(2024, 1, 5, 12, 1, 0)
+                Instant.parse("2024-01-05T12:00:00Z"),
+                Instant.parse("2024-01-05T12:01:00Z")
         );
         String eventJson = "{\"eventId\":\"evt-1\"}";
         given(objectMapper.readValue(eventJson, OrderDeliveryCompletedMessage.class)).willReturn(event);
@@ -62,12 +63,12 @@ class OrderDeliveryCompletedEventConsumerTest {
     @DisplayName("중복 배송 완료 이벤트도 그대로 usecase에 위임한다")
     void listen_duplicateEvent_callsUseCase() throws Exception {
         UUID orderId = UUID.randomUUID();
-        LocalDateTime deliveredAt = LocalDateTime.of(2024, 1, 5, 12, 0, 0);
+        LocalDateTime deliveredAt = LocalDateTime.of(2024, 1, 5, 21, 0, 0);
         OrderDeliveryCompletedMessage event = new OrderDeliveryCompletedMessage(
                 "evt-1",
                 orderId,
-                deliveredAt,
-                LocalDateTime.of(2024, 1, 5, 12, 1, 0)
+                Instant.parse("2024-01-05T12:00:00Z"),
+                Instant.parse("2024-01-05T12:01:00Z")
         );
         String eventJson = "{\"eventId\":\"evt-1\"}";
         given(objectMapper.readValue(eventJson, OrderDeliveryCompletedMessage.class)).willReturn(event);
@@ -85,7 +86,7 @@ class OrderDeliveryCompletedEventConsumerTest {
                 "evt-1",
                 UUID.randomUUID(),
                 null,
-                LocalDateTime.of(2024, 1, 5, 12, 1, 0)
+                Instant.parse("2024-01-05T12:01:00Z")
         );
         String eventJson = "{\"eventId\":\"evt-1\"}";
         given(objectMapper.readValue(eventJson, OrderDeliveryCompletedMessage.class)).willReturn(event);
