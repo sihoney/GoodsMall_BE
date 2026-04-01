@@ -65,6 +65,17 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
       DYNAMIC_CONFIG_ENABLED: "true"
 
+  redis:
+    image: redis:7.4-alpine
+    container_name: goods-mall-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
   discovery:
     build:
       context: .
@@ -105,6 +116,8 @@ services:
       DB_URL: ${DB_URL}
       DB_USER_NAME: ${DB_USER_NAME}
       DB_USER_PASSWORD: ${DB_USER_PASSWORD}
+      DB_SEED_ENABLED: "true"
+      DB_SEED_LOCATIONS: classpath:db/seed/dev_seed_member.sql,classpath:db/seed/dev_seed_payment_settlement.sql
     restart: "no"
 
   payment:
@@ -130,7 +143,8 @@ services:
       DB_USER_PASSWORD: ${DB_USER_PASSWORD}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
       EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
-      EUREKA_INSTANCE_IP: ${EUREKA_INSTANCE_IP}
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "false"
+      EUREKA_INSTANCE_HOSTNAME: payment
       TOSS_PAYMENTS_BASE_URL: ${TOSS_PAYMENTS_BASE_URL}
       TOSS_PAYMENTS_CLIENT_KEY: ${TOSS_PAYMENTS_CLIENT_KEY}
       TOSS_PAYMENTS_SECRET_KEY: ${TOSS_PAYMENTS_SECRET_KEY}
@@ -163,7 +177,8 @@ services:
       DB_USER_PASSWORD: ${DB_USER_PASSWORD}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
       EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
-      EUREKA_INSTANCE_IP: ${EUREKA_INSTANCE_IP}
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "false"
+      EUREKA_INSTANCE_HOSTNAME: settlement
     ports:
       - "8085:8085"
 
@@ -177,6 +192,8 @@ services:
     depends_on:
       discovery:
         condition: service_started
+      member:
+        condition: service_started
       payment:
         condition: service_started
       settlement:
@@ -184,7 +201,8 @@ services:
     environment:
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
-      EUREKA_INSTANCE_IP: ${EUREKA_INSTANCE_IP}
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "false"
+      EUREKA_INSTANCE_HOSTNAME: gateway
     ports:
       - "8080:8080"
 
@@ -206,12 +224,28 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+      db-migration:
+        condition: service_completed_successfully
     environment:
-      EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
-      EUREKA_INSTANCE_IP: ${EUREKA_INSTANCE_IP}
-      # TODO(member): add module-specific DB/env values if member adopts compose runtime.
-      # TODO(member): add REDIS_HOST/REDIS_PORT or remove if not needed in docker runtime.
-      # TODO(member): confirm JWT and Kafka env names used by member application.yml.
+      SERVER_PORT: 8081
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}?currentSchema=member_service
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB}
+      DB_USERNAME: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA: member_service
+      KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: ${EUREKA_DEFAULT_ZONE}
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "false"
+      EUREKA_INSTANCE_HOSTNAME: member
+      APIGATEWAY_HOST: http://gateway:8080
+      MEMBER_SIGNED_UP_TOPIC: ${PAYMENT_KAFKA_TOPIC_MEMBER_CREATED}
     ports:
       - "8083:8083"
 
