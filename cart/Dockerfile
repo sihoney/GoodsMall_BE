@@ -22,7 +22,7 @@ WORKDIR /app
 COPY --from=builder /workspace/cart/build/libs/cart-0.0.1-SNAPSHOT.jar app.jar
 
 # 컨테이너가 사용할 포트 명시 (문서화 목적)
-EXPOSE 8082
+EXPOSE 8086
 
-# 컨테이너 시작 시 실행할 명령어
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+# 컨테이너 시작 시 실행할 명령어 (로컬 환경이 아닌
+ENTRYPOINT ["java", "-Dspring.profiles.active=prod", "-jar", "/app/app.jar"]
