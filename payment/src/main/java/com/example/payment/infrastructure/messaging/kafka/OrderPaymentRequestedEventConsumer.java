@@ -27,7 +27,7 @@ import org.springframework.stereotype.Component;
 @Component
 /**
  * order의 주문 결제 요청 이벤트를 payment 유스케이스로 연결하는 Kafka consumer다.
- * orderLines를 seller별 내부 정산 단위로 집계한 뒤 결제 유스케이스에 전달한다.
+ * orderLines를 seller별 결제 단위로 집계한 뒤 주문 단위 결제 결과 이벤트를 발행한다.
  */
 public class OrderPaymentRequestedEventConsumer {
 
@@ -51,7 +51,7 @@ public class OrderPaymentRequestedEventConsumer {
             containerFactory = "orderPaymentRequestedKafkaListenerContainerFactory"
     )
     /**
-     * 주문 결제 요청 이벤트를 읽어 seller별 결제 command로 변환하고, 성공/실패 결과 이벤트를 발행한다.
+     * 주문 결제 요청 이벤트를 읽어 seller별 결제 command로 변환하고 성공/실패 결과 이벤트를 발행한다.
      */
     public void listen(String eventJson) {
         try {
@@ -59,7 +59,6 @@ public class OrderPaymentRequestedEventConsumer {
             validateEvent(event);
 
             try {
-                // 외부 order 이벤트의 line 목록을 seller별 내부 정산 단위로 변환한다.
                 OrderPaymentResult result = orderPaymentUseCase.payOrder(new OrderPaymentCommand(
                         event.orderId(),
                         event.buyerId(),
@@ -71,26 +70,22 @@ public class OrderPaymentRequestedEventConsumer {
             } catch (WalletNotFoundException e) {
                 orderPaymentResultEventPublisher.publish(failureMessage(
                         event,
-                        OrderPaymentFailureReason.WALLET_NOT_FOUND,
-                        e.getMessage()
+                        OrderPaymentFailureReason.WALLET_NOT_FOUND
                 ));
             } catch (IllegalArgumentException e) {
                 orderPaymentResultEventPublisher.publish(failureMessage(
                         event,
-                        OrderPaymentFailureReason.INSUFFICIENT_BALANCE,
-                        e.getMessage()
+                        OrderPaymentFailureReason.INSUFFICIENT_BALANCE
                 ));
             } catch (InvalidOrderPaymentRequestException e) {
                 orderPaymentResultEventPublisher.publish(failureMessage(
                         event,
-                        OrderPaymentFailureReason.INVALID_REQUEST,
-                        e.getMessage()
+                        OrderPaymentFailureReason.INVALID_REQUEST
                 ));
             } catch (RuntimeException e) {
                 orderPaymentResultEventPublisher.publish(failureMessage(
                         event,
-                        OrderPaymentFailureReason.INTERNAL_ERROR,
-                        e.getMessage()
+                        OrderPaymentFailureReason.INTERNAL_ERROR
                 ));
             }
         } catch (Exception e) {
@@ -100,45 +95,34 @@ public class OrderPaymentRequestedEventConsumer {
     }
 
     /**
-     * 결제 성공 결과를 order-payment-result 계약 메시지로 변환한다.
+     * 주문 결제 성공 결과를 주문 단위 result 계약으로 변환한다.
      */
     private OrderPaymentResultMessage successMessage(OrderPaymentRequestedMessage event, OrderPaymentResult result) {
         return new OrderPaymentResultMessage(
                 newEventId(),
                 event.orderId(),
                 event.buyerId(),
-                singleSellerId(event),
+                event.totalPrice(),
                 OrderPaymentResultStatus.SUCCESS,
-                toAmount(event.totalPrice()),
-                singleSellerAmount(event),
-                result.buyerWalletId(),
-                singleEscrowId(result),
-                null,
                 null,
                 Instant.now()
         );
     }
 
     /**
-     * 결제 실패 결과를 order-payment-result 계약 메시지로 변환한다.
+     * 주문 결제 실패 결과를 주문 단위 result 계약으로 변환한다.
      */
     private OrderPaymentResultMessage failureMessage(
             OrderPaymentRequestedMessage event,
-            OrderPaymentFailureReason reason,
-            String failureMessage
+            OrderPaymentFailureReason reason
     ) {
         return new OrderPaymentResultMessage(
                 newEventId(),
                 event.orderId(),
                 event.buyerId(),
-                singleSellerId(event),
+                event.totalPrice(),
                 OrderPaymentResultStatus.FAILED,
-                toAmount(event.totalPrice()),
-                singleSellerAmount(event),
-                null,
-                null,
                 reason,
-                failureMessage,
                 Instant.now()
         );
     }
@@ -146,12 +130,12 @@ public class OrderPaymentRequestedEventConsumer {
     /**
      * 결과 이벤트용 eventId를 새로 생성한다.
      */
-    private String newEventId() {
-        return UUID.randomUUID().toString();
+    private UUID newEventId() {
+        return UUID.randomUUID();
     }
 
     /**
-     * order가 보내는 주문 결제 요청 계약의 필수 필드와 금액 합계를 검증한다.
+     * order가 보낸 주문 결제 요청 계약의 필수 필드와 금액 합계를 검증한다.
      */
     private void validateEvent(OrderPaymentRequestedMessage event) {
         if (event == null) {
@@ -196,10 +180,9 @@ public class OrderPaymentRequestedEventConsumer {
     }
 
     /**
-     * 같은 seller의 여러 line 금액을 합산해 payment 내부 seller별 escrow 단위로 변환한다.
+     * 같은 seller의 line 금액을 합산해 payment 내부 seller별 escrow 단위로 변환한다.
      */
     private List<OrderPaymentSellerCommand> aggregateSellerPayments(List<OrderPaymentRequestedLineMessage> orderLines) {
-        // 같은 seller의 여러 주문 라인은 payment 내부에서 하나의 escrow 금액으로 합산한다.
         Map<UUID, Long> sellerPaymentMap = orderLines.stream()
                 .collect(Collectors.groupingBy(
                         OrderPaymentRequestedLineMessage::sellerId,
@@ -212,37 +195,13 @@ public class OrderPaymentRequestedEventConsumer {
     }
 
     /**
-     * 외부 이벤트 금액을 payment 내부 Long 금액 모델로 변환한다.
+     * 이벤트 금액을 payment 내부 Long 금액 모델로 변환한다.
      */
     private Long toAmount(BigDecimal amount) {
         try {
             return amount.longValueExact();
         } catch (ArithmeticException e) {
-            // 현재 payment 금액 모델은 Long 정수 단위이므로, 소수 금액은 계약 위반으로 본다.
             throw new InvalidOrderPaymentRequestException("price must be an exact whole amount.");
         }
-    }
-
-    /**
-     * 단일 seller 주문인 경우에만 결과 이벤트의 sellerMemberId를 채운다.
-     */
-    private UUID singleSellerId(OrderPaymentRequestedMessage event) {
-        List<OrderPaymentSellerCommand> sellerPayments = aggregateSellerPayments(event.orderLines());
-        return sellerPayments.size() == 1 ? sellerPayments.get(0).sellerMemberId() : null;
-    }
-
-    /**
-     * 단일 seller 주문인 경우에만 결과 이벤트의 seller 금액을 채운다.
-     */
-    private Long singleSellerAmount(OrderPaymentRequestedMessage event) {
-        List<OrderPaymentSellerCommand> sellerPayments = aggregateSellerPayments(event.orderLines());
-        return sellerPayments.size() == 1 ? sellerPayments.get(0).sellerReceivableAmount() : null;
-    }
-
-    /**
-     * escrow가 하나만 생성된 경우에만 결과 이벤트의 escrowId를 채운다.
-     */
-    private UUID singleEscrowId(OrderPaymentResult result) {
-        return result.escrowIds().size() == 1 ? result.escrowIds().get(0) : null;
     }
 }

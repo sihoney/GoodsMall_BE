@@ -95,11 +95,13 @@ class OrderPaymentRequestedEventConsumerTest {
         ArgumentCaptor<OrderPaymentResultMessage> resultCaptor = ArgumentCaptor.forClass(OrderPaymentResultMessage.class);
         verify(orderPaymentResultEventPublisher).publish(resultCaptor.capture());
         assertThat(resultCaptor.getValue().status()).isEqualTo(OrderPaymentResultStatus.SUCCESS);
-        assertThat(resultCaptor.getValue().sellerMemberId()).isEqualTo(sellerMemberId);
+        assertThat(resultCaptor.getValue().buyerMemberId()).isEqualTo(buyerMemberId);
+        assertThat(resultCaptor.getValue().amount()).isEqualByComparingTo(BigDecimal.valueOf(12_000L));
+        assertThat(resultCaptor.getValue().reasonCode()).isNull();
     }
 
     @Test
-    @DisplayName("seller가 여러 명인 주문은 seller별 금액으로 집계해 usecase로 전달한다")
+    @DisplayName("seller가 여러 명인 주문도 주문 단위 결과 이벤트로 발행한다")
     void listen_multiSellerEvent_aggregatesSellerPayments() throws Exception {
         UUID orderId = UUID.randomUUID();
         UUID buyerMemberId = UUID.randomUUID();
@@ -154,12 +156,12 @@ class OrderPaymentRequestedEventConsumerTest {
         ArgumentCaptor<OrderPaymentResultMessage> resultCaptor = ArgumentCaptor.forClass(OrderPaymentResultMessage.class);
         verify(orderPaymentResultEventPublisher).publish(resultCaptor.capture());
         assertThat(resultCaptor.getValue().status()).isEqualTo(OrderPaymentResultStatus.SUCCESS);
-        assertThat(resultCaptor.getValue().sellerMemberId()).isNull();
-        assertThat(resultCaptor.getValue().escrowId()).isNull();
+        assertThat(resultCaptor.getValue().buyerMemberId()).isEqualTo(buyerMemberId);
+        assertThat(resultCaptor.getValue().amount()).isEqualByComparingTo(BigDecimal.valueOf(15_000L));
     }
 
     @Test
-    @DisplayName("wallet 없음 실패는 FAILED 결과 이벤트로 발행한다")
+    @DisplayName("wallet이 없으면 FAILED 결과 이벤트를 발행한다")
     void listen_walletNotFound_publishesFailedResult() throws Exception {
         UUID orderId = UUID.randomUUID();
         UUID buyerMemberId = UUID.randomUUID();
@@ -190,7 +192,8 @@ class OrderPaymentRequestedEventConsumerTest {
         ArgumentCaptor<OrderPaymentResultMessage> captor = ArgumentCaptor.forClass(OrderPaymentResultMessage.class);
         verify(orderPaymentResultEventPublisher).publish(captor.capture());
         assertThat(captor.getValue().status()).isEqualTo(OrderPaymentResultStatus.FAILED);
-        assertThat(captor.getValue().failureReason()).isEqualTo(OrderPaymentFailureReason.WALLET_NOT_FOUND);
+        assertThat(captor.getValue().reasonCode()).isEqualTo(OrderPaymentFailureReason.WALLET_NOT_FOUND);
+        assertThat(captor.getValue().amount()).isEqualByComparingTo(BigDecimal.valueOf(12_000L));
     }
 
     @Test
