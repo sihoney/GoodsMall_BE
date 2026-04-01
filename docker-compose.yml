@@ -85,6 +85,8 @@ services:
     depends_on:
       discovery:
         condition: service_started
+    environment:
+      EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
     ports:
       - "8888:8888"
 
@@ -106,6 +108,7 @@ services:
     restart: "no"
 
   payment:
+    profiles: [ "future" ]
     build:
       context: .
       dockerfile: payment/Dockerfile
@@ -138,6 +141,7 @@ services:
       - "8082:8082"
 
   settlement:
+    profiles: [ "future" ]
     build:
       context: .
       dockerfile: settlement/Dockerfile
@@ -189,7 +193,6 @@ services:
   # Use `docker compose --profile future up --build` after each module is ready.
 
   member:
-    profiles: [ "future" ]
     build:
       context: .
       dockerfile: member/Dockerfile
@@ -213,7 +216,6 @@ services:
       - "8083:8083"
 
   product:
-    profiles: [ "future" ]
     build:
       context: .
       dockerfile: product/Dockerfile
@@ -243,7 +245,6 @@ services:
       - "8081:8081"
 
   cart:
-    profiles: [ "future" ]
     build:
       context: .
       dockerfile: cart/Dockerfile
