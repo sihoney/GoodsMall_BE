@@ -10,14 +10,14 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-
-import java.math.BigDecimal;
-import java.util.Objects;
-import java.util.UUID;
-
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.Objects;
+import java.util.UUID;
 
 @Getter
 @Entity
@@ -33,27 +33,33 @@ public class OrderItem {
     private UUID productId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id")
+    @JoinColumn(name = "order_id", nullable = false)
     private Order order;
 
     @Column(name = "seller_id", nullable = false)
     private UUID sellerId;
 
-    @Column(name = "product_name_snapshot")
+    @Column(name = "product_name_snapshot", nullable = false, length = 255)
     private String productNameSnapshot;
 
-    @Column(name = "unit_price_snapshot")
+    @Column(name = "unit_price_snapshot", nullable = false, precision = 19, scale = 2)
     private BigDecimal unitPriceSnapshot;
 
-    @Column(name = "quantity")
+    @Column(name = "quantity", nullable = false)
     private Integer quantity;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status")
+    @Column(name = "order_item_status", nullable = false, length = 30)
     private OrderItemStatus status;
 
-    @Column(name = "thumbnail_key_snapshot")
+    @Column(name = "thumbnail_key_snapshot", length = 255)
     private String thumbnailKeySnapshot;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
 
     private OrderItem(
             UUID orderItemId,
