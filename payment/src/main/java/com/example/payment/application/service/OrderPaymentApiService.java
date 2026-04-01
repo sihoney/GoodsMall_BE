@@ -7,12 +7,15 @@ import com.example.payment.application.usecase.OrderPaymentApiUseCase;
 import com.example.payment.application.usecase.OrderPaymentUseCase;
 import com.example.payment.common.exception.InvalidOrderPaymentRequestException;
 import com.example.payment.common.exception.WalletNotFoundException;
+import com.example.payment.domain.service.OrderPaymentResultEventPublisher;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPaymentFailureReason;
+import com.example.payment.infrastructure.messaging.kafka.contract.OrderPaymentResultMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPaymentResultStatus;
 import com.example.payment.presentation.dto.request.OrderPaymentApiRequest;
 import com.example.payment.presentation.dto.request.OrderPaymentApiOrderLineRequest;
 import com.example.payment.presentation.dto.response.OrderPaymentApiResponse;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -27,9 +30,14 @@ import org.springframework.stereotype.Service;
 public class OrderPaymentApiService implements OrderPaymentApiUseCase {
 
     private final OrderPaymentUseCase orderPaymentUseCase;
+    private final OrderPaymentResultEventPublisher orderPaymentResultEventPublisher;
 
-    public OrderPaymentApiService(OrderPaymentUseCase orderPaymentUseCase) {
+    public OrderPaymentApiService(
+            OrderPaymentUseCase orderPaymentUseCase,
+            OrderPaymentResultEventPublisher orderPaymentResultEventPublisher
+    ) {
         this.orderPaymentUseCase = orderPaymentUseCase;
+        this.orderPaymentResultEventPublisher = orderPaymentResultEventPublisher;
     }
 
     @Override
@@ -57,6 +65,16 @@ public class OrderPaymentApiService implements OrderPaymentApiUseCase {
     }
 
     private OrderPaymentApiResponse successResponse(OrderPaymentApiRequest request, OrderPaymentResult result) {
+        orderPaymentResultEventPublisher.publish(new OrderPaymentResultMessage(
+                UUID.randomUUID(),
+                request.orderId(),
+                request.buyerId(),
+                request.totalPrice(),
+                OrderPaymentResultStatus.SUCCESS,
+                null,
+                Instant.now()
+        ));
+
         return new OrderPaymentApiResponse(
                 request.orderId(),
                 request.buyerId(),
@@ -70,6 +88,16 @@ public class OrderPaymentApiService implements OrderPaymentApiUseCase {
             OrderPaymentApiRequest request,
             OrderPaymentFailureReason reason
     ) {
+        orderPaymentResultEventPublisher.publish(new OrderPaymentResultMessage(
+                UUID.randomUUID(),
+                request.orderId(),
+                request.buyerId(),
+                request.totalPrice(),
+                OrderPaymentResultStatus.FAILED,
+                reason,
+                Instant.now()
+        ));
+
         return new OrderPaymentApiResponse(
                 request.orderId(),
                 request.buyerId(),
