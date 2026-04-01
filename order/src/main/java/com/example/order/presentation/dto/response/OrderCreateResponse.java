@@ -17,7 +17,7 @@ public record OrderCreateResponse(
         return new OrderCreateResponse(
                 order.getOrderId(),
                 order.getTotalPrice(),
-                order.getOrderStatus(),
+                order.getStatus(),
                 order.getCreatedAt());
     }
 }
