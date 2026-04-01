@@ -6,6 +6,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
       TZ: Asia/Seoul
     ports:
       - "5432:5432"
@@ -98,6 +99,7 @@ services:
         condition: service_started
     environment:
       EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
+      EUREKA_INSTANCE_IP: ${EUREKA_INSTANCE_IP}
     ports:
       - "8888:8888"
 
@@ -192,12 +194,6 @@ services:
     depends_on:
       discovery:
         condition: service_started
-      member:
-        condition: service_started
-      payment:
-        condition: service_started
-      settlement:
-        condition: service_started
     environment:
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
@@ -270,7 +266,8 @@ services:
       DB_USER_NAME: ${DB_USER_NAME}
       DB_USER_PASSWORD: ${DB_USER_PASSWORD}
       EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
-      EUREKA_INSTANCE_IP: ${EUREKA_INSTANCE_IP}
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "false"
+      EUREKA_INSTANCE_HOSTNAME: product
       AWS_ACCESS_KEY: ${AWS_ACCESS_KEY}
       AWS_SECRET_KEY: ${AWS_SECRET_KEY}
       AWS_S3_BUCKET: ${AWS_S3_BUCKET}
@@ -299,7 +296,8 @@ services:
       DB_USER_NAME: ${DB_USER_NAME}
       DB_USER_PASSWORD: ${DB_USER_PASSWORD}
       EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
-      EUREKA_INSTANCE_IP: ${EUREKA_INSTANCE_IP}
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "false"
+      EUREKA_INSTANCE_HOSTNAME: cart
       CONFIG_SERVER_URL: http://config:8888
     ports:
       - "8086:8086"

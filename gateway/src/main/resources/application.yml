@@ -113,6 +113,20 @@ spring:
               filters:
                 - SetPath=/v3/api-docs
 
+            - id: product-service-docs
+              uri: lb://product-service
+              predicates:
+                - Path=/swagger/product/v3/api-docs
+              filters:
+                - SetPath=/v3/api-docs
+
+            - id: cart-service-docs
+              uri: lb://cart-service
+              predicates:
+                - Path=/swagger/cart/v3/api-docs
+              filters:
+                - SetPath=/v3/api-docs
+
             - id: notification-service
               uri: lb://notification-service
               predicates:
@@ -150,3 +164,7 @@ springdoc:
         url: /swagger/payment/v3/api-docs
       - name: settlement-service
         url: /swagger/settlement/v3/api-docs
+      - name: product-service
+        url: /swagger/product/v3/api-docs
+      - name: cart-service
+        url: /swagger/cart/v3/api-docs
