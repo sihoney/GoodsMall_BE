@@ -33,6 +33,19 @@ dependencies {
     // Test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'com.h2database:h2'
+
+    // SpringDoc OpenAPI
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2'
+    // Eureka 서버 등록
+    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
+    // Config Server에서 설정을 가져오기 위한 클라이언트
+    implementation 'org.springframework.cloud:spring-cloud-starter-config'
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:2025.1.1"
+    }
 }
 
 tasks.named('test') {

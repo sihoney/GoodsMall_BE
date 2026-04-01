@@ -1,6 +1,11 @@
 spring:
   application:
     name: product-service-test
+  config:
+    import: ""
+  cloud:
+    config:
+      enabled: false
 
   datasource:
     driver-class-name: org.h2.Driver

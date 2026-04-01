@@ -18,6 +18,8 @@ spring:
       - member_service
       - payment
       - settlement
+      - product
+      - cart
     locations:
       - classpath:db/migration
 

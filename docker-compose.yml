@@ -6,11 +6,12 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
       TZ: Asia/Seoul
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -47,7 +48,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
     healthcheck:
-      test: ["CMD-SHELL", "cub kafka-ready -b localhost:9092 1 20"]
+      test: [ "CMD-SHELL", "cub kafka-ready -b localhost:9092 1 20" ]
       interval: 10s
       timeout: 10s
       retries: 10
@@ -86,6 +87,22 @@ services:
     ports:
       - "8761:8761"
 
+  config:
+    build:
+      context: .
+      dockerfile: config/Dockerfile
+    container_name: goods-mall-config
+    env_file:
+      - .env
+    depends_on:
+      discovery:
+        condition: service_started
+    environment:
+      EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
+      EUREKA_INSTANCE_IP: ${EUREKA_INSTANCE_IP}
+    ports:
+      - "8888:8888"
+
   db-migration:
     build:
       context: .
@@ -106,6 +123,7 @@ services:
     restart: "no"
 
   payment:
+    profiles: [ "future" ]
     build:
       context: .
       dockerfile: payment/Dockerfile
@@ -139,6 +157,7 @@ services:
       - "8082:8082"
 
   settlement:
+    profiles: [ "future" ]
     build:
       context: .
       dockerfile: settlement/Dockerfile
@@ -174,12 +193,6 @@ services:
       - .env
     depends_on:
       discovery:
-        condition: service_started
-      member:
-        condition: service_started
-      payment:
-        condition: service_started
-      settlement:
         condition: service_started
     environment:
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
@@ -230,10 +243,9 @@ services:
       APIGATEWAY_HOST: http://gateway:8080
       MEMBER_SIGNED_UP_TOPIC: ${PAYMENT_KAFKA_TOPIC_MEMBER_CREATED}
     ports:
-      - "8081:8081"
+      - "8083:8083"
 
   product:
-    profiles: ["future"]
     build:
       context: .
       dockerfile: product/Dockerfile
@@ -245,18 +257,53 @@ services:
         condition: service_started
       postgres:
         condition: service_healthy
-      kafka:
-        condition: service_healthy
+      config:
+        condition: service_started
+      db-migration:
+        condition: service_completed_successfully
     environment:
+      DB_URL: ${DB_URL}
+      DB_USER_NAME: ${DB_USER_NAME}
+      DB_USER_PASSWORD: ${DB_USER_PASSWORD}
       EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
-      EUREKA_INSTANCE_IP: ${EUREKA_INSTANCE_IP}
-      # TODO(product): add product DB/env values.
-      # TODO(product): confirm whether kafka is required at runtime.
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "false"
+      EUREKA_INSTANCE_HOSTNAME: product
+      AWS_ACCESS_KEY: ${AWS_ACCESS_KEY}
+      AWS_SECRET_KEY: ${AWS_SECRET_KEY}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET}
+      CONFIG_SERVER_URL: http://config:8888
     ports:
-      - "8084:8084"
+      - "8081:8081"
+
+  cart:
+    build:
+      context: .
+      dockerfile: cart/Dockerfile
+    container_name: goods-mall-cart
+    env_file:
+      - .env
+    depends_on:
+      discovery:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      config:
+        condition: service_started
+      db-migration:
+        condition: service_completed_successfully
+    environment:
+      DB_URL: ${DB_URL}
+      DB_USER_NAME: ${DB_USER_NAME}
+      DB_USER_PASSWORD: ${DB_USER_PASSWORD}
+      EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "false"
+      EUREKA_INSTANCE_HOSTNAME: cart
+      CONFIG_SERVER_URL: http://config:8888
+    ports:
+      - "8086:8086"
 
   order:
-    profiles: ["future"]
+    profiles: [ "future" ]
     build:
       context: .
       dockerfile: order/Dockerfile
@@ -276,10 +323,10 @@ services:
       # TODO(order): add order DB/env values.
       # TODO(order): confirm payment/product/member integration env requirements.
     ports:
-      - "8086:8086"
+      - "8084:8084"
 
   notification:
-    profiles: ["future"]
+    profiles: [ "future" ]
     build:
       context: .
       dockerfile: notification/Dockerfile

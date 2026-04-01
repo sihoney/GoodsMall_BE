@@ -43,7 +43,6 @@ bin/
 
 ### Env ###
 .env
-.env.properties
 product/.env
 
 docs/

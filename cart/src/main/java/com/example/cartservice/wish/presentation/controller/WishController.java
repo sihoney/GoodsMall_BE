@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/cart/wishes")
+@RequestMapping("/api/wishes")
 @RequiredArgsConstructor
 @Validated
 public class WishController {
