@@ -20,7 +20,7 @@ public record OrderSummaryResponse(
         return new OrderSummaryResponse(
                 order.getOrderId(),
                 order.getTotalPrice(),
-                order.getOrderStatus(),
+                order.getStatus(),
                 order.getCreatedAt(),
                 order.getRepresentativeProductName(),
                 order.getRepresentativeThumbnailKey(),

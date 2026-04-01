@@ -11,6 +11,11 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Min;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -18,10 +23,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
-
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
@@ -36,12 +37,13 @@ public class Order {
     @Column(name = "buyer_id", nullable = false)
     private UUID buyerId;
 
-    @Column(name = "total_price", nullable = false)
+    @DecimalMin("0.00")
+    @Column(name = "total_price", nullable = false, precision = 19, scale = 2)
     private BigDecimal totalPrice;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "order_status", nullable = false)
-    private OrderStatus orderStatus;
+    @Column(name = "order_status", nullable = false, length = 30)
+    private OrderStatus status;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -49,28 +51,29 @@ public class Order {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    @Column(name = "address")
+    @Column(name = "address", nullable = false)
     private String address;
 
-    @Column(name = "address_detail")
+    @Column(name = "address_detail", nullable = false)
     private String addressDetail;
 
-    @Column(name = "\"zipCode\"")
+    @Column(name = "zip_code", nullable = false)
     private String zipCode;
 
-    @Column(name = "receiver")
+    @Column(name = "receiver", nullable = false)
     private String receiver;
 
-    @Column(name = "receiver_phone")
+    @Column(name = "receiver_phone", nullable = false)
     private String receiverPhone;
 
-    @Column(name = "representative_product_name")
+    @Column(name = "representative_product_name", nullable = false)
     private String representativeProductName;
 
     @Column(name = "representative_thumbnail_key")
     private String representativeThumbnailKey;
 
-    @Column(name = "item_count")
+    @Min(1)
+    @Column(name = "item_count", nullable = false)
     private Integer itemCount;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
@@ -80,7 +83,7 @@ public class Order {
             UUID orderId,
             UUID buyerId,
             BigDecimal totalPrice,
-            OrderStatus orderStatus,
+            OrderStatus status,
             LocalDateTime createdAt,
             LocalDateTime updatedAt,
             String address,
@@ -95,7 +98,7 @@ public class Order {
         this.orderId = Objects.requireNonNull(orderId);
         this.buyerId = Objects.requireNonNull(buyerId);
         this.totalPrice = Objects.requireNonNull(totalPrice);
-        this.orderStatus = Objects.requireNonNull(orderStatus);
+        this.status = Objects.requireNonNull(status);
         this.createdAt = Objects.requireNonNull(createdAt);
         this.updatedAt = Objects.requireNonNull(updatedAt);
         this.address = address;
@@ -160,17 +163,17 @@ public class Order {
     }
 
     public boolean confirm(BigDecimal paidAmount) {
-        if (this.orderStatus == OrderStatus.CONFIRMED) {
+        if (this.status == OrderStatus.CONFIRMED) {
             return false;
         }
-        if (this.orderStatus == OrderStatus.CANCELED) {
+        if (this.status == OrderStatus.CANCELED) {
             return false;
         }
         if (this.totalPrice.compareTo(paidAmount) != 0) {
             throw new CustomException(ErrorCode.INVALID_PAYMENT_AMOUNT);
         }
 
-        this.orderStatus = OrderStatus.CONFIRMED;
+        this.status = OrderStatus.CONFIRMED;
         this.updatedAt = LocalDateTime.now();
         return true;
     }

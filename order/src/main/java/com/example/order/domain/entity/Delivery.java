@@ -35,17 +35,17 @@ public class Delivery {
     private UUID buyerId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_item_id")
+    @JoinColumn(name = "order_item_id", nullable = false)
     private OrderItem orderItem;
 
-    @Column(name = "courier_code")
+    @Column(name = "courier_code", length = 50)
     private String courierCode;
 
-    @Column(name = "invoice_number")
+    @Column(name = "invoice_number", length = 100)
     private String invoiceNumber;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status")
+    @Column(name = "delivery_status", nullable = false, length = 30)
     private DeliveryStatus status;
 
     @Column(name = "shipped_at")
@@ -54,10 +54,10 @@ public class Delivery {
     @Column(name = "delivered_at")
     private LocalDateTime deliveredAt;
 
-    @Column(name = "created_at")
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
     private Delivery(
