@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 카테고리 API Controller
  */
 @RestController
-@RequestMapping("/api/category")
+@RequestMapping("/api/categories")
 @RequiredArgsConstructor
 public class CategoryController {
 
