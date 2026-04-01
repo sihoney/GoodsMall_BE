@@ -48,7 +48,7 @@ class KafkaAutoPurchaseConfirmedEventPublisherTest {
         verify(objectMapper).writeValueAsString(captor.capture());
         assertThat(captor.getValue().orderId()).isEqualTo(event.orderId());
         assertThat(captor.getValue().buyerMemberId()).isEqualTo(event.buyerMemberId());
-        assertThat(captor.getValue().confirmedAt()).isEqualTo(Instant.parse("2024-01-01T12:00:00Z"));
+        assertThat(captor.getValue().confirmedAt()).isEqualTo(Instant.parse("2024-01-01T03:00:00Z"));
         verify(kafkaTemplate).send(topic, String.valueOf(orderId), "serialized-message");
     }
 }

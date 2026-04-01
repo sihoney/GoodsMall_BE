@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 
 import com.example.notification.application.usecase.NotificationUsecase;
+import com.example.notification.infrastructure.messaging.kafka.consumer.AutoPurchaseConfirmedEventConsumer;
 import com.example.notification.infrastructure.messaging.kafka.contract.AutoPurchaseConfirmedMessage;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -31,7 +32,7 @@ class AutoPurchaseConfirmedEventConsumerTest {
     void listen_delegatesToNotificationUsecase() {
         UUID orderId = UUID.randomUUID();
         UUID buyerMemberId = UUID.randomUUID();
-        LocalDateTime confirmedAt = LocalDateTime.of(2026, 3, 29, 9, 49, 58);
+        LocalDateTime confirmedAt = LocalDateTime.of(2026, 3, 29, 18, 49, 58);
         AutoPurchaseConfirmedMessage message = new AutoPurchaseConfirmedMessage(
                 orderId,
                 buyerMemberId,

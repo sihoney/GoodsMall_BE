@@ -35,7 +35,7 @@ class OrderPaymentResultEventConsumerTest {
     void listen_successDelegatesToSucceededNotification() {
         UUID orderId = UUID.randomUUID();
         UUID buyerMemberId = UUID.randomUUID();
-        LocalDateTime occurredAt = LocalDateTime.of(2026, 3, 29, 9, 10, 2);
+        LocalDateTime occurredAt = LocalDateTime.of(2026, 3, 29, 18, 10, 2);
         OrderPaymentResultMessage event = new OrderPaymentResultMessage(
                 UUID.randomUUID(),
                 orderId,
@@ -56,7 +56,7 @@ class OrderPaymentResultEventConsumerTest {
     void listen_failureDelegatesToFailedNotification() {
         UUID orderId = UUID.randomUUID();
         UUID buyerMemberId = UUID.randomUUID();
-        LocalDateTime occurredAt = LocalDateTime.of(2026, 3, 29, 9, 10, 2);
+        LocalDateTime occurredAt = LocalDateTime.of(2026, 3, 29, 18, 10, 2);
         OrderPaymentResultMessage event = new OrderPaymentResultMessage(
                 UUID.randomUUID(),
                 orderId,

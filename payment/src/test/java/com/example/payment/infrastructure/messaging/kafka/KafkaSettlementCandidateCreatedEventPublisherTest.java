@@ -60,9 +60,9 @@ class KafkaSettlementCandidateCreatedEventPublisherTest {
         assertThat(captor.getValue().escrowId()).isEqualTo(event.escrowId());
         assertThat(captor.getValue().sellerMemberId()).isEqualTo(event.sellerMemberId());
         assertThat(captor.getValue().grossAmount()).isEqualTo(event.grossAmount());
-        assertThat(captor.getValue().releasedAt()).isEqualTo(Instant.parse("2024-01-01T12:00:00Z"));
+        assertThat(captor.getValue().releasedAt()).isEqualTo(Instant.parse("2024-01-01T03:00:00Z"));
         assertThat(captor.getValue().confirmationType()).isEqualTo(event.confirmationType());
-        assertThat(captor.getValue().occurredAt()).isEqualTo(Instant.parse("2024-01-01T12:00:01Z"));
+        assertThat(captor.getValue().occurredAt()).isEqualTo(Instant.parse("2024-01-01T03:00:01Z"));
         verify(kafkaTemplate).send(topic, String.valueOf(escrowId), "serialized-message");
     }
 }

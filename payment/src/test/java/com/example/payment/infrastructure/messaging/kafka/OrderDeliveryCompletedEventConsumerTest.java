@@ -40,7 +40,7 @@ class OrderDeliveryCompletedEventConsumerTest {
     @DisplayName("정상 배송 완료 이벤트를 수신하면 releaseAt 설정 usecase를 호출한다")
     void listen_validEvent_callsEscrowReleaseScheduleUseCase() throws Exception {
         UUID orderId = UUID.randomUUID();
-        LocalDateTime deliveredAt = LocalDateTime.of(2024, 1, 5, 12, 0, 0);
+        LocalDateTime deliveredAt = LocalDateTime.of(2024, 1, 5, 21, 0, 0);
         OrderDeliveryCompletedMessage event = new OrderDeliveryCompletedMessage(
                 "evt-1",
                 orderId,
@@ -63,7 +63,7 @@ class OrderDeliveryCompletedEventConsumerTest {
     @DisplayName("중복 배송 완료 이벤트도 그대로 usecase에 위임한다")
     void listen_duplicateEvent_callsUseCase() throws Exception {
         UUID orderId = UUID.randomUUID();
-        LocalDateTime deliveredAt = LocalDateTime.of(2024, 1, 5, 12, 0, 0);
+        LocalDateTime deliveredAt = LocalDateTime.of(2024, 1, 5, 21, 0, 0);
         OrderDeliveryCompletedMessage event = new OrderDeliveryCompletedMessage(
                 "evt-1",
                 orderId,

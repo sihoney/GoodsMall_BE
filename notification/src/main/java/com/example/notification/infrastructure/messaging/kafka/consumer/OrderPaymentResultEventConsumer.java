@@ -5,16 +5,14 @@ import com.example.notification.infrastructure.messaging.kafka.contract.OrderPay
 import com.example.notification.infrastructure.messaging.kafka.contract.OrderPaymentResultStatus;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
 @Component
-/**
- * payment의 주문 결제 결과 이벤트를 notification 유스케이스로 연결하는 consumer다.
- * 주문 단위 result 계약만 해석하고, 내부 알림 모델에 맞춰 시간과 금액만 변환한다.
- */
 public class OrderPaymentResultEventConsumer {
+
+    private static final ZoneId KOREA_ZONE_ID = ZoneId.of("Asia/Seoul");
 
     private final NotificationUsecase notificationUsecase;
 
@@ -27,9 +25,6 @@ public class OrderPaymentResultEventConsumer {
             groupId = "${notification.kafka.consumer-groups.order-payment-result:notification-service}",
             containerFactory = "orderPaymentResultKafkaListenerContainerFactory"
     )
-    /**
-     * 주문 결제 결과를 성공/실패 알림 생성 요청으로 위임한다.
-     */
     public void listen(OrderPaymentResultMessage event) {
         validateEvent(event);
 
@@ -38,7 +33,7 @@ public class OrderPaymentResultEventConsumer {
                     event.orderId(),
                     event.buyerMemberId(),
                     toAmount(event.amount()),
-                    toUtcLocalDateTime(event.occurredAt())
+                    toKoreaLocalDateTime(event.occurredAt())
             );
             return;
         }
@@ -47,13 +42,10 @@ public class OrderPaymentResultEventConsumer {
                 event.orderId(),
                 event.buyerMemberId(),
                 event.reasonCode(),
-                toUtcLocalDateTime(event.occurredAt())
+                toKoreaLocalDateTime(event.occurredAt())
         );
     }
 
-    /**
-     * 주문 결제 결과 계약의 필수 필드를 검증한다.
-     */
     private void validateEvent(OrderPaymentResultMessage event) {
         if (event == null) {
             throw new IllegalArgumentException("orderPaymentResult event is required.");
@@ -79,9 +71,6 @@ public class OrderPaymentResultEventConsumer {
         }
     }
 
-    /**
-     * 알림 애플리케이션은 정수 금액 모델을 사용하므로 계약 BigDecimal 금액을 변환한다.
-     */
     private Long toAmount(BigDecimal amount) {
         try {
             return amount.longValueExact();
@@ -90,10 +79,7 @@ public class OrderPaymentResultEventConsumer {
         }
     }
 
-    /**
-     * notification 내부 모델을 유지하기 위해 Kafka UTC 시간을 LocalDateTime으로 변환한다.
-     */
-    private LocalDateTime toUtcLocalDateTime(java.time.Instant instant) {
-        return LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
+    private LocalDateTime toKoreaLocalDateTime(java.time.Instant instant) {
+        return LocalDateTime.ofInstant(instant, KOREA_ZONE_ID);
     }
 }

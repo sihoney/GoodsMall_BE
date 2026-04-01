@@ -58,7 +58,7 @@ class SettlementCandidateCreatedEventConsumerTest {
         assertThat(captor.getValue().escrowId()).isEqualTo(event.escrowId());
         assertThat(captor.getValue().sellerId()).isEqualTo(event.sellerMemberId());
         assertThat(captor.getValue().grossAmount()).isEqualTo(event.grossAmount());
-        assertThat(captor.getValue().releasedAt()).isEqualTo(event.releasedAt());
+        assertThat(captor.getValue().releasedAt()).isEqualTo(LocalDateTime.of(2024, 1, 1, 21, 0));
     }
 
     @Test
