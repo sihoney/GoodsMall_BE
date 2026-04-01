@@ -10,11 +10,13 @@ import com.example.payment.application.dto.ChargeRefundCommand;
 import com.example.payment.application.usecase.ChargeConfirmUseCase;
 import com.example.payment.application.usecase.ChargeCreateUseCase;
 import com.example.payment.application.usecase.ChargeRefundUseCase;
+import com.example.payment.application.usecase.OrderPaymentApiUseCase;
 import com.example.payment.application.usecase.PaymentSearchUseCase;
 import com.example.payment.domain.enumtype.PgProvider;
 import com.example.payment.presentation.dto.request.ChargeConfirmRequest;
 import com.example.payment.presentation.dto.request.ChargeCreateRequest;
 import com.example.payment.presentation.dto.request.ChargeRefundRequest;
+import com.example.payment.presentation.dto.request.OrderPaymentApiRequest;
 import com.example.payment.presentation.dto.response.ApiResponse;
 import com.example.payment.presentation.dto.response.ChargeDetailResponse;
 import com.example.payment.presentation.dto.response.ChargeConfirmResponse;
@@ -22,6 +24,7 @@ import com.example.payment.presentation.dto.response.ChargeCreateResponse;
 import com.example.payment.presentation.dto.response.ChargeListItemResponse;
 import com.example.payment.presentation.dto.response.ChargeRefundSummaryResponse;
 import com.example.payment.presentation.dto.response.ChargeRefundResponse;
+import com.example.payment.presentation.dto.response.OrderPaymentApiResponse;
 import com.example.payment.presentation.dto.response.PagedResponse;
 import com.example.payment.presentation.dto.response.PendingSellerIncomeItemResponse;
 import com.example.payment.presentation.dto.response.WalletSummaryResponse;
@@ -53,17 +56,20 @@ public class PaymentController {
     private final ChargeConfirmUseCase chargeConfirmUseCase;
     private final ChargeRefundUseCase chargeRefundUseCase;
     private final PaymentSearchUseCase paymentSearchUseCase;
+    private final OrderPaymentApiUseCase orderPaymentApiUseCase;
 
     public PaymentController(
             ChargeCreateUseCase chargeCreateUseCase,
             ChargeConfirmUseCase chargeConfirmUseCase,
             ChargeRefundUseCase chargeRefundUseCase,
-            PaymentSearchUseCase paymentSearchUseCase
+            PaymentSearchUseCase paymentSearchUseCase,
+            OrderPaymentApiUseCase orderPaymentApiUseCase
     ) {
         this.chargeCreateUseCase = chargeCreateUseCase;
         this.chargeConfirmUseCase = chargeConfirmUseCase;
         this.chargeRefundUseCase = chargeRefundUseCase;
         this.paymentSearchUseCase = paymentSearchUseCase;
+        this.orderPaymentApiUseCase = orderPaymentApiUseCase;
     }
 
     /**
@@ -241,5 +247,16 @@ public class PaymentController {
         ChargeRefundCommand command = new ChargeRefundCommand(chargeId, request.refundReason());
         ChargeRefundResponse response = ChargeRefundResponse.from(chargeRefundUseCase.refundCharge(command));
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /**
+     * order에서 주문 생성이 완료되면 예치금 차감과 거래내역 및 에스크로 적재를 위한 api 통신
+     */
+    @PostMapping("/orders")
+    @Operation(summary = "주문 결제")
+    public ResponseEntity<ApiResponse<OrderPaymentApiResponse>> payOrder(
+            @Valid @RequestBody OrderPaymentApiRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(orderPaymentApiUseCase.payOrder(request)));
     }
 }
