@@ -15,7 +15,7 @@ import com.example.payment.domain.entity.Escrow;
 import com.example.payment.domain.repository.EscrowRepository;
 import com.example.payment.domain.service.TimeProvider;
 import java.time.LocalDateTime;
-import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -61,21 +61,22 @@ class EscrowReleaseScheduleServiceTest {
     class ScheduleRelease {
 
         @Test
-        @DisplayName("배송 완료 시각 기준으로 7일 뒤 releaseAt을 설정한다")
+        @DisplayName("배송 완료 시 주문의 모든 HELD escrow에 releaseAt을 설정한다")
         void scheduleRelease_success_setsReleaseAt() {
             EscrowReleaseScheduleCommand command = new EscrowReleaseScheduleCommand(orderId, deliveredAt);
-            Escrow escrow = Escrow.createHeld(escrowId, orderId, buyerMemberId, sellerMemberId, 10_000L, null, now.minusDays(1));
+            Escrow firstEscrow = Escrow.createHeld(escrowId, orderId, buyerMemberId, sellerMemberId, 10_000L, null, now.minusDays(1));
+            Escrow secondEscrow = Escrow.createHeld(UUID.randomUUID(), orderId, buyerMemberId, UUID.randomUUID(), 5_000L, null, now.minusDays(1));
 
-            given(escrowRepository.findByOrderId(orderId)).willReturn(Optional.of(escrow));
+            given(escrowRepository.findAllByOrderId(orderId)).willReturn(List.of(firstEscrow, secondEscrow));
             given(timeProvider.now()).willReturn(now);
-            given(escrowRepository.save(any(Escrow.class))).willAnswer(invocation -> invocation.getArgument(0));
+            given(escrowRepository.saveAll(any())).willAnswer(invocation -> invocation.getArgument(0));
 
             EscrowReleaseScheduleResult result = escrowReleaseScheduleService.scheduleRelease(command);
 
             assertThat(result.orderId()).isEqualTo(orderId);
             assertThat(result.deliveredAt()).isEqualTo(deliveredAt);
             assertThat(result.releaseAt()).isEqualTo(deliveredAt.plusDays(7));
-            verify(escrowRepository).save(any(Escrow.class));
+            verify(escrowRepository).saveAll(any());
         }
 
         @Test
@@ -83,7 +84,7 @@ class EscrowReleaseScheduleServiceTest {
         void scheduleRelease_escrowNotFound_throwsException() {
             EscrowReleaseScheduleCommand command = new EscrowReleaseScheduleCommand(orderId, deliveredAt);
 
-            given(escrowRepository.findByOrderId(orderId)).willReturn(Optional.empty());
+            given(escrowRepository.findAllByOrderId(orderId)).willReturn(List.of());
 
             assertThatThrownBy(() -> escrowReleaseScheduleService.scheduleRelease(command))
                     .isInstanceOf(EscrowNotFoundException.class);
@@ -98,24 +99,25 @@ class EscrowReleaseScheduleServiceTest {
                     .isInstanceOf(InvalidOrderPaymentRequestException.class)
                     .hasMessageContaining("deliveredAt is required.");
 
-            verify(escrowRepository, never()).findByOrderId(any());
+            verify(escrowRepository, never()).findAllByOrderId(any());
         }
 
         @Test
-        @DisplayName("이미 releaseAt이 있으면 기존 값을 그대로 반환한다")
+        @DisplayName("이미 모두 예약된 상태면 저장 없이 계산 결과만 반환한다")
         void scheduleRelease_alreadyScheduled_returnsExistingResult() {
             EscrowReleaseScheduleCommand command = new EscrowReleaseScheduleCommand(orderId, deliveredAt);
             Escrow escrow = Escrow.createHeld(escrowId, orderId, buyerMemberId, sellerMemberId, 10_000L, null, now.minusDays(1));
             escrow.scheduleReleaseAt(deliveredAt.plusDays(7), now.minusHours(1));
 
-            given(escrowRepository.findByOrderId(orderId)).willReturn(Optional.of(escrow));
+            given(escrowRepository.findAllByOrderId(orderId)).willReturn(List.of(escrow));
+            given(timeProvider.now()).willReturn(now);
 
             EscrowReleaseScheduleResult result = escrowReleaseScheduleService.scheduleRelease(command);
 
             assertThat(result.orderId()).isEqualTo(orderId);
             assertThat(result.deliveredAt()).isEqualTo(deliveredAt);
             assertThat(result.releaseAt()).isEqualTo(deliveredAt.plusDays(7));
-            verify(escrowRepository, never()).save(any());
+            verify(escrowRepository, never()).saveAll(any());
         }
     }
 }

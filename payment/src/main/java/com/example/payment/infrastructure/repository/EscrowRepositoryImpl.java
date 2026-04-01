@@ -14,7 +14,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 /**
  * EscrowRepository 포트를 Spring Data JPA로 연결하는 adapter다.
- * 자동 해제 대상 조회는 HELD + releaseAt 조건으로 한정한다.
+ * 다중 seller 주문 시나리오에 맞춰 목록 저장과 seller 기준 조회를 노출한다.
  */
 public class EscrowRepositoryImpl implements EscrowRepository {
 
@@ -30,13 +30,23 @@ public class EscrowRepositoryImpl implements EscrowRepository {
     }
 
     @Override
+    public List<Escrow> saveAll(List<Escrow> escrows) {
+        return escrowJpaRepository.saveAll(escrows);
+    }
+
+    @Override
     public Optional<Escrow> findByEscrowId(UUID escrowId) {
         return escrowJpaRepository.findById(escrowId);
     }
 
     @Override
-    public Optional<Escrow> findByOrderId(UUID orderId) {
-        return escrowJpaRepository.findByOrderId(orderId);
+    public Optional<Escrow> findByOrderIdAndSellerMemberId(UUID orderId, UUID sellerMemberId) {
+        return escrowJpaRepository.findByOrderIdAndSellerMemberId(orderId, sellerMemberId);
+    }
+
+    @Override
+    public List<Escrow> findAllByOrderId(UUID orderId) {
+        return escrowJpaRepository.findAllByOrderId(orderId);
     }
 
     @Override

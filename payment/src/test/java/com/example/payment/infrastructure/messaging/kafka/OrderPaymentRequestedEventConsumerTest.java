@@ -10,16 +10,20 @@ import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.example.payment.application.dto.OrderPaymentCommand;
 import com.example.payment.application.dto.OrderPaymentResult;
+import com.example.payment.application.dto.OrderPaymentSellerCommand;
 import com.example.payment.application.usecase.OrderPaymentUseCase;
 import com.example.payment.common.exception.InvalidOrderPaymentRequestException;
 import com.example.payment.common.exception.WalletNotFoundException;
 import com.example.payment.domain.service.OrderPaymentResultEventPublisher;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPaymentFailureReason;
+import com.example.payment.infrastructure.messaging.kafka.contract.OrderPaymentRequestedLineMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPaymentRequestedMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPaymentResultMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPaymentResultStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.time.LocalDateTime;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -55,19 +59,23 @@ class OrderPaymentRequestedEventConsumerTest {
                 "evt-1",
                 orderId,
                 buyerMemberId,
-                sellerMemberId,
-                12_000L,
-                10_000L,
-                LocalDateTime.of(2024, 1, 3, 10, 0, 0)
+                BigDecimal.valueOf(12_000L),
+                Instant.parse("2026-03-31T12:45:30Z"),
+                Instant.parse("2026-03-31T12:47:30Z"),
+                List.of(new OrderPaymentRequestedLineMessage(
+                        UUID.randomUUID(),
+                        sellerMemberId,
+                        BigDecimal.valueOf(12_000L),
+                        1,
+                        BigDecimal.valueOf(12_000L)
+                ))
         );
         OrderPaymentResult result = new OrderPaymentResult(
                 orderId,
                 UUID.randomUUID(),
-                UUID.randomUUID(),
+                List.of(UUID.randomUUID()),
                 12_000L,
-                8_000L,
-                null,
-                null
+                8_000L
         );
         String eventJson = "{\"eventId\":\"evt-1\"}";
 
@@ -80,57 +88,78 @@ class OrderPaymentRequestedEventConsumerTest {
         verify(orderPaymentUseCase).payOrder(captor.capture());
         assertThat(captor.getValue().orderId()).isEqualTo(orderId);
         assertThat(captor.getValue().buyerMemberId()).isEqualTo(buyerMemberId);
-        assertThat(captor.getValue().sellerMemberId()).isEqualTo(sellerMemberId);
         assertThat(captor.getValue().orderAmount()).isEqualTo(12_000L);
-        assertThat(captor.getValue().sellerReceivableAmount()).isEqualTo(10_000L);
-        assertThat(captor.getValue().releaseAt()).isNull();
+        assertThat(captor.getValue().sellerPayments())
+                .containsExactly(new OrderPaymentSellerCommand(sellerMemberId, 12_000L));
 
         ArgumentCaptor<OrderPaymentResultMessage> resultCaptor = ArgumentCaptor.forClass(OrderPaymentResultMessage.class);
         verify(orderPaymentResultEventPublisher).publish(resultCaptor.capture());
         assertThat(resultCaptor.getValue().status()).isEqualTo(OrderPaymentResultStatus.SUCCESS);
+        assertThat(resultCaptor.getValue().sellerMemberId()).isEqualTo(sellerMemberId);
     }
 
     @Test
-    @DisplayName("중복 결제 요청도 성공 결과를 재발행한다")
-    void listen_duplicateEvent_publishesSuccessResult() throws Exception {
+    @DisplayName("seller가 여러 명인 주문은 seller별 금액으로 집계해 usecase로 전달한다")
+    void listen_multiSellerEvent_aggregatesSellerPayments() throws Exception {
         UUID orderId = UUID.randomUUID();
         UUID buyerMemberId = UUID.randomUUID();
-        UUID sellerMemberId = UUID.randomUUID();
-        UUID escrowId = UUID.randomUUID();
-        UUID walletId = UUID.randomUUID();
+        UUID firstSellerId = UUID.randomUUID();
+        UUID secondSellerId = UUID.randomUUID();
         OrderPaymentRequestedMessage event = new OrderPaymentRequestedMessage(
                 "evt-1",
                 orderId,
                 buyerMemberId,
-                sellerMemberId,
-                12_000L,
-                10_000L,
-                LocalDateTime.of(2024, 1, 3, 10, 0, 0)
+                BigDecimal.valueOf(15_000L),
+                Instant.parse("2026-03-31T12:45:30Z"),
+                Instant.parse("2026-03-31T12:47:30Z"),
+                List.of(
+                        new OrderPaymentRequestedLineMessage(
+                                UUID.randomUUID(),
+                                firstSellerId,
+                                BigDecimal.valueOf(5_000L),
+                                2,
+                                BigDecimal.valueOf(10_000L)
+                        ),
+                        new OrderPaymentRequestedLineMessage(
+                                UUID.randomUUID(),
+                                secondSellerId,
+                                BigDecimal.valueOf(5_000L),
+                                1,
+                                BigDecimal.valueOf(5_000L)
+                        )
+                )
         );
         OrderPaymentResult result = new OrderPaymentResult(
                 orderId,
-                walletId,
-                escrowId,
-                12_000L,
-                20_000L,
-                null,
-                null
+                UUID.randomUUID(),
+                List.of(UUID.randomUUID(), UUID.randomUUID()),
+                15_000L,
+                5_000L
         );
         String eventJson = "{\"eventId\":\"evt-1\"}";
+
         given(objectMapper.readValue(eventJson, OrderPaymentRequestedMessage.class)).willReturn(event);
         given(orderPaymentUseCase.payOrder(any(OrderPaymentCommand.class))).willReturn(result);
 
         consumer.listen(eventJson);
 
-        ArgumentCaptor<OrderPaymentResultMessage> captor = ArgumentCaptor.forClass(OrderPaymentResultMessage.class);
-        verify(orderPaymentResultEventPublisher).publish(captor.capture());
-        assertThat(captor.getValue().status()).isEqualTo(OrderPaymentResultStatus.SUCCESS);
-        assertThat(captor.getValue().escrowId()).isEqualTo(escrowId);
-        assertThat(captor.getValue().buyerWalletId()).isEqualTo(walletId);
+        ArgumentCaptor<OrderPaymentCommand> captor = ArgumentCaptor.forClass(OrderPaymentCommand.class);
+        verify(orderPaymentUseCase).payOrder(captor.capture());
+        assertThat(captor.getValue().sellerPayments())
+                .containsExactlyInAnyOrder(
+                        new OrderPaymentSellerCommand(firstSellerId, 10_000L),
+                        new OrderPaymentSellerCommand(secondSellerId, 5_000L)
+                );
+
+        ArgumentCaptor<OrderPaymentResultMessage> resultCaptor = ArgumentCaptor.forClass(OrderPaymentResultMessage.class);
+        verify(orderPaymentResultEventPublisher).publish(resultCaptor.capture());
+        assertThat(resultCaptor.getValue().status()).isEqualTo(OrderPaymentResultStatus.SUCCESS);
+        assertThat(resultCaptor.getValue().sellerMemberId()).isNull();
+        assertThat(resultCaptor.getValue().escrowId()).isNull();
     }
 
     @Test
-    @DisplayName("wallet 없음 실패는 FAILED 결과 이벤트를 발행한다")
+    @DisplayName("wallet 없음 실패는 FAILED 결과 이벤트로 발행한다")
     void listen_walletNotFound_publishesFailedResult() throws Exception {
         UUID orderId = UUID.randomUUID();
         UUID buyerMemberId = UUID.randomUUID();
@@ -139,16 +168,22 @@ class OrderPaymentRequestedEventConsumerTest {
                 "evt-1",
                 orderId,
                 buyerMemberId,
-                sellerMemberId,
-                12_000L,
-                10_000L,
-                LocalDateTime.of(2024, 1, 3, 10, 0, 0)
+                BigDecimal.valueOf(12_000L),
+                Instant.parse("2026-03-31T12:45:30Z"),
+                Instant.parse("2026-03-31T12:47:30Z"),
+                List.of(new OrderPaymentRequestedLineMessage(
+                        UUID.randomUUID(),
+                        sellerMemberId,
+                        BigDecimal.valueOf(12_000L),
+                        1,
+                        BigDecimal.valueOf(12_000L)
+                ))
         );
         String eventJson = "{\"eventId\":\"evt-1\"}";
         given(objectMapper.readValue(eventJson, OrderPaymentRequestedMessage.class)).willReturn(event);
 
         doThrow(new WalletNotFoundException()).when(orderPaymentUseCase)
-                .payOrder(new OrderPaymentCommand(orderId, buyerMemberId, sellerMemberId, 12_000L, 10_000L, null));
+                .payOrder(any(OrderPaymentCommand.class));
 
         consumer.listen(eventJson);
 
@@ -159,16 +194,22 @@ class OrderPaymentRequestedEventConsumerTest {
     }
 
     @Test
-    @DisplayName("buyerMemberId가 없으면 예외가 발생한다")
-    void listen_missingBuyerMemberId_throwsException() throws Exception {
+    @DisplayName("buyerId가 없으면 예외가 발생한다")
+    void listen_missingBuyerId_throwsException() throws Exception {
         OrderPaymentRequestedMessage event = new OrderPaymentRequestedMessage(
                 "evt-1",
                 UUID.randomUUID(),
                 null,
-                UUID.randomUUID(),
-                12_000L,
-                10_000L,
-                LocalDateTime.of(2024, 1, 3, 10, 0, 0)
+                BigDecimal.valueOf(12_000L),
+                Instant.parse("2026-03-31T12:45:30Z"),
+                Instant.parse("2026-03-31T12:47:30Z"),
+                List.of(new OrderPaymentRequestedLineMessage(
+                        UUID.randomUUID(),
+                        UUID.randomUUID(),
+                        BigDecimal.valueOf(12_000L),
+                        1,
+                        BigDecimal.valueOf(12_000L)
+                ))
         );
         String eventJson = "{\"eventId\":\"evt-1\"}";
         given(objectMapper.readValue(eventJson, OrderPaymentRequestedMessage.class)).willReturn(event);

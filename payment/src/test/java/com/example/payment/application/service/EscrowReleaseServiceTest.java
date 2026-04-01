@@ -72,14 +72,14 @@ class EscrowReleaseServiceTest {
     class ReleaseEscrow {
 
         @Test
-        @DisplayName("정상 해제 시 escrow가 RELEASED가 되고 정산 원천 이벤트를 발행한다")
+        @DisplayName("정상 해제 시 escrow가 RELEASED가 되고 정산 후보 이벤트를 발행한다")
         void releaseEscrow_success_releasesEscrowAndPublishesSettlementCandidate() {
             EscrowReleaseCommand command = new EscrowReleaseCommand(orderId, sellerMemberId, ConfirmationType.MANUAL);
             Escrow escrow = Escrow.createHeld(
                     escrowId, orderId, buyerMemberId, sellerMemberId, 10_000L, now.plusDays(7), now.minusDays(1)
             );
 
-            given(escrowRepository.findByOrderId(orderId)).willReturn(Optional.of(escrow));
+            given(escrowRepository.findByOrderIdAndSellerMemberId(orderId, sellerMemberId)).willReturn(Optional.of(escrow));
             given(timeProvider.now()).willReturn(now);
             given(identifierGenerator.generateUuid()).willReturn(UUID.randomUUID());
             given(escrowRepository.save(any(Escrow.class))).willAnswer(invocation -> invocation.getArgument(0));
@@ -102,7 +102,7 @@ class EscrowReleaseServiceTest {
                     escrowId, orderId, buyerMemberId, sellerMemberId, 10_000L, now.plusDays(7), now.minusDays(1)
             );
 
-            given(escrowRepository.findByOrderId(orderId)).willReturn(Optional.of(escrow));
+            given(escrowRepository.findByOrderIdAndSellerMemberId(orderId, sellerMemberId)).willReturn(Optional.of(escrow));
             given(timeProvider.now()).willReturn(now);
             given(identifierGenerator.generateUuid()).willReturn(UUID.randomUUID());
             given(escrowRepository.save(any(Escrow.class))).willAnswer(invocation -> invocation.getArgument(0));
@@ -114,11 +114,11 @@ class EscrowReleaseServiceTest {
         }
 
         @Test
-        @DisplayName("escrow가 없으면 EscrowNotFoundException이 발생한다")
+        @DisplayName("escrow가 없으면 EscrowNotFoundException을 발생시킨다")
         void releaseEscrow_escrowNotFound_throwsException() {
             EscrowReleaseCommand command = new EscrowReleaseCommand(orderId, sellerMemberId, ConfirmationType.MANUAL);
 
-            given(escrowRepository.findByOrderId(orderId)).willReturn(Optional.empty());
+            given(escrowRepository.findByOrderIdAndSellerMemberId(orderId, sellerMemberId)).willReturn(Optional.empty());
 
             assertThatThrownBy(() -> escrowReleaseService.releaseEscrow(command))
                     .isInstanceOf(EscrowNotFoundException.class);
@@ -133,7 +133,7 @@ class EscrowReleaseServiceTest {
             );
             escrow.release(now.minusHours(1), now.minusHours(1));
 
-            given(escrowRepository.findByOrderId(orderId)).willReturn(Optional.of(escrow));
+            given(escrowRepository.findByOrderIdAndSellerMemberId(orderId, sellerMemberId)).willReturn(Optional.of(escrow));
 
             EscrowReleaseResult result = escrowReleaseService.releaseEscrow(command);
 
@@ -145,7 +145,7 @@ class EscrowReleaseServiceTest {
         }
 
         @Test
-        @DisplayName("이미 REFUNDED 상태면 IllegalStateException이 발생한다")
+        @DisplayName("이미 REFUNDED 상태면 IllegalStateException을 발생시킨다")
         void releaseEscrow_refunded_throwsException() {
             EscrowReleaseCommand command = new EscrowReleaseCommand(orderId, sellerMemberId, ConfirmationType.MANUAL);
             Escrow escrow = Escrow.createHeld(
@@ -153,33 +153,13 @@ class EscrowReleaseServiceTest {
             );
             escrow.refund(now.minusHours(1), now.minusHours(1));
 
-            given(escrowRepository.findByOrderId(orderId)).willReturn(Optional.of(escrow));
+            given(escrowRepository.findByOrderIdAndSellerMemberId(orderId, sellerMemberId)).willReturn(Optional.of(escrow));
 
             assertThatThrownBy(() -> escrowReleaseService.releaseEscrow(command))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("not releasable");
 
             verify(settlementCandidateCreatedEventPublisher, never()).publish(any());
-            verify(autoPurchaseConfirmedEventPublisher, never()).publish(any());
-        }
-
-        @Test
-        @DisplayName("판매자 지갑 조회 없이도 정산 원천 이벤트 발행은 가능하다")
-        void releaseEscrow_doesNotRequireSellerWalletLookup() {
-            EscrowReleaseCommand command = new EscrowReleaseCommand(orderId, sellerMemberId, ConfirmationType.MANUAL);
-            Escrow escrow = Escrow.createHeld(
-                    escrowId, orderId, buyerMemberId, sellerMemberId, 10_000L, now.plusDays(7), now.minusDays(1)
-            );
-
-            given(escrowRepository.findByOrderId(orderId)).willReturn(Optional.of(escrow));
-            given(timeProvider.now()).willReturn(now);
-            given(identifierGenerator.generateUuid()).willReturn(UUID.randomUUID());
-            given(escrowRepository.save(any(Escrow.class))).willAnswer(invocation -> invocation.getArgument(0));
-
-            EscrowReleaseResult result = escrowReleaseService.releaseEscrow(command);
-
-            assertThat(result.escrowStatus()).isEqualTo(EscrowStatus.RELEASED);
-            verify(settlementCandidateCreatedEventPublisher).publish(any());
             verify(autoPurchaseConfirmedEventPublisher, never()).publish(any());
         }
     }
