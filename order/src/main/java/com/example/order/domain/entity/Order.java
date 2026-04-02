@@ -101,14 +101,14 @@ public class Order {
         this.status = Objects.requireNonNull(status);
         this.createdAt = Objects.requireNonNull(createdAt);
         this.updatedAt = Objects.requireNonNull(updatedAt);
-        this.address = address;
-        this.addressDetail = addressDetail;
-        this.zipCode = zipCode;
-        this.receiver = receiver;
-        this.receiverPhone = receiverPhone;
-        this.representativeProductName = representativeProductName;
+        this.address = Objects.requireNonNull(address);
+        this.addressDetail = Objects.requireNonNull(addressDetail);
+        this.zipCode = Objects.requireNonNull(zipCode);
+        this.receiver = Objects.requireNonNull(receiver);
+        this.receiverPhone = Objects.requireNonNull(receiverPhone);
+        this.representativeProductName = Objects.requireNonNull(representativeProductName);
         this.representativeThumbnailKey = representativeThumbnailKey;
-        this.itemCount = itemCount;
+        this.itemCount = Objects.requireNonNull(itemCount);
     }
 
     public static Order create(

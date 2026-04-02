@@ -79,11 +79,11 @@ public class Delivery {
         this.orderItem = Objects.requireNonNull(orderItem);
         this.courierCode = courierCode;
         this.invoiceNumber = invoiceNumber;
-        this.status = status;
+        this.status = Objects.requireNonNull(status);
         this.shippedAt = shippedAt;
         this.deliveredAt = deliveredAt;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
+        this.createdAt = Objects.requireNonNull(createdAt);
+        this.updatedAt = Objects.requireNonNull(updatedAt);
     }
 
     public static Delivery create(

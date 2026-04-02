@@ -70,17 +70,21 @@ public class OrderItem {
             BigDecimal unitPriceSnapshot,
             Integer quantity,
             OrderItemStatus status,
-            String thumbnailKeySnapshot
+            String thumbnailKeySnapshot,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt
     ) {
         this.orderItemId = Objects.requireNonNull(orderItemId);
         this.productId = Objects.requireNonNull(productId);
         this.order = Objects.requireNonNull(order);
         this.sellerId = Objects.requireNonNull(sellerId);
-        this.productNameSnapshot = productNameSnapshot;
-        this.unitPriceSnapshot = unitPriceSnapshot;
-        this.quantity = quantity;
-        this.status = status;
+        this.productNameSnapshot = Objects.requireNonNull(productNameSnapshot);
+        this.unitPriceSnapshot = Objects.requireNonNull(unitPriceSnapshot);
+        this.quantity = Objects.requireNonNull(quantity);
+        this.status = Objects.requireNonNull(status);
         this.thumbnailKeySnapshot = thumbnailKeySnapshot;
+        this.createdAt = Objects.requireNonNull(createdAt);
+        this.updatedAt = Objects.requireNonNull(updatedAt);
     }
 
     public static OrderItem create(
@@ -109,15 +113,13 @@ public class OrderItem {
                 unitPriceSnapshot,
                 quantity,
                 OrderItemStatus.PENDING,
-                thumbnailKeySnapshot
+                thumbnailKeySnapshot,
+                LocalDateTime.now(),
+                LocalDateTime.now()
         );
     }
 
     public BigDecimal getTotalPrice(BigDecimal unitPriceSnapshot, int quantity) {
         return unitPriceSnapshot.multiply(BigDecimal.valueOf(quantity));
-    }
-
-    public void changeStatus(OrderItemStatus status) {
-        this.status = status;
     }
 }
