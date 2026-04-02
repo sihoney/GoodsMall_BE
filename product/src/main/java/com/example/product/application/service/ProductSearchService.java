@@ -4,6 +4,7 @@ import com.example.product.application.usecase.ProductSearchUseCase;
 import com.example.product.common.exception.ProductNotFoundException;
 import com.example.product.domain.entity.Product;
 import com.example.product.domain.entity.ProductImage;
+import com.example.product.domain.enumtype.ProductOrderStatus;
 import com.example.product.domain.enumtype.ProductStatus;
 import com.example.product.domain.repository.CategoryRepository;
 import com.example.product.domain.repository.ProductImageRepository;
@@ -100,9 +101,10 @@ public class ProductSearchService implements ProductSearchUseCase {
     }
 
     @Override
+    @Transactional
     public List<ProductAvailabilityResponse> checkAvailability(List<ProductCheckRequest> productRequests) {
         return productRequests.stream()
-                .map(this::checkSingleProduct)
+                .map(this::checkAndDeductStock)
                 .toList();
     }
 
@@ -114,7 +116,7 @@ public class ProductSearchService implements ProductSearchUseCase {
                 .toList();
     }
 
-    private ProductAvailabilityResponse checkSingleProduct(ProductCheckRequest request) {
+    private ProductAvailabilityResponse checkAndDeductStock(ProductCheckRequest request) {
         Product product = productRepository.findById(request.productId())
                 .orElseThrow(ProductNotFoundException::new);
 
@@ -122,7 +124,14 @@ public class ProductSearchService implements ProductSearchUseCase {
                 .map(ProductImage::getS3Key)
                 .orElse(null);
 
-        return ProductAvailabilityResponse.of(product, request.quantity(), thumbnailKeySnapshot);
+        ProductAvailabilityResponse response = ProductAvailabilityResponse.of(product, request.quantity(), thumbnailKeySnapshot);
+
+        if (response.getProductOrderStatus() == ProductOrderStatus.ORDERABLE) {
+            product.decreaseStock(request.quantity());
+            productRepository.save(product);
+        }
+
+        return response;
     }
 
     /**
