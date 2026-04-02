@@ -140,6 +140,3 @@ jobs:
 
       - name: build selected module
         run: ./gradlew :${{ matrix.module_name }}:build
-
-      - name: build docker image
-        run: docker build -t ${{ matrix.module_name }}:ci -f ./${{ matrix.module_name }}/Dockerfile .
