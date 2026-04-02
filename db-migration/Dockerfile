@@ -1,9 +1,8 @@
-FROM gradle:8.14.3-jdk21 AS builder
+FROM eclipse-temurin:21-jdk AS builder
 WORKDIR /workspace
 
-COPY settings.gradle build.gradle gradle.properties* ./
-COPY gradle ./gradle
-COPY db-migration ./db-migration
+COPY . .
+RUN sed -i 's/\r$//' gradlew && chmod +x gradlew
 
 RUN ./gradlew :db-migration:bootJar --no-daemon --max-workers=1 -Dorg.gradle.jvmargs="-Xmx1g -XX:MaxMetaspaceSize=512m"
 

@@ -1,14 +1,12 @@
 # 1단계: 빌드 스테이지
 # Gradle 9.0.0 + JDK 21 이미지를 빌드용으로 사용
-FROM gradle:9.0.0-jdk21 AS builder
+FROM eclipse-temurin:21-jdk AS builder
 
-# 작업 디렉토리 설정 (임의로 설정해도 상관없음 -> 팀과 일관성을 유지)
 WORKDIR /workspace
 
-# 소스 코드를 복사
 COPY . .
+RUN sed -i 's/\r$//' gradlew && chmod +x gradlew
 
-# product 모듈만 bootJar로 빌드 (MSA 환경)
 RUN ./gradlew :product:bootJar --no-daemon --max-workers=1 -Dorg.gradle.jvmargs="-Xmx1g -XX:MaxMetaspaceSize=512m"
 
 # 2단계: 실행 스테이지
