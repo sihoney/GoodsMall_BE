@@ -5,7 +5,7 @@ WORKDIR /workspace
 
 COPY . .
 
-RUN gradle :config:bootJar --no-daemon
+RUN ./gradlew :config:bootJar --no-daemon --max-workers=1 -Dorg.gradle.jvmargs="-Xmx1g -XX:MaxMetaspaceSize=512m"
 
 # 2단계: 실행 스테이지
 ## 1. eclipse-temurin:21-jre 로 이미지 생성

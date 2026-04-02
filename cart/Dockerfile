@@ -9,7 +9,7 @@ WORKDIR /workspace
 COPY . .
 
 # cart 모듈만 bootJar로 빌드 (--no-daemon: 메모리 절약)
-RUN gradle :cart:bootJar --no-daemon
+RUN ./gradlew :cart:bootJar --no-daemon --max-workers=1 -Dorg.gradle.jvmargs="-Xmx1g -XX:MaxMetaspaceSize=512m"
 
 # 2단계: 실행 스테이지
 # JRE만 포함된 경량 이미지 사용 (JDK 불필요, 이미지 크기 절감)

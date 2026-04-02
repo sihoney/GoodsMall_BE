@@ -5,7 +5,7 @@ COPY settings.gradle build.gradle gradle.properties* ./
 COPY gradle ./gradle
 COPY db-migration ./db-migration
 
-RUN gradle :db-migration:bootJar --no-daemon
+RUN ./gradlew :db-migration:bootJar --no-daemon --max-workers=1 -Dorg.gradle.jvmargs="-Xmx1g -XX:MaxMetaspaceSize=512m"
 
 FROM eclipse-temurin:21-jre
 WORKDIR /app

@@ -9,7 +9,7 @@ WORKDIR /workspace
 COPY . .
 
 # product 모듈만 bootJar로 빌드 (MSA 환경)
-RUN gradle :product:bootJar --no-daemon
+RUN ./gradlew :product:bootJar --no-daemon --max-workers=1 -Dorg.gradle.jvmargs="-Xmx1g -XX:MaxMetaspaceSize=512m"
 
 # 2단계: 실행 스테이지
 # JRE만 포함된 경량 이미지 사용 JDK -> JRE + 개발도구 JRE -> 실행도구
