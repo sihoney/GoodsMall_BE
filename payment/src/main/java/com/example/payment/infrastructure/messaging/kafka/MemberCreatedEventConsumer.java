@@ -38,8 +38,10 @@ public class MemberCreatedEventConsumer {
      * 회원 생성 이벤트를 wallet 생성 요청으로 변환한다.
      */
     public void listen(String eventJson) {
+        log.info("event 받는거 : {}",eventJson);
         try {
             MemberCreatedMessage event = objectMapper.readValue(eventJson, MemberCreatedMessage.class);
+            log.info("event 받는거 : {}",event);
             validateEvent(event);
             createWalletUseCase.createWallet(new CreateWalletCommand(
                     event.memberId(),

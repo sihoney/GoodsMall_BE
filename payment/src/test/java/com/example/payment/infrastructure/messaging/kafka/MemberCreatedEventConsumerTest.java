@@ -37,10 +37,11 @@ class MemberCreatedEventConsumerTest {
     @Test
     @DisplayName("member created 이벤트를 받으면 wallet 생성 유스케이스를 호출한다")
     void listen_validEvent_callsCreateWalletUseCase() throws Exception {
+        UUID eventId = UUID.randomUUID();
         UUID memberId = UUID.randomUUID();
         Instant occurredAt = Instant.parse("2024-01-01T03:00:00Z");
-        MemberCreatedMessage event = new MemberCreatedMessage("evt-1", memberId, occurredAt);
-        String eventJson = "{\"eventId\":\"evt-1\"}";
+        MemberCreatedMessage event = new MemberCreatedMessage(eventId, memberId, "buyer@test.local", occurredAt);
+        String eventJson = "{\"eventId\":\"" + eventId + "\",\"memberId\":\"" + memberId + "\",\"email\":\"buyer@test.local\",\"occurredAt\":\"2024-01-01T03:00:00Z\"}";
         given(objectMapper.readValue(eventJson, MemberCreatedMessage.class)).willReturn(event);
 
         consumer.listen(eventJson);
@@ -54,8 +55,9 @@ class MemberCreatedEventConsumerTest {
     @Test
     @DisplayName("memberId가 없으면 예외가 발생한다")
     void listen_missingMemberId_throwsException() throws Exception {
-        MemberCreatedMessage event = new MemberCreatedMessage("evt-1", null, Instant.parse("2024-01-01T03:00:00Z"));
-        String eventJson = "{\"eventId\":\"evt-1\"}";
+        UUID eventId = UUID.randomUUID();
+        MemberCreatedMessage event = new MemberCreatedMessage(eventId, null, "buyer@test.local", Instant.parse("2024-01-01T03:00:00Z"));
+        String eventJson = "{\"eventId\":\"" + eventId + "\",\"memberId\":null,\"email\":\"buyer@test.local\",\"occurredAt\":\"2024-01-01T03:00:00Z\"}";
         given(objectMapper.readValue(eventJson, MemberCreatedMessage.class)).willReturn(event);
 
         assertThatThrownBy(() -> consumer.listen(eventJson))
