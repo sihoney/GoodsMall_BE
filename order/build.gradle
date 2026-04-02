@@ -43,6 +43,8 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok'
     // Test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.mockito:mockito-junit-jupiter'
+    testImplementation 'org.assertj:assertj-core'
     // OpenFeign
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
     // Postgres
