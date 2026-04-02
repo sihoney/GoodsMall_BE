@@ -1,7 +1,7 @@
 package com.example.member.application.event;
 
 import com.example.member.domain.entity.Member;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
@@ -18,7 +18,7 @@ public class MemberEventPublisher {
                 UUID.randomUUID(),
                 member.getMemberId(),
                 member.getEmail(),
-                LocalDateTime.now()
+                Instant.now()
         ));
     }
 }

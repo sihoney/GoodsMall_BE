@@ -1,6 +1,6 @@
 package com.example.payment.infrastructure.messaging.kafka.contract;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 /**
@@ -9,6 +9,6 @@ import java.util.UUID;
 public record MemberCreatedMessage(
         String eventId,
         UUID memberId,
-        LocalDateTime occurredAt
+        Instant occurredAt
 ) {
 }

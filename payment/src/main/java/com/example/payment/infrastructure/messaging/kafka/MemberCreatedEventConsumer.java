@@ -5,6 +5,8 @@ import com.example.payment.application.usecase.CreateWalletUseCase;
 import com.example.payment.common.exception.InvalidChargeRequestException;
 import com.example.payment.infrastructure.messaging.kafka.contract.MemberCreatedMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
@@ -16,6 +18,8 @@ import org.springframework.stereotype.Component;
  * consumer는 계약 검증과 command 변환만 수행하고, wallet 생성 멱등성은 usecase에 위임한다.
  */
 public class MemberCreatedEventConsumer {
+
+    private static final ZoneId KOREA_ZONE_ID = ZoneId.of("Asia/Seoul");
 
     private final CreateWalletUseCase createWalletUseCase;
     private final ObjectMapper objectMapper;
@@ -39,7 +43,7 @@ public class MemberCreatedEventConsumer {
             validateEvent(event);
             createWalletUseCase.createWallet(new CreateWalletCommand(
                     event.memberId(),
-                    event.occurredAt()
+                    toKoreaLocalDateTime(event.occurredAt())
             ));
         } catch (Exception e) {
             log.error("Failed to process MemberCreatedMessage", e);
@@ -60,5 +64,9 @@ public class MemberCreatedEventConsumer {
         if (event.occurredAt() == null) {
             throw new InvalidChargeRequestException("occurredAt is required.");
         }
+    }
+
+    private LocalDateTime toKoreaLocalDateTime(java.time.Instant instant) {
+        return LocalDateTime.ofInstant(instant, KOREA_ZONE_ID);
     }
 }
