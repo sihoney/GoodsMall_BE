@@ -1,10 +1,8 @@
-name: ci
+name: cd
 
 on:
-  # dev / main 대상으로 PR 생성 또는 업데이트 시 실행
-  pull_request:
+  push:
     branches:
-      - dev
       - main
     paths:
       - "member/**"
@@ -18,45 +16,42 @@ on:
       - "discovery/**"
       - "config/**"
 
-# 같은 PR에서 새 커밋이 올라오면 이전 실행 취소
 concurrency:
-  group: ci
+  group: cd
   cancel-in-progress: true
 
 permissions:
   contents: read
+  packages: write
+
+env:
+  IMAGE_PREFIX: ghcr.io/prgrms-be-adv-devcourse/beadv5_2_todaylunchmenu_be
 
 jobs:
-  # 변경된 모듈 감지
   detect-changes:
-    name: Detect Changed Modules
+    name: detect changed modules
     runs-on: ubuntu-latest
 
-    # 다음 job에서 사용할 output 값 정의
     outputs:
       has_changes: ${{ steps.set-matrix.outputs.has_changes }}
       matrix: ${{ steps.set-matrix.outputs.matrix }}
+      services: ${{ steps.set-services.outputs.services }}
 
     steps:
       - name: checkout
         uses: actions/checkout@v4
         with:
-          # PR 기준 비교를 위해 전체 히스토리 가져오기
-          fetch-depth: 0
+          fetch-depth: 2
 
       - name: detect changed modules
         id: set-matrix
         shell: bash
         run: |
-          # PR 기준 브랜치와 현재 코드 차이 비교
-          git fetch origin ${{ github.base_ref }}
-          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
 
-          # 로그 출력
           echo "changed files:"
           echo "$CHANGED_FILES"
           
-          # 변경된 모듈을 담을 배열
           MODULES=()
 
           if echo "$CHANGED_FILES" | grep -q '^member/'; then
@@ -82,19 +77,19 @@ jobs:
           if echo "$CHANGED_FILES" | grep -q '^settlement/'; then
             MODULES+=('{"module_name":"settlement"}')
           fi
-
+          
           if echo "$CHANGED_FILES" | grep -q '^cart/'; then
             MODULES+=('{"module_name":"cart"}')
           fi
-
+          
           if echo "$CHANGED_FILES" | grep -q '^gateway/'; then
             MODULES+=('{"module_name":"gateway"}')
           fi
-
+          
           if echo "$CHANGED_FILES" | grep -q '^discovery/'; then
             MODULES+=('{"module_name":"discovery"}')
           fi
-
+          
           if echo "$CHANGED_FILES" | grep -q '^config/'; then
             MODULES+=('{"module_name":"config"}')
           fi
@@ -103,25 +98,28 @@ jobs:
           if [ ${#MODULES[@]} -eq 0 ]; then
             echo 'has_changes=false' >> "$GITHUB_OUTPUT"
             echo 'matrix={"include":[]}' >> "$GITHUB_OUTPUT"
-          
           else
-          # matrix 형식(JSON)으로 변환
+            # matrix 형식(JSON)으로 변환
             JSON=$(printf '%s\n' "${MODULES[@]}" | jq -cs '{include: .}')
             echo 'has_changes=true' >> "$GITHUB_OUTPUT"
             echo "matrix=$JSON" >> "$GITHUB_OUTPUT"
           fi
 
-  # 변경된 모듈만 build 실행
+      - name: set changed services
+        id: set-services
+        shell: bash
+        run: |
+          SERVICES=$(echo '${{ steps.set-matrix.outputs.matrix }}' | jq -r '.include[].module_name' | tr '\n' ' ' | sed 's/[[:space:]]*$//')
+          echo "services=$SERVICES" >> "$GITHUB_OUTPUT"
+
   build:
     name: build modules
     needs: detect-changes
-    # 변경된 모듈이 있을 때만 실행
     if: needs.detect-changes.outputs.has_changes == 'true'
     runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
-      # detect-changes에서 만든 matrix 사용
       matrix: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
 
     steps:
@@ -141,5 +139,51 @@ jobs:
       - name: build selected module
         run: ./gradlew :${{ matrix.module_name }}:build
 
+      - name: login to ghcr
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      # github actions에서 다음 step에서도 쓸 수 있도록 환경변수 등록
+      # 긴 커밋 버전 7자리로 줄임
+      - name: set short sha
+        run: echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_ENV
+
       - name: build docker image
-        run: docker build -t ${{ matrix.module_name }}:ci -f ./${{ matrix.module_name }}/Dockerfile .
+        run: |
+          docker build \
+            -t $IMAGE_PREFIX/${{ matrix.module_name }}:latest \
+            -t $IMAGE_PREFIX/${{ matrix.module_name }}:sha-$SHORT_SHA \
+            -f ./${{ matrix.module_name }}/Dockerfile .
+
+      - name: push docker image
+        run: |
+          docker push $IMAGE_PREFIX/${{ matrix.module_name }}:latest
+          docker push $IMAGE_PREFIX/${{ matrix.module_name }}:sha-$SHORT_SHA
+
+  deploy:
+    name: deploy
+    needs: [build, detect-changes]
+    if: needs.detect-changes.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: create ssh key
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY }}" > key.pem
+          chmod 600 key.pem
+
+      - name: deploy
+        run: |
+          ssh -o StrictHostKeyChecking=no -i key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << EOF
+            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
+            docker pull $IMAGE_PREFIX/member:latest || true
+            docker pull $IMAGE_PREFIX/product:latest || true
+            docker pull $IMAGE_PREFIX/order:latest || true
+            docker pull $IMAGE_PREFIX/payment:latest || true
+            docker pull $IMAGE_PREFIX/notification:latest || true
+            docker pull $IMAGE_PREFIX/settlement:latest || true
+            docker pull $IMAGE_PREFIX/cart:latest || true
+            docker pull $IMAGE_PREFIX/gateway:latest || true
+            docker pull $IMAGE_PREFIX/discovery:latest || true
+            docker pull $IMAGE_PREFIX/config:latest || true
+            docker-compose up -d ${{ needs.detect-changes.outputs.services }}
+          EOF
