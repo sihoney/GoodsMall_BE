@@ -29,8 +29,9 @@ public enum ErrorCode {
     DELIVERY_NOT_FOUND(HttpStatus.NOT_FOUND, "DELIVERY_404_1", "배송이 존재하지 않습니다."),
 
     // 결제
-    INVALID_PAYMENT_AMOUNT(HttpStatus.CONFLICT, "ORDER_409_1", "결제 금액이 주문 금액과 일치하지 않습니다."),
-    INVALID_PAYMENT_STATUS(HttpStatus.BAD_REQUEST, "PAYMENT_400_1", "유효하지 않은 결제 상태입니다.");
+    INVALID_PAYMENT_AMOUNT(HttpStatus.CONFLICT, "PAYMENT_409_1", "결제 금액이 주문 금액과 일치하지 않습니다."),
+    INVALID_PAYMENT_STATUS(HttpStatus.BAD_REQUEST, "PAYMENT_400_1", "유효하지 않은 결제 상태입니다."),
+    PAYMENT_FAILED(HttpStatus.CONFLICT, "PAYMENT_409_3", "결제에 실패했습니다.");
 
     private final HttpStatus status;
     private final String code;

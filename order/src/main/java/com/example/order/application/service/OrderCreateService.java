@@ -1,6 +1,8 @@
 package com.example.order.application.service;
 
+import com.example.order.application.port.PaymentPort;
 import com.example.order.domain.enumtype.OrderEventType;
+import com.example.order.domain.enumtype.PaymentStatus;
 import com.example.order.infrastructure.kafka.event.OrderCreatedEvent;
 import com.example.order.application.port.ProductPort;
 import com.example.order.application.port.ProductPort.ProductInfo;
@@ -15,6 +17,7 @@ import com.example.order.infrastructure.kafka.producer.OrderEventProducer;
 import com.example.order.presentation.dto.request.OrderCreateRequest;
 import com.example.order.presentation.dto.response.OrderCreateResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +30,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class OrderCreateService implements OrderCreateUseCase {
@@ -34,6 +38,8 @@ public class OrderCreateService implements OrderCreateUseCase {
     private final OrderRepository orderRepository;
     private final ProductPort productPort;
     private final OrderEventProducer orderEventProducer;
+    private final PaymentPort paymentPort;
+    private final DeliveryCreateService deliveryCreateService;
 
     /**
      * 주문 생성 처리
@@ -111,10 +117,17 @@ public class OrderCreateService implements OrderCreateUseCase {
                     product.thumbnailKeySnapshot());
         });
 
-        Order savedOrder = orderRepository.save(order);
-        publishOrderCreatedEvent(savedOrder);
+        orderRepository.save(order);
 
-        return OrderCreateResponse.from(savedOrder);
+        PaymentPort.PaymentResult paymentResult = paymentPort.requestPayment(toPaymentRequest(order));
+
+        validatePaymentResult(order, paymentResult);
+
+        order.confirm(paymentResult.paidAmount());
+
+        deliveryCreateService.create(order);
+
+        return OrderCreateResponse.from(order);
     }
 
     private void publishOrderCreatedEvent(Order order) {
@@ -145,5 +158,42 @@ public class OrderCreateService implements OrderCreateUseCase {
         return localDateTime
                 .atZone(ZoneId.of("Asia/Seoul"))
                 .toInstant();
+    }
+
+    private PaymentPort.PaymentRequest toPaymentRequest(Order order) {
+        return new PaymentPort.PaymentRequest(
+                order.getOrderId(),
+                order.getBuyerId(),
+                order.getTotalPrice(),
+                Instant.now(),
+                order.getItems().stream()
+                        .map(item -> new PaymentPort.OrderLine(
+                                item.getOrderItemId(),
+                                item.getSellerId(),
+                                item.getUnitPriceSnapshot(),
+                                item.getQuantity(),
+                                item.getTotalPrice(item.getUnitPriceSnapshot(), item.getQuantity())
+                        ))
+                        .toList()
+        );
+    }
+
+    private void validatePaymentResult(Order order, PaymentPort.PaymentResult paymentResult) {
+        validatePaymentOrderId(order, paymentResult);
+        validatePaymentStatus(order, paymentResult);
+    }
+
+    private void validatePaymentOrderId(Order order, PaymentPort.PaymentResult paymentResult) {
+        if (!paymentResult.orderId().equals(order.getOrderId())) {
+            log.error("결제 응답 orderId 불일치. 요청={}, 응답={}", order.getOrderId(), paymentResult.orderId());
+            throw new CustomException(ErrorCode.PAYMENT_FAILED);
+        }
+    }
+
+    private void validatePaymentStatus(Order order, PaymentPort.PaymentResult paymentResult) {
+        if (paymentResult.status() != PaymentStatus.SUCCESS) {
+            log.warn("결제 실패 orderId={}, 실패 이유={}", order.getOrderId(), paymentResult.reasonCode());
+            throw new CustomException(ErrorCode.PAYMENT_FAILED);
+        }
     }
 }
