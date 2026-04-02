@@ -123,7 +123,6 @@ services:
     restart: "no"
 
   payment:
-    profiles: [ "future" ]
     build:
       context: .
       dockerfile: payment/Dockerfile
@@ -160,7 +159,6 @@ services:
       - "8082:8082"
 
   settlement:
-    profiles: [ "future" ]
     build:
       context: .
       dockerfile: settlement/Dockerfile
@@ -309,7 +307,6 @@ services:
       - "8086:8086"
 
   order:
-    profiles: [ "future" ]
     build:
       context: .
       dockerfile: order/Dockerfile
@@ -340,7 +337,6 @@ services:
       - "8084:8084"
 
   notification:
-    profiles: [ "future" ]
     build:
       context: .
       dockerfile: notification/Dockerfile
