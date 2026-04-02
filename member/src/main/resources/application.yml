@@ -1,72 +1,104 @@
-server:
-  port: 8083 # random port
+# ==============================
+# Member Service - 로컬 개발 환경 설정
+# Config Server 미연결 시 사용되는 기본값
+# ==============================
 
 spring:
   application:
     name: member-service
   config:
-    import: optional:file:member/.env[.properties],optional:file:.env[.properties]
-  data:
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-  kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092} # Kafka 브로커 주소
-    producer: # KafkaProducer 설정
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer # 키 직렬화 클래스
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer # 값 직렬화 클래스
-      properties:
-        spring.json.add.type.headers: false # JSON 직렬화 시 타입 정보를 헤더에 추가하지 않도록 설정
+    import:
+      - "configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
+  cloud:
+    config:
+      fail-fast: true
+      retry:
+        initial-interval: 1000
+        max-attempts: 20
+        max-interval: 5000
+        multiplier: 1.5
+
+  # --- 데이터베이스 설정 (로컬 기본값) ---
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:postgres}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:1q2w3e4r}
     driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/goods_mall?currentSchema=member
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+
   jpa:
     hibernate:
       ddl-auto: validate
+    show-sql: true
     properties:
       hibernate:
-        default_schema: member_service
         format_sql: true
-      show-sql: true
+        default_schema: member
 
+  # --- Redis 설정 (로컬 기본값) ---
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  # --- Kafka 설정 (로컬 기본값) ---
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        spring.json.add.type.headers: false
+
+# --- 서버 포트 ---
+server:
+  port: 8083
+
+# --- Eureka 설정 (로컬 기본값) ---
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_DEFAULT_ZONE:http://localhost:8761/eureka}
+  instance:
+    prefer-ip-address: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:true}
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+
+# --- Springdoc 설정 ---
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
   api-docs:
     path: /v3/api-docs
 
+# --- API Gateway 설정 (로컬 기본값) ---
 apigateway:
   host: http://localhost:8080
 
+# --- JWT 설정 (로컬 기본값) ---
 jwt:
-  secret: ${JWT_SECRET_KEY}
+  secret: ${JWT_SECRET_KEY:local-dev-secret-key-for-testing-purposes-only-32chars}
   issuer: member-service
   access-expiration: 3600000
   refresh-expiration: 604800000
 
-eureka:
-  instance:
-    prefer-ip-address: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:true}
-    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
-    ip-address: 127.0.0.1
-    instance-id: ${spring.application.name}
-  client:
-    service-url:
-      defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE:http://localhost:8761/eureka/}
-
+# --- AWS S3 설정 (로컬 기본값) ---
 aws:
   s3:
     bucket: ${AWS_S3_BUCKET:todaylunch-local}
-    region: ${AWS_REGION:ap-northeast-2}
+    region: ap-northeast-2
     access-key: ${AWS_ACCESS_KEY_ID:test-access-key}
     secret-key: ${AWS_SECRET_ACCESS_KEY:test-secret-key}
-    profile-image-prefix: ${AWS_S3_PROFILE_IMAGE_PREFIX:members/profile}
-    put-presign-expiration-seconds: ${AWS_S3_PUT_PRESIGN_EXPIRATION_SECONDS:300}
-    get-presign-expiration-seconds: ${AWS_S3_GET_PRESIGN_EXPIRATION_SECONDS:600}
+    profile-image-prefix: members/profile
+    put-presign-expiration-seconds: 300
+    get-presign-expiration-seconds: 600
 
+# --- Member Kafka Topic 설정 (로컬 기본값) ---
 member:
   kafka:
     topic:
-      signed-up: ${MEMBER_SIGNED_UP_TOPIC:member-signed-up} # 토픽 이름
+      signed-up: member-signed-up
+
+# --- 로깅 설정 (로컬: DEBUG) ---
+logging:
+  level:
+    com.example.member: DEBUG
+    org.hibernate.SQL: DEBUG

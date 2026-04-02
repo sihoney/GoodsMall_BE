@@ -1,1 +1,88 @@
+# ==============================
+# Member Service - Docker 환경 설정
+# Config Server (native profile)에서 제공
+# ==============================
 
+# --- 데이터베이스 설정 ---
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: ${DB_URL}
+    username: ${DB_USER_NAME}
+    password: ${DB_USER_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: member
+
+  # --- Redis 설정 ---
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+
+  # --- Kafka 설정 ---
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        spring.json.add.type.headers: false
+
+# --- 서버 포트 ---
+server:
+  port: 8083
+
+# --- Eureka 서비스 등록 설정 ---
+eureka:
+  instance:
+    prefer-ip-address: true
+    ip-address: ${EUREKA_INSTANCE_IP:127.0.0.1}
+    instance-id: ${spring.application.name}:${server.port}
+  client:
+    service-url:
+      defaultZone: ${EUREKA_DEFAULT_ZONE:http://localhost:8761/eureka/}
+
+# --- Springdoc 설정 ---
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+# --- API Gateway 설정 ---
+apigateway:
+  host: ${API_GATEWAY_HOST:http://api-gateway:8080}
+
+# --- JWT 설정 ---
+jwt:
+  secret: ${JWT_SECRET_KEY}
+  issuer: member-service
+  access-expiration: 3600000
+  refresh-expiration: 604800000
+
+# --- AWS S3 설정 ---
+aws:
+  s3:
+    bucket: ${AWS_S3_BUCKET}
+    region: ${AWS_REGION:ap-northeast-2}
+    access-key: ${AWS_ACCESS_KEY_ID}
+    secret-key: ${AWS_SECRET_ACCESS_KEY}
+    profile-image-prefix: ${AWS_S3_PROFILE_IMAGE_PREFIX:members/profile}
+    put-presign-expiration-seconds: ${AWS_S3_PUT_PRESIGN_EXPIRATION_SECONDS:300}
+    get-presign-expiration-seconds: ${AWS_S3_GET_PRESIGN_EXPIRATION_SECONDS:600}
+
+# --- Member Kafka Topic 설정 ---
+member:
+  kafka:
+    topic:
+      signed-up: ${MEMBER_SIGNED_UP_TOPIC:member-signed-up}
+
+# --- 로깅 설정 ---
+logging:
+  level:
+    com.example.member: INFO
+    org.hibernate.SQL: WARN

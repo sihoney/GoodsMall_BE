@@ -123,7 +123,6 @@ services:
     restart: "no"
 
   payment:
-    profiles: [ "future" ]
     build:
       context: .
       dockerfile: payment/Dockerfile
@@ -137,13 +136,15 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      config:
+        condition: service_started
       db-migration:
         condition: service_completed_successfully
     environment:
       DB_URL: ${DB_URL}
       DB_USER_NAME: ${DB_USER_NAME}
       DB_USER_PASSWORD: ${DB_USER_PASSWORD}
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
+      KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
       EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
       EUREKA_INSTANCE_PREFER_IP_ADDRESS: "false"
       EUREKA_INSTANCE_HOSTNAME: payment
@@ -153,11 +154,11 @@ services:
       TOSS_PAYMENTS_SUCCESS_URL: ${TOSS_PAYMENTS_SUCCESS_URL}
       TOSS_PAYMENTS_FAIL_URL: ${TOSS_PAYMENTS_FAIL_URL}
       TOSS_PAYMENTS_WIDGET_ENABLED: ${TOSS_PAYMENTS_WIDGET_ENABLED}
+      CONFIG_SERVER_URL: http://config:8888
     ports:
       - "8082:8082"
 
   settlement:
-    profiles: [ "future" ]
     build:
       context: .
       dockerfile: settlement/Dockerfile
@@ -171,16 +172,19 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      config:
+        condition: service_started
       db-migration:
         condition: service_completed_successfully
     environment:
       DB_URL: ${DB_URL}
       DB_USER_NAME: ${DB_USER_NAME}
       DB_USER_PASSWORD: ${DB_USER_PASSWORD}
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
+      KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
       EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
       EUREKA_INSTANCE_PREFER_IP_ADDRESS: "false"
       EUREKA_INSTANCE_HOSTNAME: settlement
+      CONFIG_SERVER_URL: http://config:8888
     ports:
       - "8085:8085"
 
@@ -222,26 +226,26 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      config:
+        condition: service_started
       db-migration:
         condition: service_completed_successfully
     environment:
-      SERVER_PORT: 8081
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}?currentSchema=member_service
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: ${POSTGRES_DB}
-      DB_USERNAME: ${POSTGRES_USER}
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
-      SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA: member_service
+      DB_URL: ${DB_URL}
+      DB_USER_NAME: ${DB_USER_NAME}
+      DB_USER_PASSWORD: ${DB_USER_PASSWORD}
       KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
-      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: ${EUREKA_DEFAULT_ZONE}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_KEY}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET}
+      EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
       EUREKA_INSTANCE_PREFER_IP_ADDRESS: "false"
       EUREKA_INSTANCE_HOSTNAME: member
-      APIGATEWAY_HOST: http://gateway:8080
-      MEMBER_SIGNED_UP_TOPIC: ${PAYMENT_KAFKA_TOPIC_MEMBER_CREATED}
+      API_GATEWAY_HOST: http://gateway:8080
+      CONFIG_SERVER_URL: http://config:8888
     ports:
       - "8083:8083"
 
@@ -303,7 +307,6 @@ services:
       - "8086:8086"
 
   order:
-    profiles: [ "future" ]
     build:
       context: .
       dockerfile: order/Dockerfile
@@ -317,16 +320,23 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      config:
+        condition: service_started
+      db-migration:
+        condition: service_completed_successfully
     environment:
+      DB_URL: ${DB_URL}
+      DB_USER_NAME: ${DB_USER_NAME}
+      DB_USER_PASSWORD: ${DB_USER_PASSWORD}
+      KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
       EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
-      EUREKA_INSTANCE_IP: ${EUREKA_INSTANCE_IP}
-      # TODO(order): add order DB/env values.
-      # TODO(order): confirm payment/product/member integration env requirements.
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "false"
+      EUREKA_INSTANCE_HOSTNAME: order
+      CONFIG_SERVER_URL: http://config:8888
     ports:
       - "8084:8084"
 
   notification:
-    profiles: [ "future" ]
     build:
       context: .
       dockerfile: notification/Dockerfile
@@ -340,11 +350,19 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      config:
+        condition: service_started
+      db-migration:
+        condition: service_completed_successfully
     environment:
+      DB_URL: ${DB_URL}
+      DB_USER_NAME: ${DB_USER_NAME}
+      DB_USER_PASSWORD: ${DB_USER_PASSWORD}
+      KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
       EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
-      EUREKA_INSTANCE_IP: ${EUREKA_INSTANCE_IP}
-      # TODO(notification): add notification DB/env values.
-      # TODO(notification): confirm email/sse/redis external settings if needed.
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "false"
+      EUREKA_INSTANCE_HOSTNAME: notification
+      CONFIG_SERVER_URL: http://config:8888
     ports:
       - "8087:8087"
 

@@ -137,10 +137,24 @@ spring:
               filters:
                 - SetPath=/v3/api-docs
 
+            - id: order-service-docs
+              uri: lb://order-service
+              predicates:
+                - Path=/swagger/order/v3/api-docs
+              filters:
+                - SetPath=/v3/api-docs
+
             - id: notification-service
               uri: lb://notification-service
               predicates:
                 - Path=/api/notifications/**
+
+            - id: notification-service-docs
+              uri: lb://notification-service
+              predicates:
+                - Path=/swagger/notification/v3/api-docs
+              filters:
+                - SetPath=/v3/api-docs
 
 eureka:
   instance:
@@ -178,3 +192,7 @@ springdoc:
         url: /swagger/product/v3/api-docs
       - name: cart-service
         url: /swagger/cart/v3/api-docs
+      - name: order-service
+        url: /swagger/order/v3/api-docs
+      - name: notification-service
+        url: /swagger/notification/v3/api-docs

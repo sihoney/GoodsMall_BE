@@ -1,4 +1,4 @@
-INSERT INTO member_service.member (
+INSERT INTO member.member (
     member_id, email, password, nickname, phone, address, profile_image_key,
     role, status, created_at, updated_at
 )
@@ -44,7 +44,7 @@ VALUES
     )
 ON CONFLICT (member_id) DO NOTHING;
 
-INSERT INTO member_service.seller (
+INSERT INTO member.seller (
     seller_id, member_id, bank_name, account, approved_at
 )
 VALUES (
