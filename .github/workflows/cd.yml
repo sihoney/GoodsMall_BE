@@ -54,6 +54,8 @@ jobs:
           
           MODULES=()
 
+          MODULES+=('{"module_name":"db-migration"}')
+          
           if grep -q '^member/' <<< "$CHANGED_FILES"; then
             MODULES+=('{"module_name":"member"}')
           fi
@@ -176,9 +178,16 @@ jobs:
           ssh -o StrictHostKeyChecking=no -i key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << EOF
             echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
             
+            cd /home/ubuntu/app/beadv5_2_TodayLunchMenu_BE
+          
+            git fetch origin
+            git checkout main
+            git reset --hard origin/main
+            
             for service in ${{ needs.detect-changes.outputs.services }}; do
               docker pull $IMAGE_PREFIX/\$service:latest || true
             done
             
+            docker-compose down --remove-orphans
             docker-compose up -d ${{ needs.detect-changes.outputs.services }}
           EOF
