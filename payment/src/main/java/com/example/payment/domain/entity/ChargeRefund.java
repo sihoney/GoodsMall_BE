@@ -18,6 +18,10 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "charge_refund", schema = "payment")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+/**
+ * 충전 환불 시도와 결과를 기록하는 엔티티다.
+ * 성공 환불과 실패 환불 이력을 분리해서 남겨 재시도 및 추적에 사용한다.
+ */
 public class ChargeRefund {
 
     @Id
@@ -71,6 +75,9 @@ public class ChargeRefund {
         this.failureReason = failureReason;
     }
 
+    /**
+     * PG 취소 성공으로 완료된 환불 이력을 생성한다.
+     */
     public static ChargeRefund refunded(
             UUID chargeRefundId,
             UUID chargeId,
@@ -92,6 +99,9 @@ public class ChargeRefund {
         );
     }
 
+    /**
+     * PG 취소 실패로 남는 환불 실패 이력을 생성한다.
+     */
     public static ChargeRefund failed(
             UUID chargeRefundId,
             UUID chargeId,

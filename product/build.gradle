@@ -24,15 +24,45 @@ repositories {
 }
 
 dependencies {
+    implementation project(':common-security')
     // Web
     implementation 'org.springframework.boot:spring-boot-starter-web'
     // JPA
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    // Validation
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    // PostgreSQL
+    runtimeOnly 'org.postgresql:postgresql'
+    // AWS S3
+    implementation 'software.amazon.awssdk:s3:2.20.0'
+    // Swagger (SpringDoc OpenAPI)
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2'
+    // DotEnv (.env 파일 자동 로드)
+    implementation 'io.github.cdimascio:java-dotenv:5.2.2'
     // Lombok
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
-    // Test
+
+    // Test Dependencies
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'com.h2database:h2'
+
+    // Lombok 테스트 지원
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+
+    // Eureka 서버 등록
+    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
+    // Config Server에서 설정을 가져오기 위한 클라이언트
+    implementation 'org.springframework.cloud:spring-cloud-starter-config'
+    // Config Server retry
+    implementation 'org.springframework.retry:spring-retry'
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:2025.1.1"
+    }
 }
 
 tasks.named('test') {

@@ -1,23 +1,23 @@
 package com.example.payment.domain.entity;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.example.payment.domain.enumtype.WalletTransactionType;
+import java.time.LocalDateTime;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDateTime;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
-@DisplayName("WalletTransaction 도메인 테스트")
+@DisplayName("WalletTransaction 엔티티 테스트")
 class WalletTransactionTest {
 
     private UUID transactionId;
     private UUID walletId;
     private UUID chargeId;
+    private UUID orderId;
     private LocalDateTime createdAt;
 
     @BeforeEach
@@ -25,11 +25,12 @@ class WalletTransactionTest {
         transactionId = UUID.randomUUID();
         walletId = UUID.randomUUID();
         chargeId = UUID.randomUUID();
+        orderId = UUID.randomUUID();
         createdAt = LocalDateTime.of(2024, 1, 1, 12, 5, 0);
     }
 
     @Nested
-    @DisplayName("WalletTransaction.charge() 충전 트랜잭션 생성 테스트")
+    @DisplayName("WalletTransaction.charge() 테스트")
     class ChargeFactory {
 
         @Test
@@ -59,7 +60,7 @@ class WalletTransactionTest {
         }
 
         @Test
-        @DisplayName("charge() 생성 시 description이 'wallet charge'로 설정된다")
+        @DisplayName("charge() 생성 시 description은 wallet charge로 설정된다")
         void charge_descriptionIsWalletCharge() {
             WalletTransaction tx = WalletTransaction.charge(
                     transactionId, walletId, 10_000L, 20_000L, chargeId, createdAt
@@ -90,11 +91,11 @@ class WalletTransactionTest {
     }
 
     @Nested
-    @DisplayName("WalletTransaction.create() 일반 생성 테스트")
+    @DisplayName("WalletTransaction.create() 테스트")
     class CreateFactory {
 
         @Test
-        @DisplayName("create() 로 직접 생성 시 지정한 필드가 저장된다")
+        @DisplayName("create()로 직접 생성 시 지정한 필드가 저장된다")
         void create_allFieldsAreStoredCorrectly() {
             WalletTransaction tx = WalletTransaction.create(
                     transactionId,
@@ -117,7 +118,7 @@ class WalletTransactionTest {
     }
 
     @Nested
-    @DisplayName("WalletTransaction.refund() 환불 트랜잭션 생성 테스트")
+    @DisplayName("WalletTransaction.refund() 테스트")
     class RefundFactory {
 
         @Test
@@ -133,5 +134,33 @@ class WalletTransactionTest {
             assertThat(tx.getDescription()).isEqualTo("charge refund");
         }
     }
-}
 
+    @Nested
+    @DisplayName("WalletTransaction.purchase() 테스트")
+    class PurchaseFactory {
+
+        @Test
+        @DisplayName("purchase() 생성 시 transactionType이 PURCHASE로 설정된다")
+        void purchase_transactionTypeIsPurchase() {
+            WalletTransaction tx = WalletTransaction.purchase(
+                    transactionId, walletId, 12_000L, 8_000L, orderId, createdAt
+            );
+
+            assertThat(tx.getTransactionType()).isEqualTo(WalletTransactionType.PURCHASE);
+            assertThat(tx.getAmount()).isEqualTo(-12_000L);
+            assertThat(tx.getReferenceId()).isEqualTo(orderId);
+            assertThat(tx.getReferenceType()).isEqualTo("ORDER");
+            assertThat(tx.getDescription()).isEqualTo("order purchase");
+        }
+
+        @Test
+        @DisplayName("0원으로 purchase() 생성 시 예외가 발생한다")
+        void purchase_zeroAmount_throwsException() {
+            assertThatThrownBy(() ->
+                    WalletTransaction.purchase(transactionId, walletId, 0L, 10_000L, orderId, createdAt)
+            )
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("Purchase amount must be positive.");
+        }
+    }
+}

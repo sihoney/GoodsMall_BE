@@ -1,71 +1,262 @@
 package com.example.payment.presentation.controller;
 
+import com.todaylunch.common.security.auth.annotation.CurrentMember;
+import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.example.payment.application.dto.ChargeConfirmCommand;
 import com.example.payment.application.dto.ChargeCreateCommand;
 import com.example.payment.application.dto.ChargeRefundCommand;
 import com.example.payment.application.usecase.ChargeConfirmUseCase;
 import com.example.payment.application.usecase.ChargeCreateUseCase;
 import com.example.payment.application.usecase.ChargeRefundUseCase;
+import com.example.payment.application.usecase.OrderPaymentApiUseCase;
+import com.example.payment.application.usecase.PaymentSearchUseCase;
 import com.example.payment.domain.enumtype.PgProvider;
 import com.example.payment.presentation.dto.request.ChargeConfirmRequest;
 import com.example.payment.presentation.dto.request.ChargeCreateRequest;
 import com.example.payment.presentation.dto.request.ChargeRefundRequest;
+import com.example.payment.presentation.dto.request.OrderPaymentApiRequest;
+import com.example.payment.presentation.dto.response.ApiResponse;
+import com.example.payment.presentation.dto.response.ChargeDetailResponse;
 import com.example.payment.presentation.dto.response.ChargeConfirmResponse;
 import com.example.payment.presentation.dto.response.ChargeCreateResponse;
+import com.example.payment.presentation.dto.response.ChargeListItemResponse;
+import com.example.payment.presentation.dto.response.ChargeRefundSummaryResponse;
 import com.example.payment.presentation.dto.response.ChargeRefundResponse;
+import com.example.payment.presentation.dto.response.OrderPaymentApiResponse;
+import com.example.payment.presentation.dto.response.PagedResponse;
+import com.example.payment.presentation.dto.response.PendingSellerIncomeItemResponse;
+import com.example.payment.presentation.dto.response.WalletSummaryResponse;
+import com.example.payment.presentation.dto.response.WalletTransactionItemResponse;
 import jakarta.validation.Valid;
+import java.util.List;
 import java.util.UUID;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * payment 충전/조회 API 진입점이다.
+ * 인증 정보는 {@code @CurrentMember}로 전달받고,
+ * request DTO를 application command로 변환해 use case에 위임한다.
+ */
 @RestController
 @RequestMapping("/api/payments")
+@Tag(name = "Payment", description = "충전/지갑/환불 API")
 public class PaymentController {
 
-	private final ChargeCreateUseCase chargeCreateUseCase;
-	private final ChargeConfirmUseCase chargeConfirmUseCase;
-	private final ChargeRefundUseCase chargeRefundUseCase;
+    private final ChargeCreateUseCase chargeCreateUseCase;
+    private final ChargeConfirmUseCase chargeConfirmUseCase;
+    private final ChargeRefundUseCase chargeRefundUseCase;
+    private final PaymentSearchUseCase paymentSearchUseCase;
+    private final OrderPaymentApiUseCase orderPaymentApiUseCase;
 
-	public PaymentController(
-			ChargeCreateUseCase chargeCreateUseCase,
-			ChargeConfirmUseCase chargeConfirmUseCase,
-			ChargeRefundUseCase chargeRefundUseCase
-	) {
-		this.chargeCreateUseCase = chargeCreateUseCase;
-		this.chargeConfirmUseCase = chargeConfirmUseCase;
-		this.chargeRefundUseCase = chargeRefundUseCase;
-	}
+    public PaymentController(
+            ChargeCreateUseCase chargeCreateUseCase,
+            ChargeConfirmUseCase chargeConfirmUseCase,
+            ChargeRefundUseCase chargeRefundUseCase,
+            PaymentSearchUseCase paymentSearchUseCase,
+            OrderPaymentApiUseCase orderPaymentApiUseCase
+    ) {
+        this.chargeCreateUseCase = chargeCreateUseCase;
+        this.chargeConfirmUseCase = chargeConfirmUseCase;
+        this.chargeRefundUseCase = chargeRefundUseCase;
+        this.paymentSearchUseCase = paymentSearchUseCase;
+        this.orderPaymentApiUseCase = orderPaymentApiUseCase;
+    }
 
-	@PostMapping("/charge")
-	public ChargeCreateResponse createCharge(
-			@RequestHeader("X-Member-Id") UUID memberId,
-			@Valid @RequestBody ChargeCreateRequest request
-	) {
-		ChargeCreateCommand command = new ChargeCreateCommand(memberId, request.amount(), PgProvider.TOSS);
-		return ChargeCreateResponse.from(chargeCreateUseCase.createCharge(command));
-	}
+    /**
+     * 네비게이션과 마이페이지에서 공통으로 사용하는 wallet 요약을 반환한다.
+     */
+    @GetMapping("/wallet")
+    @Operation(summary = "내 지갑 요약 조회")
+    public ResponseEntity<ApiResponse<WalletSummaryResponse>> findWalletSummary(
+            @CurrentMember AuthenticatedMember authenticatedMember
+    ) {
+        WalletSummaryResponse response = WalletSummaryResponse.from(
+                paymentSearchUseCase.findWalletSummary(authenticatedMember.memberId())
+        );
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
 
-	@PostMapping("/confirm")
-	public ChargeConfirmResponse confirmCharge(@Valid @RequestBody ChargeConfirmRequest request) {
-		ChargeConfirmCommand command = new ChargeConfirmCommand(
-				request.chargeId(),
-				request.paymentKey(),
-				request.orderId(),
-				request.amount()
-		);
-		return ChargeConfirmResponse.from(chargeConfirmUseCase.confirmCharge(command));
-	}
+    /**
+     * 회원의 charge 목록을 최신순 페이지 응답으로 반환한다.
+     */
+    @GetMapping("/charges")
+    @Operation(summary = "내 충전 목록 조회")
+    public ResponseEntity<ApiResponse<PagedResponse<ChargeListItemResponse>>> findAllCharges(
+            @CurrentMember AuthenticatedMember authenticatedMember,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        var result = paymentSearchUseCase.findAllCharges(authenticatedMember.memberId(), page, size);
+        List<ChargeListItemResponse> items = result.items().stream()
+                .map(ChargeListItemResponse::from)
+                .toList();
+        PagedResponse<ChargeListItemResponse> response = new PagedResponse<>(
+                items,
+                result.page(),
+                result.size(),
+                result.totalElements(),
+                result.totalPages(),
+                result.hasNext()
+        );
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
 
-	@PostMapping("/charges/{chargeId}/refund")
-	public ChargeRefundResponse refundCharge(
-			@PathVariable UUID chargeId,
-			@Valid @RequestBody ChargeRefundRequest request
-	) {
-		ChargeRefundCommand command = new ChargeRefundCommand(chargeId, request.refundReason());
-		return ChargeRefundResponse.from(chargeRefundUseCase.refundCharge(command));
-	}
+    /**
+     * 단건 charge 상세와 최신 refund 이력을 함께 반환한다.
+     */
+    @GetMapping("/charges/{chargeId}")
+    @Operation(summary = "충전 상세 조회")
+    public ResponseEntity<ApiResponse<ChargeDetailResponse>> findChargeDetail(
+            @CurrentMember AuthenticatedMember authenticatedMember,
+            @PathVariable UUID chargeId
+    ) {
+        ChargeDetailResponse response = ChargeDetailResponse.from(
+                paymentSearchUseCase.findChargeDetail(authenticatedMember.memberId(), chargeId)
+        );
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /**
+     * 회원의 charge refund 목록을 최신순 페이지 응답으로 반환한다.
+     */
+    @GetMapping("/refunds")
+    @Operation(summary = "내 환불 목록 조회")
+    public ResponseEntity<ApiResponse<PagedResponse<ChargeRefundSummaryResponse>>> findAllRefunds(
+            @CurrentMember AuthenticatedMember authenticatedMember,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        var result = paymentSearchUseCase.findAllRefunds(authenticatedMember.memberId(), page, size);
+        List<ChargeRefundSummaryResponse> items = result.items().stream()
+                .map(ChargeRefundSummaryResponse::from)
+                .toList();
+        PagedResponse<ChargeRefundSummaryResponse> response = new PagedResponse<>(
+                items,
+                result.page(),
+                result.size(),
+                result.totalElements(),
+                result.totalPages(),
+                result.hasNext()
+        );
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /**
+     * wallet 거래 내역을 프론트 표시용 페이지 응답으로 반환한다.
+     */
+    @GetMapping("/transactions")
+    @Operation(summary = "지갑 거래내역 조회")
+    public ResponseEntity<ApiResponse<PagedResponse<WalletTransactionItemResponse>>> findAllTransactions(
+            @CurrentMember AuthenticatedMember authenticatedMember,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        var result = paymentSearchUseCase.findAllTransactions(authenticatedMember.memberId(), page, size);
+        List<WalletTransactionItemResponse> items = result.items().stream()
+                .map(WalletTransactionItemResponse::from)
+                .toList();
+        PagedResponse<WalletTransactionItemResponse> response = new PagedResponse<>(
+                items,
+                result.page(),
+                result.size(),
+                result.totalElements(),
+                result.totalPages(),
+                result.hasNext()
+        );
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /**
+     * 판매자 기준으로 아직 wallet에 반영되지 않은 HELD escrow를 반환한다.
+     */
+    @GetMapping("/seller/pending-incomes")
+    @Operation(summary = "판매자 지급 대기 내역 조회")
+    public ResponseEntity<ApiResponse<PagedResponse<PendingSellerIncomeItemResponse>>> findAllPendingSellerIncomes(
+            @CurrentMember AuthenticatedMember authenticatedMember,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        var result = paymentSearchUseCase.findAllPendingSellerIncomes(authenticatedMember.memberId(), page, size);
+        List<PendingSellerIncomeItemResponse> items = result.items().stream()
+                .map(PendingSellerIncomeItemResponse::from)
+                .toList();
+        PagedResponse<PendingSellerIncomeItemResponse> response = new PagedResponse<>(
+                items,
+                result.page(),
+                result.size(),
+                result.totalElements(),
+                result.totalPages(),
+                result.hasNext()
+        );
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /**
+     * 충전 요청을 생성하고 PG 승인에 필요한 charge 식별 정보를 반환한다.
+     */
+    @PostMapping("/charge")
+    @Operation(summary = "충전 요청 생성")
+    public ResponseEntity<ApiResponse<ChargeCreateResponse>> createCharge(
+            @CurrentMember AuthenticatedMember authenticatedMember,
+            @Valid @RequestBody ChargeCreateRequest request
+    ) {
+        ChargeCreateCommand command = new ChargeCreateCommand(
+                authenticatedMember.memberId(),
+                request.amount(),
+                PgProvider.TOSS
+        );
+        ChargeCreateResponse response = ChargeCreateResponse.from(chargeCreateUseCase.createCharge(command));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
+    }
+
+    /**
+     * PG 승인 결과를 받아 charge와 wallet 상태를 확정한다.
+     */
+    @PostMapping("/confirm")
+    @Operation(summary = "충전 승인 확정")
+    public ResponseEntity<ApiResponse<ChargeConfirmResponse>> confirmCharge(@Valid @RequestBody ChargeConfirmRequest request) {
+        ChargeConfirmCommand command = new ChargeConfirmCommand(
+                request.chargeId(),
+                request.paymentKey(),
+                request.orderId(),
+                request.amount()
+        );
+        ChargeConfirmResponse response = ChargeConfirmResponse.from(chargeConfirmUseCase.confirmCharge(command));
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /**
+     * 승인된 charge를 환불하고 wallet 잔액을 차감한다.
+     */
+    @PostMapping("/charges/{chargeId}/refund")
+    @Operation(summary = "충전 환불")
+    public ResponseEntity<ApiResponse<ChargeRefundResponse>> refundCharge(
+            @PathVariable UUID chargeId,
+            @Valid @RequestBody ChargeRefundRequest request
+    ) {
+        ChargeRefundCommand command = new ChargeRefundCommand(chargeId, request.refundReason());
+        ChargeRefundResponse response = ChargeRefundResponse.from(chargeRefundUseCase.refundCharge(command));
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /**
+     * order에서 주문 생성이 완료되면 예치금 차감과 거래내역 및 에스크로 적재를 위한 api 통신
+     */
+    @PostMapping("/orders")
+    @Operation(summary = "주문 결제")
+    public ResponseEntity<ApiResponse<OrderPaymentApiResponse>> payOrder(
+            @Valid @RequestBody OrderPaymentApiRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(orderPaymentApiUseCase.payOrder(request)));
+    }
 }

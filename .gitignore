@@ -27,6 +27,9 @@ replay_pid*
 .idea/
 *.iml
 
+### vsc ###
+.vscode
+
 ### Gradle ###
 .gradle/
 build/
@@ -40,6 +43,7 @@ bin/
 
 ### Env ###
 .env
+product/.env
 
 docs/
 
@@ -47,3 +51,15 @@ docs/
 **/src/main/resources/application-local.yml
 **/src/main/resources/application-dev.yml
 goods-api/src/main/resources/application-local.yml
+
+### code convention ###
+.editorconfig
+.gitnexus
+CLAUDE.md
+AGENTS.md
+.claude/skills/gitnexus/*/*
+
+### gitnexus ###
+node_modules/
+# Claude Code
+.claude/

@@ -19,6 +19,10 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "charge", schema = "payment")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+/**
+ * 충전 요청과 승인 결과를 표현하는 charge aggregate다.
+ * 요청 생성 이후 PENDING, SUCCESS, FAILED, CANCELLED 상태 전이를 스스로 보장한다.
+ */
 public class Charge {
 
     @Id
@@ -119,6 +123,9 @@ public class Charge {
         );
     }
 
+    /**
+     * PG 승인 완료 정보를 반영하고 charge를 SUCCESS 상태로 전이한다.
+     */
     public void approve(Long approvedAmount, String pgPaymentKey, LocalDateTime approvedAt) {
         validatePendingStatus();
         this.approvedAmount = Objects.requireNonNull(approvedAmount);
@@ -129,6 +136,9 @@ public class Charge {
         this.chargeStatus = ChargeStatus.SUCCESS;
     }
 
+    /**
+     * 충전 승인 실패 사유를 기록하고 charge를 FAILED 상태로 전이한다.
+     */
     public void fail(String failureReason, LocalDateTime failedAt) {
         validatePendingStatus();
         this.failedAt = Objects.requireNonNull(failedAt);
@@ -136,6 +146,9 @@ public class Charge {
         this.chargeStatus = ChargeStatus.FAILED;
     }
 
+    /**
+     * 아직 승인되지 않은 charge를 취소 상태로 전이한다.
+     */
     public void cancel() {
         validatePendingStatus();
         this.chargeStatus = ChargeStatus.CANCELLED;
@@ -149,6 +162,9 @@ public class Charge {
         return chargeStatus == ChargeStatus.SUCCESS;
     }
 
+    /**
+     * charge 상태 변경은 PENDING에서만 허용한다.
+     */
     private void validatePendingStatus() {
         if (!isPending()) {
             throw new IllegalStateException("Only pending charges can be changed.");

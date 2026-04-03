@@ -1,10 +1,9 @@
 package com.example.notification.domain.enumtype;
 
 public enum NotificationType {
-    CHAT_MESSAGE,
-    PRICE_DROP,
-    WISH_STATUS,
-    TRADE_COMPLETE,
-    REVIEW_REQUEST,
-    SYSTEM
+    AUTO_PURCHASE_CONFIRMED,
+    ORDER_PAYMENT_SUCCEEDED,
+    ORDER_PAYMENT_FAILED,
+    SELLER_SETTLEMENT_PAYOUT_SUCCEEDED,
+    SELLER_SETTLEMENT_PAYOUT_FAILED
 }

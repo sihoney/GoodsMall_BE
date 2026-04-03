@@ -103,9 +103,7 @@ public class WalletTransaction {
             UUID chargeId,
             LocalDateTime createdAt
     ) {
-        if (Objects.requireNonNull(amount) <= 0) {
-            throw new IllegalArgumentException("Charge amount must be positive.");
-        }
+        validatePositiveAmount(amount, "Charge amount must be positive.");
 
         return create(
                 transactionId,
@@ -128,9 +126,7 @@ public class WalletTransaction {
             UUID chargeId,
             LocalDateTime createdAt
     ) {
-        if (Objects.requireNonNull(amount) <= 0) {
-            throw new IllegalArgumentException("Refund amount must be positive.");
-        }
+        validatePositiveAmount(amount, "Refund amount must be positive.");
 
         return create(
                 transactionId,
@@ -143,5 +139,34 @@ public class WalletTransaction {
                 "charge refund",
                 createdAt
         );
+    }
+
+    public static WalletTransaction purchase(
+            UUID transactionId,
+            UUID walletId,
+            Long amount,
+            Long balanceAfter,
+            UUID orderId,
+            LocalDateTime createdAt
+    ) {
+        validatePositiveAmount(amount, "Purchase amount must be positive.");
+
+        return create(
+                transactionId,
+                walletId,
+                -amount,
+                balanceAfter,
+                WalletTransactionType.PURCHASE,
+                orderId,
+                "ORDER",
+                "order purchase",
+                createdAt
+        );
+    }
+
+    private static void validatePositiveAmount(Long amount, String message) {
+        if (Objects.requireNonNull(amount) <= 0) {
+            throw new IllegalArgumentException(message);
+        }
     }
 }

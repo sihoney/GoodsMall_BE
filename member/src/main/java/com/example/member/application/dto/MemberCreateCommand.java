@@ -1,0 +1,27 @@
+package com.example.member.application.dto;
+
+import com.example.member.presentation.dto.CreateMemberRequest;
+import com.todaylunch.common.security.auth.enumtype.MemberRole;
+
+public record MemberCreateCommand(
+        String email,
+        String password,
+        String nickname,
+        String phone,
+        String address,
+        String profileImageKey,
+        MemberRole role
+) {
+
+    public static MemberCreateCommand from(CreateMemberRequest request) {
+        return new MemberCreateCommand(
+                request.email(),
+                request.password(),
+                request.nickname(),
+                request.phone(),
+                request.address(),
+                request.profileImageKey(),
+                request.role()
+        );
+    }
+}

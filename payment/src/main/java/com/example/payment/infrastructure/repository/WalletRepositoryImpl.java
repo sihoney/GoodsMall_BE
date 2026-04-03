@@ -7,6 +7,9 @@ import java.util.UUID;
 import org.springframework.stereotype.Repository;
 
 @Repository
+/**
+ * WalletRepository 포트를 Spring Data JPA로 연결하는 adapter다.
+ */
 public class WalletRepositoryImpl implements WalletRepository {
 
     private final WalletJpaRepository walletJpaRepository;

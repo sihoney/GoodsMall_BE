@@ -1,11 +1,16 @@
 package com.example.product.domain.entity;
 
+import com.example.product.common.exception.ProductAlreadyDeletedException;
+import com.example.product.common.exception.SellerNotAuthorizedException;
 import com.example.product.domain.enumtype.ProductStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -28,6 +33,10 @@ public class Product {
     @Column(name = "seller_id", nullable = false)
     private UUID sellerId;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id", nullable = false)
+    private Category category;
+
     @Column(name = "title", nullable = false)
     private String title;
 
@@ -37,8 +46,8 @@ public class Product {
     @Column(name = "price", nullable = false)
     private BigDecimal price;
 
-    @Column(name = "count")
-    private Integer count;
+    @Column(name = "stock_quantity")
+    private Integer stockQuantity;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
@@ -53,59 +62,138 @@ public class Product {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    /**
+     * 전체 필드 생성자 (테스트 또는 특수 상황용)
+     */
     private Product(
-            UUID productId,
-            UUID sellerId,
+            String sellerId,
             String title,
             String description,
             BigDecimal price,
-            Integer count,
-            ProductStatus status,
-            Integer viewCount,
-            LocalDateTime createdAt,
-            LocalDateTime updatedAt
+            Integer stock_quantity,
+            Category category   // 추가
     ) {
-        this.productId = Objects.requireNonNull(productId);
-        this.sellerId = Objects.requireNonNull(sellerId);
+        LocalDateTime now = LocalDateTime.now();
+        this.productId = UUID.randomUUID();
+        this.sellerId = UUID.fromString(sellerId);
         this.title = Objects.requireNonNull(title);
         this.description = description;
         this.price = Objects.requireNonNull(price);
-        this.count = count;
-        this.status = Objects.requireNonNull(status);
-        this.viewCount = Objects.requireNonNull(viewCount);
-        this.createdAt = Objects.requireNonNull(createdAt);
-        this.updatedAt = Objects.requireNonNull(updatedAt);
+        this.stockQuantity = stock_quantity;
+        this.category = Objects.requireNonNull(category);
+        this.status = ProductStatus.ACTIVE;
+        this.viewCount = 0;
+        this.createdAt = now;
+        this.updatedAt = now;
+        this.deletedAt = null;
     }
 
     public static Product create(
-            UUID productId,
-            UUID sellerId,
+            String sellerId,
             String title,
             String description,
             BigDecimal price,
             Integer count,
-            ProductStatus status,
-            Integer viewCount,
-            LocalDateTime createdAt,
-            LocalDateTime updatedAt
+            Category category
     ) {
-        return new Product(productId, sellerId, title, description, price, count, status, viewCount, createdAt, updatedAt);
+        return new Product(sellerId, title, description, price, count, category);
     }
 
-    public void changeStatus(ProductStatus status, LocalDateTime updatedAt) {
-        this.status = Objects.requireNonNull(status);
-        this.updatedAt = Objects.requireNonNull(updatedAt);
+    public void validateSeller(UUID requestSellerId) {
+        if (!this.sellerId.equals(requestSellerId)) {
+            throw new SellerNotAuthorizedException();
+        }
+    }
+
+
+    public void updateProductInfo(String title, String description, BigDecimal price) {
+        validateTitle(title);
+        this.title = title;
+        this.description = description;
+        this.price = price;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void updateCategory(Category newCategory) {
+        this.category = Objects.requireNonNull(newCategory, "카테고리는 필수입니다");
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void updateStock(Integer newStock) {
+        this.stockQuantity = newStock;
+
+        if (newStock == 0 && this.status == ProductStatus.ACTIVE) {
+            this.status = ProductStatus.SOLD_OUT;
+        }
+        if (newStock > 0 && this.status == ProductStatus.SOLD_OUT) {
+            this.status = ProductStatus.ACTIVE;
+        }
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void increaseStock(Integer quantity) {
+        int newStock = this.stockQuantity + quantity;
+        updateStock(newStock);
+    }
+
+    public void decreaseStock(Integer quantity) {
+        if (this.stockQuantity < quantity) {
+            throw new IllegalArgumentException("재고가 부족합니다");
+        }
+
+        int newStock = this.stockQuantity - quantity;
+        updateStock(newStock);
+    }
+
+    public void updateStatus(ProductStatus newStatus) {
+        Objects.requireNonNull(newStatus, "상태는 필수입니다");
+
+        if (newStatus == ProductStatus.SOLD_OUT && this.stockQuantity > 0) {
+            throw new IllegalArgumentException("재고가 남아있는 상품은 품절 상태로 변경할 수 없습니다");
+        }
+
+        this.status = newStatus;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void delete() {
+        if (this.deletedAt != null) {
+            throw new ProductAlreadyDeletedException();
+        }
+        this.status = ProductStatus.INACTIVE;
+        this.deletedAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void restore() {
+        if (this.deletedAt == null) {
+            throw new IllegalStateException("삭제되지 않은 상품은 복구할 수 없습니다");
+        }
+        this.deletedAt = null;
+        this.status = ProductStatus.ACTIVE;
+        this.updatedAt = LocalDateTime.now();
     }
 
     public void increaseViewCount() {
-        this.viewCount = this.viewCount + 1;
+        this.viewCount++;
     }
 
-    public void updateDetails(String title, String description, BigDecimal price, Integer count, LocalDateTime updatedAt) {
-        this.title = Objects.requireNonNull(title);
-        this.description = description;
-        this.price = Objects.requireNonNull(price);
-        this.count = count;
-        this.updatedAt = Objects.requireNonNull(updatedAt);
+
+    public boolean isDeleted() {
+        return this.deletedAt != null;
+    }
+
+    public boolean isActive() {
+        return this.status == ProductStatus.ACTIVE && !isDeleted();
+    }
+
+    // 도메인 규칙: 상품명 길이 제한
+    private void validateTitle(String title) {
+        if (title.length() > 255) {
+            throw new IllegalArgumentException("상품명은 255자를 초과할 수 없습니다");
+        }
     }
 }
