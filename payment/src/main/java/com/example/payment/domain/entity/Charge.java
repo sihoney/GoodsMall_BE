@@ -67,6 +67,10 @@ public class Charge {
     @Column(name = "failure_reason", length = 500)
     private String failureReason;
 
+    /**
+     * 전체 필드 생성자 (테스트 또는 특수 상황용)
+     */
+    // todo : 필요 없는 필드는 제거 예정
     private Charge(
             UUID chargeId,
             UUID memberId,
@@ -115,6 +119,7 @@ public class Charge {
                 pgProvider,
                 pgOrderId,
                 null,
+                // 생성을 pending으로 고정
                 ChargeStatus.PENDING,
                 requestedAt,
                 null,
@@ -154,20 +159,25 @@ public class Charge {
         this.chargeStatus = ChargeStatus.CANCELLED;
     }
 
+    // 현재 충전 상태가 대기 중인지 확인한다.
     public boolean isPending() {
         return chargeStatus == ChargeStatus.PENDING;
     }
 
+    // 현재 충전 상태가 승인 완룡인지 확인한다.
     public boolean isSuccess() {
         return chargeStatus == ChargeStatus.SUCCESS;
     }
 
     /**
      * charge 상태 변경은 PENDING에서만 허용한다.
+     * <p>
+     * 도메인 규칙을 엔티티 내부에 둬서
+     * 서비스 계층이 실수로 잘못된 상태 전이를 만들지 않도록 방지한다.
      */
     private void validatePendingStatus() {
         if (!isPending()) {
-            throw new IllegalStateException("Only pending charges can be changed.");
+            throw new IllegalStateException("오직 Pending 상태인 경우에만 상태 변경이 가능합니다.");
         }
     }
 }

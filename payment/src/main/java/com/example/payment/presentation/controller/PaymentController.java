@@ -215,7 +215,10 @@ public class PaymentController {
                 request.amount(),
                 PgProvider.TOSS
         );
+        // response 형 변환이 컨트롤러에서 이루어지는 것은 아쉽지만 클린아키텍처상 application 결과를 외부 응답 형식으로
+        // 바꾸는 것은 외부 계층의 책임이라고 판단한 ai의 판단이 적절하다고 생각함.
         ChargeCreateResponse response = ChargeCreateResponse.from(chargeCreateUseCase.createCharge(command));
+        // 코딩 컨벤션에서 정한 공통 응답으로 반환
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
 
@@ -232,6 +235,7 @@ public class PaymentController {
                 request.amount()
         );
         ChargeConfirmResponse response = ChargeConfirmResponse.from(chargeConfirmUseCase.confirmCharge(command));
+        // 공통 응답으로 감싸서 반환
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

@@ -19,6 +19,10 @@ import org.springframework.web.client.RestClientResponseException;
  * Toss Payments API 호출을 담당하는 infrastructure adapter다.
  * 외부 응답 형식과 클라이언트 예외를 payment 공통 예외로 변환해 application 계층에 전달한다.
  */
+// TODO: TossPaymentGatewayImpl -> TossPaymentGatewayAdapter 네이밍 검토
+// 구현체가 단순 구현보다 outbound adapter 역할에 가깝다
+// TODO: infrastructure.client 보다 infrastructure.tosspayment 같은 외부 시스템 기준 패키지 분리 검토
+// Todo: 에러 메시지 에러코드로 통일하고 한글로 통일할 것.
 public class TossPaymentGatewayImpl implements TossPaymentGateway {
 
     private final RestClient restClient;
@@ -27,9 +31,9 @@ public class TossPaymentGatewayImpl implements TossPaymentGateway {
     public TossPaymentGatewayImpl(RestClient.Builder restClientBuilder, TossPaymentsProperties properties) {
         this.properties = properties;
         this.restClient = restClientBuilder
-                .baseUrl(properties.baseUrl())
-                .defaultHeader(HttpHeaders.AUTHORIZATION, basicAuth(properties.secretKey()))
-                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .baseUrl(properties.baseUrl()) // 기본 url 설정
+                .defaultHeader(HttpHeaders.AUTHORIZATION, basicAuth(properties.secretKey())) // 인증 헤더 설정
+                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE) // json으로 받도록 설정
                 .build();
     }
 
@@ -40,14 +44,15 @@ public class TossPaymentGatewayImpl implements TossPaymentGateway {
      */
     public TossPaymentConfirmation confirm(String paymentKey, String orderId, Long amount) {
         validateConfiguration();
-
+        // todo: 성공 url을 통해서 받은 amount와 orderId가 저장된 데이터와 일치하는지 보안상 확인이 필요할 수 있다.
         try {
             TossConfirmResponse response = restClient.post()
                     .uri("/v1/payments/confirm")
+                    // 넣어 외부 시스켐이 중복처리하지 않도록 멱등성 키를 헤더로 보낸다.
                     .header("Idempotency-Key", orderId)
                     .body(new TossConfirmRequest(paymentKey, orderId, amount))
-                    .retrieve()
-                    .body(TossConfirmResponse.class);
+                    .retrieve()// 응답을 가져옴
+                    .body(TossConfirmResponse.class); //JSON 응답을 Java 객체로 역직렬화
 
             if (response == null) {
                 throw new PaymentGatewayException("Toss confirm response is empty.");
@@ -90,7 +95,7 @@ public class TossPaymentGatewayImpl implements TossPaymentGateway {
             TossCancelResponse response = restClient.post()
                     .uri("/v1/payments/{paymentKey}/cancel", paymentKey)
                     .header("Idempotency-Key", paymentKey + "-cancel")
-                    .body(new TossCancelRequest(cancelReason, cancelAmount))
+                    .body(new TossCancelRequest(cancelReason, cancelAmount)) // 일부 취소하지 않을 경우 cancelAmount을 null로 보낼 수 있다.
                     .retrieve()
                     .body(TossCancelResponse.class);
 
@@ -135,6 +140,7 @@ public class TossPaymentGatewayImpl implements TossPaymentGateway {
         }
     }
 
+    // Toss API는 secretKey를 username으로 하는 Basic Auth를 사용한다.
     private static String basicAuth(String secretKey) {
         String credentials = (secretKey == null ? "" : secretKey) + ":";
         String encoded = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
