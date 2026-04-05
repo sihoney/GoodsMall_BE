@@ -177,7 +177,7 @@ public class Charge {
      */
     private void validatePendingStatus() {
         if (!isPending()) {
-            throw new IllegalStateException("오직 Pending 상태인 경우에만 상태 변경이 가능합니다.");
+            throw new IllegalStateException("Only pending charges can be changed.");
         }
     }
 }
