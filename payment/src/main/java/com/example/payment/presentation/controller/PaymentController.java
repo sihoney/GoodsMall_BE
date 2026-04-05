@@ -248,6 +248,8 @@ public class PaymentController {
     /**
      * 승인된 charge를 환불하고 wallet 잔액을 차감한다.
      */
+    // todo: 경로에 chargeId를 넣는것이 적절한 것인가?
+    // todo: front와 소통하여 chargeId를 body에 넣어서 보내는 방식으로 리팩토링 요청해야 할 수 있음
     @PostMapping("/charges/{chargeId}/refund")
     @Operation(summary = "충전 환불")
     public ResponseEntity<ApiResponse<ChargeRefundResponse>> refundCharge(

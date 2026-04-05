@@ -64,9 +64,13 @@ public class RefundChargeService implements ChargeRefundUseCase {
     public ChargeRefundResult refundCharge(ChargeRefundCommand command) {
         validateCommand(command);
 
+        // 필요한 정보를 가져오기 위하여 충전 정보 가져오기
         Charge charge = chargeRepository.findByChargeId(command.chargeId())
                 .orElseThrow(ChargeNotFoundException::new);
 
+        // 충전 환불이 가능한 상태인지 검증한다. 승인된 charge만 환불 가능하며
+        // 이미 환불된 charge는 환불 불가능하다. PG 취소에 필요한 정보가 없는 charge도 환불 불가능하다.
+        // todo: 환불 기간에 맞춰서 승인된 날짜를 기준으로 7일 이상 넘어간 충전건은 환불에서 제외한다.
         if (!charge.isSuccess()) {
             throw new IllegalStateException("Charge is not refundable.");
         }
@@ -76,15 +80,19 @@ public class RefundChargeService implements ChargeRefundUseCase {
         if (charge.getApprovedAmount() == null || charge.getPgPaymentKey() == null) {
             throw new IllegalStateException("Charge refund information is incomplete.");
         }
+        // todo: 환불 기간이 지난 충전 내역의 예외를 추가한다.
 
         LocalDateTime refundRequestedAt = timeProvider.now();
         Wallet wallet = walletRepository.findByWalletId(charge.getWalletId())
                 .orElseThrow(WalletNotFoundException::new);
 
+        // 환불 금액보다 예치금이 적은 것을 방어하기 위한 방어기재
         if (wallet.getBalance() < charge.getApprovedAmount()) {
             throw new IllegalStateException("Charge has already been used and cannot be refunded.");
         }
 
+        // 환불을 위해서 필요한 값을 PG에 전달하여 환불을 시도한다.
+        // PG 환불이 실패하면 실패 이력만 남기고 charge와 wallet 상태는 유지한다.
         TossPaymentGateway.TossPaymentCancellation cancellation;
         try {
             cancellation = tossPaymentGateway.cancel(

@@ -96,15 +96,19 @@ public class TossPaymentGatewayImpl implements TossPaymentGateway {
         try {
             TossCancelResponse response = restClient.post()
                     .uri("/v1/payments/{paymentKey}/cancel", paymentKey)
+                    // 멱등성 키
                     .header("Idempotency-Key", paymentKey + "-cancel")
                     .body(new TossCancelRequest(cancelReason, cancelAmount)) // 일부 취소하지 않을 경우 cancelAmount을 null로 보낼 수 있다.
                     .retrieve()
                     .body(TossCancelResponse.class);
 
+            //todo: 멱등성 키를 사용한 다음 로직이 없으므로 추가해야함.
+
             if (response == null || response.cancels() == null || response.cancels().isEmpty()) {
                 throw new PaymentGatewayException("Toss cancel response is empty.");
             }
-
+            //취소 목록에서 마지막 하나의 목록을 담는다.
+            // todo: get()을 getLast() 변경하기 -> java21 버전이므로 가능.
             TossCancelItem lastCancel = response.cancels().get(response.cancels().size() - 1);
             if (lastCancel.cancelAmount() == null || lastCancel.canceledAt() == null) {
                 throw new PaymentGatewayException("Toss cancel response is missing required fields.");
