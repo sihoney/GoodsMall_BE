@@ -54,6 +54,8 @@ public class TossPaymentGatewayImpl implements TossPaymentGateway {
                     .retrieve()// 응답을 가져옴
                     .body(TossConfirmResponse.class); //JSON 응답을 Java 객체로 역직렬화
 
+            // todo : 멱등성키를 사용한 상태에서 에러 응답 처리에 대한 로직이 필요
+
             if (response == null) {
                 throw new PaymentGatewayException("Toss confirm response is empty.");
             }
