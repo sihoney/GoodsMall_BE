@@ -59,7 +59,7 @@ public class PaymentSearchService implements PaymentSearchUseCase {
     }
 
     /**
-     * wallet aggregate에서 네비/마이페이지 공통 요약 정보를 꺼낸다.
+     * 화면에 표시할 예치금 금액을 알려주는 메서드
      */
     @Override
     public WalletSummaryResult findWalletSummary(UUID memberId) {
@@ -86,7 +86,10 @@ public class PaymentSearchService implements PaymentSearchUseCase {
     }
 
     /**
-     * 단건 charge를 본인 소유 여부까지 함께 확인해 상세 응답으로 조립한다.
+     * 단건 charge 상세를 조회한다.
+     * 목록에서 특정 충전건을 눌렀을 때 바로 상태를 판단할 수 있도록,
+     * 해당 충전의 최신 환불 1건을 함께 내려준다.
+     * 또한 memberId 조건으로 본인 데이터만 조회되도록 제한한다.
      */
     @Override
     public ChargeDetailResult findChargeDetail(UUID memberId, UUID chargeId) {
@@ -97,6 +100,7 @@ public class PaymentSearchService implements PaymentSearchUseCase {
                 .map(this::toChargeRefundSummaryResult)
                 .orElse(null);
 
+        // todo:  front에 전달될 값들이 전부 필요한지 검증하여 필요한 데이터만 보내도록 검증할것.
         return new ChargeDetailResult(
                 charge.getChargeId(),
                 charge.getMemberId(),
@@ -134,12 +138,15 @@ public class PaymentSearchService implements PaymentSearchUseCase {
      */
     @Override
     public PagedResult<WalletTransactionItemResult> findAllTransactions(UUID memberId, int page, int size) {
+        // todo: 조회 책임 분리 vs memberId 기준 직접 조회 방식 고려할 것.
+        // todo: wallet을 조회해 없을 경우 방어기재를 넣을 수 있다.
         Wallet wallet = findWallet(memberId);
         Page<WalletTransaction> transactionPage = walletTransactionRepository.findByWalletId(
                 wallet.getWalletId(),
                 createPageRequest(page, size, "createdAt")
         );
-
+        // Page에서 map()은 요소 하나하나를 다른 타입으로 변경하나 페이지 정보는 유지한다.
+        // Page<WalletTransaction> -> Page<WalletTransactionItemResult>로 변환된다.
         return toPagedResult(transactionPage.map(this::toWalletTransactionItemResult));
     }
 
@@ -181,7 +188,7 @@ public class PaymentSearchService implements PaymentSearchUseCase {
         if (size > MAX_PAGE_SIZE) {
             throw new IllegalArgumentException("size must not exceed 100.");
         }
-
+        // PageRequest는 Pageable의 구현체로, 페이지 번호(page)와 페이지 크기(size), 정렬 조건(sortBy)을 함께 전달한다.
         return PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, sortBy));
     }
 

@@ -43,12 +43,14 @@ public class OrderPaymentApiService implements OrderPaymentApiUseCase {
     @Override
     public OrderPaymentApiResponse payOrder(OrderPaymentApiRequest request) {
         validateRequest(request);
-
+        // todo : 요청 기록 시간이 필요한 경우 parsInt 값을 localtime으로 변경해야함
         try {
             OrderPaymentResult result = orderPaymentUseCase.payOrder(new OrderPaymentCommand(
                     request.orderId(),
                     request.buyerId(),
                     toAmount(request.totalPrice()),
+                    // todo : 부분 취소, 부분 환불, 부분 배송 완료 등을 처리하기 위해서 변경이 필요함
+                    // seller별로 합치는 것이 아닌 orderLine 단위로 escrow를 생성하는 방향으로 변경해야할 수도 있음
                     aggregateSellerPayments(request.orderLines()),
                     null
             ));
@@ -149,6 +151,7 @@ public class OrderPaymentApiService implements OrderPaymentApiUseCase {
         }
     }
 
+    // orderLines를 seller 기준으로 집계해 sellerId - sellerReceivableAmount 매핑으로 변환한다.
     private List<OrderPaymentSellerCommand> aggregateSellerPayments(List<OrderPaymentApiOrderLineRequest> orderLines) {
         Map<UUID, Long> sellerPaymentMap = orderLines.stream()
                 .collect(Collectors.groupingBy(
@@ -161,6 +164,7 @@ public class OrderPaymentApiService implements OrderPaymentApiUseCase {
                 .toList();
     }
 
+    // long 값을 BigDecimal로 변경
     private Long toAmount(BigDecimal amount) {
         try {
             return amount.longValueExact();

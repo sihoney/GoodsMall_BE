@@ -12,6 +12,6 @@ public record OrderPurchaseConfirmedMessage(
         UUID orderId,
         UUID sellerMemberId,
         Instant confirmedAt,
-        ConfirmationType confirmationType
+        ConfirmationType confirmationType // 구매 확정 방식
 ) {
 }

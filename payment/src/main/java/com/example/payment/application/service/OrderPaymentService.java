@@ -58,16 +58,21 @@ public class OrderPaymentService implements OrderPaymentUseCase {
 
         // 다중 seller 주문에서는 orderId 아래 escrow가 여러 건 존재할 수 있다.
         List<Escrow> existingEscrows = escrowRepository.findAllByOrderId(command.orderId());
+        // 주문번호기준 escrow가 이미 존재한다면 같은 주문에 대한 중복 요청이므로 기존 결과를 재구성해서 반환한다.
         if (!existingEscrows.isEmpty()) {
             return existingResult(command, existingEscrows);
         }
 
+        // 구매자 지갑 조회
         Wallet buyerWallet = walletRepository.findByMemberId(command.buyerMemberId())
                 .orElseThrow(WalletNotFoundException::new);
 
         LocalDateTime now = timeProvider.now();
+        // 지갑 금액과 결제 금액 차이는 도메인에 있음
+        // todo: 결제 금액에 비해 지갑 금액이 큰지 검증하는 로직 추가 여부 확인
         Long balanceAfter = buyerWallet.decreaseBalance(command.orderAmount(), now);
 
+        // wallet 변동 사항 기록
         WalletTransaction purchaseTransaction = WalletTransaction.purchase(
                 identifierGenerator.generateUuid(),
                 buyerWallet.getWalletId(),
