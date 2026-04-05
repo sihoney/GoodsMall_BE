@@ -48,6 +48,7 @@ public class MonthlySettlementAggregationScheduler {
                 result.settlementYear(),
                 result.settlementMonth()
         );
+        //todo : @Slf4j로 변경 고려
         log.info(
                 "Monthly settlement aggregation finished. targetYear={}, targetMonth={}, created={}, updated={}, items={}, payoutRequested={}",
                 result.settlementYear(),
