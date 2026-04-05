@@ -32,14 +32,18 @@ public class EscrowReleaseScheduleService implements EscrowReleaseScheduleUseCas
     }
 
     @Override
-    /**
-     * 배송완료 시각을 기준으로 주문의 escrow 전체에 자동 구매확정 예약 시간을 설정한다.
-     * 이미 예약되었거나 종료된 escrow는 그대로 두고 중복 이벤트를 흡수한다.
+    /** todo:
+     *   배송완료 시각을 기준으로 escrow의 자동 구매확정 예약 시간을 설정한다.
+     *   현재는 주문 단위 이벤트를 받아 orderId로 주문의 escrow 전체를 조회한 뒤 예약한다.
+     *   추후 부분 배송/부분 취소를 지원하면 orderItemId 단위 이벤트로 변경하고,
+     *   해당 orderItem에 매핑되는 escrow 1건(escrowId)을 조회해 상태 전이하도록 개선할 수 있다.
+     *   이렇게 하면 주문 전체 조회/순회를 줄이고, 변경 대상 escrow만 정밀하게 처리할 수 있다.
      */
     public EscrowReleaseScheduleResult scheduleRelease(EscrowReleaseScheduleCommand command) {
         validateCommand(command);
 
         // 배송완료는 주문 단위 이벤트이므로 해당 주문의 escrow 전체를 예약 대상으로 본다.
+        //todo: 배송 완료를 주문 단위가 아닌 배송 아이템 단위로 변경하여 로직을 수정할 것.
         List<Escrow> escrows = escrowRepository.findAllByOrderId(command.orderId());
         if (escrows.isEmpty()) {
             throw new EscrowNotFoundException();
@@ -47,6 +51,7 @@ public class EscrowReleaseScheduleService implements EscrowReleaseScheduleUseCas
 
         LocalDateTime releaseAt = command.deliveredAt().plusDays(AUTO_CONFIRM_DAYS);
         LocalDateTime now = timeProvider.now();
+        // 실제로 변경된 scrow가 하나라도 있는지 확인하기 위한 변수
         boolean updated = false;
 
         for (Escrow escrow : escrows) {
@@ -57,7 +62,7 @@ public class EscrowReleaseScheduleService implements EscrowReleaseScheduleUseCas
             escrow.scheduleReleaseAt(releaseAt, now);
             updated = true;
         }
-
+        // 변경된 escrow가 있을 때만 저장하여 중복 이벤트 재처리 시 불필요한 save를 피한다.
         if (updated) {
             escrowRepository.saveAll(escrows);
         }

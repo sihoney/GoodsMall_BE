@@ -49,7 +49,8 @@ public class OrderPaymentApiService implements OrderPaymentApiUseCase {
                     request.orderId(),
                     request.buyerId(),
                     toAmount(request.totalPrice()),
-                    // todo : 부분 취소, 부분 환불에 기능을 추가할 경우 변경이 필요.
+                    // todo : 부분 취소, 부분 환불, 부분 배송 완료 등을 처리하기 위해서 변경이 필요함
+                    // seller별로 합치는 것이 아닌 orderLine 단위로 escrow를 생성하는 방향으로 변경해야할 수도 있음
                     aggregateSellerPayments(request.orderLines()),
                     null
             ));
