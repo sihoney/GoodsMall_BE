@@ -112,6 +112,7 @@ public class MonthlySettlementService implements MonthlySettlementUseCase {
                         settlementItem.getFeeAmount(),
                         settlementItem.getNetAmount(),
                         // todo: 루프안에서 now는 미세한 시간 차이를 발생 시킬 수 있다.
+                        //  시간 차이에 대해서 상관 있는지 없는지 체크할 것.
                         LocalDateTime.now()
                 );
                 // 새로 만든 정산서 저장
