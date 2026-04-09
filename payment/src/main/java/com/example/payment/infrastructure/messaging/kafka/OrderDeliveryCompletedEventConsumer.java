@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
  */
 public class OrderDeliveryCompletedEventConsumer {
 
+    // 이벤트 발행시간을 한국 시간으로 바꾸기 위하여 ZoneId를 상수로 선언
     private static final ZoneId KOREA_ZONE_ID = ZoneId.of("Asia/Seoul");
 
     private final EscrowReleaseScheduleUseCase escrowReleaseScheduleUseCase;
@@ -29,12 +30,15 @@ public class OrderDeliveryCompletedEventConsumer {
     }
 
     @KafkaListener(
-            topics = "${payment.kafka.topics.order-delivery-completed:order.delivery-completed}",
-            groupId = "${payment.kafka.consumer-groups.order-delivery-completed:payment-service}",
+            topics = "${payment.kafka.topics.order-delivery-completed:order.delivery-completed}", // 어떤 토픽을 구독할지 지정
+            groupId = "${payment.kafka.consumer-groups.order-delivery-completed:payment-service}", // 어떤 컨슈머 그룹에 속할지 지정
+            // KafkaListener가 메시지를 수신할 때 어떤 컨슈머 팩토리를 사용할지 명시적으로 지정
             containerFactory = "orderDeliveryCompletedKafkaListenerContainerFactory"
     )
     public void listen(String eventJson) {
         try {
+            // todo: 부분 배송 완료 등에 대응하기 위하여 orderId가 아닌
+            // json 문자열을 OrderDeliveryCompletedMessage 객체로 변환(역직렬화)
             OrderDeliveryCompletedMessage event = objectMapper.readValue(eventJson, OrderDeliveryCompletedMessage.class);
             validateEvent(event);
             escrowReleaseScheduleUseCase.scheduleRelease(new EscrowReleaseScheduleCommand(

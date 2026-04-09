@@ -20,7 +20,7 @@ on:
 
 # 같은 PR에서 새 커밋이 올라오면 이전 실행 취소
 concurrency:
-  group: ci
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 permissions:
@@ -48,9 +48,8 @@ jobs:
         id: set-matrix
         shell: bash
         run: |
-          # PR 기준 브랜치와 현재 코드 차이 비교
-          git fetch origin ${{ github.base_ref }}
-          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          # PR base 커밋과 PR head 커밋 차이 비교
+          CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }})
 
           # 로그 출력
           echo "changed files:"
@@ -59,43 +58,43 @@ jobs:
           # 변경된 모듈을 담을 배열
           MODULES=()
 
-          if echo "$CHANGED_FILES" | grep -q '^member/'; then
+          if grep -q '^member/' <<< "$CHANGED_FILES"; then
             MODULES+=('{"module_name":"member"}')
           fi
 
-          if echo "$CHANGED_FILES" | grep -q '^product/'; then
+          if grep -q '^product/' <<< "$CHANGED_FILES"; then
             MODULES+=('{"module_name":"product"}')
           fi
 
-          if echo "$CHANGED_FILES" | grep -q '^order/'; then
+          if grep -q '^order/' <<< "$CHANGED_FILES"; then
             MODULES+=('{"module_name":"order"}')
           fi
 
-          if echo "$CHANGED_FILES" | grep -q '^payment/'; then
+          if grep -q '^payment/' <<< "$CHANGED_FILES"; then
             MODULES+=('{"module_name":"payment"}')
           fi
 
-          if echo "$CHANGED_FILES" | grep -q '^notification/'; then
+          if grep -q '^notification/' <<< "$CHANGED_FILES"; then
             MODULES+=('{"module_name":"notification"}')
           fi
 
-          if echo "$CHANGED_FILES" | grep -q '^settlement/'; then
+          if grep -q '^settlement/' <<< "$CHANGED_FILES"; then
             MODULES+=('{"module_name":"settlement"}')
           fi
 
-          if echo "$CHANGED_FILES" | grep -q '^cart/'; then
+          if grep -q '^cart/' <<< "$CHANGED_FILES"; then
             MODULES+=('{"module_name":"cart"}')
           fi
 
-          if echo "$CHANGED_FILES" | grep -q '^gateway/'; then
+          if grep -q '^gateway/' <<< "$CHANGED_FILES"; then
             MODULES+=('{"module_name":"gateway"}')
           fi
 
-          if echo "$CHANGED_FILES" | grep -q '^discovery/'; then
+          if grep -q '^discovery/' <<< "$CHANGED_FILES"; then
             MODULES+=('{"module_name":"discovery"}')
           fi
 
-          if echo "$CHANGED_FILES" | grep -q '^config/'; then
+          if grep -q '^config/' <<< "$CHANGED_FILES"; then
             MODULES+=('{"module_name":"config"}')
           fi
           

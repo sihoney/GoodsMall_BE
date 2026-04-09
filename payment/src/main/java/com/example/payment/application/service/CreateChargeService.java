@@ -50,9 +50,11 @@ public class CreateChargeService implements ChargeCreateUseCase {
     public ChargeCreateResult createCharge(ChargeCreateCommand command) {
         validateCommand(command);
 
+        // 지갑 여부를 확인
         Wallet wallet = walletRepository.findByMemberId(command.memberId())
                 .orElseThrow(WalletNotFoundException::new);
 
+        // uuid를 이용하여 orderId를 생성하기 위한 과정
         UUID chargeId = identifierGenerator.generateUuid();
         String pgOrderId = generatePgOrderId(chargeId);
         LocalDateTime requestedAt = timeProvider.now();
@@ -67,6 +69,7 @@ public class CreateChargeService implements ChargeCreateUseCase {
                 requestedAt
         );
 
+        // JPA를 이용하여 데이터 등록
         chargeRepository.save(charge);
 
         return new ChargeCreateResult(
