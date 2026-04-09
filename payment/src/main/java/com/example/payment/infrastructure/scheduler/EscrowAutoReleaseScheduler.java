@@ -32,6 +32,7 @@ public class EscrowAutoReleaseScheduler {
         this.timeProvider = timeProvider;
     }
 
+    // todo: 배포에 대비하여 실행 시간을 조절하는 방법으로 변경이 필요
     @Scheduled(fixedDelayString = "${payment.escrow.auto-release.fixed-delay-ms:60000}")
     /**
      * 현재 시각 기준 자동 해제 대상 escrow를 조회해 AUTO confirmation으로 release를 요청한다.

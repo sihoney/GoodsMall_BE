@@ -38,6 +38,7 @@ public class MonthlySettlementAggregationScheduler {
      * RETRYABLE 실패 재시도 배치는 별도 스케줄러가 담당한다.
      */
     @Scheduled(
+            // todo: 스케줄링 시간에 대해서 운영팀과 협의 필요. 현재는 매월 1일 새벽 3시 5분으로 설정했지만, 집계 소요 시간에 따라 조정 가능성 있음.
             cron = "${settlement.batch.monthly-aggregation.cron:0 5 3 1 * *}",
             zone = "${settlement.batch.monthly-aggregation.zone:Asia/Seoul}"
     )
@@ -48,6 +49,7 @@ public class MonthlySettlementAggregationScheduler {
                 result.settlementYear(),
                 result.settlementMonth()
         );
+        //todo : @Slf4j로 변경 고려
         log.info(
                 "Monthly settlement aggregation finished. targetYear={}, targetMonth={}, created={}, updated={}, items={}, payoutRequested={}",
                 result.settlementYear(),
