@@ -8,7 +8,7 @@ import com.example.product.domain.enumtype.ProductStatus;
 import com.example.product.domain.repository.CategoryRepository;
 import com.example.product.domain.repository.ProductImageRepository;
 import com.example.product.domain.repository.ProductRepository;
-import com.example.product.domain.service.ImageUploadService;
+import com.example.product.domain.repository.FileStorageRepository;
 import com.example.product.presentation.dto.request.ProductCheckRequest;
 import com.example.product.presentation.dto.response.ProductAvailabilityResponse;
 import com.example.product.presentation.dto.response.ProductResponse;
@@ -55,7 +55,7 @@ class ProductSearchServiceTest {
     private CategoryRepository categoryRepository;
 
     @Mock
-    private ImageUploadService imageUploadService;
+    private FileStorageRepository fileStorageRepository;
 
     @InjectMocks
     private ProductSearchService productSearchService;
@@ -355,7 +355,7 @@ class ProductSearchServiceTest {
             given(productRepository.findById(any(UUID.class))).willReturn(Optional.of(product));
             given(productRepository.save(any(Product.class))).willReturn(product);
             given(productImageRepository.findByProductId(any(UUID.class))).willReturn(images);
-            given(imageUploadService.generatePresignedUrl(anyString())).willReturn("http://presigned-url");
+            given(fileStorageRepository.generatePresignedUrl(anyString())).willReturn("http://presigned-url");
 
             // when
             ProductResponse result = productSearchService.findById(productId);

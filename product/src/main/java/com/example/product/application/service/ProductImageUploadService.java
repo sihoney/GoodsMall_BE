@@ -6,7 +6,7 @@ import com.example.product.domain.entity.Product;
 import com.example.product.domain.entity.ProductImage;
 import com.example.product.domain.repository.ProductImageRepository;
 import com.example.product.domain.repository.ProductRepository;
-import com.example.product.domain.service.ImageUploadService;
+import com.example.product.domain.repository.FileStorageRepository;
 import com.example.product.presentation.dto.response.ProductImageResponse;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -25,7 +25,7 @@ public class ProductImageUploadService implements ProductImageUploadUseCase {
 
     private final ProductRepository productRepository;
     private final ProductImageRepository productImageRepository;
-    private final ImageUploadService imageUploadService;
+    private final FileStorageRepository fileStorageRepository;
 
     @Override
     @Transactional
@@ -50,7 +50,7 @@ public class ProductImageUploadService implements ProductImageUploadUseCase {
             existingThumbnail.ifPresent(ProductImage::unmarkThumbnail);
         }
 
-        String s3Key = imageUploadService.uploadImage(file);
+        String s3Key = fileStorageRepository.uploadImage(file);
         log.info("Image uploaded to S3: productId={}, s3Key={}", productId, s3Key);
 
         ProductImage productImage = ProductImage.create(

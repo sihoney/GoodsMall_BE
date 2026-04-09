@@ -9,7 +9,7 @@ import com.example.product.domain.enumtype.ProductStatus;
 import com.example.product.domain.repository.CategoryRepository;
 import com.example.product.domain.repository.ProductImageRepository;
 import com.example.product.domain.repository.ProductRepository;
-import com.example.product.domain.service.ImageUploadService;
+import com.example.product.domain.repository.FileStorageRepository;
 import com.example.product.presentation.dto.request.ProductCheckRequest;
 import com.example.product.presentation.dto.response.ProductAvailabilityResponse;
 import com.example.product.presentation.dto.response.ProductImageResponse;
@@ -32,7 +32,7 @@ public class ProductSearchService implements ProductSearchUseCase {
     private final ProductRepository productRepository;
     private final ProductImageRepository productImageRepository;
     private final CategoryRepository categoryRepository;
-    private final ImageUploadService imageUploadService;
+    private final FileStorageRepository fileStorageRepository;
 
     @Override
     public Page<ProductResponse> findDisplayProducts(
@@ -140,7 +140,7 @@ public class ProductSearchService implements ProductSearchUseCase {
     private ProductResponse buildProductResponse(Product product, List<ProductImage> images) {
         List<ProductImageResponse> imageResponses = images.stream()
                 .map(image -> {
-                    String presignedUrl = imageUploadService.generatePresignedUrl(image.getS3Key());
+                    String presignedUrl = fileStorageRepository.generatePresignedUrl(image.getS3Key());
                     return ProductImageResponse.from(image, presignedUrl);
                 })
                 .toList();

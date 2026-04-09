@@ -6,7 +6,7 @@ import com.example.product.domain.entity.ProductImage;
 import com.example.product.domain.repository.CategoryRepository;
 import com.example.product.domain.repository.ProductImageRepository;
 import com.example.product.domain.repository.ProductRepository;
-import com.example.product.domain.service.ImageUploadService;
+import com.example.product.domain.repository.FileStorageRepository;
 import com.example.product.presentation.dto.request.ProductCreateRequest;
 import com.example.product.presentation.dto.response.ProductResponse;
 import java.time.LocalDateTime;
@@ -28,7 +28,7 @@ public class ProductCreateService implements ProductCreateUseCase {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final ProductImageRepository productImageRepository;
-    private final ImageUploadService imageUploadService;
+    private final FileStorageRepository fileStorageRepository;
 
     @Override
     public ProductResponse createProduct(
@@ -64,7 +64,7 @@ public class ProductCreateService implements ProductCreateUseCase {
     private ProductResponse buildProductResponse(Product product, List<ProductImage> images) {
         List<com.example.product.presentation.dto.response.ProductImageResponse> imageResponses = images.stream()
                 .map(image -> {
-                    String presignedUrl = imageUploadService.generatePresignedUrl(image.getS3Key());
+                    String presignedUrl = fileStorageRepository.generatePresignedUrl(image.getS3Key());
                     return com.example.product.presentation.dto.response.ProductImageResponse.from(image, presignedUrl);
                 })
                 .toList();
@@ -95,7 +95,7 @@ public class ProductCreateService implements ProductCreateUseCase {
             for (int i = 0; i < images.length; i++) {
                 MultipartFile file = images[i];
 
-                String s3Key = imageUploadService.uploadImage(file);
+                String s3Key = fileStorageRepository.uploadImage(file);
                 uploadedS3Keys.add(s3Key);  // 성공한 키 저장
                 log.info("Image uploaded to S3: productId={}, s3Key={}, index={}", productId, s3Key, i);
 
@@ -130,7 +130,7 @@ public class ProductCreateService implements ProductCreateUseCase {
     private void cleanupS3Images(List<String> s3Keys) {
         for (String s3Key : s3Keys) {
             try {
-                imageUploadService.deleteImage(s3Key);
+                fileStorageRepository.deleteImage(s3Key);
                 log.info("Cleaned up S3 image: {}", s3Key);
             } catch (Exception e) {
                 log.error("Failed to cleanup S3 image: {}", s3Key, e);
