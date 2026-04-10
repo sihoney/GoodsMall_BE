@@ -91,7 +91,7 @@ class ChargeTest {
 
             charge.approve(10_000L, "paymentKey-abc", approvedAt);
 
-            assertThat(charge.getChargeStatus()).isEqualTo(ChargeStatus.SUCCESS);
+            assertThat(charge.getChargeStatus()).isEqualTo(ChargeStatus.CONFIRM_SUCCESS);
         }
 
         @Test
@@ -152,7 +152,7 @@ class ChargeTest {
 
             charge.fail("payment declined", failedAt);
 
-            assertThat(charge.getChargeStatus()).isEqualTo(ChargeStatus.FAILED);
+            assertThat(charge.getChargeStatus()).isEqualTo(ChargeStatus.CONFIRM_FAILED);
         }
 
         @Test

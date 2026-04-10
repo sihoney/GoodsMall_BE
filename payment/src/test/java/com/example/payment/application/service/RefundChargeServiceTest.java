@@ -156,7 +156,7 @@ class RefundChargeServiceTest {
                     .isInstanceOf(PaymentGatewayException.class)
                     .hasMessageContaining("cancel rejected");
 
-            assertThat(successCharge.getChargeStatus()).isEqualTo(ChargeStatus.SUCCESS);
+            assertThat(successCharge.getChargeStatus()).isEqualTo(ChargeStatus.CONFIRM_SUCCESS);
             verify(chargeRefundRepository).save(any(ChargeRefund.class));
             verify(walletRepository, never()).save(any());
             verify(walletTransactionRepository, never()).save(any());
