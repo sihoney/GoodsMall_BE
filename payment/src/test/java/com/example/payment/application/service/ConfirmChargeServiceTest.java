@@ -107,7 +107,7 @@ class ConfirmChargeServiceTest {
 
             ChargeConfirmResult result = confirmChargeService.confirmCharge(command);
 
-            assertThat(result.chargeStatus()).isEqualTo(ChargeStatus.SUCCESS);
+            assertThat(result.chargeStatus()).isEqualTo(ChargeStatus.CONFIRM_SUCCESS);
             assertThat(result.approvedAmount()).isEqualTo(10_000L);
             assertThat(result.walletBalance()).isEqualTo(15_000L);
             assertThat(result.chargeId()).isEqualTo(chargeId);
@@ -180,7 +180,7 @@ class ConfirmChargeServiceTest {
                     .isInstanceOf(PaymentGatewayException.class)
                     .hasMessageContaining("confirm rejected");
 
-            assertThat(pendingCharge.getChargeStatus()).isEqualTo(ChargeStatus.FAILED);
+            assertThat(pendingCharge.getChargeStatus()).isEqualTo(ChargeStatus.CONFIRM_FAILED);
             verify(walletRepository, never()).save(any());
             verify(walletTransactionRepository, never()).save(any());
         }

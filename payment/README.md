@@ -408,7 +408,6 @@ https://<frontend-domain>/payments/toss/fail
   - `walletId`
   - `pgOrderId`
   - `amount`
-  - `pgProvider`
   - `chargeStatus`
 
 #### `POST /api/payments/confirm`

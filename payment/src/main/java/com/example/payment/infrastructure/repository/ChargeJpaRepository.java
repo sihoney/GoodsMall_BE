@@ -9,6 +9,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ChargeJpaRepository extends JpaRepository<Charge, UUID> {
 
+    Optional<Charge> findByPgOrderId(String pgOrderId);
+
     Optional<Charge> findByChargeIdAndMemberId(UUID chargeId, UUID memberId);
 
     Page<Charge> findByMemberId(UUID memberId, Pageable pageable);

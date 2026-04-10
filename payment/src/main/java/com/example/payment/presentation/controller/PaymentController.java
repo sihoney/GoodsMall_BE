@@ -5,19 +5,23 @@ import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import com.example.payment.application.dto.ChargeConfirmCommand;
+import com.example.payment.application.dto.ChargeConfirmFailureCommand;
 import com.example.payment.application.dto.ChargeCreateCommand;
 import com.example.payment.application.dto.ChargeRefundCommand;
+import com.example.payment.application.usecase.ChargeConfirmFailureUseCase;
 import com.example.payment.application.usecase.ChargeConfirmUseCase;
 import com.example.payment.application.usecase.ChargeCreateUseCase;
 import com.example.payment.application.usecase.ChargeRefundUseCase;
 import com.example.payment.application.usecase.OrderPaymentApiUseCase;
 import com.example.payment.application.usecase.PaymentSearchUseCase;
 import com.example.payment.domain.enumtype.PgProvider;
+import com.example.payment.presentation.dto.request.ChargeConfirmFailureRequest;
 import com.example.payment.presentation.dto.request.ChargeConfirmRequest;
 import com.example.payment.presentation.dto.request.ChargeCreateRequest;
 import com.example.payment.presentation.dto.request.ChargeRefundRequest;
 import com.example.payment.presentation.dto.request.OrderPaymentApiRequest;
 import com.example.payment.presentation.dto.response.ApiResponse;
+import com.example.payment.presentation.dto.response.ChargeConfirmFailureResponse;
 import com.example.payment.presentation.dto.response.ChargeDetailResponse;
 import com.example.payment.presentation.dto.response.ChargeConfirmResponse;
 import com.example.payment.presentation.dto.response.ChargeCreateResponse;
@@ -54,6 +58,7 @@ public class PaymentController {
 
     private final ChargeCreateUseCase chargeCreateUseCase;
     private final ChargeConfirmUseCase chargeConfirmUseCase;
+    private final ChargeConfirmFailureUseCase chargeConfirmFailureUseCase;
     private final ChargeRefundUseCase chargeRefundUseCase;
     private final PaymentSearchUseCase paymentSearchUseCase;
     private final OrderPaymentApiUseCase orderPaymentApiUseCase;
@@ -61,12 +66,14 @@ public class PaymentController {
     public PaymentController(
             ChargeCreateUseCase chargeCreateUseCase,
             ChargeConfirmUseCase chargeConfirmUseCase,
+            ChargeConfirmFailureUseCase chargeConfirmFailureUseCase,
             ChargeRefundUseCase chargeRefundUseCase,
             PaymentSearchUseCase paymentSearchUseCase,
             OrderPaymentApiUseCase orderPaymentApiUseCase
     ) {
         this.chargeCreateUseCase = chargeCreateUseCase;
         this.chargeConfirmUseCase = chargeConfirmUseCase;
+        this.chargeConfirmFailureUseCase = chargeConfirmFailureUseCase;
         this.chargeRefundUseCase = chargeRefundUseCase;
         this.paymentSearchUseCase = paymentSearchUseCase;
         this.orderPaymentApiUseCase = orderPaymentApiUseCase;
@@ -228,6 +235,24 @@ public class PaymentController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
 
+    /**
+     * 충전 실패 리다이렉트 결과를 db에 등록하고 결과를 반환한다.
+     */
+    @PostMapping("/charge/fail")
+    @Operation(summary = "충전 실패 반영")
+    public ResponseEntity<ApiResponse<ChargeConfirmFailureResponse>> confirmChargeFailure(
+            @Valid @RequestBody ChargeConfirmFailureRequest request
+    ) {
+        ChargeConfirmFailureCommand command = new ChargeConfirmFailureCommand(
+                request.orderId(),
+                request.code(),
+                request.message()
+        );
+        ChargeConfirmFailureResponse response = ChargeConfirmFailureResponse.from(
+                chargeConfirmFailureUseCase.confirmChargeFailure(command)
+        );
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
     /**
      * PG 승인 결과를 받아 charge와 wallet 상태를 확정한다.
      */
