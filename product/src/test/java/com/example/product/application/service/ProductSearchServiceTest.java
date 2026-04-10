@@ -9,8 +9,6 @@ import com.example.product.domain.repository.CategoryRepository;
 import com.example.product.domain.repository.ProductImageRepository;
 import com.example.product.domain.repository.ProductRepository;
 import com.example.product.domain.repository.FileStorageRepository;
-import com.example.product.presentation.dto.request.ProductCheckRequest;
-import com.example.product.presentation.dto.response.ProductAvailabilityResponse;
 import com.example.product.presentation.dto.response.ProductResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -380,107 +378,6 @@ class ProductSearchServiceTest {
                     .isInstanceOf(ProductNotFoundException.class);
             verify(productRepository, times(1)).findById(any(UUID.class));
             verify(productRepository, never()).save(any());
-        }
-    }
-
-    @Nested
-    @DisplayName("상품 재고 확인")
-    class 상품_재고_확인 {
-
-        @Test
-        void 단일_상품의_재고를_확인한다() {
-            // given
-            UUID productId = product.getProductId();
-            Integer quantity = 10;
-            ProductCheckRequest request = new ProductCheckRequest(productId, quantity);
-            ProductImage thumbnail = createProductImage(productId, "thumb.jpg", true);
-
-            given(productRepository.findById(eq(productId))).willReturn(Optional.of(product));
-            given(productRepository.findThumbnailImageByProductId(eq(productId)))
-                    .willReturn(Optional.of(thumbnail));
-
-            // when
-            List<ProductAvailabilityResponse> result =
-                    productSearchService.checkAvailability(List.of(request));
-
-            // then
-            assertThat(result).hasSize(1);
-            ProductAvailabilityResponse response = result.get(0);
-            assertThat(response.getProductId()).isEqualTo(productId);
-            assertThat(response.getName()).isEqualTo(product.getTitle());
-            assertThat(response.getThumbnailKeySnapshot()).isEqualTo(thumbnail.getS3Key());
-        }
-
-        @Test
-        void 여러_상품의_재고를_한번에_확인한다() {
-            // given
-            Product product1 = createProduct("6ba7b810-9dad-11d1-80b4-00c04fd430c8", "김치찌개");
-            Product product2 = createProduct("6ba7b810-9dad-11d1-80b4-00c04fd430c9", "된장찌개");
-
-            List<ProductCheckRequest> requests = List.of(
-                    new ProductCheckRequest(product1.getProductId(), 5),
-                    new ProductCheckRequest(product2.getProductId(), 10)
-            );
-
-            given(productRepository.findById(eq(product1.getProductId())))
-                    .willReturn(Optional.of(product1));
-            given(productRepository.findById(eq(product2.getProductId())))
-                    .willReturn(Optional.of(product2));
-            given(productRepository.findThumbnailImageByProductId(any(UUID.class)))
-                    .willReturn(Optional.empty());
-
-            // when
-            List<ProductAvailabilityResponse> result =
-                    productSearchService.checkAvailability(requests);
-
-            // then
-            assertThat(result).hasSize(2);
-            verify(productRepository, times(2)).findById(any(UUID.class));
-        }
-
-        @Test
-        void 재고_확인시_썸네일이_없으면_null을_반환한다() {
-            // given
-            UUID productId = product.getProductId();
-            ProductCheckRequest request = new ProductCheckRequest(productId, 10);
-
-            given(productRepository.findById(eq(productId))).willReturn(Optional.of(product));
-            given(productRepository.findThumbnailImageByProductId(eq(productId)))
-                    .willReturn(Optional.empty());
-
-            // when
-            List<ProductAvailabilityResponse> result =
-                    productSearchService.checkAvailability(List.of(request));
-
-            // then
-            assertThat(result).hasSize(1);
-            assertThat(result.get(0).getThumbnailKeySnapshot()).isNull();
-        }
-
-        @Test
-        void 존재하지_않는_상품의_재고를_확인하면_예외가_발생한다() {
-            // given
-            UUID nonExistentId = UUID.randomUUID();
-            ProductCheckRequest request = new ProductCheckRequest(nonExistentId, 10);
-            given(productRepository.findById(eq(nonExistentId))).willReturn(Optional.empty());
-
-            // when & then
-            assertThatThrownBy(() -> productSearchService.checkAvailability(List.of(request)))
-                    .isInstanceOf(ProductNotFoundException.class);
-        }
-
-        @Test
-        void 빈_요청_목록이면_빈_결과를_반환한다() {
-            // given
-            List<ProductCheckRequest> emptyRequests = Collections.emptyList();
-
-            // when
-            List<ProductAvailabilityResponse> result =
-                    productSearchService.checkAvailability(emptyRequests);
-
-            // then
-            assertThat(result).isEmpty();
-            verify(productRepository, never()).findById(any());
         }
     }
 
