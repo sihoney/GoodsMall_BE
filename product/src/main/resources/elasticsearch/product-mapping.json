@@ -12,6 +12,7 @@
     "status":        { "type": "keyword" },
     "viewCount":     { "type": "integer" },
     "createdAt":     { "type": "date" },
-    "updatedAt":     { "type": "date" }
+    "updatedAt":     { "type": "date" },
+    "thumbnailS3Key": { "type": "keyword" }
   }
 }
