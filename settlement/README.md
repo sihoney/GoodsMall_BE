@@ -1,0 +1,413 @@
+# Settlement Service
+
+`settlement` 모듈은 판매자 정산을 담당하는 서비스입니다. payment 모듈에서 넘어온 정산 후보를 적재하고, 월 단위로 집계해 정산 건을 만들며, 지급 요청과 지급 결과 반영, 실패 건 재시도/수동 재처리를 수행합니다.
+
+## 1. 한눈에 보는 역할
+
+- payment가 발행한 `settlement candidate` 이벤트를 받아 `settlement_item`으로 적재한다.
+  - 현재는 seller별 집계 항목이 들어가나 부분 취소, 환불 요청으로 order_item 단위로 세분화할 수도 있다.
+- 판매자 + 정산 대상 연월 기준으로 정산 금액을 집계한다.
+- 월 정산 배치에서 `PENDING settlement`에 대해 지급 요청 이벤트를 발행한다.
+- payment가 회신한 지급 결과를 반영해 `COMPLETED` 또는 `FAILED` 상태로 변경한다.
+- `RETRYABLE` 실패 건은 스케줄러로 자동 재시도한다.
+- `NON_RETRYABLE` 실패 건은 운영 API로 수동 재처리할 수 있게 한다.
+- DLQ 재처리 대상 settlement 목록을 운영 API로 일괄 replay 할 수 있다.
+
+## 2. 실행 정보
+
+| 항목 | 값 |
+|---|---|
+| 서비스 이름 | `settlement-service` |
+| 내부 실행 포트 | `8085` |
+| Docker 노출 포트 | `8085:8085` |
+| Docker 이미지 실행 프로필 | `prod` |
+| Eureka | `${EUREKA_DEFAULT_ZONE}` 기본값 `http://localhost:8761/eureka` |
+| Config Server | `${CONFIG_SERVER_URL}` 기본값 `http://localhost:8888` |
+| DB | PostgreSQL `goods_mall`, 기본 스키마 `settlement` |
+| Swagger Docs | `/v3/api-docs` |
+| Swagger UI | `/swagger-ui.html` |
+
+직접 호출 기준 기본 주소:
+
+```text
+http://localhost:8085
+```
+
+Gateway 경유 기준 기본 주소:
+
+```text
+http://localhost:8080
+```
+
+## 3. Docker 기준 실행
+
+### 3.1 컨테이너 빌드/실행 방식
+
+`settlement/Dockerfile`은 멀티 스테이지 빌드입니다.
+
+- 빌드 스테이지: `eclipse-temurin:21-jdk`
+- 런타임 스테이지: `eclipse-temurin:21-jre`
+- 빌드 산출물: `settlement-0.0.1-SNAPSHOT.jar`
+- 컨테이너 시작 명령: `java -Dspring.profiles.active=prod -jar /app/app.jar`
+- 컨테이너 노출 포트: `8085`
+
+Docker/AWS 환경에서는 기본적으로 `prod` 프로필로 실행됩니다.
+
+### 3.2 docker-compose 기준 settlement 설정
+
+현재 `docker-compose.yml` 기준 `settlement` 컨테이너는 아래 값으로 실행됩니다.
+
+- 컨테이너 이름: `goods-mall-settlement`
+- 포트 매핑: `8085:8085`
+- `env_file`: `.env`
+- `CONFIG_SERVER_URL`: `http://config:8888`
+- `EUREKA_INSTANCE_HOSTNAME`: `settlement`
+- `EUREKA_INSTANCE_PREFER_IP_ADDRESS`: `false`
+
+컨테이너 내부 통신 기준 의존 서비스:
+
+- Config Server: `http://config:8888`
+- Eureka: `${EUREKA_DEFAULT_ZONE}`
+- Kafka: `${SPRING_KAFKA_BOOTSTRAP_SERVERS}`
+- PostgreSQL: `${DB_URL}`
+
+### 3.3 Docker에서 필요한 환경변수
+
+| 분류 | 환경변수 |
+|---|---|
+| DB | `DB_URL`, `DB_USER_NAME`, `DB_USER_PASSWORD` |
+| Kafka | `SPRING_KAFKA_BOOTSTRAP_SERVERS` |
+| Eureka | `EUREKA_DEFAULT_ZONE` |
+| Settlement Kafka | `SETTLEMENT_KAFKA_TOPIC_*`, `SETTLEMENT_KAFKA_CONSUMER_GROUP_*`, `SETTLEMENT_KAFKA_RETRY_*` |
+| Batch | `settlement.batch.monthly-aggregation.*`, `settlement.batch.retryable-failed-payout.*` |
+
+실제 루트 `.env.example`와 `.env.aws.example`에도 settlement 관련 Kafka 설정값이 들어 있습니다.
+
+## 4. AWS 배포 고려사항
+
+### 4.1 AWS에서 반드시 분리해야 하는 값
+
+`.env.aws.example` 기준으로 아래 값들은 Git에 두지 않고 런타임 주입해야 합니다.
+
+- `DB_URL`
+- `DB_USER_NAME`
+- `DB_USER_PASSWORD`
+- `SPRING_KAFKA_BOOTSTRAP_SERVERS`
+- `JWT_SECRET_KEY`
+- `EUREKA_DEFAULT_ZONE`
+- settlement 관련 topic / consumer group / retry 설정
+
+권장 저장 위치:
+
+- AWS SSM Parameter Store
+- AWS Secrets Manager
+- ECS task definition secret injection 또는 EC2 환경변수 주입
+
+### 4.2 AWS 네트워크 관점
+
+이 서비스는 아래 연결이 필요합니다.
+
+- PostgreSQL 접속 가능
+- Kafka 또는 MSK bootstrap 서버 접속 가능
+- Eureka 서버 등록 가능
+- Config Server 접근 가능
+
+권장 방향:
+
+- 애플리케이션 간 통신은 Private Subnet 또는 내부 DNS 사용
+- DB / Kafka / Eureka / Config 모두 내부 주소 사용 권장
+- 배치 스케줄러가 반드시 단일 실행되도록 배포 토폴로지 검토 필요
+
+### 4.3 AWS에서 자주 확인할 항목
+
+- `server.port=8085` 로 서비스 포트가 맞는지
+- ALB 또는 Target Group이 `8085`를 바라보는지
+- Eureka 등록 hostname/ip 설정이 현재 배포 방식과 맞는지
+- Kafka bootstrap 주소가 VPC 내부에서 해석되는지
+- Config Server 장애 시 `fail-fast: true` 때문에 기동 실패가 허용되는지
+- 월 정산 배치와 실패 재시도 배치가 다중 인스턴스에서 중복 실행되지 않는지
+
+## 5. 도메인 개념
+
+| 개념 | 설명 |
+|---|---|
+| `SettlementItem` | payment의 `escrow release` 결과를 정산 대상으로 적재한 원천 항목 |
+| `Settlement` | 판매자별 월 정산 집계 결과 |
+| `SettlementStatus.PENDING` | 집계는 되었지만 아직 지급 전 또는 재시도 대기 상태 |
+| `SettlementStatus.COMPLETED` | 지급 완료 |
+| `SettlementStatus.FAILED` | 지급 실패 |
+
+정산 금액 계산 규칙:
+
+- `grossAmount`: 판매자 총 매출
+- `feeAmount`: `grossAmount * 10%`, 정수 나눗셈 기준 버림
+- `netAmount`: `grossAmount - feeAmount`
+
+## 6. 모듈 간 통신 구조
+
+### 6.1 HTTP로 받는 요청
+
+| Method | Path | 인증 | 목적 |
+|---|---|---|---|
+| `POST` | `/api/settlements/failed-payout/manual-retry` | 필요 | FAILED 정산 1건 수동 재지급 요청 |
+| `POST` | `/api/settlements/failed-payout/replay` | 필요 | FAILED 정산 다건 DLQ replay 처리 |
+
+이 API는 `gateway`를 통해 호출하며, 로그인한 사용자 정보는 `@CurrentMember`로 전달됩니다. 일반 사용자용 기능이 아니라 정산 실패 건을 다시 처리하는 운영용 API이므로, `ADMIN` 권한을 가진 사용자가 호출하는 것을 기준으로 합니다.
+
+### 6.2 Kafka로 받는 이벤트
+
+| Topic | 메시지 타입 | 목적 |
+|---|---|---|
+| `payment.settlement-candidate-created` | `SettlementCandidateCreatedMessage` | payment에서 release된 escrow를 정산 후보로 적재 |
+| `payment.seller-payout-result` | `SellerSettlementPayoutResultMessage` | payment의 정산금 지급 결과를 settlement 상태에 반영 |
+
+### 6.3 Kafka로 발행하는 이벤트
+
+| Topic | 메시지 타입 | 목적 |
+|---|---|---|
+| `settlement.seller-payout-requested` | `SellerSettlementPayoutRequestedMessage` | payment에 판매자 정산금 지급 요청 |
+
+## 7. 공통 응답 형식
+
+모든 HTTP 응답은 `ApiResponse<T>` 포맷을 사용합니다.
+
+성공:
+
+```json
+{
+  "success": true,
+  "data": {
+    "...": "..."
+  },
+  "error": null
+}
+```
+
+실패:
+
+```json
+{
+  "success": false,
+  "data": null,
+  "error": {
+    "code": "INVALID_INPUT_VALUE",
+    "message": "settlementId is required."
+  }
+}
+```
+
+### 자주 쓰는 에러 코드
+
+| 코드 | HTTP Status | 의미 |
+|---|---|---|
+| `INVALID_TOKEN` | `401` | 인증 토큰 문제 |
+| `INVALID_INPUT_VALUE` | `400` | UUID 형식, 리스트 크기, 필수값 오류 |
+| `SETTLEMENT_NOT_FOUND` | `404` | 정산 건 없음 |
+| `MANUAL_RETRY_NOT_ALLOWED` | `409` | 현재 상태나 실패 사유상 수동 재시도 불가 |
+
+## 8. HTTP API 상세
+
+### 8.1 `POST /api/settlements/failed-payout/manual-retry`
+
+정산 지급이 실패한 건 1개를 다시 지급해보라고 요청하는 API입니다.
+
+자동 재시도 대상이 아닌 실패 건을 운영자가 직접 다시 처리할 때 사용합니다.
+
+- 인증: 필요
+- 요청 본문:
+
+```json
+{
+  "settlementId": "UUID"
+}
+```
+
+- 필수값:
+  - `settlementId`
+
+- 처리 규칙:
+  - `settlementId`는 UUID 문자열이어야 합니다.
+  - 해당 정산 건이 현재 `FAILED` 상태여야 합니다.
+  - 실패 사유가 자동 재시도 대상이면 이 API로는 다시 요청할 수 없습니다.
+  - 다시 요청이 가능한 경우 settlement 상태를 `PENDING`으로 바꾸고, payment 모듈로 지급 요청 이벤트를 다시 보냅니다.
+
+- 성공 응답 데이터:
+  - `settlementId`
+  - `requested`
+  - `message`
+
+예시:
+
+```json
+{
+  "success": true,
+  "data": {
+    "settlementId": "11111111-1111-1111-1111-111111111111",
+    "requested": true,
+    "message": "Manual payout retry requested."
+  },
+  "error": null
+}
+```
+
+### 8.2 `POST /api/settlements/failed-payout/replay`
+
+정산 지급이 실패했던 건 여러 개를 한 번에 다시 확인하고 재처리하는 API입니다.
+
+운영자가 DLQ 재처리나 장애 복구 상황에서 여러 settlement를 묶어서 다시 처리할 때 사용합니다.
+
+- 인증: 필요
+- 요청 본문:
+
+```json
+{
+  "settlementIds": [
+    "UUID-1",
+    "UUID-2"
+  ]
+}
+```
+
+- 필수값:
+  - `settlementIds`
+
+- 검증 규칙:
+  - 리스트는 비어 있으면 안 됩니다.
+  - 최대 100건까지 처리할 수 있습니다.
+  - 각 값은 UUID 문자열이어야 합니다.
+  - 같은 settlementId가 여러 번 들어와도 내부에서는 한 번만 처리합니다.
+
+- 처리 결과 분류:
+  - `requestedRetryCount`: 다시 지급 요청을 보낸 건수
+  - `manualActionRequiredCount`: 자동 재처리하지 않고 운영자가 직접 확인해야 하는 건수
+  - `skippedCount`: 현재 상태상 다시 처리할 필요가 없어 건너뛴 건수
+  - `notFoundCount`: settlement를 찾지 못한 건수
+
+응답 예시:
+
+```json
+{
+  "success": true,
+  "data": {
+    "requestedRetryCount": 3,
+    "manualActionRequiredCount": 1,
+    "skippedCount": 2,
+    "notFoundCount": 0
+  },
+  "error": null
+}
+```
+
+## 9. 배치와 비동기 처리 흐름
+
+### 9.1 정산 후보 적재
+
+1. payment가 `payment.settlement-candidate-created` 발행
+2. settlement가 이벤트를 받아 `SettlementItem` 생성
+3. 동일 `escrowId`가 이미 존재하면 중복 적재하지 않는다
+
+### 9.2 월 정산 집계
+
+1. `MonthlySettlementAggregationScheduler`가 매월 실행
+2. 기준 시점의 직전 월 범위를 계산
+3. 아직 `settlementId`가 없는 `SettlementItem`을 조회
+4. 판매자 + 연월 기준으로 `Settlement`를 생성 또는 누적
+5. 집계가 끝나면 같은 월의 `PENDING settlement`에 대해 지급 요청 이벤트를 발행
+
+기본 스케줄:
+
+- cron: `0 5 3 1 * *`
+- zone: `Asia/Seoul`
+
+즉, 매월 1일 03:05 KST에 직전 월을 집계합니다.
+
+### 9.3 지급 요청
+
+1. settlement가 `settlement.seller-payout-requested` 발행
+2. payment가 판매자 wallet에 정산금을 적립
+3. payment가 결과를 `payment.seller-payout-result`로 회신
+
+### 9.4 지급 결과 반영
+
+1. settlement가 지급 결과 이벤트를 소비
+2. 성공이면 `COMPLETED`
+3. 실패면 `FAILED`와 `lastFailureReason` 저장
+4. 이미 `COMPLETED`인 건에 대한 중복 성공 이벤트는 no-op 처리
+
+### 9.5 실패 재시도
+
+1. `RetryableFailedPayoutScheduler`가 현재 월의 `FAILED settlement`를 주기적으로 조회
+2. `lastFailureReason`이 `retryable=true`인 경우만 자동 재시도
+3. 상태를 다시 `PENDING`으로 바꾸고 지급 요청 이벤트를 재발행
+
+기본 스케줄:
+
+- cron: `0 */10 * * * *`
+- zone: `Asia/Seoul`
+
+즉, 10분마다 현재 월의 retryable 실패 건을 재시도합니다.
+
+## 10. Kafka 메시지 핵심 필드
+
+### settlement가 소비하는 메시지
+
+| 메시지 | 주요 필드 |
+|---|---|
+| `SettlementCandidateCreatedMessage` | `eventId`, `orderId`, `escrowId`, `sellerMemberId`, `grossAmount`, `releasedAt`, `confirmationType`, `occurredAt` |
+| `SellerSettlementPayoutResultMessage` | `eventId`, `requestEventId`, `settlementId`, `sellerMemberId`, `payoutAmount`, `resultStatus`, `failureReason`, `processedAt` |
+
+### settlement가 발행하는 메시지
+
+| 메시지 | 주요 필드 |
+|---|---|
+| `SellerSettlementPayoutRequestedMessage` | `eventId`, `settlementId`, `sellerMemberId`, `settlementYear`, `settlementMonth`, `payoutAmount`, `requestedAt` |
+
+### 지급 실패 사유 분류
+
+`PayoutFailureReason`은 자동 재시도 가능 여부를 함께 가집니다.
+
+자동 재시도 불가:
+
+- `WALLET_NOT_FOUND`
+  - 판매자 wallet 자체가 없어서 지급할 대상이 없습니다.
+  - 시스템이 다시 시도해도 wallet이 자동으로 생기지 않으므로 운영 확인이 먼저 필요합니다.
+- `INVALID_PAYOUT_AMOUNT`
+  - 지급 금액이 0 이하이거나 정산 금액 자체가 잘못 계산된 경우입니다.
+  - 데이터가 잘못된 상태라 같은 요청을 다시 보내도 정상 처리될 수 없습니다.
+- `DUPLICATE_PAYOUT`
+  - 같은 `settlementId`에 대해 이미 지급이 처리된 상태입니다.
+  - 다시 시도하면 중복 지급이 될 수 있으므로 자동 재시도하면 안 됩니다.
+
+자동 재시도 가능:
+
+- `SETTLEMENT_NOT_FOUND`
+  - 결과를 반영하는 시점에 settlement 조회가 잠시 어긋났거나 처리 순서가 맞지 않은 경우입니다.
+  - 일시적인 타이밍 문제일 수 있어 다시 시도하면 정상 반영될 가능성이 있습니다.
+- `TEMPORARY_DB_ERROR`
+  - DB 연결 문제나 일시적인 잠금/경합처럼 잠깐 후 다시 시도하면 풀릴 수 있는 오류입니다.
+  - 데이터 자체가 잘못된 것이 아니라 순간적인 인프라 문제로 보는 케이스입니다.
+- `KAFKA_PUBLISH_ERROR`
+  - 이벤트 발행 시점의 Kafka 연결 문제나 브로커 일시 장애 같은 경우입니다.
+  - 메시지 브로커 상태가 회복되면 다시 발행할 수 있으므로 재시도 대상입니다.
+- `INTERNAL_ERROR`
+  - 특정 코드로 분류되지 않은 일반 런타임 예외입니다.
+  - 원인이 일시적일 가능성을 열어두고 우선 재시도 가능한 오류로 분류합니다.
+
+## 11. 운영 시 참고사항
+
+- settlement는 사용자-facing 결제 API가 아니라 운영/배치 중심 서비스입니다.
+- 실질적인 핵심 흐름은 HTTP보다 Kafka와 scheduler입니다.
+- 월 정산 집계는 `SettlementItem`이 이미 `settlementId`를 가지면 다시 집계하지 않으므로 재실행에 대해 어느 정도 멱등성을 가집니다.
+- 정산 후보 적재는 `escrowId` unique 기준으로 중복 적재를 방지합니다.
+- 지급 결과 성공 이벤트가 중복으로 들어와도 이미 `COMPLETED`면 no-op 처리합니다.
+- 재시도 기준은 `Settlement.lastFailureReason`을 `PayoutFailureReason` enum으로 해석할 수 있는지에 따라 결정됩니다.
+- Docker 실행 시 기본 프로필은 `prod`입니다.
+- AWS 운영에서는 배치 중복 실행, Kafka 재처리, 운영자 수동 재시도 경로를 함께 고려해야 합니다.
+
+## 12. 현재 구현상 메모
+
+- 정산 스케줄링 시간은 필요시 변경 가능합니다.
+- 정산 집계는 현재 판매자 + 연월 기준 누적 방식입니다.
+- 코드 주석 기준으로 월 집계 쪽에는 동시 실행 시 중복 집계 가능성에 대한 TODO가 남아 있습니다.
+- 실패 재시도 스케줄러는 현재 월 기준만 대상으로 합니다.
+- OpenAPI 설명상 운영 검증은 `ADMIN` 만 사용 가능한 것을 전제로 합니다.
