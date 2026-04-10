@@ -77,6 +77,18 @@ services:
       timeout: 5s
       retries: 10
 
+  elasticsearch:
+    build:
+      context: .
+      dockerfile: product/docker/elasticsearch/Dockerfile
+    container_name: goods-mall-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+
   discovery:
     build:
       context: .
