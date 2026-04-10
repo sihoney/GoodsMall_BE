@@ -44,7 +44,7 @@ public class ProductUpdateService implements ProductUpdateUseCase {
 
     @Override
     public ProductResponse increaseStock(String sellerId, String productId, Integer quantity) {
-        Product product = findProduct(productId);
+        Product product = findProductWithLock(productId);
         validateSellerAuthorization(product, sellerId);
         product.increaseStock(quantity);
         Product saved = saveProduct(product);
@@ -53,7 +53,7 @@ public class ProductUpdateService implements ProductUpdateUseCase {
 
     @Override
     public ProductResponse decreaseStock(String sellerId, String productId, Integer quantity) {
-        Product product = findProduct(productId);
+        Product product = findProductWithLock(productId);
         validateSellerAuthorization(product, sellerId);
         product.decreaseStock(quantity);
         Product saved = saveProduct(product);
@@ -86,7 +86,7 @@ public class ProductUpdateService implements ProductUpdateUseCase {
     }
 
     private ProductAvailabilityResponse validateAndDeductStock(ProductCheckRequest request) {
-        Product product = productRepository.findById(request.productId())
+        Product product = productRepository.findByIdWithLock(request.productId())
                 .orElse(null);
 
         if (product == null) {
@@ -108,6 +108,11 @@ public class ProductUpdateService implements ProductUpdateUseCase {
 
     private Product findProduct(String productId) {
         return productRepository.findById(UUID.fromString(productId))
+                .orElseThrow(ProductNotFoundException::new);
+    }
+
+    private Product findProductWithLock(String productId) {
+        return productRepository.findByIdWithLock(UUID.fromString(productId))
                 .orElseThrow(ProductNotFoundException::new);
     }
 
