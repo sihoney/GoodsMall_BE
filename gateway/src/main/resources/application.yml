@@ -1,4 +1,4 @@
-server:
+﻿server:
   port: 8080
 
 spring:
@@ -11,9 +11,9 @@ spring:
       server:
         webflux:
           globalcors:
-            add-to-simple-url-handler-mapping:   true # CORS 설정을 글로벌 URL 핸들러 매핑에 추가
-            cors-configurations: # CORS 설정 정의
-              '[/**]':
+            add-to-simple-url-handler-mapping: true
+            cors-configurations: #
+              "[/**]":
                 allowedOrigins:
                   - http://localhost:5173
                 allowedMethods:
@@ -24,7 +24,7 @@ spring:
                   - DELETE
                   - OPTIONS
                 allowedHeaders:
-                  - '*'
+                  - "*"
                 allowCredentials: true
           routes:
             - id: member-auth-service
@@ -172,6 +172,13 @@ jwt:
 gateway:
   auth:
     jwt-validation-enabled: ${GATEWAY_JWT_VALIDATION_ENABLED:true}
+    public-paths:
+      - /api/auth
+      - /api/auth/login
+      - /api/auth/refresh
+      - /api/auth/profile-images/presign
+      - /swagger/**
+      - /swagger-ui.html
 
 logging:
   level:
