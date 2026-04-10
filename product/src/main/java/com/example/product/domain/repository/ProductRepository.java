@@ -30,6 +30,8 @@ public interface ProductRepository {
 
     Optional<Product> findById(UUID productId);
 
+    Optional<Product> findByIdWithLock(UUID productId);
+
     List<Product> findAllByProductIdIn(List<UUID> productIds);
 
     Optional<ProductImage> findThumbnailImageByProductId(UUID productId);
