@@ -1,7 +1,6 @@
 package com.example.member.application.service;
 
 import com.example.member.application.usecase.MemberReportUsecase;
-import com.example.member.common.exception.AdminAccessDeniedException;
 import com.example.member.common.exception.DuplicateMemberReportException;
 import com.example.member.common.exception.MemberNotFoundException;
 import com.example.member.common.exception.MemberReportNotFoundException;
@@ -14,7 +13,7 @@ import com.example.member.presentation.dto.CreateMemberRestrictionRequest;
 import com.example.member.presentation.dto.MemberReportResponse;
 import com.example.member.presentation.dto.ReviewMemberReportRequest;
 import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
-import com.todaylunch.common.security.auth.enumtype.MemberRole;
+import com.todaylunch.common.security.auth.util.RoleGuard;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -74,7 +73,7 @@ public class MemberReportService implements MemberReportUsecase {
 
     @Override
     public List<MemberReportResponse> getReportsForMember(AuthenticatedMember authenticatedMember, UUID memberId) {
-        validateAdmin(authenticatedMember);
+        RoleGuard.requireAdmin(authenticatedMember);
         memberRepository.findById(memberId).orElseThrow(MemberNotFoundException::new);
         return memberReportRepository.findAllByReportedMemberId(memberId).stream()
                 .map(MemberReportResponse::from)
@@ -83,7 +82,7 @@ public class MemberReportService implements MemberReportUsecase {
 
     @Override
     public List<MemberReportResponse> getAllReports(AuthenticatedMember authenticatedMember) {
-        validateAdmin(authenticatedMember);
+        RoleGuard.requireAdmin(authenticatedMember);
         return memberReportRepository.findAll().stream()
                 .map(MemberReportResponse::from)
                 .toList();
@@ -91,7 +90,7 @@ public class MemberReportService implements MemberReportUsecase {
 
     @Override
     public MemberReportResponse getReportDetail(AuthenticatedMember authenticatedMember, UUID reportId) {
-        validateAdmin(authenticatedMember);
+        RoleGuard.requireAdmin(authenticatedMember);
         return MemberReportResponse.from(
                 memberReportRepository.findById(reportId)
                         .orElseThrow(MemberReportNotFoundException::new)
@@ -105,7 +104,7 @@ public class MemberReportService implements MemberReportUsecase {
             UUID reportId,
             ReviewMemberReportRequest request
     ) {
-        validateAdmin(authenticatedMember);
+        RoleGuard.requireAdmin(authenticatedMember);
         validateReviewRequest(request);
 
         MemberReport memberReport = memberReportRepository.findById(reportId)
@@ -138,7 +137,7 @@ public class MemberReportService implements MemberReportUsecase {
             UUID reportId,
             ReviewMemberReportRequest request
     ) {
-        validateAdmin(authenticatedMember);
+        RoleGuard.requireAdmin(authenticatedMember);
         validateReviewRequest(request);
 
         MemberReport memberReport = memberReportRepository.findById(reportId)
@@ -150,12 +149,6 @@ public class MemberReportService implements MemberReportUsecase {
     private void validateReporter(AuthenticatedMember authenticatedMember) {
         if (authenticatedMember == null || authenticatedMember.memberId() == null) {
             throw new IllegalArgumentException("Authenticated member is required.");
-        }
-    }
-
-    private void validateAdmin(AuthenticatedMember authenticatedMember) {
-        if (authenticatedMember == null || authenticatedMember.role() != MemberRole.ADMIN) {
-            throw new AdminAccessDeniedException();
         }
     }
 

@@ -38,6 +38,7 @@ public class MemberService implements MemberUsecase {
         MemberCreateCommand command = MemberCreateCommand.from(request);
 
         String email = normalizeRequired(command.email(), "email");
+        // TODO: 이메일 인증 구현 후 회원 생성 전에 인증 완료 여부를 검증한다.
         if (memberRepository.existsByEmail(email)) {
             throw new DuplicateMemberEmailException();
         }

@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/members/profile-images")
+@RequestMapping("/api/auth/profile-images")
 @RequiredArgsConstructor
 @Tag(name = "회원 프로필 이미지", description = "회원 프로필 이미지 API")
 public class ProfileImageController {

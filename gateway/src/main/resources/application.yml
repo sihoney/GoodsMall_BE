@@ -1,4 +1,4 @@
-server:
+﻿server:
   port: 8080
 
 spring:
@@ -11,9 +11,9 @@ spring:
       server:
         webflux:
           globalcors:
-            add-to-simple-url-handler-mapping:   true # CORS 설정을 글로벌 URL 핸들러 매핑에 추가
-            cors-configurations: # CORS 설정 정의
-              '[/**]':
+            add-to-simple-url-handler-mapping: true
+            cors-configurations: #
+              "[/**]":
                 allowedOrigins:
                   - http://localhost:5173
                 allowedMethods:
@@ -24,7 +24,7 @@ spring:
                   - DELETE
                   - OPTIONS
                 allowedHeaders:
-                  - '*'
+                  - "*"
                 allowCredentials: true
           routes:
             - id: member-auth-service
@@ -172,6 +172,60 @@ jwt:
 gateway:
   auth:
     jwt-validation-enabled: ${GATEWAY_JWT_VALIDATION_ENABLED:true}
+    public-paths:
+      - /api/auth
+      - /api/auth/login
+      - /api/auth/refresh
+      - /api/auth/profile-images/presign
+      - /swagger/**
+      - /swagger-ui.html
+    public-rules:
+      - methods: [GET]
+        pattern: /api/category/**
+      - methods: [GET]
+        pattern: /api/categories/**
+      - methods: [GET]
+        pattern: /api/product/**
+    role-rules:
+      - methods: [GET, PUT]
+        pattern: /api/members/me
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [POST]
+        pattern: /api/auth/logout/**
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [POST, GET]
+        pattern: /api/member-reports/**
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [GET, PATCH]
+        pattern: /api/notifications/**
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [GET, POST, PUT, DELETE]
+        pattern: /api/carts/**
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [GET, POST, DELETE]
+        pattern: /api/wishes/**
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [GET, POST]
+        pattern: /api/orders/**
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [GET, POST]
+        pattern: /api/payments/**
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [POST, GET, PUT]
+        pattern: /api/sellers/**
+        allowed-roles: [SELLER, ADMIN]
+      - methods: [POST, PUT, PATCH, DELETE]
+        pattern: /api/product/**
+        allowed-roles: [SELLER, ADMIN]
+      - methods: [POST, GET]
+        pattern: /api/settlements/**
+        allowed-roles: [SELLER, ADMIN]
+      - methods: [GET, PATCH]
+        pattern: /api/admin/member-reports/**
+        allowed-roles: [ADMIN]
+      - methods: [POST, PATCH, GET]
+        pattern: /api/admin/member-restrictions/**
+        allowed-roles: [ADMIN]
 
 logging:
   level:
