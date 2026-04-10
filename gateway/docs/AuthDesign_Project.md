@@ -109,7 +109,88 @@ public ResponseEntity<ApiResponse<MemberResponse>> getCurrentMember(
 | 소유자 기반 인가      | 알림은 본인 것만 읽음 처리 가능              |
 | 도메인 정책 기반 인가 | 로그인 금지 제재가 있으면 로그인/재발급 차단 |
 
-### 7.2. 현재 구현 예시
+### 7.2. 게이트웨이 권한 매핑 설계안
+
+- 게이트웨이는 JWT 검증 직후 추출한 `role` claim 으로 1차 접근 제어를 수행한다.
+- 판정 기준은 `HTTP method + path pattern -> 허용 role 목록` 규칙이다.
+- 이 단계는 잘못된 진입을 빠르게 차단하는 용도이며, 도메인 소유권/상태 검증은 서비스에서 계속 수행한다.
+- 게이트웨이가 최종적으로 downstream 으로 전달하는 `X-Member-Role` 은 서비스 인가를 위한 전달값이다.
+
+### 7.2.1. 권장 규칙 구조
+
+```yaml
+gateway:
+  auth:
+    role-rules:
+      - methods: [GET]
+        pattern: /api/admin/**
+        allowedRoles: [ADMIN]
+      - methods: [POST, PUT, PATCH, DELETE]
+        pattern: /api/sellers/**
+        allowedRoles: [SELLER, ADMIN]
+      - methods: [GET]
+        pattern: /api/members/me
+        allowedRoles: [USER, SELLER, ADMIN]
+```
+
+### 7.2.2. 처리 순서
+
+1. 공개 경로 여부 확인
+2. JWT 서명/issuer/만료/tokenType 검증
+3. JWT claim 에서 `memberId`, `role` 추출
+4. 요청의 `method + path` 와 권한 규칙 매칭
+5. 현재 `role` 이 허용 목록에 없으면 `403 Forbidden`
+6. 통과 시 `X-Member-Id`, `X-Member-Role` 헤더 주입 후 downstream 전달
+
+### 7.2.3. 기대 효과
+
+- 관리자 전용 API 를 게이트웨이에서 조기 차단할 수 있다.
+- 서비스마다 반복되는 1차 role 분기 코드를 줄일 수 있다.
+- 잘못된 role 의 대량 요청이 도메인 서비스까지 도달하는 비용을 줄인다.
+
+### 7.3. common-security `RoleGuard` 공통 모듈 설계안
+
+- `AuthenticatedMember` 를 인자로 받아 역할/소유권을 검증하는 정적 유틸리티로 둔다.
+- 서비스는 JWT 나 헤더를 직접 해석하지 않고 `RoleGuard` 만 호출한다.
+- 게이트웨이의 1차 차단과 별개로, 서비스는 반드시 `RoleGuard` 또는 동등한 검증으로 최종 인가를 수행한다.
+
+### 7.3.1. 권장 제공 메서드
+
+- `requireAuthenticated(authenticatedMember)`
+- `requireAdmin(authenticatedMember)`
+- `requireSellerOrAdmin(authenticatedMember)`
+- `requireOwnerOrAdmin(authenticatedMember, resourceOwnerId)`
+- `requireAnyRole(authenticatedMember, allowedRoles...)`
+
+### 7.3.2. 사용 예시
+
+```java
+public MemberRestrictionResponse createRestriction(
+    AuthenticatedMember authenticatedMember,
+    CreateMemberRestrictionRequest request
+) {
+    RoleGuard.requireAdmin(authenticatedMember);
+    return memberRestrictionAppender.create(request);
+}
+```
+
+```java
+public NotificationResponse getNotification(
+    AuthenticatedMember authenticatedMember,
+    UUID notificationOwnerId
+) {
+    RoleGuard.requireOwnerOrAdmin(authenticatedMember, notificationOwnerId);
+    return notificationReader.read(notificationOwnerId);
+}
+```
+
+### 7.3.3. 예외 처리 원칙
+
+- 권한 부족은 공통 `AuthorizationDeniedException` 또는 서비스별 확장 예외로 `403 Forbidden` 처리
+- 인증 정보 자체가 없거나 해석 실패면 `401 Unauthorized` 또는 `InvalidTokenException`
+- 자원 소유권, 상태 제약 등은 서비스 도메인 예외로 분리 가능
+
+### 7.4. 현재 구현 예시
 
 - `MemberRestrictionService.validateAdmin()` 에서 `ADMIN` 여부 검증
 - `MemberReportService.validateAdmin()` 에서 관리자 API 접근 제어
@@ -134,13 +215,6 @@ public ResponseEntity<ApiResponse<MemberResponse>> getCurrentMember(
 - 서비스 내부에서 헤더 기반 사용자 해석 실패 시 `InvalidTokenException`
 - 역할 부족, 리소스 접근 불가 등은 도메인 예외로 처리
 
-## 9. 프로젝트 전반 관점의 장점
-
-- 인증 검증을 게이트웨이에 집중시켜 서비스별 중복 구현을 줄인다.
-- 서비스는 JWT 파싱보다 비즈니스 인가에 집중할 수 있다.
-- 공통 보안 모듈을 통해 컨트롤러 사용성이 단순해진다.
-- Redis 기반 Refresh Token 관리로 토큰 재발급 흐름을 제어할 수 있다.
-
 ## 10. 현재 한계와 개선 포인트
 
 - Access Token 블랙리스트 미구현. 🟡
@@ -149,15 +223,7 @@ public ResponseEntity<ApiResponse<MemberResponse>> getCurrentMember(
 - 서비스 간 내부 호출에 대한 별도 서비스 인증 체계는 아직 없음. 🟡
 - 세밀한 정책 기반 인가(RBAC/ABAC) 보다는 서비스 코드 내 조건 검증 중심 구조다.
 
-## 11. 설계 요약
-
-- 로그인과 토큰 발급은 `member-service` 가 담당한다.
-- 요청 인증은 `gateway-service` 가 담당한다.
-- 인증 결과를 각 서비스는 `common-security` 로 해석한다.
-- 실제 권한 판단은 각 도메인 서비스가 수행한다.
-- 즉, 이 프로젝트의 인증/인가 구조는 `토큰 발급`, `게이트웨이 검증`, `헤더 기반 사용자 주입`, `도메인 인가` 의 4단계로 구성된다.
-
-## 12. 인증 흐름
+## 11. 인증 흐름
 
 ### [1] 로그인
 
@@ -211,7 +277,3 @@ Domain Service
 ```
 Access Token 블랙리스트와 즉시 무효화는 아직 구현되어 있지 않다. 🟡
 ```
-
-## 13. 관련 문서
-
-- 게이트웨이 전용 인증 설계: [AuthDesign.md](/c:/my_project/beadv5_2_TodayLunchMenu_BE/gateway/docs/AuthDesign.md)
