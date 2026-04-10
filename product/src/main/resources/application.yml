@@ -3,10 +3,10 @@ spring:
     name: product-service
   config:
     import:
-      - "configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
+      - "optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
   cloud:
     config:
-      fail-fast: true
+      fail-fast: false
       retry:
         initial-interval: 1000
         max-attempts: 20
@@ -17,8 +17,8 @@ spring:
   datasource:
     driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://localhost:5432/goods_mall?currentSchema=product
-    username: goods
-    password: dhsmfwjatlaapsb
+    username: postgres
+    password: post1234
 
   jpa:
     hibernate:
@@ -33,6 +33,10 @@ server:
 
 eureka:
   client:
+    ## 이 서비스를 Eureka에 등록하지 않음
+    register-with-eureka: false
+    ## Eureka에 다른 서비스 목록을 가지고 오지 않음
+    fetch-registry: false
     service-url:
       defaultZone: ${EUREKA_DEFAULT_ZONE:http://localhost:8761/eureka}
   instance:
@@ -49,7 +53,28 @@ cloud:
     s3:
       bucket: ${AWS_S3_BUCKET:test-bucket}
 
+  # --- Elasticsearch 설정 (로컬 기본값) ---
+  elasticsearch:
+    uris: http://localhost:9200
+
+  # --- Kafka 설정 (로컬 기본값) ---
+  kafka:
+    bootstrap-servers: localhost:29092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
 logging:
   level:
     com.example.product: DEBUG
     org.hibernate.SQL: DEBUG
+
+# --- Product 서비스 설정 ---
+product:
+  kafka:
+    topic:
+      product-changed: product.changed
+    consumer-groups:
+      product-es-sync: product-es-sync-group
+  elasticsearch:
+    init-index: false
