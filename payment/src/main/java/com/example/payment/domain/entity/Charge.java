@@ -41,9 +41,8 @@ public class Charge {
     @Column(name = "approved_amount")
     private Long approvedAmount;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "pg_provider", nullable = false)
-    private PgProvider pgProvider;
+    @Column(name = "toss_bank_code", length = 30)
+    private String tossBankCode;
 
     @Column(name = "pg_order_id", nullable = false, unique = true, length = 100)
     private String pgOrderId;
@@ -77,7 +76,7 @@ public class Charge {
             UUID walletId,
             Long requestedAmount,
             Long approvedAmount,
-            PgProvider pgProvider,
+            String tossBankCode,
             String pgOrderId,
             String pgPaymentKey,
             ChargeStatus chargeStatus,
@@ -91,7 +90,7 @@ public class Charge {
         this.walletId = walletId;
         this.requestedAmount = Objects.requireNonNull(requestedAmount);
         this.approvedAmount = approvedAmount;
-        this.pgProvider = Objects.requireNonNull(pgProvider);
+        this.tossBankCode = tossBankCode;
         this.pgOrderId = Objects.requireNonNull(pgOrderId);
         this.pgPaymentKey = pgPaymentKey;
         this.chargeStatus = Objects.requireNonNull(chargeStatus);
@@ -116,7 +115,7 @@ public class Charge {
                 walletId,
                 requestedAmount,
                 null,
-                pgProvider,
+                null,
                 pgOrderId,
                 null,
                 // 생성을 pending으로 고정
@@ -126,6 +125,37 @@ public class Charge {
                 null,
                 null
         );
+    }
+
+    public static Charge create(
+            UUID chargeId,
+            UUID memberId,
+            UUID walletId,
+            Long requestedAmount,
+            String tossBankCode,
+            String pgOrderId,
+            LocalDateTime requestedAt
+    ) {
+        return new Charge(
+                chargeId,
+                memberId,
+                walletId,
+                requestedAmount,
+                null,
+                tossBankCode,
+                pgOrderId,
+                null,
+                ChargeStatus.PENDING,
+                requestedAt,
+                null,
+                null,
+                null
+        );
+    }
+
+    @Deprecated
+    public PgProvider getPgProvider() {
+        return PgProvider.TOSS;
     }
 
     /**
