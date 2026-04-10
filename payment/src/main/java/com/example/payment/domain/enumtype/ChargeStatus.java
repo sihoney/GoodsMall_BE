@@ -2,7 +2,8 @@ package com.example.payment.domain.enumtype;
 
 public enum ChargeStatus {
     PENDING,
-    SUCCESS,
-    FAILED,
+    REDIRECT_FAILED,
+    CONFIRM_SUCCESS,
+    CONFIRM_FAILED,
     CANCELLED
 }

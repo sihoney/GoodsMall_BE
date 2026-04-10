@@ -138,7 +138,15 @@ public class Charge {
         this.approvedAt = Objects.requireNonNull(approvedAt);
         this.failedAt = null;
         this.failureReason = null;
-        this.chargeStatus = ChargeStatus.SUCCESS;
+        this.chargeStatus = ChargeStatus.CONFIRM_SUCCESS;
+    }
+
+    // 충전 실패 리다이렉트 사유를 기록하고 charge를 REDIRECT_FAILED 상태로 전이한다.
+    public void failAtRedirect(String failureReason, LocalDateTime failedAt) {
+        validatePendingStatus();
+        this.failedAt = Objects.requireNonNull(failedAt);
+        this.failureReason = Objects.requireNonNull(failureReason);
+        this.chargeStatus = ChargeStatus.REDIRECT_FAILED;
     }
 
     /**
@@ -148,7 +156,7 @@ public class Charge {
         validatePendingStatus();
         this.failedAt = Objects.requireNonNull(failedAt);
         this.failureReason = Objects.requireNonNull(failureReason);
-        this.chargeStatus = ChargeStatus.FAILED;
+        this.chargeStatus = ChargeStatus.CONFIRM_FAILED;
     }
 
     /**
@@ -164,9 +172,17 @@ public class Charge {
         return chargeStatus == ChargeStatus.PENDING;
     }
 
-    // 현재 충전 상태가 승인 완룡인지 확인한다.
+
+    // 현재 충전 상태가 리다이렉트 실패인지 확인한다.
+    public boolean isRedirectFailed() {
+        return chargeStatus == ChargeStatus.REDIRECT_FAILED;
+    }
+
+
+    // 충전 상태가 승인 대기 또는 리다이렉트 실패인지 확인한다.
+    // 현재 충전 상태가 승인 완료인지 확인한다.
     public boolean isSuccess() {
-        return chargeStatus == ChargeStatus.SUCCESS;
+        return chargeStatus == ChargeStatus.CONFIRM_SUCCESS;
     }
 
     /**
@@ -180,4 +196,5 @@ public class Charge {
             throw new IllegalStateException("Only pending charges can be changed.");
         }
     }
+
 }

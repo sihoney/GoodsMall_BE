@@ -26,6 +26,11 @@ public class ChargeRepositoryImpl implements ChargeRepository {
     }
 
     @Override
+    public Optional<Charge> findByPgOrderId(String pgOrderId) {
+        return chargeJpaRepository.findByPgOrderId(pgOrderId);
+    }
+
+    @Override
     public Optional<Charge> findByChargeIdAndMemberId(UUID chargeId, UUID memberId) {
         return chargeJpaRepository.findByChargeIdAndMemberId(chargeId, memberId);
     }
