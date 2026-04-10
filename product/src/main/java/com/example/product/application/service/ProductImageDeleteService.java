@@ -8,7 +8,7 @@ import com.example.product.domain.entity.Product;
 import com.example.product.domain.entity.ProductImage;
 import com.example.product.domain.repository.ProductImageRepository;
 import com.example.product.domain.repository.ProductRepository;
-import com.example.product.domain.service.ImageUploadService;
+import com.example.product.domain.repository.FileStorageRepository;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +24,7 @@ public class ProductImageDeleteService implements ProductImageDeleteUseCase {
 
     private final ProductRepository productRepository;
     private final ProductImageRepository productImageRepository;
-    private final ImageUploadService imageUploadService;
+    private final FileStorageRepository fileStorageRepository;
 
     @Override
     public void deleteImage(UUID productId, UUID imageId) {
@@ -39,7 +39,7 @@ public class ProductImageDeleteService implements ProductImageDeleteUseCase {
         boolean wasThumbnail = image.isThumbnail();
 
         try {
-            imageUploadService.deleteImage(image.getS3Key());
+            fileStorageRepository.deleteImage(image.getS3Key());
             log.info("S3 image deleted: s3Key={}", image.getS3Key());
         } catch (Exception e) {
             log.error("Failed to delete S3 image: s3Key={}", image.getS3Key(), e);

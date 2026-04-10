@@ -62,6 +62,11 @@ public class ProductRepositoryImpl implements ProductRepository {
     }
 
     @Override
+    public Optional<Product> findByIdWithLock(UUID productId) {
+        return jpaRepository.findByIdWithLock(productId);
+    }
+
+    @Override
     public List<Product> findAllByProductIdIn(List<UUID> productIds) {
         return jpaRepository.findAllByProductIdIn(productIds);
     }

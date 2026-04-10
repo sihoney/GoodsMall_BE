@@ -124,14 +124,21 @@ public class Product {
 
     public void updateStock(Integer newStock) {
         this.stockQuantity = newStock;
+        validateSoldOut(newStock);
+        validateActive(newStock);
+        this.updatedAt = LocalDateTime.now();
+    }
 
-        if (newStock == 0 && this.status == ProductStatus.ACTIVE) {
-            this.status = ProductStatus.SOLD_OUT;
-        }
+    private void validateActive(Integer newStock) {
         if (newStock > 0 && this.status == ProductStatus.SOLD_OUT) {
             this.status = ProductStatus.ACTIVE;
         }
-        this.updatedAt = LocalDateTime.now();
+    }
+
+    private void validateSoldOut(Integer newStock) {
+        if (newStock == 0 && this.status == ProductStatus.ACTIVE) {
+            this.status = ProductStatus.SOLD_OUT;
+        }
     }
 
     public void increaseStock(Integer quantity) {
@@ -140,12 +147,14 @@ public class Product {
     }
 
     public void decreaseStock(Integer quantity) {
+        validateEnoughStock(quantity);
+        updateStock(this.stockQuantity - quantity);
+    }
+
+    private void validateEnoughStock(Integer quantity) {
         if (this.stockQuantity < quantity) {
             throw new IllegalArgumentException("재고가 부족합니다");
         }
-
-        int newStock = this.stockQuantity - quantity;
-        updateStock(newStock);
     }
 
     public void updateStatus(ProductStatus newStatus) {

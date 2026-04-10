@@ -1,7 +1,5 @@
 package com.example.product.application.usecase;
 
-import com.example.product.presentation.dto.request.ProductCheckRequest;
-import com.example.product.presentation.dto.response.ProductAvailabilityResponse;
 import com.example.product.presentation.dto.response.ProductResponse;
 import java.math.BigDecimal;
 import java.util.List;
@@ -24,6 +22,5 @@ public interface ProductSearchUseCase {
     Page<ProductResponse> getAllProducts(Pageable pageable);
     Page<ProductResponse> findBySellerId(String sellerId, Pageable pageable);
     ProductResponse findById(String productId);
-    List<ProductAvailabilityResponse> checkAvailability(List<ProductCheckRequest> productRequests);
     List<ProductResponse> findByProductIds(List<UUID> productIds);
 }
