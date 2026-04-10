@@ -1,4 +1,4 @@
-﻿package com.todaylunch.gateway.filter;
+package com.todaylunch.gateway.filter;
 
 import com.todaylunch.gateway.security.GatewayAuthProperties;
 import com.todaylunch.gateway.security.GatewayJwtValidator;
@@ -7,6 +7,7 @@ import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
@@ -30,16 +31,18 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         ServerWebExchange exchange,
         GatewayFilterChain chain
     ) {
-        if ("OPTIONS".equalsIgnoreCase(exchange.getRequest().getMethod().name())) {
+        HttpMethod requestMethod = exchange.getRequest().getMethod();
+        if (requestMethod != null && HttpMethod.OPTIONS.equals(requestMethod)) {
             return chain.filter(exchange);
         }
 
         String path = exchange.getRequest().getURI().getPath();
+        String method = requestMethod == null ? null : requestMethod.name();
         if (!path.startsWith("/api/")) {
             return chain.filter(exchange);
         }
 
-        if (isPublic(path)) {
+        if (isPublic(method, path)) {
             return chain.filter(exchange);
         }
 
@@ -47,7 +50,9 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             return chain.filter(exchange);
         }
 
-        String authorizationHeader = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+        String authorizationHeader = exchange.getRequest()
+            .getHeaders()
+            .getFirst(HttpHeaders.AUTHORIZATION);
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
             return unauthorized(exchange);
         }
@@ -55,6 +60,10 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         try {
             String token = authorizationHeader.substring(7);
             GatewayJwtValidator.AuthenticatedPrincipal principal = gatewayJwtValidator.validateAccessToken(token);
+            if (!isAllowed(method, path, principal.role())) {
+                return forbidden(exchange);
+            }
+
             ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
                     .headers(headers -> {
                         headers.remove(MEMBER_ID_HEADER);
@@ -74,13 +83,54 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         return -100;
     }
 
-    private boolean isPublic(String path) {
-        return gatewayAuthProperties.publicPaths().stream()
+    private boolean isPublic(String method, String path) {
+        boolean matchedPublicPath = gatewayAuthProperties.publicPaths().stream()
                 .anyMatch(pattern -> antPathMatcher.match(pattern, path));
+        
+        if (matchedPublicPath) {
+            return true;
+        }
+
+        return gatewayAuthProperties.publicRules().stream()
+                .anyMatch(rule -> matchesMethod(rule.methods(), method) && antPathMatcher.match(rule.pattern(), path));
     }
 
+    private boolean isAllowed(String method, String path, String role) {
+        var matchedRules = gatewayAuthProperties.roleRules().stream()
+                .filter(rule -> matchesMethod(rule.methods(), method) && antPathMatcher.match(rule.pattern(), path))
+                .toList();
+
+        if (matchedRules.isEmpty()) {
+            return false; // 명시된 규칙이 없는 경우 접근 금지 (명시적 거부 정책, rule 미매칭 보호 API의 경우)
+        }
+
+        return matchedRules.stream()
+                .anyMatch(rule -> rule.allowedRoles().stream()
+                        .anyMatch(allowedRole -> allowedRole.equalsIgnoreCase(role)));
+    }
+
+    private boolean matchesMethod(Iterable<String> methods, String requestMethod) {
+        if (requestMethod == null) {
+            return false;
+        }
+
+        for (String method : methods) {
+            if (requestMethod.equalsIgnoreCase(method)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // 401 Unauthorized
     private Mono<Void> unauthorized(ServerWebExchange exchange) {
         exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+        return exchange.getResponse().setComplete();
+    }
+
+    // 403 Forbidden
+    private Mono<Void> forbidden(ServerWebExchange exchange) {
+        exchange.getResponse().setStatusCode(HttpStatus.FORBIDDEN);
         return exchange.getResponse().setComplete();
     }
 }
