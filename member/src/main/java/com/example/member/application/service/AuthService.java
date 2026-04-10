@@ -43,6 +43,7 @@ public class AuthService implements AuthUsecase {
             throw new InvalidLoginException();
         }
 
+        // TODO: 이메일 인증 구현 후 미인증 계정의 로그인 차단 정책을 반영한다.
         validateLoginRestriction(member);
 
         String accessToken = jwtTokenProvider.createAccessToken(member);

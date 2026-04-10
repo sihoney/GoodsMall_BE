@@ -7,7 +7,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.example.member.common.exception.AdminAccessDeniedException;
 import com.example.member.common.exception.DuplicateActiveRestrictionException;
 import com.example.member.domain.entity.Member;
 import com.example.member.domain.entity.MemberRestriction;
@@ -19,6 +18,7 @@ import com.example.member.presentation.dto.CreateMemberRestrictionRequest;
 import com.example.member.presentation.dto.MemberRestrictionResponse;
 import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
 import com.todaylunch.common.security.auth.enumtype.MemberRole;
+import com.todaylunch.common.security.exception.AuthorizationDeniedException;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -99,7 +99,7 @@ class MemberRestrictionServiceTest {
                 24
         );
 
-        assertThrows(AdminAccessDeniedException.class,
+        assertThrows(AuthorizationDeniedException.class,
                 () -> memberRestrictionService.createRestriction(user, request));
     }
 

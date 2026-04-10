@@ -1,6 +1,5 @@
 package com.example.member.presentation.exception;
 
-import com.example.member.common.exception.AdminAccessDeniedException;
 import com.example.member.common.exception.DuplicateActiveRestrictionException;
 import com.example.member.common.exception.DuplicateMemberReportException;
 import com.example.member.common.exception.DuplicateMemberEmailException;
@@ -14,6 +13,7 @@ import com.example.member.common.exception.SelfReportNotAllowedException;
 import com.example.member.common.exception.SellerAlreadyRegisteredException;
 import com.example.member.common.exception.SellerNotFoundException;
 import com.example.member.presentation.dto.ApiResponse;
+import com.todaylunch.common.security.exception.AuthorizationDeniedException;
 import com.todaylunch.common.security.exception.InvalidTokenException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -62,10 +62,11 @@ public class MemberExceptionHandler {
                 .body(ApiResponse.fail("MEMBER_RESTRICTED", exception.getMessage()));
     }
 
-    @ExceptionHandler(AdminAccessDeniedException.class)
-    public ResponseEntity<ApiResponse<Object>> handleAdminAccessDenied(AdminAccessDeniedException exception) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(ApiResponse.fail("ADMIN_ACCESS_DENIED", exception.getMessage()));
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleAuthorizationDenied(AuthorizationDeniedException exception) {
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.fail("ACCESS_DENIED", exception.getMessage()));
     }
 
     @ExceptionHandler(DuplicateActiveRestrictionException.class)
