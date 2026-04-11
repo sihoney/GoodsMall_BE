@@ -22,7 +22,7 @@
 
 ### 성공
 1. 결제 성공시 백엔드에서 프론트에서 전달한 url에 있는 쿼리스트링을 이용하여 결제 확인을 위해 toss에 요청을 보냄
-2. 결제 확인이 성공하면 Toss 응답을 DB에 저장
+2. 결제 확인이 성공하면 Toss 응답의 `method`가 `계좌이체`인지 확인하고, `transfer.bankCode`를 `Charge.tossBankCode`에 저장
 3. 프론트에게 응답을 보냄
 
 ### 실패
@@ -33,13 +33,35 @@
 ### 예치금 충전 API 응답
 - 필수값:
     - `amount`: 양수
-  
+
+- 요청 예시:
+```json
+{
+  "amount": 5000
+}
+```
+
 - 응답 데이터 필드:
     - `chargeId`
     - `walletId`
     - `pgOrderId`
     - `amount`
     - `chargeStatus`
+
+- 응답 예시:
+```json
+{
+  "success": true,
+  "data": {
+    "chargeId": "8f8f0ee4-6ef4-47e5-b4aa-c42fd34a8f55",
+    "walletId": "f91dfd08-b5e8-4da0-a8ea-1f41c41fd764",
+    "pgOrderId": "CHARGE-8f8f0ee4-6ef4-47e5-b4aa-c42fd34a8f55",
+    "amount": 5000,
+    "chargeStatus": "PENDING"
+  },
+  "error": null
+}
+```
 ### 토스 결제 확인 API 응답
 - 필수값:
     - `chargeId`
@@ -54,10 +76,17 @@
     - `walletBalance`
     - `approvedAt`
 
+- 참고:
+    - `tossBankCode`는 생성 API에서 받지 않는다.
+    - `POST /api/payments/confirm` 처리 중 Toss `Payment` 응답의 `method == "계좌이체"`일 때만 `transfer.bankCode`를 저장한다.
+    - 이후 충전 목록/상세 조회에서 `tossBankCode`를 내려준다.
+
 # 변경점
 - ERD) Charge 테이블에서 `pg_provider`(PG 식별자) 제거
 - ERD) Charge 테이블에서 `toss_bank_code`(토스 은행 코드) 추가
-- API) 예치금 충전 API에서 PG사 식별자 제거 및 토스 은행 코드 추가
+- API) 예치금 충전 생성 응답에서 `pgProvider` 제거
+- API) 충전 목록/상세 조회 응답에서 `pgProvider` 제거 후 `tossBankCode` 추가
+- API) `tossBankCode`는 confirm 시점에만 저장
 
 # 참고 문서
 - [Toss 퀵계좌이체 연동하기](https://docs.tosspayments.com/guides/payment/integration-quick#1-%EA%B2%B0%EC%A0%9C%EC%B0%BD-%EB%9D%84%EC%9A%B0%EA%B8%B0)
