@@ -9,12 +9,11 @@ import static org.mockito.Mockito.verify;
 
 import com.example.payment.application.dto.ChargeCreateCommand;
 import com.example.payment.application.dto.ChargeCreateResult;
+import com.example.payment.common.exception.InvalidChargeRequestException;
+import com.example.payment.common.exception.WalletNotFoundException;
 import com.example.payment.domain.entity.Charge;
 import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.enumtype.ChargeStatus;
-import com.example.payment.domain.enumtype.PgProvider;
-import com.example.payment.common.exception.InvalidChargeRequestException;
-import com.example.payment.common.exception.WalletNotFoundException;
 import com.example.payment.domain.repository.ChargeRepository;
 import com.example.payment.domain.repository.WalletRepository;
 import com.example.payment.domain.service.IdentifierGenerator;
@@ -65,7 +64,7 @@ class CreateChargeServiceTest {
     @Test
     @DisplayName("기존 지갑이 있을 때 충전 요청 시 charge가 PENDING으로 생성된다")
     void createCharge_existingWallet_createsChargeWithPendingStatus() {
-        ChargeCreateCommand command = new ChargeCreateCommand(memberId, 10_000L, PgProvider.TOSS);
+        ChargeCreateCommand command = new ChargeCreateCommand(memberId, 10_000L);
         Wallet existingWallet = Wallet.create(walletId, memberId, 5_000L, now, now);
 
         given(timeProvider.now()).willReturn(now);
@@ -79,13 +78,12 @@ class CreateChargeServiceTest {
         assertThat(result.chargeId()).isEqualTo(chargeId);
         assertThat(result.walletId()).isEqualTo(walletId);
         assertThat(result.amount()).isEqualTo(10_000L);
-        assertThat(result.pgProvider()).isEqualTo(PgProvider.TOSS);
     }
 
     @Test
     @DisplayName("지갑이 없을 때 충전 요청 시 WalletNotFoundException이 발생한다")
     void createCharge_noWallet_throwsWalletNotFoundException() {
-        ChargeCreateCommand command = new ChargeCreateCommand(memberId, 10_000L, PgProvider.TOSS);
+        ChargeCreateCommand command = new ChargeCreateCommand(memberId, 10_000L);
         given(walletRepository.findByMemberId(memberId)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> createChargeService.createCharge(command))
@@ -98,7 +96,7 @@ class CreateChargeServiceTest {
     @Test
     @DisplayName("pgOrderId는 'CHARGE-{chargeId}' 형식으로 생성된다")
     void createCharge_pgOrderIdFormat() {
-        ChargeCreateCommand command = new ChargeCreateCommand(memberId, 10_000L, PgProvider.TOSS);
+        ChargeCreateCommand command = new ChargeCreateCommand(memberId, 10_000L);
         Wallet wallet = Wallet.create(walletId, memberId, 0L, now, now);
 
         given(timeProvider.now()).willReturn(now);
@@ -114,7 +112,7 @@ class CreateChargeServiceTest {
     @Test
     @DisplayName("memberId가 null이면 InvalidChargeRequestException이 발생한다")
     void createCharge_nullMemberId_throwsException() {
-        ChargeCreateCommand command = new ChargeCreateCommand(null, 10_000L, PgProvider.TOSS);
+        ChargeCreateCommand command = new ChargeCreateCommand(null, 10_000L);
 
         assertThatThrownBy(() -> createChargeService.createCharge(command))
                 .isInstanceOf(InvalidChargeRequestException.class)
@@ -124,7 +122,7 @@ class CreateChargeServiceTest {
     @Test
     @DisplayName("amount가 0이면 InvalidChargeRequestException이 발생한다")
     void createCharge_zeroAmount_throwsException() {
-        ChargeCreateCommand command = new ChargeCreateCommand(memberId, 0L, PgProvider.TOSS);
+        ChargeCreateCommand command = new ChargeCreateCommand(memberId, 0L);
 
         assertThatThrownBy(() -> createChargeService.createCharge(command))
                 .isInstanceOf(InvalidChargeRequestException.class)
@@ -134,20 +132,11 @@ class CreateChargeServiceTest {
     @Test
     @DisplayName("amount가 음수이면 InvalidChargeRequestException이 발생한다")
     void createCharge_negativeAmount_throwsException() {
-        ChargeCreateCommand command = new ChargeCreateCommand(memberId, -1_000L, PgProvider.TOSS);
+        ChargeCreateCommand command = new ChargeCreateCommand(memberId, -1_000L);
 
         assertThatThrownBy(() -> createChargeService.createCharge(command))
                 .isInstanceOf(InvalidChargeRequestException.class)
                 .hasMessageContaining("amount must be positive.");
     }
 
-    @Test
-    @DisplayName("pgProvider가 null이면 InvalidChargeRequestException이 발생한다")
-    void createCharge_nullPgProvider_throwsException() {
-        ChargeCreateCommand command = new ChargeCreateCommand(memberId, 10_000L, null);
-
-        assertThatThrownBy(() -> createChargeService.createCharge(command))
-                .isInstanceOf(InvalidChargeRequestException.class)
-                .hasMessageContaining("pgProvider is required.");
-    }
 }

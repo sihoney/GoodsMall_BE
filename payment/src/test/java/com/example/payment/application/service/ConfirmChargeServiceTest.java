@@ -95,7 +95,14 @@ class ConfirmChargeServiceTest {
             ChargeConfirmCommand command = new ChargeConfirmCommand(chargeId, "payKey-001", pgOrderId, 10_000L);
             LocalDateTime approvedAt = now.plusMinutes(5);
             TossPaymentGateway.TossPaymentConfirmation confirmation =
-                    new TossPaymentGateway.TossPaymentConfirmation("payKey-001", pgOrderId, 10_000L, approvedAt);
+                    new TossPaymentGateway.TossPaymentConfirmation(
+                            "payKey-001",
+                            pgOrderId,
+                            10_000L,
+                            approvedAt,
+                            "계좌이체",
+                            "92"
+                    );
 
             given(chargeRepository.findByChargeId(chargeId)).willReturn(Optional.of(pendingCharge));
             given(tossPaymentGateway.confirm(any(), any(), any())).willReturn(confirmation);
@@ -112,9 +119,66 @@ class ConfirmChargeServiceTest {
             assertThat(result.walletBalance()).isEqualTo(15_000L);
             assertThat(result.chargeId()).isEqualTo(chargeId);
             assertThat(result.approvedAt()).isEqualTo(approvedAt);
+            assertThat(pendingCharge.getTossBankCode()).isEqualTo("92");
             verify(chargeRepository).save(any(Charge.class));
             verify(walletRepository).save(any(Wallet.class));
             verify(walletTransactionRepository).save(any());
+        }
+
+        @Test
+        @DisplayName("계좌이체가 아니면 tossBankCode는 저장하지 않는다")
+        void confirmCharge_nonTransferMethod_doesNotStoreBankCode() {
+            ChargeConfirmCommand command = new ChargeConfirmCommand(chargeId, "payKey-001", pgOrderId, 10_000L);
+            LocalDateTime approvedAt = now.plusMinutes(5);
+            TossPaymentGateway.TossPaymentConfirmation confirmation =
+                    new TossPaymentGateway.TossPaymentConfirmation(
+                            "payKey-001",
+                            pgOrderId,
+                            10_000L,
+                            approvedAt,
+                            "카드",
+                            null
+                    );
+
+            given(chargeRepository.findByChargeId(chargeId)).willReturn(Optional.of(pendingCharge));
+            given(tossPaymentGateway.confirm(any(), any(), any())).willReturn(confirmation);
+            given(walletRepository.findByWalletId(walletId)).willReturn(Optional.of(wallet));
+            given(identifierGenerator.generateUuid()).willReturn(UUID.randomUUID());
+            given(chargeRepository.save(any(Charge.class))).willAnswer(invocation -> invocation.getArgument(0));
+            given(walletRepository.save(any(Wallet.class))).willAnswer(invocation -> invocation.getArgument(0));
+            given(walletTransactionRepository.save(any())).willAnswer(invocation -> invocation.getArgument(0));
+
+            ChargeConfirmResult result = confirmChargeService.confirmCharge(command);
+
+            assertThat(result.chargeStatus()).isEqualTo(ChargeStatus.CONFIRM_SUCCESS);
+            assertThat(pendingCharge.getTossBankCode()).isNull();
+        }
+
+        @Test
+        @DisplayName("계좌이체인데 bankCode가 없으면 예외가 발생한다")
+        void confirmCharge_transferWithoutBankCode_throwsException() {
+            ChargeConfirmCommand command = new ChargeConfirmCommand(chargeId, "payKey-001", pgOrderId, 10_000L);
+            LocalDateTime approvedAt = now.plusMinutes(5);
+            TossPaymentGateway.TossPaymentConfirmation confirmation =
+                    new TossPaymentGateway.TossPaymentConfirmation(
+                            "payKey-001",
+                            pgOrderId,
+                            10_000L,
+                            approvedAt,
+                            "계좌이체",
+                            null
+                    );
+
+            given(chargeRepository.findByChargeId(chargeId)).willReturn(Optional.of(pendingCharge));
+            given(tossPaymentGateway.confirm(any(), any(), any())).willReturn(confirmation);
+            given(walletRepository.findByWalletId(walletId)).willReturn(Optional.of(wallet));
+
+            assertThatThrownBy(() -> confirmChargeService.confirmCharge(command))
+                    .isInstanceOf(PaymentGatewayException.class)
+                    .hasMessageContaining("bankCode");
+
+            verify(walletRepository, never()).save(any());
+            verify(walletTransactionRepository, never()).save(any());
         }
 
         @Test

@@ -162,9 +162,14 @@ public class Charge {
      * PG 승인 완료 정보를 반영하고 charge를 SUCCESS 상태로 전이한다.
      */
     public void approve(Long approvedAmount, String pgPaymentKey, LocalDateTime approvedAt) {
+        approve(approvedAmount, pgPaymentKey, null, approvedAt);
+    }
+
+    public void approve(Long approvedAmount, String pgPaymentKey, String tossBankCode, LocalDateTime approvedAt) {
         validatePendingStatus();
         this.approvedAmount = Objects.requireNonNull(approvedAmount);
         this.pgPaymentKey = Objects.requireNonNull(pgPaymentKey);
+        this.tossBankCode = tossBankCode;
         this.approvedAt = Objects.requireNonNull(approvedAt);
         this.failedAt = null;
         this.failureReason = null;

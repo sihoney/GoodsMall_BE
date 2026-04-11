@@ -14,7 +14,6 @@ import com.example.payment.application.usecase.ChargeCreateUseCase;
 import com.example.payment.application.usecase.ChargeRefundUseCase;
 import com.example.payment.application.usecase.OrderPaymentApiUseCase;
 import com.example.payment.application.usecase.PaymentSearchUseCase;
-import com.example.payment.domain.enumtype.PgProvider;
 import com.example.payment.presentation.dto.request.ChargeConfirmFailureRequest;
 import com.example.payment.presentation.dto.request.ChargeConfirmRequest;
 import com.example.payment.presentation.dto.request.ChargeCreateRequest;
@@ -225,8 +224,7 @@ public class PaymentController {
     ) {
         ChargeCreateCommand command = new ChargeCreateCommand(
                 authenticatedMember.memberId(),
-                request.amount(),
-                PgProvider.TOSS
+                request.amount()
         );
         // response 형 변환이 컨트롤러에서 이루어지는 것은 아쉽지만 클린아키텍처상 application 결과를 외부 응답 형식으로
         // 바꾸는 것은 외부 계층의 책임이는 ai의 판단이 적절하다고 생각함.

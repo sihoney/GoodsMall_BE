@@ -97,6 +97,7 @@ public class ConfirmChargeService implements ChargeConfirmUseCase {
         charge.approve(
                 confirmation.approvedAmount(),
                 confirmation.paymentKey(),
+                resolveTossBankCode(confirmation),
                 confirmation.approvedAt()
         );
 
@@ -154,5 +155,15 @@ public class ConfirmChargeService implements ChargeConfirmUseCase {
             return "Payment confirmation failed.";
         }
         return failureReason;
+    }
+
+    private String resolveTossBankCode(TossPaymentGateway.TossPaymentConfirmation confirmation) {
+        if (!"계좌이체".equals(confirmation.method())) {
+            return null;
+        }
+        if (confirmation.transferBankCode() == null || confirmation.transferBankCode().isBlank()) {
+            throw new PaymentGatewayException("Toss transfer response is missing bankCode.");
+        }
+        return confirmation.transferBankCode();
     }
 }
