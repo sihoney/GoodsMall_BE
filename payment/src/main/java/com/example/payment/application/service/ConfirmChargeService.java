@@ -97,7 +97,8 @@ public class ConfirmChargeService implements ChargeConfirmUseCase {
         charge.approve(
                 confirmation.approvedAmount(),
                 confirmation.paymentKey(),
-                confirmation.approvedAt()
+                confirmation.approvedAt(),
+                resolveTossBankCode(confirmation)
         );
 
         // 지갑 증가 메서드를 이용해서 값을 증가
@@ -154,5 +155,15 @@ public class ConfirmChargeService implements ChargeConfirmUseCase {
             return "Payment confirmation failed.";
         }
         return failureReason;
+    }
+
+    private String resolveTossBankCode(TossPaymentGateway.TossPaymentConfirmation confirmation) {
+        if (!"계좌이체".equals(confirmation.method())) {
+            return null;
+        }
+        if (confirmation.transferBankCode() == null || confirmation.transferBankCode().isBlank()) {
+            throw new PaymentGatewayException("Toss transfer response is missing bankCode.");
+        }
+        return confirmation.transferBankCode();
     }
 }

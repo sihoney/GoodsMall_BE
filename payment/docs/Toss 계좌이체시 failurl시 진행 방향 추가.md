@@ -34,6 +34,7 @@
 |---|---|
 | `ChargeStatus` | `REDIRECT_FAILED`, `CONFIRM_SUCCESS`, `CONFIRM_FAILED` 상태 사용 |
 | `Charge` 엔티티 | `failAtRedirect(...)` 추가, `approve()`는 `CONFIRM_SUCCESS`, `fail()`은 `CONFIRM_FAILED`로 저장 |
+| Toss 승인 응답 처리 | `method == "계좌이체"`일 때만 `transfer.bankCode`를 `tossBankCode`로 저장 |
 | 실패 저장 서비스 | `ConfirmChargeFailureService`에서 `orderId` 기준 조회 후 redirect 실패 전이 |
 | 저장 조회 경로 | `ChargeRepository.findByPgOrderId(...)` 추가 |
 

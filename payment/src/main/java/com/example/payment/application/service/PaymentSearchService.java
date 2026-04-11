@@ -107,7 +107,7 @@ public class PaymentSearchService implements PaymentSearchUseCase {
                 charge.getWalletId(),
                 charge.getRequestedAmount(),
                 charge.getApprovedAmount(),
-                charge.getPgProvider(),
+                charge.getTossBankCode(),
                 charge.getPgOrderId(),
                 charge.getPgPaymentKey(),
                 charge.getChargeStatus(),
@@ -201,7 +201,7 @@ public class PaymentSearchService implements PaymentSearchUseCase {
                 charge.getRequestedAmount(),
                 charge.getApprovedAmount(),
                 charge.getChargeStatus(),
-                charge.getPgProvider(),
+                charge.getTossBankCode(),
                 charge.getRequestedAt(),
                 charge.getApprovedAt(),
                 charge.getFailedAt()

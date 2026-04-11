@@ -15,7 +15,6 @@ import com.example.payment.domain.entity.ChargeRefund;
 import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.enumtype.ChargeRefundStatus;
 import com.example.payment.domain.enumtype.ChargeStatus;
-import com.example.payment.domain.enumtype.PgProvider;
 import com.example.payment.domain.repository.ChargeRefundRepository;
 import com.example.payment.domain.repository.ChargeRepository;
 import com.example.payment.domain.repository.WalletRepository;
@@ -87,9 +86,9 @@ class RefundChargeServiceTest {
         void setUp() {
             String pgOrderId = "CHARGE-" + chargeId;
             successCharge = Charge.create(
-                    chargeId, memberId, walletId, 10_000L, PgProvider.TOSS, pgOrderId, now
+                    chargeId, memberId, walletId, 10_000L, pgOrderId, now
             );
-            successCharge.approve(10_000L, "paymentKey-001", now.plusMinutes(1));
+            successCharge.approve(10_000L, "paymentKey-001", now.plusMinutes(1), null);
             wallet = Wallet.create(walletId, memberId, 15_000L, now, now);
         }
 

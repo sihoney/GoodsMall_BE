@@ -1,7 +1,6 @@
 package com.example.payment.domain.entity;
 
 import com.example.payment.domain.enumtype.ChargeStatus;
-import com.example.payment.domain.enumtype.PgProvider;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -41,9 +40,8 @@ public class Charge {
     @Column(name = "approved_amount")
     private Long approvedAmount;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "pg_provider", nullable = false)
-    private PgProvider pgProvider;
+    @Column(name = "toss_bank_code", length = 30)
+    private String tossBankCode;
 
     @Column(name = "pg_order_id", nullable = false, unique = true, length = 100)
     private String pgOrderId;
@@ -77,7 +75,7 @@ public class Charge {
             UUID walletId,
             Long requestedAmount,
             Long approvedAmount,
-            PgProvider pgProvider,
+            String tossBankCode,
             String pgOrderId,
             String pgPaymentKey,
             ChargeStatus chargeStatus,
@@ -91,7 +89,7 @@ public class Charge {
         this.walletId = walletId;
         this.requestedAmount = Objects.requireNonNull(requestedAmount);
         this.approvedAmount = approvedAmount;
-        this.pgProvider = Objects.requireNonNull(pgProvider);
+        this.tossBankCode = tossBankCode;
         this.pgOrderId = Objects.requireNonNull(pgOrderId);
         this.pgPaymentKey = pgPaymentKey;
         this.chargeStatus = Objects.requireNonNull(chargeStatus);
@@ -106,7 +104,6 @@ public class Charge {
             UUID memberId,
             UUID walletId,
             Long requestedAmount,
-            PgProvider pgProvider,
             String pgOrderId,
             LocalDateTime requestedAt
     ) {
@@ -116,10 +113,9 @@ public class Charge {
                 walletId,
                 requestedAmount,
                 null,
-                pgProvider,
+                null,
                 pgOrderId,
                 null,
-                // 생성을 pending으로 고정
                 ChargeStatus.PENDING,
                 requestedAt,
                 null,
@@ -131,11 +127,12 @@ public class Charge {
     /**
      * PG 승인 완료 정보를 반영하고 charge를 SUCCESS 상태로 전이한다.
      */
-    public void approve(Long approvedAmount, String pgPaymentKey, LocalDateTime approvedAt) {
+    public void approve(Long approvedAmount, String pgPaymentKey, LocalDateTime approvedAt, String tossBankCode) {
         validatePendingStatus();
         this.approvedAmount = Objects.requireNonNull(approvedAmount);
         this.pgPaymentKey = Objects.requireNonNull(pgPaymentKey);
         this.approvedAt = Objects.requireNonNull(approvedAt);
+        this.tossBankCode = tossBankCode;
         this.failedAt = null;
         this.failureReason = null;
         this.chargeStatus = ChargeStatus.CONFIRM_SUCCESS;

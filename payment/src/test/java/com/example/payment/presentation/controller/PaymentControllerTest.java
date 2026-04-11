@@ -11,7 +11,6 @@ import com.example.payment.application.usecase.ChargeRefundUseCase;
 import com.example.payment.application.usecase.OrderPaymentApiUseCase;
 import com.example.payment.application.usecase.PaymentSearchUseCase;
 import com.example.payment.domain.enumtype.ChargeStatus;
-import com.example.payment.domain.enumtype.PgProvider;
 import com.example.payment.presentation.dto.request.ChargeCreateRequest;
 import com.example.payment.presentation.dto.request.OrderPaymentApiOrderLineRequest;
 import com.example.payment.presentation.dto.request.OrderPaymentApiRequest;
@@ -70,7 +69,6 @@ class PaymentControllerTest {
                         walletId,
                         "pg-order-001",
                         1000L,
-                        PgProvider.TOSS,
                         ChargeStatus.PENDING
                 ));
 
