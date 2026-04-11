@@ -22,7 +22,6 @@ import com.example.payment.domain.entity.WalletTransaction;
 import com.example.payment.domain.enumtype.ChargeRefundStatus;
 import com.example.payment.domain.enumtype.ChargeStatus;
 import com.example.payment.domain.enumtype.EscrowStatus;
-import com.example.payment.domain.enumtype.PgProvider;
 import com.example.payment.domain.enumtype.WalletTransactionType;
 import com.example.payment.domain.repository.ChargeRefundRepository;
 import com.example.payment.domain.repository.ChargeRepository;
@@ -117,8 +116,8 @@ class PaymentSearchServiceTest {
     @Test
     @DisplayName("충전 목록은 최신순 페이지 결과를 반환한다")
     void findAllCharges_success_returnsPagedCharges() {
-        Charge charge = Charge.create(chargeId, memberId, walletId, 10_000L, PgProvider.TOSS, "CHARGE-1", now);
-        charge.approve(10_000L, "payment-key", "92", now.plusMinutes(1));
+        Charge charge = Charge.create(chargeId, memberId, walletId, 10_000L, "CHARGE-1", now);
+        charge.approve(10_000L, "payment-key", now.plusMinutes(1), "92");
         given(chargeRepository.findByMemberId(any(), any())).willReturn(
                 new PageImpl<>(List.of(charge), PageRequest.of(0, 20), 1)
         );
@@ -134,8 +133,8 @@ class PaymentSearchServiceTest {
     @Test
     @DisplayName("충전 상세는 본인 charge만 조회하고 최신 환불 이력을 포함한다")
     void findChargeDetail_success_returnsChargeDetail() {
-        Charge charge = Charge.create(chargeId, memberId, walletId, 10_000L, PgProvider.TOSS, "CHARGE-1", now);
-        charge.approve(10_000L, "payment-key", "92", now.plusMinutes(1));
+        Charge charge = Charge.create(chargeId, memberId, walletId, 10_000L, "CHARGE-1", now);
+        charge.approve(10_000L, "payment-key", now.plusMinutes(1), "92");
         ChargeRefund refund = ChargeRefund.refunded(
                 refundId,
                 chargeId,

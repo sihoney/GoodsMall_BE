@@ -1,7 +1,6 @@
 package com.example.payment.domain.entity;
 
 import com.example.payment.domain.enumtype.ChargeStatus;
-import com.example.payment.domain.enumtype.PgProvider;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -105,7 +104,6 @@ public class Charge {
             UUID memberId,
             UUID walletId,
             Long requestedAmount,
-            PgProvider pgProvider,
             String pgOrderId,
             LocalDateTime requestedAt
     ) {
@@ -118,59 +116,23 @@ public class Charge {
                 null,
                 pgOrderId,
                 null,
-                // 생성을 pending으로 고정
                 ChargeStatus.PENDING,
                 requestedAt,
                 null,
                 null,
                 null
         );
-    }
-
-    public static Charge create(
-            UUID chargeId,
-            UUID memberId,
-            UUID walletId,
-            Long requestedAmount,
-            String tossBankCode,
-            String pgOrderId,
-            LocalDateTime requestedAt
-    ) {
-        return new Charge(
-                chargeId,
-                memberId,
-                walletId,
-                requestedAmount,
-                null,
-                tossBankCode,
-                pgOrderId,
-                null,
-                ChargeStatus.PENDING,
-                requestedAt,
-                null,
-                null,
-                null
-        );
-    }
-
-    @Deprecated
-    public PgProvider getPgProvider() {
-        return PgProvider.TOSS;
     }
 
     /**
      * PG 승인 완료 정보를 반영하고 charge를 SUCCESS 상태로 전이한다.
      */
-    public void approve(Long approvedAmount, String pgPaymentKey, LocalDateTime approvedAt) {
-        approve(approvedAmount, pgPaymentKey, null, approvedAt);
-    }
-
-    public void approve(Long approvedAmount, String pgPaymentKey, String tossBankCode, LocalDateTime approvedAt) {
+    public void approve(Long approvedAmount, String pgPaymentKey, LocalDateTime approvedAt, String tossBankCode) {
         validatePendingStatus();
         this.approvedAmount = Objects.requireNonNull(approvedAmount);
         this.pgPaymentKey = Objects.requireNonNull(pgPaymentKey);
-        this.tossBankCode = tossBankCode;
         this.approvedAt = Objects.requireNonNull(approvedAt);
+        this.tossBankCode = tossBankCode;
         this.failedAt = null;
         this.failureReason = null;
         this.chargeStatus = ChargeStatus.CONFIRM_SUCCESS;

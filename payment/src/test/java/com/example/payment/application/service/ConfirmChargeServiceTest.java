@@ -15,7 +15,6 @@ import com.example.payment.common.exception.PaymentGatewayException;
 import com.example.payment.domain.entity.Charge;
 import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.enumtype.ChargeStatus;
-import com.example.payment.domain.enumtype.PgProvider;
 import com.example.payment.domain.repository.ChargeRepository;
 import com.example.payment.domain.repository.WalletRepository;
 import com.example.payment.domain.repository.WalletTransactionRepository;
@@ -84,7 +83,7 @@ class ConfirmChargeServiceTest {
         void setUp() {
             pgOrderId = "CHARGE-" + chargeId;
             pendingCharge = Charge.create(
-                    chargeId, memberId, walletId, 10_000L, PgProvider.TOSS, pgOrderId, now
+                    chargeId, memberId, walletId, 10_000L, pgOrderId, now
             );
             wallet = Wallet.create(walletId, memberId, 5_000L, now, now);
         }
@@ -194,7 +193,7 @@ class ConfirmChargeServiceTest {
         @Test
         @DisplayName("non pending charge throws illegal state")
         void confirmCharge_alreadySuccessCharge_throwsIllegalStateException() {
-            pendingCharge.approve(10_000L, "payKey-001", now.plusMinutes(1));
+            pendingCharge.approve(10_000L, "payKey-001", now.plusMinutes(1), null);
             ChargeConfirmCommand command = new ChargeConfirmCommand(chargeId, "payKey-002", pgOrderId, 10_000L);
             given(chargeRepository.findByChargeId(chargeId)).willReturn(Optional.of(pendingCharge));
 

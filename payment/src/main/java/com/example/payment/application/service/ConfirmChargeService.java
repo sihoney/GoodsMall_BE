@@ -97,8 +97,8 @@ public class ConfirmChargeService implements ChargeConfirmUseCase {
         charge.approve(
                 confirmation.approvedAmount(),
                 confirmation.paymentKey(),
-                resolveTossBankCode(confirmation),
-                confirmation.approvedAt()
+                confirmation.approvedAt(),
+                resolveTossBankCode(confirmation)
         );
 
         // 지갑 증가 메서드를 이용해서 값을 증가
