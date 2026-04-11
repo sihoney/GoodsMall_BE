@@ -7,7 +7,7 @@
 -- ============================================
 
 -- 대분류 (depth=0)
-INSERT INTO category (category_id, parent_id, seller_id, name, description, depth, sort_order, created_at, updated_at)
+INSERT INTO product.category (category_id, parent_id, seller_id, name, description, depth, sort_order, created_at, updated_at)
 VALUES
     ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa001', NULL, NULL, '의류', '의류 및 패션 굿즈', 0, 1, NOW(), NOW()),
     ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa002', NULL, NULL, '문구', '문구 및 사무용품 굿즈', 0, 2, NOW(), NOW()),
