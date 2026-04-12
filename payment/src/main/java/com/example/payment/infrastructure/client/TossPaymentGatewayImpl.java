@@ -70,7 +70,8 @@ public class TossPaymentGatewayImpl implements TossPaymentGateway {
                     response.totalAmount(),
                     OffsetDateTime.parse(response.approvedAt()).toLocalDateTime(),
                     response.method(),
-                    response.transfer() == null ? null : response.transfer().bankCode()
+                    response.transfer() == null ? null : response.transfer().bankCode(),
+                    response.card() == null ? null : response.card().company()
             );
         } catch (RestClientResponseException e) {
             throw new PaymentGatewayException(
@@ -172,12 +173,18 @@ public class TossPaymentGatewayImpl implements TossPaymentGateway {
             Long totalAmount,
             String approvedAt,
             String method,
-            TossTransfer transfer
+            TossTransfer transfer,
+            TossCard card
     ) {
     }
 
     private record TossTransfer(
             String bankCode
+    ) {
+    }
+
+    private record TossCard(
+            String company
     ) {
     }
 

@@ -4,10 +4,13 @@ import com.todaylunch.common.security.auth.annotation.CurrentMember;
 import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import com.example.payment.application.dto.CardPaymentConfirmCommand;
+import com.example.payment.application.dto.CardPaymentConfirmOrderItemCommand;
 import com.example.payment.application.dto.ChargeConfirmCommand;
 import com.example.payment.application.dto.ChargeConfirmFailureCommand;
 import com.example.payment.application.dto.ChargeCreateCommand;
 import com.example.payment.application.dto.ChargeRefundCommand;
+import com.example.payment.application.usecase.CardPaymentConfirmUseCase;
 import com.example.payment.application.usecase.ChargeConfirmFailureUseCase;
 import com.example.payment.application.usecase.ChargeConfirmUseCase;
 import com.example.payment.application.usecase.ChargeCreateUseCase;
@@ -18,8 +21,10 @@ import com.example.payment.presentation.dto.request.ChargeConfirmFailureRequest;
 import com.example.payment.presentation.dto.request.ChargeConfirmRequest;
 import com.example.payment.presentation.dto.request.ChargeCreateRequest;
 import com.example.payment.presentation.dto.request.ChargeRefundRequest;
+import com.example.payment.presentation.dto.request.CardPaymentConfirmRequest;
 import com.example.payment.presentation.dto.request.OrderPaymentApiRequest;
 import com.example.payment.presentation.dto.response.ApiResponse;
+import com.example.payment.presentation.dto.response.CardPaymentConfirmResponse;
 import com.example.payment.presentation.dto.response.ChargeConfirmFailureResponse;
 import com.example.payment.presentation.dto.response.ChargeDetailResponse;
 import com.example.payment.presentation.dto.response.ChargeConfirmResponse;
@@ -57,6 +62,7 @@ public class PaymentController {
 
     private final ChargeCreateUseCase chargeCreateUseCase;
     private final ChargeConfirmUseCase chargeConfirmUseCase;
+    private final CardPaymentConfirmUseCase cardPaymentConfirmUseCase;
     private final ChargeConfirmFailureUseCase chargeConfirmFailureUseCase;
     private final ChargeRefundUseCase chargeRefundUseCase;
     private final PaymentSearchUseCase paymentSearchUseCase;
@@ -65,6 +71,7 @@ public class PaymentController {
     public PaymentController(
             ChargeCreateUseCase chargeCreateUseCase,
             ChargeConfirmUseCase chargeConfirmUseCase,
+            CardPaymentConfirmUseCase cardPaymentConfirmUseCase,
             ChargeConfirmFailureUseCase chargeConfirmFailureUseCase,
             ChargeRefundUseCase chargeRefundUseCase,
             PaymentSearchUseCase paymentSearchUseCase,
@@ -72,6 +79,7 @@ public class PaymentController {
     ) {
         this.chargeCreateUseCase = chargeCreateUseCase;
         this.chargeConfirmUseCase = chargeConfirmUseCase;
+        this.cardPaymentConfirmUseCase = cardPaymentConfirmUseCase;
         this.chargeConfirmFailureUseCase = chargeConfirmFailureUseCase;
         this.chargeRefundUseCase = chargeRefundUseCase;
         this.paymentSearchUseCase = paymentSearchUseCase;
@@ -265,6 +273,29 @@ public class PaymentController {
         );
         ChargeConfirmResponse response = ChargeConfirmResponse.from(chargeConfirmUseCase.confirmCharge(command));
         // 공통 응답으로 감싸서 반환
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/card/confirm")
+    @Operation(summary = "카드 결제 승인 확정")
+    public ResponseEntity<ApiResponse<CardPaymentConfirmResponse>> confirmCardPayment(
+            @Valid @RequestBody CardPaymentConfirmRequest request
+    ) {
+        CardPaymentConfirmCommand command = new CardPaymentConfirmCommand(
+                request.buyerId(),
+                request.orderId(),
+                request.paymentKey(),
+                request.amount(),
+                request.orderItems().stream()
+                        .map(orderItem -> new CardPaymentConfirmOrderItemCommand(
+                                orderItem.orderItemId(),
+                                orderItem.amount()
+                        ))
+                        .toList()
+        );
+        CardPaymentConfirmResponse response = CardPaymentConfirmResponse.from(
+                cardPaymentConfirmUseCase.confirmCardPayment(command)
+        );
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

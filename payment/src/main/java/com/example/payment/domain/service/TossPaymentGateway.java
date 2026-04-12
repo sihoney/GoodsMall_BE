@@ -22,7 +22,8 @@ public interface TossPaymentGateway {
             Long approvedAmount,
             LocalDateTime approvedAt,
             String method,
-            String transferBankCode
+            String transferBankCode,
+            String cardCompany
     ) {
     }
 
