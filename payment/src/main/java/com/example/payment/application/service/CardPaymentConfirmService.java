@@ -3,7 +3,9 @@ package com.example.payment.application.service;
 import com.example.payment.application.dto.CardPaymentConfirmCommand;
 import com.example.payment.application.dto.CardPaymentConfirmOrderItemCommand;
 import com.example.payment.application.dto.CardPaymentConfirmResult;
+import com.example.payment.application.dto.OrderPaymentValidationCommand;
 import com.example.payment.application.usecase.CardPaymentConfirmUseCase;
+import com.example.payment.application.usecase.OrderPaymentValidationUseCase;
 import com.example.payment.common.exception.InvalidCardPaymentRequestException;
 import com.example.payment.common.exception.PaymentGatewayException;
 import com.example.payment.domain.entity.CardTransaction;
@@ -26,17 +28,20 @@ public class CardPaymentConfirmService implements CardPaymentConfirmUseCase {
 
     private final CardTransactionRepository cardTransactionRepository;
     private final TossPaymentGateway tossPaymentGateway;
+    private final OrderPaymentValidationUseCase orderPaymentValidationUseCase;
     private final IdentifierGenerator identifierGenerator;
     private final TimeProvider timeProvider;
 
     public CardPaymentConfirmService(
             CardTransactionRepository cardTransactionRepository,
             TossPaymentGateway tossPaymentGateway,
+            OrderPaymentValidationUseCase orderPaymentValidationUseCase,
             IdentifierGenerator identifierGenerator,
             TimeProvider timeProvider
     ) {
         this.cardTransactionRepository = cardTransactionRepository;
         this.tossPaymentGateway = tossPaymentGateway;
+        this.orderPaymentValidationUseCase = orderPaymentValidationUseCase;
         this.identifierGenerator = identifierGenerator;
         this.timeProvider = timeProvider;
     }
@@ -44,6 +49,7 @@ public class CardPaymentConfirmService implements CardPaymentConfirmUseCase {
     @Override
     public CardPaymentConfirmResult confirmCardPayment(CardPaymentConfirmCommand command) {
         validateCommand(command);
+        validateOrderPayment(command);
 
         UUID transactionGroupId = identifierGenerator.generateUuid();
         var requestedAt = timeProvider.now();
@@ -141,6 +147,16 @@ public class CardPaymentConfirmService implements CardPaymentConfirmUseCase {
         if (!Objects.equals(command.amount(), itemTotalAmount)) {
             throw new InvalidCardPaymentRequestException("sum of order item amounts must equal amount.");
         }
+    }
+
+    private void validateOrderPayment(CardPaymentConfirmCommand command) {
+        boolean valid = orderPaymentValidationUseCase.validateOrderPayment(
+                new OrderPaymentValidationCommand(command.orderId(), command.amount())
+        );
+        if (!valid) {
+            throw new InvalidCardPaymentRequestException("order payment validation failed.");
+        }
+        // TODO: order 서비스 계약 확정 후 buyerId, orderItems, 주문 상태(PENDING 여부)까지 함께 검증한다.
     }
 
     private void validateConfirmation(

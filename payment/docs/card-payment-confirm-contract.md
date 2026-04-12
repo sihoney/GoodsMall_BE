@@ -14,6 +14,7 @@
   - Toss 위젯 호출
   - Toss success 결과의 `paymentKey`, `orderId`, `amount`를 이용해 `payment` confirm API 호출
 - `payment`
+  - `order`에 `orderId`, `amount`로 사전 검증 요청
   - Toss confirm API 호출
   - 카드 승인 성공/실패 이력을 `card_transaction`에 append-only로 저장
   - 승인 결과와 `transactionGroupId`를 응답으로 제공
@@ -35,6 +36,18 @@
 - 인증: 미정
   - 현재 payment의 충전 confirm은 무인증이다.
   - 카드결제 confirm은 프론트 직접 호출이므로 인증/위변조 검증 정책 합의가 필요하다.
+
+## payment -> order 검증 API 가정
+
+- Path: `POST /api/orders/payment-validation`
+- 요청 필드
+  - `orderId`
+  - `amount`
+- 응답 필드
+  - `valid: boolean`
+- TODO
+  - order 담당자와 협의 후 실제 경로와 응답 포맷을 확정한다.
+  - 추후 `buyerId`, `orderItems`, 주문 상태(`PENDING`)까지 검증 범위를 넓힐 수 있다.
 
 ## 요청 필드 초안
 
