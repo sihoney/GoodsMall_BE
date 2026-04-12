@@ -53,7 +53,7 @@ public class MemberService implements MemberUsecase {
                 normalizeNullable(command.address()),
                 normalizeProfileImageKey(command.profileImageKey()),
                 command.role() == null ? MemberRole.USER : command.role(),
-                MemberStatus.ACTIVE,
+                MemberStatus.PENDING_VERIFICATION,
                 now,
                 now
         );
