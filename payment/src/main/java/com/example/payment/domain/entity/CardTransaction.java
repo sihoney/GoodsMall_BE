@@ -40,8 +40,8 @@ public class CardTransaction {
     @Column(name = "reference_type", nullable = false, length = 30, updatable = false)
     private CardTransactionReferenceType referenceType;
 
-    @Column(name = "member_id", nullable = false, updatable = false)
-    private UUID memberId;
+    @Column(name = "buyer_member_id", nullable = false, updatable = false)
+    private UUID buyerMemberId;
 
     @Column(name = "pg_order_id", nullable = false, length = 100)
     private String pgOrderId;
@@ -97,7 +97,7 @@ public class CardTransaction {
             UUID relatedTransactionId,
             UUID referenceId,
             CardTransactionReferenceType referenceType,
-            UUID memberId,
+            UUID buyerMemberId,
             String pgOrderId,
             String pgPaymentKey,
             CardTransactionType transactionType,
@@ -119,7 +119,7 @@ public class CardTransaction {
         this.relatedTransactionId = relatedTransactionId;
         this.referenceId = Objects.requireNonNull(referenceId);
         this.referenceType = Objects.requireNonNull(referenceType);
-        this.memberId = Objects.requireNonNull(memberId);
+        this.buyerMemberId = Objects.requireNonNull(buyerMemberId);
         this.pgOrderId = Objects.requireNonNull(pgOrderId);
         this.pgPaymentKey = pgPaymentKey;
         this.transactionType = Objects.requireNonNull(transactionType);
@@ -141,7 +141,7 @@ public class CardTransaction {
             UUID cardTransactionId,
             UUID transactionGroupId,
             UUID referenceId,
-            UUID memberId,
+            UUID buyerMemberId,
             String pgOrderId,
             Long requestedAmount,
             LocalDateTime requestedAt
@@ -152,7 +152,7 @@ public class CardTransaction {
                 null,
                 referenceId,
                 CardTransactionReferenceType.ORDER_ITEM,
-                memberId,
+                buyerMemberId,
                 pgOrderId,
                 null,
                 CardTransactionType.PAYMENT,
