@@ -32,13 +32,22 @@ public class OrderController {
     private final OrderCreateUseCase orderCreateUseCase;
     private final OrderSearchUseCase orderSearchUseCase;
 
-    @PostMapping
-    public ResponseEntity<OrderCreateResponse> createOrder(
+    @PostMapping("/deposit")
+    public ResponseEntity<OrderCreateResponse> createByDeposit(
             @CurrentMember AuthenticatedMember authenticatedMember,
             @Valid @RequestBody OrderCreateRequest request
     ) {
         UUID memberId = authenticatedMember.memberId();
-        return ResponseEntity.status(HttpStatus.CREATED).body(orderCreateUseCase.create(memberId, request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(orderCreateUseCase.createByDeposit(memberId, request));
+    }
+
+    @PostMapping("/pg")
+    public ResponseEntity<OrderCreateResponse> createByPg(
+            @CurrentMember AuthenticatedMember authenticatedMember,
+            @Valid @RequestBody OrderCreateRequest request
+    ) {
+        UUID memberId = authenticatedMember.memberId();
+        return ResponseEntity.ok(orderCreateUseCase.createByPg(memberId, request));
     }
 
     @GetMapping

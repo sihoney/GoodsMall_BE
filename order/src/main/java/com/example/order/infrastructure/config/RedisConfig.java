@@ -1,5 +1,6 @@
 package com.example.order.infrastructure.config;
 
+import org.springframework.boot.ApplicationRunner;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import tools.jackson.databind.ObjectMapper;
@@ -9,8 +10,7 @@ import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import com.example.order.infrastructure.redis.DeliveryExpireListener;
-import org.springframework.data.redis.connection.RedisConnection;
-import org.springframework.data.redis.listener.PatternTopic;
+import org.springframework.data.redis.connection.RedisConnection;import org.springframework.data.redis.listener.PatternTopic;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.data.redis.serializer.GenericJacksonJsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
@@ -71,14 +71,14 @@ public class RedisConfig {
         return container;
     }
 
-    // 앱 시작 시 Redis 서버 설정
     @Bean
-    public RedisConnectionFactory redisServerConfig(RedisConnectionFactory connectionFactory) {
-        try (RedisConnection connection = connectionFactory.getConnection()) {
-            connection.serverCommands().setConfig("notify-keyspace-events", "KEx");
-            connection.serverCommands().setConfig("maxmemory", "512mb");
-            connection.serverCommands().setConfig("maxmemory-policy", "allkeys-lru");
-        }
-        return connectionFactory;
+    public ApplicationRunner redisServerConfig(RedisConnectionFactory connectionFactory) {
+        return args -> {
+            try (RedisConnection connection = connectionFactory.getConnection()) {
+                connection.serverCommands().setConfig("notify-keyspace-events", "KEx");
+                connection.serverCommands().setConfig("maxmemory", "512mb");
+                connection.serverCommands().setConfig("maxmemory-policy", "allkeys-lru");
+            }
+        };
     }
 }

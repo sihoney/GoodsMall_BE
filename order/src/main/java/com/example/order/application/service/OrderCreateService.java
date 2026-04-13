@@ -1,6 +1,5 @@
 package com.example.order.application.service;
 
-import com.example.order.application.port.PaymentResult;
 import com.example.order.application.port.ProductPort.ProductInfo;
 import com.example.order.application.processor.PaymentProcessor;
 import com.example.order.application.processor.ProductProcessor;
@@ -11,6 +10,7 @@ import com.example.order.domain.entity.Order;
 import com.example.order.domain.repository.OrderRepository;
 import com.example.order.infrastructure.client.dto.request.ProductRequest;
 import com.example.order.presentation.dto.request.OrderCreateRequest;
+import com.example.order.presentation.dto.request.OrderItemCreateRequest;
 import com.example.order.presentation.dto.response.OrderCreateResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -29,63 +29,116 @@ public class OrderCreateService implements OrderCreateUseCase {
     private final PaymentProcessor paymentProcessor;
     private final DeliveryCreateService deliveryCreateService;
 
-    /**
-     * 주문 생성 처리
-     * <p>
-     * - 상품 ID 중복 요청 검증
-     * - 상품 정보 조회 및 존재 여부 검증
-     * - 상품 상태(재고, 판매 여부) 검증
-     * - Order 및 OrderItem 생성 후 저장
-     * - OrderCreatedEvent 발행
-     */
     @Transactional
     @Override
-    public OrderCreateResponse create(
-            UUID memberId,
-            OrderCreateRequest request) {
+    public OrderCreateResponse createByDeposit(UUID memberId, OrderCreateRequest request) {
+        Order order = createOrder(memberId, request);
 
+        paymentProcessor.process(order);
+        order.confirm();
+
+        deliveryCreateService.create(order);
+
+        return OrderCreateResponse.from(order);
+    }
+
+    @Transactional
+    @Override
+    public OrderCreateResponse createByPg(UUID memberId, OrderCreateRequest request) {
+        Order order = createOrder(memberId, request);
+
+        return OrderCreateResponse.from(order);
+    }
+
+    private Order createOrder(UUID memberId, OrderCreateRequest request) {
+        validateRequest(request);
+
+        List<ProductRequest> productRequests = toProductRequests(request);
+        Map<UUID, ProductInfo> productMap = loadProducts(productRequests, request);
+
+        Order order = buildOrder(memberId, request, productRequests, productMap);
+        addOrderItems(order, request.orderItemRequest(), productMap);
+
+        orderRepository.save(order);
+
+        return order;
+    }
+
+    private void validateRequest(OrderCreateRequest request) {
         if (request.orderItemRequest().isEmpty()) {
             throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
         }
+    }
 
-        List<ProductRequest> productRequests = request.orderItemRequest().stream()
+    private List<ProductRequest> toProductRequests(OrderCreateRequest request) {
+        return request.orderItemRequest().stream()
                 .map(item -> new ProductRequest(item.productId(), item.quantity()))
                 .toList();
+    }
 
+    private Map<UUID, ProductInfo> loadProducts(
+            List<ProductRequest> productRequests,
+            OrderCreateRequest request
+    ) {
         productProcessor.validateDuplicate(productRequests);
+
         Map<UUID, ProductInfo> productMap = productProcessor.deductStock(productRequests);
         productProcessor.validateStatus(productMap, request);
 
-        ProductInfo firstProduct = productMap.get(productRequests.getFirst().productId());
+        return productMap;
+    }
 
-        Order order = Order.create(
+    private Order buildOrder(
+            UUID memberId,
+            OrderCreateRequest request,
+            List<ProductRequest> productRequests,
+            Map<UUID, ProductInfo> productMap
+    ) {
+        ProductInfo representativeProduct = getRepresentativeProduct(productRequests, productMap);
+
+        return Order.create(
                 memberId,
                 request.address(),
                 request.addressDetail(),
                 request.zipCode(),
                 request.receiver(),
                 request.receiverPhone(),
-                firstProduct.name(),
-                firstProduct.thumbnailKeySnapshot(),
-                productMap.size());
+                representativeProduct.name(),
+                representativeProduct.thumbnailKeySnapshot(),
+                productMap.size()
+        );
+    }
 
-        request.orderItemRequest().forEach(item -> {
+    private ProductInfo getRepresentativeProduct(
+            List<ProductRequest> productRequests,
+            Map<UUID, ProductInfo> productMap
+    ) {
+        UUID firstProductId = productRequests.get(0).productId();
+        ProductInfo representativeProduct = productMap.get(firstProductId);
+
+        if (representativeProduct == null) {
+            throw new CustomException(ErrorCode.PRODUCT_NOT_FOUND);
+        }
+
+        return representativeProduct;
+    }
+
+    private void addOrderItems(
+            Order order,
+            List<OrderItemCreateRequest> orderItemRequests,
+            Map<UUID, ProductInfo> productMap
+    ) {
+        for (OrderItemCreateRequest item : orderItemRequests) {
             ProductInfo product = productMap.get(item.productId());
+
             order.addItem(
                     product.productId(),
                     product.sellerId(),
                     product.name(),
                     product.price(),
                     item.quantity(),
-                    product.thumbnailKeySnapshot());
-        });
-        orderRepository.save(order);
-
-        PaymentResult paymentResult = paymentProcessor.process(order);
-        order.confirm(paymentResult.paidAmount());
-
-        deliveryCreateService.create(order);
-
-        return OrderCreateResponse.from(order);
+                    product.thumbnailKeySnapshot()
+            );
+        }
     }
 }

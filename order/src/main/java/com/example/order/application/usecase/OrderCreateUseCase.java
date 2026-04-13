@@ -6,5 +6,8 @@ import com.example.order.presentation.dto.response.OrderCreateResponse;
 import java.util.UUID;
 
 public interface OrderCreateUseCase {
-    OrderCreateResponse create(UUID memberId, OrderCreateRequest request);
+
+    OrderCreateResponse createByDeposit(UUID memberId, OrderCreateRequest request);
+
+    OrderCreateResponse createByPg(UUID memberId, OrderCreateRequest request);
 }
