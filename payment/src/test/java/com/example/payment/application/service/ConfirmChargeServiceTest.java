@@ -100,7 +100,8 @@ class ConfirmChargeServiceTest {
                             10_000L,
                             approvedAt,
                             "계좌이체",
-                            "92"
+                            "92",
+                            null
                     );
 
             given(chargeRepository.findByChargeId(chargeId)).willReturn(Optional.of(pendingCharge));
@@ -136,7 +137,8 @@ class ConfirmChargeServiceTest {
                             10_000L,
                             approvedAt,
                             "카드",
-                            null
+                            null,
+                            "현대카드"
                     );
 
             given(chargeRepository.findByChargeId(chargeId)).willReturn(Optional.of(pendingCharge));
@@ -165,6 +167,7 @@ class ConfirmChargeServiceTest {
                             10_000L,
                             approvedAt,
                             "계좌이체",
+                            null,
                             null
                     );
 
