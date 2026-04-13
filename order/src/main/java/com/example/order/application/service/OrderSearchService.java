@@ -9,6 +9,7 @@ import com.example.order.presentation.dto.response.OrderDetailResponse;
 import com.example.order.presentation.dto.response.OrderItemDetailResponse;
 import com.example.order.presentation.dto.response.OrderSummaryResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,7 @@ public class OrderSearchService implements OrderSearchUseCase {
     }
 
     @Override
+    @Cacheable(cacheNames = "order:detail", key = "#orderId + ':' + #memberId")
     public OrderDetailResponse getOrderDetail(UUID orderId, UUID memberId) {
         Order order = orderRepository.findByOrderIdAndBuyerId(orderId, memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));

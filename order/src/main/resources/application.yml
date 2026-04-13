@@ -25,6 +25,11 @@ spring:
             readTimeout: 2000
             loggerLevel: basic
 
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
   # --- Kafka 설정 (로컬 기본값) ---
   kafka:
     bootstrap-servers: localhost:9092

@@ -105,4 +105,12 @@ public class Delivery {
                 LocalDateTime.now()
         );
     }
+
+    public void ship(String courierCode, String invoiceNumber) {
+        this.courierCode = courierCode;
+        this.invoiceNumber = invoiceNumber;
+        this.status = DeliveryStatus.SHIPPED;
+        this.shippedAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
 }
