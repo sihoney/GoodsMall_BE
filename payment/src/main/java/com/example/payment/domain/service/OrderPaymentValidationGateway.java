@@ -4,5 +4,5 @@ import java.util.UUID;
 
 public interface OrderPaymentValidationGateway {
 
-    boolean validate(UUID orderId, Long amount);
+    OrderPaymentValidationData validate(UUID orderId, UUID buyerId, Long amount);
 }

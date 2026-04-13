@@ -2,10 +2,7 @@ package com.example.payment.presentation.controller;
 
 import com.todaylunch.common.security.auth.annotation.CurrentMember;
 import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import com.example.payment.application.dto.CardPaymentConfirmCommand;
-import com.example.payment.application.dto.CardPaymentConfirmOrderItemCommand;
 import com.example.payment.application.dto.ChargeConfirmCommand;
 import com.example.payment.application.dto.ChargeConfirmFailureCommand;
 import com.example.payment.application.dto.ChargeCreateCommand;
@@ -37,6 +34,8 @@ import com.example.payment.presentation.dto.response.PagedResponse;
 import com.example.payment.presentation.dto.response.PendingSellerIncomeItemResponse;
 import com.example.payment.presentation.dto.response.WalletSummaryResponse;
 import com.example.payment.presentation.dto.response.WalletTransactionItemResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
@@ -279,19 +278,14 @@ public class PaymentController {
     @PostMapping("/card/confirm")
     @Operation(summary = "카드 결제 승인 확정")
     public ResponseEntity<ApiResponse<CardPaymentConfirmResponse>> confirmCardPayment(
+            @CurrentMember AuthenticatedMember authenticatedMember,
             @Valid @RequestBody CardPaymentConfirmRequest request
     ) {
         CardPaymentConfirmCommand command = new CardPaymentConfirmCommand(
-                request.buyerId(),
+                authenticatedMember.memberId(),
                 request.orderId(),
                 request.paymentKey(),
-                request.amount(),
-                request.orderItems().stream()
-                        .map(orderItem -> new CardPaymentConfirmOrderItemCommand(
-                                orderItem.orderItemId(),
-                                orderItem.amount()
-                        ))
-                        .toList()
+                request.amount()
         );
         CardPaymentConfirmResponse response = CardPaymentConfirmResponse.from(
                 cardPaymentConfirmUseCase.confirmCardPayment(command)

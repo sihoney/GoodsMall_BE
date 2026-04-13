@@ -1,7 +1,6 @@
 package com.example.payment.application.service;
 
 import com.example.payment.application.dto.CardPaymentConfirmCommand;
-import com.example.payment.application.dto.CardPaymentConfirmOrderItemCommand;
 import com.example.payment.application.dto.CardPaymentConfirmResult;
 import com.example.payment.application.dto.OrderPaymentValidationCommand;
 import com.example.payment.application.usecase.CardPaymentConfirmUseCase;
@@ -11,9 +10,15 @@ import com.example.payment.common.exception.PaymentGatewayException;
 import com.example.payment.domain.entity.CardTransaction;
 import com.example.payment.domain.enumtype.CardTransactionStatus;
 import com.example.payment.domain.repository.CardTransactionRepository;
+import com.example.payment.domain.service.CardConfirmResultEventPublisher;
 import com.example.payment.domain.service.IdentifierGenerator;
+import com.example.payment.domain.service.OrderPaymentValidationData;
+import com.example.payment.domain.service.OrderPaymentValidationItemData;
 import com.example.payment.domain.service.TimeProvider;
 import com.example.payment.domain.service.TossPaymentGateway;
+import com.example.payment.infrastructure.messaging.kafka.contract.CardConfirmResultMessage;
+import com.example.payment.infrastructure.messaging.kafka.contract.CardConfirmResultStatus;
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -29,6 +34,7 @@ public class CardPaymentConfirmService implements CardPaymentConfirmUseCase {
     private final CardTransactionRepository cardTransactionRepository;
     private final TossPaymentGateway tossPaymentGateway;
     private final OrderPaymentValidationUseCase orderPaymentValidationUseCase;
+    private final CardConfirmResultEventPublisher cardConfirmResultEventPublisher;
     private final IdentifierGenerator identifierGenerator;
     private final TimeProvider timeProvider;
 
@@ -36,78 +42,64 @@ public class CardPaymentConfirmService implements CardPaymentConfirmUseCase {
             CardTransactionRepository cardTransactionRepository,
             TossPaymentGateway tossPaymentGateway,
             OrderPaymentValidationUseCase orderPaymentValidationUseCase,
+            CardConfirmResultEventPublisher cardConfirmResultEventPublisher,
             IdentifierGenerator identifierGenerator,
             TimeProvider timeProvider
     ) {
         this.cardTransactionRepository = cardTransactionRepository;
         this.tossPaymentGateway = tossPaymentGateway;
         this.orderPaymentValidationUseCase = orderPaymentValidationUseCase;
+        this.cardConfirmResultEventPublisher = cardConfirmResultEventPublisher;
         this.identifierGenerator = identifierGenerator;
         this.timeProvider = timeProvider;
     }
 
     @Override
     public CardPaymentConfirmResult confirmCardPayment(CardPaymentConfirmCommand command) {
-        validateCommand(command);
-        validateOrderPayment(command);
-
-        UUID transactionGroupId = identifierGenerator.generateUuid();
-        var requestedAt = timeProvider.now();
-        List<CardTransaction> cardTransactions = command.orderItems().stream()
-                .map(orderItem -> CardTransaction.pendingPayment(
-                        identifierGenerator.generateUuid(),
-                        transactionGroupId,
-                        orderItem.orderItemId(),
-                        command.buyerId(),
-                        command.orderId().toString(),
-                        orderItem.amount(),
-                        requestedAt
-                ))
-                .toList();
-
-        cardTransactionRepository.saveAll(cardTransactions);
-
-        TossPaymentGateway.TossPaymentConfirmation confirmation;
         try {
-            confirmation = tossPaymentGateway.confirm(
-                    command.paymentKey(),
-                    command.orderId().toString(),
-                    command.amount()
+            validateCommand(command);
+            OrderPaymentValidationData validationData = validateOrderPayment(command);
+
+            UUID transactionGroupId = identifierGenerator.generateUuid();
+            var requestedAt = timeProvider.now();
+            List<CardTransaction> cardTransactions = createPendingTransactions(
+                    command,
+                    validationData.orderItems(),
+                    transactionGroupId,
+                    requestedAt
             );
-        } catch (PaymentGatewayException e) {
-            failTransactions(cardTransactions, e.getMessage());
-            throw e;
-        } catch (RuntimeException e) {
-            failTransactions(cardTransactions, e.getMessage());
-            throw e;
-        }
 
-        try {
+            cardTransactionRepository.saveAll(cardTransactions);
+
+            TossPaymentGateway.TossPaymentConfirmation confirmation = confirmWithToss(command, cardTransactions);
             validateConfirmation(command, confirmation);
-        } catch (RuntimeException e) {
-            failTransactions(cardTransactions, e.getMessage());
-            throw e;
-        }
 
-        for (CardTransaction cardTransaction : cardTransactions) {
-            cardTransaction.approve(
-                    confirmation.paymentKey(),
-                    cardTransaction.getRequestedAmount(),
-                    0L,
+            for (CardTransaction cardTransaction : cardTransactions) {
+                cardTransaction.approve(
+                        confirmation.paymentKey(),
+                        cardTransaction.getRequestedAmount(),
+                        0L,
+                        confirmation.approvedAt()
+                );
+            }
+
+            cardTransactionRepository.saveAll(cardTransactions);
+            publishCardConfirmSuccess(command.orderId());
+
+            return new CardPaymentConfirmResult(
+                    transactionGroupId,
+                    command.orderId(),
+                    command.buyerId(),
+                    confirmation.approvedAmount(),
+                    CardTransactionStatus.SUCCESS,
                     confirmation.approvedAt()
             );
+        } catch (RuntimeException exception) {
+            if (command != null && command.orderId() != null) {
+                publishCardConfirmFailure(command.orderId(), resolveFailReason(exception));
+            }
+            throw exception;
         }
-
-        cardTransactionRepository.saveAll(cardTransactions);
-
-        return new CardPaymentConfirmResult(
-                transactionGroupId,
-                command.orderId(),
-                command.buyerId(),
-                confirmation.approvedAmount(),
-                CardTransactionStatus.SUCCESS,
-                confirmation.approvedAt()
-        );
     }
 
     private void validateCommand(CardPaymentConfirmCommand command) {
@@ -126,37 +118,62 @@ public class CardPaymentConfirmService implements CardPaymentConfirmUseCase {
         if (command.amount() == null || command.amount() <= 0) {
             throw new InvalidCardPaymentRequestException("amount must be positive.");
         }
-        if (command.orderItems() == null || command.orderItems().isEmpty()) {
-            throw new InvalidCardPaymentRequestException("orderItems must not be empty.");
-        }
 
-        long itemTotalAmount = 0L;
-        for (CardPaymentConfirmOrderItemCommand orderItem : command.orderItems()) {
-            if (orderItem == null) {
-                throw new InvalidCardPaymentRequestException("orderItems must not contain null.");
-            }
-            if (orderItem.orderItemId() == null) {
-                throw new InvalidCardPaymentRequestException("orderItemId is required.");
-            }
-            if (orderItem.amount() == null || orderItem.amount() <= 0) {
-                throw new InvalidCardPaymentRequestException("order item amount must be positive.");
-            }
-            itemTotalAmount += orderItem.amount();
-        }
-
-        if (!Objects.equals(command.amount(), itemTotalAmount)) {
-            throw new InvalidCardPaymentRequestException("sum of order item amounts must equal amount.");
-        }
     }
 
-    private void validateOrderPayment(CardPaymentConfirmCommand command) {
-        boolean valid = orderPaymentValidationUseCase.validateOrderPayment(
-                new OrderPaymentValidationCommand(command.orderId(), command.amount())
+    private OrderPaymentValidationData validateOrderPayment(CardPaymentConfirmCommand command) {
+        OrderPaymentValidationData validationData = orderPaymentValidationUseCase.validateOrderPayment(
+                new OrderPaymentValidationCommand(command.orderId(), command.buyerId(), command.amount())
         );
-        if (!valid) {
-            throw new InvalidCardPaymentRequestException("order payment validation failed.");
+        if (validationData == null || validationData.orderItems() == null || validationData.orderItems().isEmpty()) {
+            throw new InvalidCardPaymentRequestException("order validation orderItems must not be empty.");
         }
-        // TODO: order 서비스 계약 확정 후 buyerId, orderItems, 주문 상태(PENDING 여부)까지 함께 검증한다.
+
+        long orderItemsTotalAmount = getOrderItemsTotalAmount(validationData);
+
+        if (!Objects.equals(orderItemsTotalAmount, command.amount())) {
+            throw new InvalidCardPaymentRequestException("order validation lineAmount total must equal amount.");
+        }
+        return validationData;
+    }
+
+    private static long getOrderItemsTotalAmount(OrderPaymentValidationData validationData) {
+        long orderItemsTotalAmount = 0L;
+        for (OrderPaymentValidationItemData orderItem : validationData.orderItems()) {
+            if (orderItem == null) {
+                throw new InvalidCardPaymentRequestException("order validation orderItems must not contain null.");
+            }
+            if (orderItem.orderItemId() == null) {
+                throw new InvalidCardPaymentRequestException("order validation orderItemId is required.");
+            }
+            if (orderItem.sellerId() == null) {
+                throw new InvalidCardPaymentRequestException("order validation sellerId is required.");
+            }
+            if (orderItem.lineAmount() == null || orderItem.lineAmount() <= 0) {
+                throw new InvalidCardPaymentRequestException("order validation lineAmount must be positive.");
+            }
+            orderItemsTotalAmount += orderItem.lineAmount();
+        }
+        return orderItemsTotalAmount;
+    }
+
+    private List<CardTransaction> createPendingTransactions(
+            CardPaymentConfirmCommand command,
+            List<OrderPaymentValidationItemData> orderItems,
+            UUID transactionGroupId,
+            java.time.LocalDateTime requestedAt
+    ) {
+        return orderItems.stream()
+                .map(orderItem -> CardTransaction.pendingPayment(
+                        identifierGenerator.generateUuid(),
+                        transactionGroupId,
+                        orderItem.orderItemId(),
+                        command.buyerId(),
+                        command.orderId().toString(),
+                        orderItem.lineAmount(),
+                        requestedAt
+                ))
+                .toList();
     }
 
     private void validateConfirmation(
@@ -188,5 +205,55 @@ public class CardPaymentConfirmService implements CardPaymentConfirmUseCase {
             return "Card payment confirmation failed.";
         }
         return failureReason;
+    }
+
+    private TossPaymentGateway.TossPaymentConfirmation confirmWithToss(
+            CardPaymentConfirmCommand command,
+            List<CardTransaction> cardTransactions
+    ) {
+        try {
+            return tossPaymentGateway.confirm(
+                    command.paymentKey(),
+                    command.orderId().toString(),
+                    command.amount()
+            );
+        } catch (PaymentGatewayException exception) {
+            failTransactions(cardTransactions, exception.getMessage());
+            throw exception;
+        } catch (RuntimeException exception) {
+            failTransactions(cardTransactions, exception.getMessage());
+            throw exception;
+        }
+    }
+
+    private void publishCardConfirmSuccess(UUID orderId) {
+        cardConfirmResultEventPublisher.publish(new CardConfirmResultMessage(
+                identifierGenerator.generateUuid(),
+                orderId,
+                CardConfirmResultStatus.SUCCESS,
+                null,
+                Instant.now()
+        ));
+    }
+
+    private void publishCardConfirmFailure(UUID orderId, String failReason) {
+        cardConfirmResultEventPublisher.publish(new CardConfirmResultMessage(
+                identifierGenerator.generateUuid(),
+                orderId,
+                CardConfirmResultStatus.FAILED,
+                failReason,
+                Instant.now()
+        ));
+    }
+
+    private String resolveFailReason(RuntimeException exception) {
+        if (exception == null) {
+            return "card confirm failed";
+        }
+        String message = exception.getMessage();
+        if (message == null || message.isBlank()) {
+            return "card confirm failed";
+        }
+        return message;
     }
 }
