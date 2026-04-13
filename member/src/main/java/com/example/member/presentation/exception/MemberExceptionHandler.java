@@ -3,7 +3,11 @@ package com.example.member.presentation.exception;
 import com.example.member.common.exception.DuplicateActiveRestrictionException;
 import com.example.member.common.exception.DuplicateMemberReportException;
 import com.example.member.common.exception.DuplicateMemberEmailException;
+import com.example.member.common.exception.EmailVerificationNotAllowedException;
+import com.example.member.common.exception.EmailVerificationRequiredException;
+import com.example.member.common.exception.ExpiredEmailVerificationException;
 import com.example.member.common.exception.InvalidLoginException;
+import com.example.member.common.exception.InvalidEmailVerificationTokenException;
 import com.example.member.common.exception.MemberNotFoundException;
 import com.example.member.common.exception.MemberReportNotFoundException;
 import com.example.member.common.exception.MemberRestrictedException;
@@ -54,6 +58,38 @@ public class MemberExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleInvalidLogin(InvalidLoginException exception) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(ApiResponse.fail("INVALID_LOGIN", exception.getMessage()));
+    }
+
+    @ExceptionHandler(EmailVerificationRequiredException.class)
+    public ResponseEntity<ApiResponse<Object>> handleEmailVerificationRequired(
+            EmailVerificationRequiredException exception
+    ) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.fail("EMAIL_VERIFICATION_REQUIRED", exception.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidEmailVerificationTokenException.class)
+    public ResponseEntity<ApiResponse<Object>> handleInvalidEmailVerificationToken(
+            InvalidEmailVerificationTokenException exception
+    ) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.fail("EMAIL_VERIFICATION_TOKEN_INVALID", exception.getMessage()));
+    }
+
+    @ExceptionHandler(ExpiredEmailVerificationException.class)
+    public ResponseEntity<ApiResponse<Object>> handleExpiredEmailVerification(
+            ExpiredEmailVerificationException exception
+    ) {
+        return ResponseEntity.status(HttpStatus.GONE)
+                .body(ApiResponse.fail("EMAIL_VERIFICATION_TOKEN_EXPIRED", exception.getMessage()));
+    }
+
+    @ExceptionHandler(EmailVerificationNotAllowedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleEmailVerificationNotAllowed(
+            EmailVerificationNotAllowedException exception
+    ) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.fail("EMAIL_VERIFICATION_NOT_ALLOWED", exception.getMessage()));
     }
 
     @ExceptionHandler(MemberRestrictedException.class)
