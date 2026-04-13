@@ -3,6 +3,7 @@ package com.example.member.presentation.exception;
 import com.example.member.common.exception.DuplicateActiveRestrictionException;
 import com.example.member.common.exception.DuplicateMemberReportException;
 import com.example.member.common.exception.DuplicateMemberEmailException;
+import com.example.member.common.exception.EmailSendFailedException;
 import com.example.member.common.exception.EmailVerificationNotAllowedException;
 import com.example.member.common.exception.EmailVerificationRequiredException;
 import com.example.member.common.exception.ExpiredEmailVerificationException;
@@ -90,6 +91,12 @@ public class MemberExceptionHandler {
     ) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(ApiResponse.fail("EMAIL_VERIFICATION_NOT_ALLOWED", exception.getMessage()));
+    }
+
+    @ExceptionHandler(EmailSendFailedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleEmailSendFailed(EmailSendFailedException exception) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(ApiResponse.fail("EMAIL_SEND_FAILED", exception.getMessage()));
     }
 
     @ExceptionHandler(MemberRestrictedException.class)

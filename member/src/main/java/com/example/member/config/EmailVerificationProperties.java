@@ -6,14 +6,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "member.email-verification")
 public record EmailVerificationProperties(
         Duration expiration,
-        String frontendConfirmUrl,
-        String fromAddress
+        String frontendConfirmUrl
 ) {
 
     public EmailVerificationProperties {
         expiration = expiration == null ? Duration.ofHours(24) : expiration;
         frontendConfirmUrl = normalize(frontendConfirmUrl, "http://localhost:3000/email-verification");
-        fromAddress = normalize(fromAddress, "no-reply@todaylunch.local");
     }
 
     private static String normalize(String value, String defaultValue) {
