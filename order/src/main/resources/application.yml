@@ -29,7 +29,6 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
-      notify-keyspace-events: Ex  # 만료 이벤트 알림 활성화
 
   # --- Kafka 설정 (로컬 기본값) ---
   kafka:
