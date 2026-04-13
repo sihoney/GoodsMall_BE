@@ -1,48 +1,50 @@
-# Member Enum Spec
+﻿# Member Enum Spec
 
-## 도메인 Enum
+## Member Enum
 
 ### `MemberStatus`
-| 값 | 의미 |
+| 값 | 설명 |
 | --- | --- |
+| `PENDING_VERIFICATION` | 이메일 또는 휴대폰 인증 전인 회원 |
 | `ACTIVE` | 정상 활동 가능 회원 |
-| `SUSPENDED` | 운영 정책에 의해 제한된 회원 |
-| `DELETED` | 탈퇴 또는 비활성 처리된 회원 |
+| `SUSPENDED` | 운영 정책에 의해 이용이 정지된 회원 |
+| `WITHDRAWN` | 회원 탈퇴가 확정된 회원 |
+| `DELETED` | 개인정보 삭제 또는 비식별 처리까지 완료된 회원 |
 
 ### `ReportStatus`
-| 값 | 의미 |
+| 값 | 설명 |
 | --- | --- |
 | `PENDING` | 검토 대기 |
 | `APPROVED` | 신고 승인 완료 |
 | `REJECTED` | 신고 반려 완료 |
 
 ### `ReportType`
-| 값 | 의미 |
+| 값 | 설명 |
 | --- | --- |
-| `ABUSE` | 폭언, 괴롭힘 |
-| `FRAUD` | 사기성 행위 |
-| `SPAM` | 스팸, 반복성 행위 |
+| `ABUSE` | 욕설, 괴롭힘 등 |
+| `FRAUD` | 사기, 허위 거래 등 |
+| `SPAM` | 스팸, 반복적 홍보 등 |
 | `ETC` | 기타 사유 |
 
 ### `RestrictionType`
-| 값 | 의미 |
+| 값 | 설명 |
 | --- | --- |
 | `TRADE_BAN` | 거래 기능 제한 |
 | `LOGIN_BAN` | 로그인 제한 |
 | `CHAT_BAN` | 채팅 제한 |
 
-## 외부 공통 Enum 의존
+## External Shared Enum
 
 ### `MemberRole`
-소스는 공통 보안 모듈에 있으며, member 모듈에서 주요하게 사용하는 값은 아래와 같다.
+공통 보안 모듈에 정의되어 있으며 member 모듈에서도 주요하게 사용한다.
 
-| 값 | 의미 |
+| 값 | 설명 |
 | --- | --- |
 | `USER` | 일반 회원 |
 | `SELLER` | 판매자 권한 보유 회원 |
 | `ADMIN` | 관리자 |
 
-## 사용 지점
+## Usage
 - `Member.status` -> `MemberStatus`
 - `Member.role` -> `MemberRole`
 - `MemberReport.reportType`, `CreateMemberReportRequest.reportType` -> `ReportType`

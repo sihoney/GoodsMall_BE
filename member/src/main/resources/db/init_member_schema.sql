@@ -9,7 +9,9 @@ CREATE TABLE IF NOT EXISTS member_service.member (
     role VARCHAR(30) NOT NULL,
     status VARCHAR(30) NOT NULL,
     created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL
+    updated_at TIMESTAMP NOT NULL,
+    CONSTRAINT ck_member_status
+        CHECK (status IN ('PENDING_VERIFICATION', 'ACTIVE', 'SUSPENDED', 'WITHDRAWN', 'DELETED'))
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS uk_member_email

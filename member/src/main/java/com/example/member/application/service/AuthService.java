@@ -44,6 +44,7 @@ public class AuthService implements AuthUsecase {
         }
 
         // TODO: 이메일 인증 구현 후 미인증 계정의 로그인 차단 정책을 반영한다.
+        validateActiveMember(member);
         validateLoginRestriction(member);
 
         String accessToken = jwtTokenProvider.createAccessToken(member);
@@ -86,6 +87,7 @@ public class AuthService implements AuthUsecase {
 
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(InvalidTokenException::new);
+        validateActiveMember(member);
 
         return new TokenRefreshResponse(
                 jwtTokenProvider.createAccessToken(member),
@@ -127,6 +129,12 @@ public class AuthService implements AuthUsecase {
         );
         if (memberRestriction != null) {
             throw new MemberRestrictedException(memberRestriction.getEndAt());
+        }
+    }
+
+    private void validateActiveMember(Member member) {
+        if (!member.isActive()) {
+            throw new IllegalStateException("Only ACTIVE members can authenticate.");
         }
     }
 }

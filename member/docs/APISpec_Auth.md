@@ -56,7 +56,7 @@
     "address": "서울시 강남구",
     "profileImageUrl": "https://cdn.example.com/profiles/2026/04/user.png",
     "role": "USER",
-    "status": "ACTIVE",
+    "status": "PENDING_VERIFICATION",
     "createdAt": "2026-04-10T11:00:00",
     "updatedAt": "2026-04-10T11:00:00"
   },

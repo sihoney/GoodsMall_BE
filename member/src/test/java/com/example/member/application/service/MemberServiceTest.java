@@ -76,7 +76,7 @@ class MemberServiceTest {
         assertEquals("tester", savedMember.getNickname());
         assertEquals("members/profile/profile.png", savedMember.getProfileImageKey());
         assertEquals(MemberRole.USER, savedMember.getRole());
-        assertEquals(MemberStatus.ACTIVE, savedMember.getStatus());
+        assertEquals(MemberStatus.PENDING_VERIFICATION, savedMember.getStatus());
         assertEquals(savedMember.getMemberId(), response.memberId());
         assertEquals(savedMember.getNickname(), response.nickname());
         assertEquals("https://cdn.test/members/profile/profile.png", response.profileImageUrl());
