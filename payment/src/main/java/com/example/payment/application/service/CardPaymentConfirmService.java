@@ -1,7 +1,6 @@
 package com.example.payment.application.service;
 
 import com.example.payment.application.dto.CardPaymentConfirmCommand;
-import com.example.payment.application.dto.CardPaymentConfirmOrderItemCommand;
 import com.example.payment.application.dto.CardPaymentConfirmResult;
 import com.example.payment.application.dto.OrderPaymentValidationCommand;
 import com.example.payment.application.usecase.CardPaymentConfirmUseCase;
@@ -53,17 +52,17 @@ public class CardPaymentConfirmService implements CardPaymentConfirmUseCase {
 
         UUID transactionGroupId = identifierGenerator.generateUuid();
         var requestedAt = timeProvider.now();
-        List<CardTransaction> cardTransactions = command.orderItems().stream()
-                .map(orderItem -> CardTransaction.pendingPayment(
+        List<CardTransaction> cardTransactions = List.of(
+                CardTransaction.pendingPayment(
                         identifierGenerator.generateUuid(),
                         transactionGroupId,
-                        orderItem.orderItemId(),
+                        command.orderId(),
                         command.buyerId(),
                         command.orderId().toString(),
-                        orderItem.amount(),
+                        command.amount(),
                         requestedAt
-                ))
-                .toList();
+                )
+        );
 
         cardTransactionRepository.saveAll(cardTransactions);
 
@@ -126,27 +125,7 @@ public class CardPaymentConfirmService implements CardPaymentConfirmUseCase {
         if (command.amount() == null || command.amount() <= 0) {
             throw new InvalidCardPaymentRequestException("amount must be positive.");
         }
-        if (command.orderItems() == null || command.orderItems().isEmpty()) {
-            throw new InvalidCardPaymentRequestException("orderItems must not be empty.");
-        }
 
-        long itemTotalAmount = 0L;
-        for (CardPaymentConfirmOrderItemCommand orderItem : command.orderItems()) {
-            if (orderItem == null) {
-                throw new InvalidCardPaymentRequestException("orderItems must not contain null.");
-            }
-            if (orderItem.orderItemId() == null) {
-                throw new InvalidCardPaymentRequestException("orderItemId is required.");
-            }
-            if (orderItem.amount() == null || orderItem.amount() <= 0) {
-                throw new InvalidCardPaymentRequestException("order item amount must be positive.");
-            }
-            itemTotalAmount += orderItem.amount();
-        }
-
-        if (!Objects.equals(command.amount(), itemTotalAmount)) {
-            throw new InvalidCardPaymentRequestException("sum of order item amounts must equal amount.");
-        }
     }
 
     private void validateOrderPayment(CardPaymentConfirmCommand command) {
