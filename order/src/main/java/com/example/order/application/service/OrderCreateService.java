@@ -1,44 +1,32 @@
 package com.example.order.application.service;
 
-import com.example.order.application.port.PaymentPort;
-import com.example.order.domain.enumtype.OrderEventType;
-import com.example.order.domain.enumtype.PaymentStatus;
-import com.example.order.infrastructure.kafka.event.OrderCreatedEvent;
-import com.example.order.application.port.ProductPort;
+import com.example.order.application.port.PaymentResult;
 import com.example.order.application.port.ProductPort.ProductInfo;
+import com.example.order.application.processor.PaymentProcessor;
+import com.example.order.application.processor.ProductProcessor;
 import com.example.order.application.usecase.OrderCreateUseCase;
 import com.example.order.common.exception.CustomException;
 import com.example.order.common.exception.ErrorCode;
 import com.example.order.domain.entity.Order;
-import com.example.order.domain.enumtype.ProductOrderStatus;
 import com.example.order.domain.repository.OrderRepository;
 import com.example.order.infrastructure.client.dto.request.ProductRequest;
-import com.example.order.infrastructure.kafka.producer.OrderEventProducer;
 import com.example.order.presentation.dto.request.OrderCreateRequest;
 import com.example.order.presentation.dto.response.OrderCreateResponse;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class OrderCreateService implements OrderCreateUseCase {
 
     private final OrderRepository orderRepository;
-    private final ProductPort productPort;
-    private final OrderEventProducer orderEventProducer;
-    private final PaymentPort paymentPort;
+    private final ProductProcessor productProcessor;
+    private final PaymentProcessor paymentProcessor;
     private final DeliveryCreateService deliveryCreateService;
 
     /**
@@ -61,31 +49,14 @@ public class OrderCreateService implements OrderCreateUseCase {
         }
 
         List<ProductRequest> productRequests = request.orderItemRequest().stream()
-                .map(item -> new ProductRequest(
-                        item.productId(),
-                        item.quantity()
-                ))
+                .map(item -> new ProductRequest(item.productId(), item.quantity()))
                 .toList();
 
-        Set<UUID> productIds = productRequests.stream()
-                .map(ProductRequest::productId)
-                .collect(Collectors.toSet());
+        productProcessor.validateDuplicate(productRequests);
+        Map<UUID, ProductInfo> productMap = productProcessor.deductStock(productRequests);
+        productProcessor.validateStatus(productMap, request);
 
-        if (productIds.size() != productRequests.size()) {
-            throw new CustomException(ErrorCode.DUPLICATE_PRODUCT_REQUEST);
-        }
-
-        List<ProductInfo> products = productPort.checkAvailability(productRequests);
-
-        if (products.size() != productIds.size()) {
-            throw new CustomException(ErrorCode.PRODUCT_NOT_FOUND);
-        }
-
-        Map<UUID, ProductInfo> productMap = products.stream()
-                .collect(Collectors.toMap(ProductInfo::productId, p -> p));
-
-        UUID firstProductId = productRequests.get(0).productId();
-        ProductInfo firstProduct = productMap.get(firstProductId);
+        ProductInfo firstProduct = productMap.get(productRequests.getFirst().productId());
 
         Order order = Order.create(
                 memberId,
@@ -96,18 +67,10 @@ public class OrderCreateService implements OrderCreateUseCase {
                 request.receiverPhone(),
                 firstProduct.name(),
                 firstProduct.thumbnailKeySnapshot(),
-                productIds.size());
+                productMap.size());
 
         request.orderItemRequest().forEach(item -> {
             ProductInfo product = productMap.get(item.productId());
-            ProductOrderStatus status = product.productOrderStatus();
-
-            if (status == ProductOrderStatus.INSUFFICIENT_STOCK) {
-                throw new CustomException(ErrorCode.INSUFFICIENT_STOCK);
-            } else if (status == ProductOrderStatus.NOT_FOR_SALE) {
-                throw new CustomException(ErrorCode.PRODUCT_NOT_ORDERABLE);
-            }
-
             order.addItem(
                     product.productId(),
                     product.sellerId(),
@@ -116,84 +79,13 @@ public class OrderCreateService implements OrderCreateUseCase {
                     item.quantity(),
                     product.thumbnailKeySnapshot());
         });
-
         orderRepository.save(order);
 
-        PaymentPort.PaymentResult paymentResult = paymentPort.requestPayment(toPaymentRequest(order));
-
-        validatePaymentResult(order, paymentResult);
-
+        PaymentResult paymentResult = paymentProcessor.process(order);
         order.confirm(paymentResult.paidAmount());
 
         deliveryCreateService.create(order);
 
         return OrderCreateResponse.from(order);
-    }
-
-    private void publishOrderCreatedEvent(Order order) {
-        OrderCreatedEvent event = new OrderCreatedEvent(
-                UUID.randomUUID(),
-                OrderEventType.ORDER_CREATED.name(),
-                order.getOrderId(),
-                order.getBuyerId(),
-                order.getTotalPrice(),
-                toInstant(order.getCreatedAt()),
-                Instant.now(),
-                order.getItems().stream()
-                        .map(item -> new OrderCreatedEvent.OrderLine(
-                                item.getOrderItemId(),
-                                item.getSellerId(),
-                                item.getUnitPriceSnapshot(),
-                                item.getQuantity(),
-                                item.getTotalPrice(item.getUnitPriceSnapshot(), item.getQuantity())
-                        ))
-                        .toList()
-        );
-
-        orderEventProducer.sendOrderCreated(event);
-    }
-
-    // 서울 시간 -> UTC 시간으로 변환
-    private Instant toInstant(LocalDateTime localDateTime) {
-        return localDateTime
-                .atZone(ZoneId.of("Asia/Seoul"))
-                .toInstant();
-    }
-
-    private PaymentPort.PaymentRequest toPaymentRequest(Order order) {
-        return new PaymentPort.PaymentRequest(
-                order.getOrderId(),
-                order.getBuyerId(),
-                order.getTotalPrice(),
-                Instant.now(),
-                order.getItems().stream()
-                        .map(item -> new PaymentPort.OrderLine(
-                                item.getOrderItemId(),
-                                item.getSellerId(),
-                                item.getUnitPriceSnapshot(),
-                                item.getQuantity(),
-                                item.getTotalPrice(item.getUnitPriceSnapshot(), item.getQuantity())
-                        ))
-                        .toList()
-        );
-    }
-
-    private void validatePaymentResult(Order order, PaymentPort.PaymentResult paymentResult) {
-        validatePaymentOrderId(order, paymentResult);
-        validatePaymentStatus(order, paymentResult);
-    }
-
-    private void validatePaymentOrderId(Order order, PaymentPort.PaymentResult paymentResult) {
-        if (!paymentResult.orderId().equals(order.getOrderId())) {
-            log.error("결제 응답 orderId 불일치. 요청={}, 응답={}", order.getOrderId(), paymentResult.orderId());
-            throw new CustomException(ErrorCode.PAYMENT_FAILED);
-        }
-    }
-
-    private void validatePaymentStatus(Order order, PaymentPort.PaymentResult paymentResult) {
-        if (paymentResult.status() != PaymentStatus.SUCCESS) {
-            log.warn("결제 실패 orderId={}, 실패 이유={}", order.getOrderId(), paymentResult.reasonCode());
-            throw new CustomException(ErrorCode.PAYMENT_FAILED);
-        }
     }
 }

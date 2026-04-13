@@ -1,6 +1,7 @@
 package com.example.order.infrastructure.client;
 
 import com.example.order.application.port.PaymentPort;
+import com.example.order.application.port.PaymentResult;
 import com.example.order.common.exception.CustomException;
 import com.example.order.common.exception.ErrorCode;
 import com.example.order.domain.enumtype.PaymentStatus;
