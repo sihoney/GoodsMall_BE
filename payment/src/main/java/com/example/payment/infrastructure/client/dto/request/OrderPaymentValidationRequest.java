@@ -4,6 +4,7 @@ import java.util.UUID;
 
 public record OrderPaymentValidationRequest(
         UUID orderId,
+        UUID buyerId,
         Long amount
 ) {
 }

@@ -1,8 +1,9 @@
 package com.example.payment.application.usecase;
 
 import com.example.payment.application.dto.OrderPaymentValidationCommand;
+import com.example.payment.domain.service.OrderPaymentValidationData;
 
 public interface OrderPaymentValidationUseCase {
 
-    boolean validateOrderPayment(OrderPaymentValidationCommand command);
+    OrderPaymentValidationData validateOrderPayment(OrderPaymentValidationCommand command);
 }

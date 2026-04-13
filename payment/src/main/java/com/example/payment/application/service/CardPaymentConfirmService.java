@@ -11,6 +11,8 @@ import com.example.payment.domain.entity.CardTransaction;
 import com.example.payment.domain.enumtype.CardTransactionStatus;
 import com.example.payment.domain.repository.CardTransactionRepository;
 import com.example.payment.domain.service.IdentifierGenerator;
+import com.example.payment.domain.service.OrderPaymentValidationData;
+import com.example.payment.domain.service.OrderPaymentValidationItemData;
 import com.example.payment.domain.service.TimeProvider;
 import com.example.payment.domain.service.TossPaymentGateway;
 import java.util.List;
@@ -48,20 +50,15 @@ public class CardPaymentConfirmService implements CardPaymentConfirmUseCase {
     @Override
     public CardPaymentConfirmResult confirmCardPayment(CardPaymentConfirmCommand command) {
         validateCommand(command);
-        validateOrderPayment(command);
+        OrderPaymentValidationData validationData = validateOrderPayment(command);
 
         UUID transactionGroupId = identifierGenerator.generateUuid();
         var requestedAt = timeProvider.now();
-        List<CardTransaction> cardTransactions = List.of(
-                CardTransaction.pendingPayment(
-                        identifierGenerator.generateUuid(),
-                        transactionGroupId,
-                        command.orderId(),
-                        command.buyerId(),
-                        command.orderId().toString(),
-                        command.amount(),
-                        requestedAt
-                )
+        List<CardTransaction> cardTransactions = createPendingTransactions(
+                command,
+                validationData.orderItems(),
+                transactionGroupId,
+                requestedAt
         );
 
         cardTransactionRepository.saveAll(cardTransactions);
@@ -128,14 +125,59 @@ public class CardPaymentConfirmService implements CardPaymentConfirmUseCase {
 
     }
 
-    private void validateOrderPayment(CardPaymentConfirmCommand command) {
-        boolean valid = orderPaymentValidationUseCase.validateOrderPayment(
-                new OrderPaymentValidationCommand(command.orderId(), command.amount())
+    private OrderPaymentValidationData validateOrderPayment(CardPaymentConfirmCommand command) {
+        OrderPaymentValidationData validationData = orderPaymentValidationUseCase.validateOrderPayment(
+                new OrderPaymentValidationCommand(command.orderId(), command.buyerId(), command.amount())
         );
-        if (!valid) {
-            throw new InvalidCardPaymentRequestException("order payment validation failed.");
+        if (validationData == null || validationData.orderItems() == null || validationData.orderItems().isEmpty()) {
+            throw new InvalidCardPaymentRequestException("order validation orderItems must not be empty.");
         }
-        // TODO: order 서비스 계약 확정 후 buyerId, orderItems, 주문 상태(PENDING 여부)까지 함께 검증한다.
+
+        long orderItemsTotalAmount = getOrderItemsTotalAmount(validationData);
+
+        if (!Objects.equals(orderItemsTotalAmount, command.amount())) {
+            throw new InvalidCardPaymentRequestException("order validation lineAmount total must equal amount.");
+        }
+        return validationData;
+    }
+
+    private static long getOrderItemsTotalAmount(OrderPaymentValidationData validationData) {
+        long orderItemsTotalAmount = 0L;
+        for (OrderPaymentValidationItemData orderItem : validationData.orderItems()) {
+            if (orderItem == null) {
+                throw new InvalidCardPaymentRequestException("order validation orderItems must not contain null.");
+            }
+            if (orderItem.orderItemId() == null) {
+                throw new InvalidCardPaymentRequestException("order validation orderItemId is required.");
+            }
+            if (orderItem.sellerId() == null) {
+                throw new InvalidCardPaymentRequestException("order validation sellerId is required.");
+            }
+            if (orderItem.lineAmount() == null || orderItem.lineAmount() <= 0) {
+                throw new InvalidCardPaymentRequestException("order validation lineAmount must be positive.");
+            }
+            orderItemsTotalAmount += orderItem.lineAmount();
+        }
+        return orderItemsTotalAmount;
+    }
+
+    private List<CardTransaction> createPendingTransactions(
+            CardPaymentConfirmCommand command,
+            List<OrderPaymentValidationItemData> orderItems,
+            UUID transactionGroupId,
+            java.time.LocalDateTime requestedAt
+    ) {
+        return orderItems.stream()
+                .map(orderItem -> CardTransaction.pendingPayment(
+                        identifierGenerator.generateUuid(),
+                        transactionGroupId,
+                        orderItem.orderItemId(),
+                        command.buyerId(),
+                        command.orderId().toString(),
+                        orderItem.lineAmount(),
+                        requestedAt
+                ))
+                .toList();
     }
 
     private void validateConfirmation(
