@@ -29,9 +29,11 @@ import com.example.payment.domain.service.TimeProvider;
 import com.example.payment.domain.service.TossPaymentGateway;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -160,8 +162,13 @@ public class PaymentRefundService implements PaymentRefundUseCase {
         if (command.items() == null || command.items().isEmpty()) {
             throw new InvalidOrderPaymentRequestException("refund items must not be empty.");
         }
+
+        Set<UUID> seenOrderItemIds = new HashSet<>();
         for (PaymentRefundItemCommand item : command.items()) {
             validateRefundItemCommand(item);
+            if (!seenOrderItemIds.add(item.orderItemId())) {
+                throw new InvalidOrderPaymentRequestException("orderItemId must be unique in refund items.");
+            }
         }
     }
 
