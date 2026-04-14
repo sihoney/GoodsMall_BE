@@ -20,7 +20,7 @@ public class SmtpEmailSender implements EmailSender {
     private final EmailProperties emailProperties;
 
     @Override
-    public void send(String to, String subject, String body) {
+    public void send(String to, String subject, String body, boolean html) {
         try {
             MimeMessage mimeMessage = javaMailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(
@@ -30,10 +30,10 @@ public class SmtpEmailSender implements EmailSender {
             );
             helper.setTo(to);
             helper.setSubject(subject);
-            helper.setText(body, false);
+            helper.setText(body, html);
             helper.setFrom(emailProperties.fromAddress(), emailProperties.fromName());
             javaMailSender.send(mimeMessage);
-            log.info("Email sent via SMTP. to={}, subject={}", to, subject);
+            log.info("Email sent via SMTP. to={}, subject={}, html={}", to, subject, html);
         } catch (MessagingException | UnsupportedEncodingException | MailException ex) {
             log.error("Failed to send email via SMTP. to={}, subject={}", to, subject, ex);
             throw new EmailSendFailedException("Failed to send email via SMTP.", ex);
