@@ -146,7 +146,7 @@ class EscrowReleaseServiceTest {
 
         @Test
         @DisplayName("이미 REFUNDED 상태면 IllegalStateException을 발생시킨다")
-        void releaseEscrow_refunded_throwsException() {
+        void releaseEscrow_refunded_returnsExistingResult() {
             EscrowReleaseCommand command = new EscrowReleaseCommand(orderId, sellerMemberId, ConfirmationType.MANUAL);
             Escrow escrow = Escrow.createHeld(
                     escrowId, orderId, buyerMemberId, sellerMemberId, 10_000L, now.plusDays(7), now.minusDays(1)
@@ -154,11 +154,14 @@ class EscrowReleaseServiceTest {
             escrow.applyRefundAmount(10_000L, now.minusHours(1), now.minusHours(1));
 
             given(escrowRepository.findAllByOrderIdAndSellerMemberId(orderId, sellerMemberId)).willReturn(List.of(escrow));
+            given(timeProvider.now()).willReturn(now);
 
-            assertThatThrownBy(() -> escrowReleaseService.releaseEscrow(command))
-                    .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("not releasable");
+            EscrowReleaseResult result = escrowReleaseService.releaseEscrow(command);
 
+            assertThat(result.orderId()).isEqualTo(orderId);
+            assertThat(result.releasedAmount()).isZero();
+            assertThat(result.escrowStatus()).isEqualTo(EscrowStatus.REFUNDED);
+            verify(escrowRepository, never()).save(any(Escrow.class));
             verify(settlementCandidateCreatedEventPublisher, never()).publish(any());
             verify(autoPurchaseConfirmedEventPublisher, never()).publish(any());
         }
