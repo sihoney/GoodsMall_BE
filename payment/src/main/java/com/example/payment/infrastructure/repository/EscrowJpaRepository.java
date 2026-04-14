@@ -1,10 +1,10 @@
 package com.example.payment.infrastructure.repository;
 
 import com.example.payment.domain.entity.Escrow;
+import com.example.payment.domain.enumtype.EscrowReferenceType;
 import com.example.payment.domain.enumtype.EscrowStatus;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,7 +18,9 @@ public interface EscrowJpaRepository extends JpaRepository<Escrow, UUID> {
 
     List<Escrow> findAllByOrderId(UUID orderId);
 
-    Optional<Escrow> findByOrderIdAndSellerMemberId(UUID orderId, UUID sellerMemberId);
+    List<Escrow> findAllByOrderIdAndSellerMemberId(UUID orderId, UUID sellerMemberId);
+
+    List<Escrow> findAllByReferenceTypeAndReferenceIdIn(EscrowReferenceType referenceType, List<UUID> referenceIds);
 
     List<Escrow> findByEscrowStatusAndReleaseAtLessThanEqual(EscrowStatus escrowStatus, LocalDateTime releaseAt);
 
