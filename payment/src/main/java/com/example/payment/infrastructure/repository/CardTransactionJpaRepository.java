@@ -25,4 +25,17 @@ public interface CardTransactionJpaRepository extends JpaRepository<CardTransact
             @Param("transactionType") CardTransactionType transactionType,
             @Param("transactionStatus") CardTransactionStatus transactionStatus
     );
+
+    @Query("""
+            select cardTransaction
+            from CardTransaction cardTransaction
+            where cardTransaction.relatedTransactionId in :relatedTransactionIds
+              and cardTransaction.transactionType = :transactionType
+              and cardTransaction.transactionStatus = :transactionStatus
+            """)
+    List<CardTransaction> findSuccessfulCancelsByRelatedTransactionIds(
+            @Param("relatedTransactionIds") List<UUID> relatedTransactionIds,
+            @Param("transactionType") CardTransactionType transactionType,
+            @Param("transactionStatus") CardTransactionStatus transactionStatus
+    );
 }

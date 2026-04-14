@@ -402,6 +402,11 @@ public class PaymentRefundService implements PaymentRefundUseCase {
             Map<UUID, CardTransaction> originalPaymentMap,
             Long cancellationAmount
     ) {
+        Map<UUID, Long> remainingAmountByOrderItemId = validateAndResolveRemainingAmounts(
+                cardRefundItems,
+                originalPaymentMap
+        );
+
         String paymentKey = resolveCardPaymentKey(originalPayments);
         TossPaymentGateway.TossPaymentCancellation cancellation = tossPaymentGateway.cancel(
                 paymentKey,
@@ -422,12 +427,94 @@ public class PaymentRefundService implements PaymentRefundUseCase {
                         cancelTransactionGroupId,
                         originalPaymentMap.get(itemCommand.orderItemId()),
                         itemCommand.refundAmount(),
+                        remainingAmountByOrderItemId.get(itemCommand.orderItemId()),
                         cancelScope,
                         paymentRefund.getRefundReason(),
                         canceledAt
                 ))
                 .toList();
         cardTransactionRepository.saveAll(cancelTransactions);
+    }
+
+    private Map<UUID, Long> validateAndResolveRemainingAmounts(
+            List<PaymentRefundItemCommand> cardRefundItems,
+            Map<UUID, CardTransaction> originalPaymentMap
+    ) {
+        List<UUID> originalTransactionIds = originalPaymentMap.values().stream()
+                .map(CardTransaction::getCardTransactionId)
+                .distinct()
+                .toList();
+
+        List<CardTransaction> successfulCancels = cardTransactionRepository.findSuccessfulCancelsByRelatedTransactionIds(
+                originalTransactionIds
+        );
+        Map<UUID, Long> remainingAmountByOriginalTransactionId = resolveRemainingAmountByOriginalTransactionId(
+                originalPaymentMap,
+                successfulCancels
+        );
+
+        Map<UUID, Long> remainingAmountByOrderItemId = new HashMap<>();
+        for (PaymentRefundItemCommand cardRefundItem : cardRefundItems) {
+            CardTransaction originalPayment = Objects.requireNonNull(originalPaymentMap.get(cardRefundItem.orderItemId()));
+            UUID originalTransactionId = originalPayment.getCardTransactionId();
+            Long currentRemainingAmount = remainingAmountByOriginalTransactionId.get(originalTransactionId);
+            if (currentRemainingAmount == null) {
+                throw new InvalidOrderPaymentRequestException("remaining card amount not found for orderItemId: " + cardRefundItem.orderItemId());
+            }
+            if (cardRefundItem.refundAmount() > currentRemainingAmount) {
+                throw new InvalidOrderPaymentRequestException("card refund amount exceeds remaining amount for orderItemId: " + cardRefundItem.orderItemId());
+            }
+
+            long nextRemainingAmount = currentRemainingAmount - cardRefundItem.refundAmount();
+            remainingAmountByOriginalTransactionId.put(originalTransactionId, nextRemainingAmount);
+            remainingAmountByOrderItemId.put(cardRefundItem.orderItemId(), nextRemainingAmount);
+        }
+        return remainingAmountByOrderItemId;
+    }
+
+    private Map<UUID, Long> resolveRemainingAmountByOriginalTransactionId(
+            Map<UUID, CardTransaction> originalPaymentMap,
+            List<CardTransaction> successfulCancels
+    ) {
+        Map<UUID, Long> canceledAmountByOriginalTransactionId = new HashMap<>();
+        for (CardTransaction successfulCancel : successfulCancels) {
+            UUID originalTransactionId = successfulCancel.getRelatedTransactionId();
+            if (originalTransactionId == null) {
+                continue;
+            }
+            canceledAmountByOriginalTransactionId.merge(
+                    originalTransactionId,
+                    resolveApprovedAmount(successfulCancel),
+                    Long::sum
+            );
+        }
+
+        Map<UUID, Long> remainingAmountByOriginalTransactionId = new HashMap<>();
+        for (CardTransaction originalPayment : originalPaymentMap.values()) {
+            long originalApprovedAmount = resolveApprovedAmount(originalPayment);
+            long canceledAmount = canceledAmountByOriginalTransactionId.getOrDefault(
+                    originalPayment.getCardTransactionId(),
+                    0L
+            );
+            long remainingAmount = originalApprovedAmount - canceledAmount;
+            if (remainingAmount < 0L) {
+                throw new InvalidOrderPaymentRequestException("remaining card amount is invalid for orderItemId: " + originalPayment.getReferenceId());
+            }
+            remainingAmountByOriginalTransactionId.put(originalPayment.getCardTransactionId(), remainingAmount);
+        }
+        return remainingAmountByOriginalTransactionId;
+    }
+
+    private Long resolveApprovedAmount(CardTransaction cardTransaction) {
+        Long approvedAmount = cardTransaction.getApprovedAmount();
+        if (approvedAmount != null && approvedAmount > 0L) {
+            return approvedAmount;
+        }
+        Long requestedAmount = cardTransaction.getRequestedAmount();
+        if (requestedAmount != null && requestedAmount > 0L) {
+            return requestedAmount;
+        }
+        throw new InvalidOrderPaymentRequestException("card transaction amount is invalid.");
     }
 
     private Map<UUID, CardTransaction> mapOriginalPaymentsByOrderItemId(List<CardTransaction> originalPayments) {
@@ -480,6 +567,7 @@ public class PaymentRefundService implements PaymentRefundUseCase {
             UUID cancelTransactionGroupId,
             CardTransaction originalPayment,
             Long cancelAmount,
+            Long remainingAmount,
             CardTransactionCancelScope cancelScope,
             String cancelReason,
             LocalDateTime canceledAt
@@ -500,7 +588,7 @@ public class PaymentRefundService implements PaymentRefundUseCase {
         cancelTransaction.approve(
                 Objects.requireNonNull(originalPayment.getPgPaymentKey()),
                 cancelAmount,
-                0L,
+                remainingAmount,
                 canceledAt
         );
         return cancelTransaction;
