@@ -30,7 +30,6 @@ CREATE TABLE IF NOT EXISTS payment.payment_refund_item (
     refund_item_id     UUID         NOT NULL,
     refund_id          UUID         NOT NULL,
     order_item_id      UUID         NOT NULL,
-    refund_quantity    INTEGER      NOT NULL,
     refund_amount      BIGINT       NOT NULL,
     status             VARCHAR(30)  NOT NULL,
     failure_reason     VARCHAR(255),
@@ -40,7 +39,6 @@ CREATE TABLE IF NOT EXISTS payment.payment_refund_item (
     CONSTRAINT fk_payment_refund_item_refund_id
         FOREIGN KEY (refund_id) REFERENCES payment.payment_refund (refund_id),
     CONSTRAINT uq_payment_refund_item_refund_order_item UNIQUE (refund_id, order_item_id),
-    CONSTRAINT chk_payment_refund_item_quantity_positive CHECK (refund_quantity > 0),
     CONSTRAINT chk_payment_refund_item_amount_positive CHECK (refund_amount > 0)
 );
 

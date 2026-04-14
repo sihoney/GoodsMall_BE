@@ -30,9 +30,6 @@ public class PaymentRefundItem {
     @Column(name = "order_item_id", nullable = false, updatable = false)
     private UUID orderItemId;
 
-    @Column(name = "refund_quantity", nullable = false, updatable = false)
-    private Integer refundQuantity;
-
     @Column(name = "refund_amount", nullable = false, updatable = false)
     private Long refundAmount;
 
@@ -53,7 +50,6 @@ public class PaymentRefundItem {
             UUID refundItemId,
             UUID refundId,
             UUID orderItemId,
-            Integer refundQuantity,
             Long refundAmount,
             PaymentRefundItemStatus status,
             String failureReason,
@@ -63,7 +59,6 @@ public class PaymentRefundItem {
         this.refundItemId = Objects.requireNonNull(refundItemId);
         this.refundId = Objects.requireNonNull(refundId);
         this.orderItemId = Objects.requireNonNull(orderItemId);
-        this.refundQuantity = validatePositiveQuantity(refundQuantity);
         this.refundAmount = validatePositiveAmount(refundAmount);
         this.status = Objects.requireNonNull(status);
         this.failureReason = failureReason;
@@ -75,7 +70,6 @@ public class PaymentRefundItem {
             UUID refundItemId,
             UUID refundId,
             UUID orderItemId,
-            Integer refundQuantity,
             Long refundAmount,
             LocalDateTime requestedAt
     ) {
@@ -84,7 +78,6 @@ public class PaymentRefundItem {
                 refundItemId,
                 refundId,
                 orderItemId,
-                refundQuantity,
                 refundAmount,
                 PaymentRefundItemStatus.REQUESTED,
                 null,
@@ -112,14 +105,6 @@ public class PaymentRefundItem {
         this.status = PaymentRefundItemStatus.FAILED;
         this.failureReason = Objects.requireNonNull(failureReason);
         this.updatedAt = Objects.requireNonNull(updatedAt);
-    }
-
-    private static Integer validatePositiveQuantity(Integer quantity) {
-        Objects.requireNonNull(quantity);
-        if (quantity <= 0) {
-            throw new IllegalArgumentException("Refund quantity must be positive.");
-        }
-        return quantity;
     }
 
     private static Long validatePositiveAmount(Long amount) {
