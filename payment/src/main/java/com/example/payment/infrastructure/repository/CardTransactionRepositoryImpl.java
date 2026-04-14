@@ -1,6 +1,8 @@
 package com.example.payment.infrastructure.repository;
 
 import com.example.payment.domain.entity.CardTransaction;
+import com.example.payment.domain.enumtype.CardTransactionStatus;
+import com.example.payment.domain.enumtype.CardTransactionType;
 import com.example.payment.domain.repository.CardTransactionRepository;
 import java.util.List;
 import java.util.Optional;
@@ -34,5 +36,14 @@ public class CardTransactionRepositoryImpl implements CardTransactionRepository 
     @Override
     public List<CardTransaction> findByTransactionGroupId(UUID transactionGroupId) {
         return cardTransactionJpaRepository.findByTransactionGroupId(transactionGroupId);
+    }
+
+    @Override
+    public List<CardTransaction> findSuccessfulPaymentsByOrderItemIds(List<UUID> orderItemIds) {
+        return cardTransactionJpaRepository.findSuccessfulPaymentsByOrderItemIds(
+                orderItemIds,
+                CardTransactionType.PAYMENT,
+                CardTransactionStatus.SUCCESS
+        );
     }
 }
