@@ -1,8 +1,8 @@
 package com.example.order.application.processor;
 
-import com.example.order.application.port.OrderLine;
 import com.example.order.application.port.PaymentPort;
 import com.example.order.application.port.PaymentRequest;
+import com.example.order.application.port.PaymentRequestOrderLine;
 import com.example.order.application.port.PaymentResult;
 import com.example.order.common.exception.CustomException;
 import com.example.order.common.exception.ErrorCode;
@@ -34,7 +34,7 @@ public class PaymentProcessor {
                 order.getTotalPrice(),
                 Instant.now(),
                 order.getItems().stream()
-                        .map(item -> new OrderLine(
+                        .map(item -> new PaymentRequestOrderLine(
                                 item.getOrderItemId(),
                                 item.getSellerId(),
                                 item.getUnitPriceSnapshot(),

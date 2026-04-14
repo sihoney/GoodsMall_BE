@@ -10,6 +10,6 @@ public record PaymentRequest(
         UUID buyerId,
         BigDecimal totalPrice,
         Instant requestedAt,
-        List<OrderLine> orderLines
+        List<PaymentRequestOrderLine> paymentRequestOrderLines
 ) {
 }

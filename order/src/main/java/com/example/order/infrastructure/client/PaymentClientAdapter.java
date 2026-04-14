@@ -36,7 +36,7 @@ public class PaymentClientAdapter implements PaymentPort {
                 request.buyerId(),
                 request.totalPrice(),
                 request.requestedAt(),
-                request.orderLines().stream()
+                request.paymentRequestOrderLines().stream()
                         .map(line -> new ExternalOrderLineRequest(
                                 line.orderItemId(),
                                 line.sellerId(),
