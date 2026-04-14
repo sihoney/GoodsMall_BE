@@ -14,6 +14,7 @@ import com.example.payment.domain.entity.PaymentRefundItem;
 import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.entity.WalletTransaction;
 import com.example.payment.domain.enumtype.CardTransactionCancelScope;
+import com.example.payment.domain.enumtype.EscrowReferenceType;
 import com.example.payment.domain.enumtype.PaymentRefundMethod;
 import com.example.payment.domain.enumtype.PaymentRefundType;
 import com.example.payment.domain.enumtype.WalletTransactionType;
@@ -208,7 +209,7 @@ public class PaymentRefundService implements PaymentRefundUseCase {
             List<PaymentRefundItemCommand> itemCommands
     ) {
         if (paymentRefund.getPaymentMethod() == PaymentRefundMethod.WALLET) {
-            executeWalletRefund(paymentRefund);
+            executeWalletRefund(paymentRefund, itemCommands);
             return;
         }
         if (paymentRefund.getPaymentMethod() == PaymentRefundMethod.CARD) {
@@ -221,7 +222,10 @@ public class PaymentRefundService implements PaymentRefundUseCase {
         throw new InvalidOrderPaymentRequestException("unsupported payment method.");
     }
 
-    private void executeWalletRefund(PaymentRefund paymentRefund) {
+    private void executeWalletRefund(
+            PaymentRefund paymentRefund,
+            List<PaymentRefundItemCommand> itemCommands
+    ) {
         LocalDateTime now = timeProvider.now();
         Wallet buyerWallet = walletRepository.findByMemberId(paymentRefund.getBuyerMemberId())
                 .orElseThrow(WalletNotFoundException::new);
@@ -242,30 +246,77 @@ public class PaymentRefundService implements PaymentRefundUseCase {
         );
         walletTransactionRepository.save(refundTransaction);
 
-        refundHeldEscrowsForWalletRefund(paymentRefund.getOrderId(), paymentRefund.getTotalRefundAmount(), now);
+        refundHeldEscrowsForWalletRefund(
+                paymentRefund.getOrderId(),
+                paymentRefund.getTotalRefundAmount(),
+                paymentRefund.getBuyerMemberId(),
+                itemCommands,
+                now
+        );
     }
 
-    private void refundHeldEscrowsForWalletRefund(UUID orderId, Long totalRefundAmount, LocalDateTime refundedAt) {
-        List<Escrow> heldEscrows = escrowRepository.findAllByOrderId(orderId).stream()
+    private void refundHeldEscrowsForWalletRefund(
+            UUID orderId,
+            Long totalRefundAmount,
+            UUID buyerMemberId,
+            List<PaymentRefundItemCommand> itemCommands,
+            LocalDateTime refundedAt
+    ) {
+        Map<UUID, Long> requestedRefundAmountByOrderItemId = toRequestedRefundAmountByOrderItemId(itemCommands);
+
+        List<Escrow> heldEscrows = escrowRepository.findAllByReferenceTypeAndReferenceIdIn(
+                EscrowReferenceType.ORDER_ITEM,
+                requestedRefundAmountByOrderItemId.keySet().stream().toList()
+        ).stream()
                 .filter(Escrow::isHeld)
                 .toList();
 
-        long totalHeldAmount = heldEscrows.stream()
-                .mapToLong(Escrow::getAmount)
-                .sum();
-
-        if (totalHeldAmount < totalRefundAmount) {
-            throw new InvalidOrderPaymentRequestException("held escrow amount is smaller than refund amount.");
-        }
-        if (totalHeldAmount != totalRefundAmount) {
-            // TODO: 부분 환불 시 seller별 escrow 분배 규칙 확정 후 부분 escrow 환불로 확장
-            throw new InvalidOrderPaymentRequestException("partial escrow refund distribution is not supported yet.");
+        if (heldEscrows.isEmpty()) {
+            throw new InvalidOrderPaymentRequestException("held escrow not found for refund.");
         }
 
-        for (Escrow heldEscrow : heldEscrows) {
-            heldEscrow.refund(refundedAt, refundedAt);
+        Map<UUID, Escrow> heldEscrowByOrderItemId = mapHeldEscrowsByOrderItemId(heldEscrows, buyerMemberId, orderId);
+        long appliedTotalRefundAmount = 0L;
+        for (Map.Entry<UUID, Long> requestedRefundAmountEntry : requestedRefundAmountByOrderItemId.entrySet()) {
+            Escrow heldEscrow = heldEscrowByOrderItemId.get(requestedRefundAmountEntry.getKey());
+            if (heldEscrow == null) {
+                throw new InvalidOrderPaymentRequestException(
+                        "held escrow not found for orderItemId: " + requestedRefundAmountEntry.getKey()
+                );
+            }
+            heldEscrow.applyRefundAmount(requestedRefundAmountEntry.getValue(), refundedAt, refundedAt);
             escrowRepository.save(heldEscrow);
+            appliedTotalRefundAmount += requestedRefundAmountEntry.getValue();
         }
+
+        if (appliedTotalRefundAmount != totalRefundAmount) {
+            throw new InvalidOrderPaymentRequestException("refunded escrow amount does not match total refund amount.");
+        }
+    }
+
+    private Map<UUID, Long> toRequestedRefundAmountByOrderItemId(List<PaymentRefundItemCommand> itemCommands) {
+        Map<UUID, Long> requestedRefundAmountByOrderItemId = new HashMap<>();
+        for (PaymentRefundItemCommand itemCommand : itemCommands) {
+            requestedRefundAmountByOrderItemId.merge(itemCommand.orderItemId(), itemCommand.refundAmount(), Long::sum);
+        }
+        return requestedRefundAmountByOrderItemId;
+    }
+
+    private Map<UUID, Escrow> mapHeldEscrowsByOrderItemId(List<Escrow> heldEscrows, UUID buyerMemberId, UUID orderId) {
+        Map<UUID, Escrow> heldEscrowByOrderItemId = new HashMap<>();
+        for (Escrow heldEscrow : heldEscrows) {
+            if (!heldEscrow.isOrderItemReference()) {
+                continue;
+            }
+            if (!Objects.equals(heldEscrow.getBuyerMemberId(), buyerMemberId)) {
+                throw new InvalidOrderPaymentRequestException("buyerMemberId does not match held escrow.");
+            }
+            if (!Objects.equals(heldEscrow.getOrderId(), orderId)) {
+                throw new InvalidOrderPaymentRequestException("orderId does not match held escrow.");
+            }
+            heldEscrowByOrderItemId.put(heldEscrow.getReferenceId(), heldEscrow);
+        }
+        return heldEscrowByOrderItemId;
     }
 
     private void executeCardRefund(PaymentRefund paymentRefund, List<PaymentRefundItemCommand> itemCommands) {
