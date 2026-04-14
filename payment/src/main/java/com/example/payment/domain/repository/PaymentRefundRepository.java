@@ -11,4 +11,6 @@ public interface PaymentRefundRepository {
     Optional<PaymentRefund> findByRefundId(UUID refundId);
 
     Optional<PaymentRefund> findByOrderCancelRequestId(UUID orderCancelRequestId);
+
+    Optional<PaymentRefund> findLatestByOrderId(UUID orderId);
 }

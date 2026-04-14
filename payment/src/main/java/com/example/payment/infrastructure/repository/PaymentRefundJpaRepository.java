@@ -8,4 +8,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface PaymentRefundJpaRepository extends JpaRepository<PaymentRefund, UUID> {
 
     Optional<PaymentRefund> findByOrderCancelRequestId(UUID orderCancelRequestId);
+
+    Optional<PaymentRefund> findFirstByOrderIdOrderByCreatedAtDesc(UUID orderId);
 }

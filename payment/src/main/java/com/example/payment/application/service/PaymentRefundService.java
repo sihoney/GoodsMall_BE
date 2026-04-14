@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -79,27 +80,28 @@ public class PaymentRefundService implements PaymentRefundUseCase {
     public PaymentRefundResult requestRefund(PaymentRefundCommand command) {
         validateRefundCommand(command);
 
-        PaymentRefund existingRefund = paymentRefundRepository.findByOrderCancelRequestId(command.orderCancelRequestId())
-                .orElse(null);
+        PaymentRefund existingRefund = findExistingRefundByRequestId(command.orderCancelRequestId());
         if (existingRefund != null) {
             return toPaymentRefundResult(existingRefund, paymentRefundItemRepository.findAllByRefundId(existingRefund.getRefundId()));
         }
 
+        // Serialize same-order refund attempts to avoid concurrent double processing.
+        escrowRepository.lockAllByOrderId(command.orderId());
+
+        existingRefund = findExistingRefundByRequestId(command.orderCancelRequestId());
+        if (existingRefund != null) {
+            return toPaymentRefundResult(existingRefund, paymentRefundItemRepository.findAllByRefundId(existingRefund.getRefundId()));
+        }
+        validateNoOtherRefundForOrder(command.orderId(), command.orderCancelRequestId());
+
         LocalDateTime refundRequestedAt = timeProvider.now();
         Long requestedTotalRefundAmount = calculateTotalRefundAmount(command.items());
 
-        PaymentRefund requestedRefund = PaymentRefund.createRequested(
-                identifierGenerator.generateUuid(),
-                command.orderCancelRequestId(),
-                command.orderId(),
-                command.buyerMemberId(),
-                command.refundType(),
-                command.paymentMethod(),
+        PaymentRefund savedRequestedRefund = saveRequestedRefund(
+                command,
                 requestedTotalRefundAmount,
-                command.reason(),
                 refundRequestedAt
         );
-        PaymentRefund savedRequestedRefund = paymentRefundRepository.save(requestedRefund);
 
         List<PaymentRefundItem> requestedRefundItems = createRequestedRefundItems(
                 savedRequestedRefund.getRefundId(),
@@ -177,6 +179,49 @@ public class PaymentRefundService implements PaymentRefundUseCase {
             if (!seenOrderItemIds.add(item.orderItemId())) {
                 throw new InvalidOrderPaymentRequestException("orderItemId must be unique in refund items.");
             }
+        }
+    }
+
+    private PaymentRefund findExistingRefundByRequestId(UUID orderCancelRequestId) {
+        return paymentRefundRepository.findByOrderCancelRequestId(orderCancelRequestId).orElse(null);
+    }
+
+    private void validateNoOtherRefundForOrder(UUID orderId, UUID currentOrderCancelRequestId) {
+        PaymentRefund latestRefund = paymentRefundRepository.findLatestByOrderId(orderId).orElse(null);
+        if (latestRefund == null) {
+            return;
+        }
+        if (Objects.equals(latestRefund.getOrderCancelRequestId(), currentOrderCancelRequestId)) {
+            return;
+        }
+        throw new InvalidOrderPaymentRequestException("refund for orderId is already processed and cannot be requested again.");
+    }
+
+    private PaymentRefund saveRequestedRefund(
+            PaymentRefundCommand command,
+            Long requestedTotalRefundAmount,
+            LocalDateTime refundRequestedAt
+    ) {
+        PaymentRefund requestedRefund = PaymentRefund.createRequested(
+                identifierGenerator.generateUuid(),
+                command.orderCancelRequestId(),
+                command.orderId(),
+                command.buyerMemberId(),
+                command.refundType(),
+                command.paymentMethod(),
+                requestedTotalRefundAmount,
+                command.reason(),
+                refundRequestedAt
+        );
+
+        try {
+            return paymentRefundRepository.save(requestedRefund);
+        } catch (DataIntegrityViolationException exception) {
+            PaymentRefund existingRefund = findExistingRefundByRequestId(command.orderCancelRequestId());
+            if (existingRefund != null) {
+                return existingRefund;
+            }
+            throw exception;
         }
     }
 

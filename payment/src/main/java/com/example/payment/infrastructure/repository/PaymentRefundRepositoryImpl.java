@@ -29,4 +29,9 @@ public class PaymentRefundRepositoryImpl implements PaymentRefundRepository {
     public Optional<PaymentRefund> findByOrderCancelRequestId(UUID orderCancelRequestId) {
         return paymentRefundJpaRepository.findByOrderCancelRequestId(orderCancelRequestId);
     }
+
+    @Override
+    public Optional<PaymentRefund> findLatestByOrderId(UUID orderId) {
+        return paymentRefundJpaRepository.findFirstByOrderIdOrderByCreatedAtDesc(orderId);
+    }
 }
