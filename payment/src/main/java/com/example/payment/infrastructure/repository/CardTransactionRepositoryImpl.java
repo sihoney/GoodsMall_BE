@@ -46,4 +46,13 @@ public class CardTransactionRepositoryImpl implements CardTransactionRepository 
                 CardTransactionStatus.SUCCESS
         );
     }
+
+    @Override
+    public List<CardTransaction> findSuccessfulCancelsByRelatedTransactionIds(List<UUID> relatedTransactionIds) {
+        return cardTransactionJpaRepository.findSuccessfulCancelsByRelatedTransactionIds(
+                relatedTransactionIds,
+                CardTransactionType.CANCEL,
+                CardTransactionStatus.SUCCESS
+        );
+    }
 }

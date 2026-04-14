@@ -51,6 +51,11 @@ public class EscrowRepositoryImpl implements EscrowRepository {
     }
 
     @Override
+    public List<Escrow> lockAllByOrderId(UUID orderId) {
+        return escrowJpaRepository.findWithLockByOrderId(orderId);
+    }
+
+    @Override
     public List<Escrow> findAllByReferenceTypeAndReferenceIdIn(EscrowReferenceType referenceType, List<UUID> referenceIds) {
         return escrowJpaRepository.findAllByReferenceTypeAndReferenceIdIn(referenceType, referenceIds);
     }

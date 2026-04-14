@@ -34,6 +34,8 @@ public interface EscrowRepository {
      */
     List<Escrow> findAllByOrderId(UUID orderId);
 
+    List<Escrow> lockAllByOrderId(UUID orderId);
+
     List<Escrow> findAllByReferenceTypeAndReferenceIdIn(EscrowReferenceType referenceType, List<UUID> referenceIds);
 
     List<Escrow> findReleaseTargets(LocalDateTime releaseAt);
