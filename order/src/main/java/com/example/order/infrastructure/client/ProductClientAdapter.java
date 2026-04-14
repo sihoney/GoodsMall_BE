@@ -18,9 +18,9 @@ public class ProductClientAdapter implements ProductPort {
     private final ProductClient productClient;
 
     @Override
-    public List<ProductInfo> checkAvailability(List<ProductRequest> productRequests) {
+    public List<ProductInfo> deductStock(List<ProductRequest> productRequests) {
         try {
-            List<ProductAvailabilityResponse> responses = productClient.checkAvailability(productRequests);
+            List<ProductAvailabilityResponse> responses = productClient.deductStock(productRequests);
             return responses.stream()
                     .map(res -> new ProductInfo(
                             res.productId(),

@@ -1,6 +1,8 @@
 package com.example.order.infrastructure.client;
 
 import com.example.order.application.port.PaymentPort;
+import com.example.order.application.port.PaymentRequest;
+import com.example.order.application.port.PaymentResult;
 import com.example.order.common.exception.CustomException;
 import com.example.order.common.exception.ErrorCode;
 import com.example.order.domain.enumtype.PaymentStatus;
@@ -17,7 +19,7 @@ public class PaymentClientAdapter implements PaymentPort {
     private final PaymentClient paymentClient;
 
     @Override
-    public PaymentResult requestPayment(PaymentPort.PaymentRequest request) {
+    public PaymentResult requestPayment(PaymentRequest request) {
         try {
             ExternalPaymentRequest externalRequest = toExternalRequest(request);
             PaymentResultResponse response = paymentClient.requestPayment(externalRequest);
@@ -28,13 +30,13 @@ public class PaymentClientAdapter implements PaymentPort {
         }
     }
 
-    private ExternalPaymentRequest toExternalRequest(PaymentPort.PaymentRequest request) {
+    private ExternalPaymentRequest toExternalRequest(PaymentRequest request) {
         return new ExternalPaymentRequest(
                 request.orderId(),
                 request.buyerId(),
                 request.totalPrice(),
                 request.requestedAt(),
-                request.orderLines().stream()
+                request.paymentRequestOrderLines().stream()
                         .map(line -> new ExternalOrderLineRequest(
                                 line.orderItemId(),
                                 line.sellerId(),

@@ -10,7 +10,7 @@ import java.util.UUID;
 
 public interface ProductPort {
 
-    List<ProductInfo> checkAvailability(List<ProductRequest> productRequests);
+    List<ProductInfo> deductStock(List<ProductRequest> productRequests);
 
     record ProductInfo(
             UUID productId,

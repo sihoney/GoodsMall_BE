@@ -3,9 +3,11 @@ package com.example.order.presentation.controller;
 import com.example.order.application.usecase.OrderCreateUseCase;
 import com.example.order.application.usecase.OrderSearchUseCase;
 import com.example.order.presentation.dto.request.OrderCreateRequest;
+import com.example.order.presentation.dto.request.PaymentValidationRequest;
 import com.example.order.presentation.dto.response.OrderCreateResponse;
 import com.example.order.presentation.dto.response.OrderDetailResponse;
 import com.example.order.presentation.dto.response.OrderSummaryResponse;
+import com.example.order.presentation.dto.response.PaymentValidationResponse;
 import com.todaylunch.common.security.auth.annotation.CurrentMember;
 import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
 import jakarta.validation.Valid;
@@ -32,13 +34,22 @@ public class OrderController {
     private final OrderCreateUseCase orderCreateUseCase;
     private final OrderSearchUseCase orderSearchUseCase;
 
-    @PostMapping
-    public ResponseEntity<OrderCreateResponse> createOrder(
+    @PostMapping("/deposit")
+    public ResponseEntity<OrderCreateResponse> createByDeposit(
             @CurrentMember AuthenticatedMember authenticatedMember,
             @Valid @RequestBody OrderCreateRequest request
     ) {
         UUID memberId = authenticatedMember.memberId();
-        return ResponseEntity.status(HttpStatus.CREATED).body(orderCreateUseCase.create(memberId, request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(orderCreateUseCase.createByDeposit(memberId, request));
+    }
+
+    @PostMapping("/pg")
+    public ResponseEntity<OrderCreateResponse> createByPg(
+            @CurrentMember AuthenticatedMember authenticatedMember,
+            @Valid @RequestBody OrderCreateRequest request
+    ) {
+        UUID memberId = authenticatedMember.memberId();
+        return ResponseEntity.ok(orderCreateUseCase.createByPg(memberId, request));
     }
 
     @GetMapping
@@ -57,5 +68,13 @@ public class OrderController {
     ) {
         UUID memberId = authenticatedMember.memberId();
         return ResponseEntity.ok(orderSearchUseCase.getOrderDetail(orderId, memberId));
+    }
+
+    @PostMapping("/{orderId}/payment-validation")
+    public ResponseEntity<PaymentValidationResponse> getPaymentValidation(
+            @PathVariable UUID orderId,
+            @Valid @RequestBody PaymentValidationRequest request
+    ) {
+        return ResponseEntity.ok(orderSearchUseCase.getPaymentValidation(orderId, request));
     }
 }

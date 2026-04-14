@@ -12,5 +12,5 @@ import java.util.List;
 public interface ProductClient {
 
     @PostMapping("/api/products/check-availability")
-    List<ProductAvailabilityResponse> checkAvailability(@RequestBody List<ProductRequest> productRequests);
+    List<ProductAvailabilityResponse> deductStock(@RequestBody List<ProductRequest> productRequests);
 }
