@@ -53,8 +53,9 @@ public class EmailVerificationService {
         EmailVerification saved = emailVerificationRepository.save(emailVerification);
         emailSender.send(
                 targetMember.getEmail(),
-                "[TodayLunch] Email verification",
-                buildSignupVerificationBody(targetMember.getEmail(), saved.getToken())
+                buildSignupVerificationSubject(),
+                buildSignupVerificationBody(targetMember.getEmail(), saved.getToken()),
+                true
         );
         return saved;
     }
@@ -138,20 +139,74 @@ public class EmailVerificationService {
         return member;
     }
 
+    private String buildSignupVerificationSubject() {
+        return "[TodayLunch] 이메일 인증을 완료해 주세요";
+    }
+
     private String buildSignupVerificationBody(String email, String token) {
+        String verificationUrl = "%s?token=%s".formatted(
+                emailVerificationProperties.frontendConfirmUrl(),
+                token
+        );
+        long expirationMinutes = emailVerificationProperties.expiration().toMinutes();
+
         return """
-                Hello,
+                <!DOCTYPE html>
+                <html lang="ko">
+                <head>
+                    <meta charset="UTF-8" />
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                    <title>TodayLunch 이메일 인증</title>
+                </head>
+                <body style="margin:0; padding:0; background-color:#f6f1ff; font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif; color:#2f2340;">
+                    <div style="max-width:640px; margin:0 auto; padding:32px 20px;">
+                        <div style="background-color:#ffffff; border-radius:24px; padding:40px 32px; box-shadow:0 16px 40px rgba(106,79,155,0.12);">
+                            <div style="display:inline-block; padding:10px 14px; border-radius:16px; background-color:#efe4ff; color:#6d28d9; font-weight:700; font-size:14px;">
+                                TodayLunch
+                            </div>
+                            <h1 style="margin:24px 0 12px; font-size:28px; line-height:1.3; color:#241533;">
+                                이메일 인증을 완료해 주세요
+                            </h1>
+                            <p style="margin:0 0 16px; font-size:16px; line-height:1.7; color:#5a4a6a;">
+                                안녕하세요.<br />
+                                TodayLunch 회원가입을 마무리하려면 아래 버튼을 눌러 이메일 인증을 진행해 주세요.
+                            </p>
 
-                Please verify your email address for TodayLunch.
-                email: %s
-                verificationUrl: %s?token=%s
+                            <div style="margin:24px 0; padding:18px 20px; border-radius:18px; background-color:#f7f3ff;">
+                                <div style="font-size:12px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:#7c5ab8;">
+                                    인증 이메일
+                                </div>
+                                <div style="margin-top:8px; font-size:16px; font-weight:600; color:#2f2340; word-break:break-all;">
+                                    %s
+                                </div>
+                            </div>
 
-                This link expires in %d minutes.
+                            <div style="margin:32px 0;">
+                                <a href="%s" style="display:inline-block; padding:16px 24px; border-radius:16px; background-color:#7c3aed; color:#ffffff; text-decoration:none; font-size:16px; font-weight:700;">
+                                    이메일 인증하기
+                                </a>
+                            </div>
+
+                            <p style="margin:0 0 12px; font-size:14px; line-height:1.7; color:#5a4a6a;">
+                                버튼이 동작하지 않으면 아래 링크를 브라우저에 붙여 넣어 주세요.
+                            </p>
+                            <p style="margin:0 0 24px; font-size:14px; line-height:1.7; color:#6d28d9; word-break:break-all;">
+                                %s
+                            </p>
+
+                            <p style="margin:0; font-size:14px; line-height:1.7; color:#5a4a6a;">
+                                이 링크는 %d분 동안 유효합니다.<br />
+                                본인이 요청하지 않았다면 이 메일을 무시해 주세요.
+                            </p>
+                        </div>
+                    </div>
+                </body>
+                </html>
                 """.formatted(
                 email,
-                emailVerificationProperties.frontendConfirmUrl(),
-                token,
-                emailVerificationProperties.expiration().toMinutes()
+                verificationUrl,
+                verificationUrl,
+                expirationMinutes
         );
     }
 
