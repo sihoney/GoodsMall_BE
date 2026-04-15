@@ -6,6 +6,10 @@ spring:
     name: gateway-service
   config:
     import: optional:file:gateway/.env[.properties],optional:file:.env[.properties]
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
   cloud:
     gateway:
       server:
@@ -176,6 +180,8 @@ gateway:
       - /api/auth
       - /api/auth/login
       - /api/auth/refresh
+      - /api/auth/oauth/kakao/authorize
+      - /api/auth/oauth/kakao/callback
       - /api/auth/email-verifications
       - /api/auth/email-verifications/confirm
       - /api/auth/profile-images/presign
@@ -194,6 +200,9 @@ gateway:
         allowed-roles: [USER, SELLER, ADMIN]
       - methods: [POST]
         pattern: /api/auth/logout/**
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [POST]
+        pattern: /api/auth/oauth/kakao/link
         allowed-roles: [USER, SELLER, ADMIN]
       - methods: [POST, GET]
         pattern: /api/member-reports/**

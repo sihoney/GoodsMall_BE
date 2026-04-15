@@ -8,8 +8,10 @@ import com.example.member.common.exception.RefreshTokenNotFoundException;
 import com.example.member.domain.entity.Member;
 import com.example.member.domain.entity.MemberRestriction;
 import com.example.member.infrastructure.redis.AuthSession;
+import com.example.member.infrastructure.redis.ParsedAccessToken;
 import com.example.member.infrastructure.redis.ParsedRefreshToken;
 import com.example.member.infrastructure.redis.RefreshTokenStore;
+import com.example.member.infrastructure.redis.TokenBlacklistStore;
 import com.example.member.infrastructure.repository.MemberRepository;
 import com.example.member.presentation.dto.LoginRequest;
 import com.example.member.presentation.dto.LoginResponse;
@@ -18,8 +20,10 @@ import com.example.member.presentation.dto.TokenRefreshResponse;
 import com.example.member.security.JwtTokenProvider;
 import com.todaylunch.common.security.exception.InvalidTokenException;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -33,6 +37,7 @@ public class AuthService implements AuthUsecase {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenStore refreshTokenStore;
+    private final TokenBlacklistStore tokenBlacklistStore;
     private final MemberRestrictionService memberRestrictionService;
 
     /**
@@ -119,8 +124,40 @@ public class AuthService implements AuthUsecase {
      * 로그아웃 - 회원의 리프레시 토큰을 무효화한다.
      */
     @Override
+    public void logoutCurrentSession(String accessToken) {
+        ParsedAccessToken parsedAccessToken = parseRequiredAccessToken(accessToken);
+        refreshTokenStore.deleteSession(parsedAccessToken.memberId(), parsedAccessToken.sessionId());
+        tokenBlacklistStore.blacklistAccessToken(parsedAccessToken.accessTokenId(), remainingTtl(parsedAccessToken.expiresAt()));
+        tokenBlacklistStore.blacklistSession(parsedAccessToken.sessionId(), Duration.ofMillis(jwtTokenProvider.getRefreshExpiration()));
+    }
+
+    @Override
+    public void logoutAllSessions(String accessToken) {
+        ParsedAccessToken parsedAccessToken = parseRequiredAccessToken(accessToken);
+        Set<UUID> sessionIds = refreshTokenStore.findSessionIdsByMemberId(parsedAccessToken.memberId());
+        for (UUID sessionId : sessionIds) {
+            tokenBlacklistStore.blacklistSession(sessionId, Duration.ofMillis(jwtTokenProvider.getRefreshExpiration()));
+        }
+        refreshTokenStore.deleteAllSessions(parsedAccessToken.memberId());
+        tokenBlacklistStore.blacklistAccessToken(parsedAccessToken.accessTokenId(), remainingTtl(parsedAccessToken.expiresAt()));
+    }
+
+    @Override
     public void logout(UUID memberId) {
         refreshTokenStore.deleteAllSessions(memberId);
+    }
+
+    private ParsedAccessToken parseRequiredAccessToken(String accessToken) {
+        if (accessToken == null || accessToken.isBlank()) {
+            throw new IllegalArgumentException("Authorization header is required.");
+        }
+        String token = accessToken.startsWith("Bearer ") ? accessToken.substring(7) : accessToken;
+        return jwtTokenProvider.parseAccessToken(token);
+    }
+
+    private Duration remainingTtl(Instant expiresAt) {
+        Duration remaining = Duration.between(Instant.now(), expiresAt);
+        return remaining.isNegative() ? Duration.ZERO : remaining;
     }
 
     private void validateLoginRequest(LoginRequest request) {

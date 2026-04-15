@@ -12,15 +12,18 @@ import org.springframework.stereotype.Component;
 public class GatewayJwtValidator {
 
     private static final String MEMBER_ID_CLAIM = "memberId";
+    private static final String SESSION_ID_CLAIM = "sessionId";
     private static final String ROLE_CLAIM = "role";
     private static final String TOKEN_TYPE_CLAIM = "tokenType";
     private static final String ACCESS = "ACCESS";
 
     private final JwtProperties jwtProperties;
     private final SecretKey secretKey;
+    private final TokenBlacklistStore tokenBlacklistStore;
 
-    public GatewayJwtValidator(JwtProperties jwtProperties) {
+    public GatewayJwtValidator(JwtProperties jwtProperties, TokenBlacklistStore tokenBlacklistStore) {
         this.jwtProperties = jwtProperties;
+        this.tokenBlacklistStore = tokenBlacklistStore;
         String secret = jwtProperties.secret();
         if (secret == null || secret.isBlank() || secret.contains("${")) {
             throw new IllegalStateException("JWT secret is not configured for gateway-service.");
@@ -37,10 +40,19 @@ public class GatewayJwtValidator {
                 .parseSignedClaims(token)
                 .getPayload();
 
-        // todo: blacklist 검증
-
         if (!ACCESS.equals(claims.get(TOKEN_TYPE_CLAIM, String.class))) {
             throw new IllegalArgumentException("Only access tokens are accepted.");
+        }
+
+        String accessTokenId = claims.getId();
+        String sessionId = claims.get(SESSION_ID_CLAIM, String.class);
+        if (accessTokenId == null || accessTokenId.isBlank() || sessionId == null || sessionId.isBlank()) {
+            throw new IllegalArgumentException("Invalid access token claims.");
+        }
+
+        if (tokenBlacklistStore.isAccessTokenBlacklisted(accessTokenId)
+                || tokenBlacklistStore.isSessionBlacklisted(UUID.fromString(sessionId))) {
+            throw new IllegalArgumentException("Token is blacklisted.");
         }
 
         return new AuthenticatedPrincipal(

@@ -1,6 +1,7 @@
 package com.example.member.security;
 
 import com.example.member.domain.entity.Member;
+import com.example.member.infrastructure.redis.ParsedAccessToken;
 import com.example.member.infrastructure.redis.ParsedRefreshToken;
 import com.todaylunch.common.security.exception.InvalidTokenException;
 import io.jsonwebtoken.Claims;
@@ -84,6 +85,28 @@ public class JwtTokenProvider {
             throw new InvalidTokenException();
         }
         return tokenId;
+    }
+
+    public ParsedAccessToken parseAccessToken(String token) {
+        Claims claims = parseClaims(token);
+        if (!ACCESS.equals(claims.get(TOKEN_TYPE_CLAIM, String.class))) {
+            throw new InvalidTokenException();
+        }
+
+        String memberId = claims.get(MEMBER_ID_CLAIM, String.class);
+        String sessionId = claims.get(SESSION_ID_CLAIM, String.class);
+        String tokenId = claims.getId();
+        Date expiration = claims.getExpiration();
+        if (memberId == null || sessionId == null || tokenId == null || tokenId.isBlank() || expiration == null) {
+            throw new InvalidTokenException();
+        }
+
+        return new ParsedAccessToken(
+                UUID.fromString(memberId),
+                UUID.fromString(sessionId),
+                tokenId,
+                expiration.toInstant()
+        );
     }
 
     public ParsedRefreshToken parseRefreshToken(String token) {
