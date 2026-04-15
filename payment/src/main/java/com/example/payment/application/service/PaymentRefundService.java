@@ -4,31 +4,44 @@ import com.example.payment.application.dto.PaymentRefundCommand;
 import com.example.payment.application.dto.PaymentRefundItemCommand;
 import com.example.payment.application.dto.PaymentRefundItemResult;
 import com.example.payment.application.dto.PaymentRefundResult;
-import com.example.payment.application.usecase.PaymentRefundUseCase;
+import com.example.payment.application.dto.SellerRefundCommand;
+import com.example.payment.application.usecase.PaymentCancellationUseCase;
+import com.example.payment.application.usecase.SellerRefundUseCase;
 import com.example.payment.common.exception.InvalidOrderPaymentRequestException;
 import com.example.payment.common.exception.WalletNotFoundException;
 import com.example.payment.domain.entity.CardTransaction;
 import com.example.payment.domain.entity.Escrow;
+import com.example.payment.domain.entity.OrderPayment;
 import com.example.payment.domain.entity.PaymentRefund;
+import com.example.payment.domain.entity.PaymentRefundAllocation;
 import com.example.payment.domain.entity.PaymentRefundItem;
 import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.entity.WalletTransaction;
 import com.example.payment.domain.enumtype.CardTransactionCancelScope;
 import com.example.payment.domain.enumtype.EscrowReferenceType;
 import com.example.payment.domain.enumtype.PaymentRefundMethod;
+import com.example.payment.domain.enumtype.PaymentRefundStatus;
 import com.example.payment.domain.enumtype.PaymentRefundType;
 import com.example.payment.domain.enumtype.WalletTransactionType;
 import com.example.payment.domain.repository.CardTransactionRepository;
 import com.example.payment.domain.repository.EscrowRepository;
+import com.example.payment.domain.repository.OrderPaymentRepository;
+import com.example.payment.domain.repository.PaymentRefundAllocationRepository;
 import com.example.payment.domain.repository.PaymentRefundItemRepository;
 import com.example.payment.domain.repository.PaymentRefundRepository;
 import com.example.payment.domain.repository.WalletRepository;
 import com.example.payment.domain.repository.WalletTransactionRepository;
 import com.example.payment.domain.service.IdentifierGenerator;
+import com.example.payment.domain.service.OrderRefundNotificationGateway;
+import com.example.payment.domain.service.OrderRefundResultEventPublisher;
 import com.example.payment.domain.service.TimeProvider;
 import com.example.payment.domain.service.TossPaymentGateway;
+import com.example.payment.infrastructure.messaging.kafka.contract.OrderRefundResultMessage;
+import com.example.payment.infrastructure.messaging.kafka.contract.OrderRefundResultStatus;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -39,11 +52,16 @@ import java.util.UUID;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
-public class PaymentRefundService implements PaymentRefundUseCase {
+public class PaymentRefundService implements PaymentCancellationUseCase, SellerRefundUseCase {
+
+    private static final long ROUND_TRIP_DELIVERY_FEE = 6_000L;
 
     private final PaymentRefundRepository paymentRefundRepository;
+    private final PaymentRefundAllocationRepository paymentRefundAllocationRepository;
     private final PaymentRefundItemRepository paymentRefundItemRepository;
     private final WalletRepository walletRepository;
     private final WalletTransactionRepository walletTransactionRepository;
@@ -52,9 +70,13 @@ public class PaymentRefundService implements PaymentRefundUseCase {
     private final TossPaymentGateway tossPaymentGateway;
     private final IdentifierGenerator identifierGenerator;
     private final TimeProvider timeProvider;
+    private final OrderPaymentRepository orderPaymentRepository;
+    private final OrderRefundNotificationGateway orderRefundNotificationGateway;
+    private final OrderRefundResultEventPublisher orderRefundResultEventPublisher;
 
     public PaymentRefundService(
             PaymentRefundRepository paymentRefundRepository,
+            PaymentRefundAllocationRepository paymentRefundAllocationRepository,
             PaymentRefundItemRepository paymentRefundItemRepository,
             WalletRepository walletRepository,
             WalletTransactionRepository walletTransactionRepository,
@@ -62,9 +84,13 @@ public class PaymentRefundService implements PaymentRefundUseCase {
             EscrowRepository escrowRepository,
             TossPaymentGateway tossPaymentGateway,
             IdentifierGenerator identifierGenerator,
-            TimeProvider timeProvider
+            TimeProvider timeProvider,
+            OrderPaymentRepository orderPaymentRepository,
+            OrderRefundNotificationGateway orderRefundNotificationGateway,
+            OrderRefundResultEventPublisher orderRefundResultEventPublisher
     ) {
         this.paymentRefundRepository = paymentRefundRepository;
+        this.paymentRefundAllocationRepository = paymentRefundAllocationRepository;
         this.paymentRefundItemRepository = paymentRefundItemRepository;
         this.walletRepository = walletRepository;
         this.walletTransactionRepository = walletTransactionRepository;
@@ -73,11 +99,28 @@ public class PaymentRefundService implements PaymentRefundUseCase {
         this.tossPaymentGateway = tossPaymentGateway;
         this.identifierGenerator = identifierGenerator;
         this.timeProvider = timeProvider;
+        this.orderPaymentRepository = orderPaymentRepository;
+        this.orderRefundNotificationGateway = orderRefundNotificationGateway;
+        this.orderRefundResultEventPublisher = orderRefundResultEventPublisher;
     }
 
     @Override
     @Transactional
-    public PaymentRefundResult requestRefund(PaymentRefundCommand command) {
+    public PaymentRefundResult requestCancellation(PaymentRefundCommand command) {
+        return processCancellationOrSellerRefund(command, CompletionFlow.CANCELLATION_API);
+    }
+
+    @Override
+    @Transactional
+    public PaymentRefundResult requestSellerRefund(SellerRefundCommand command) {
+        PaymentRefundCommand sellerRefundCommand = buildSellerRefundCommandFromEscrow(command);
+        return processCancellationOrSellerRefund(sellerRefundCommand, CompletionFlow.SELLER_REFUND_KAFKA);
+    }
+
+    private PaymentRefundResult processCancellationOrSellerRefund(
+            PaymentRefundCommand command,
+            CompletionFlow completionFlow
+    ) {
         validateRefundCommand(command);
 
         PaymentRefund existingRefund = findExistingRefundByRequestId(command.orderCancelRequestId());
@@ -92,13 +135,15 @@ public class PaymentRefundService implements PaymentRefundUseCase {
         if (existingRefund != null) {
             return toPaymentRefundResult(existingRefund, paymentRefundItemRepository.findAllByRefundId(existingRefund.getRefundId()));
         }
-        validateNoOtherRefundForOrder(command.orderId(), command.orderCancelRequestId());
 
         LocalDateTime refundRequestedAt = timeProvider.now();
         Long requestedTotalRefundAmount = calculateTotalRefundAmount(command.items());
+        PaymentRefundMethod resolvedPaymentMethod = resolvePaymentRefundMethod(command.items());
+        validateCardRefundReason(resolvedPaymentMethod, command.reason(), requestedTotalRefundAmount);
 
         PaymentRefund savedRequestedRefund = saveRequestedRefund(
                 command,
+                resolvedPaymentMethod,
                 requestedTotalRefundAmount,
                 refundRequestedAt
         );
@@ -115,14 +160,18 @@ public class PaymentRefundService implements PaymentRefundUseCase {
         PaymentRefund processingRefund = paymentRefundRepository.save(savedRequestedRefund);
 
         try {
-            executeRefundByPaymentMethod(processingRefund, command.items());
-            refundHeldEscrows(
-                    processingRefund.getOrderId(),
-                    processingRefund.getTotalRefundAmount(),
-                    processingRefund.getBuyerMemberId(),
-                    command.items(),
-                    timeProvider.now()
-            );
+            if (processingRefund.getTotalRefundAmount() > 0L) {
+                List<PaymentRefundAllocation> refundAllocations = executeRefundByPaymentMethod(processingRefund, command.items());
+                paymentRefundAllocationRepository.saveAll(refundAllocations);
+                refundHeldEscrows(
+                        processingRefund.getOrderId(),
+                        processingRefund.getTotalRefundAmount(),
+                        processingRefund.getBuyerMemberId(),
+                        command.items(),
+                        timeProvider.now()
+                );
+            }
+            updateOrderPaymentStatusAfterRefundSucceeded(processingRefund.getOrderId());
 
             LocalDateTime succeededAt = timeProvider.now();
             markAllRefundItemsSucceeded(savedRequestedRefundItems, succeededAt);
@@ -130,6 +179,8 @@ public class PaymentRefundService implements PaymentRefundUseCase {
 
             processingRefund.markSucceeded(succeededAt, succeededAt);
             PaymentRefund succeededRefund = paymentRefundRepository.save(processingRefund);
+
+            notifyCompletionByFlow(succeededRefund, command.items(), completionFlow);
 
             return toPaymentRefundResult(succeededRefund, succeededRefundItems);
         } catch (RuntimeException exception) {
@@ -144,6 +195,103 @@ public class PaymentRefundService implements PaymentRefundUseCase {
 
             return toPaymentRefundResult(failedRefund, failedRefundItems);
         }
+    }
+
+    private PaymentRefundCommand buildSellerRefundCommandFromEscrow(SellerRefundCommand command) {
+        validateSellerRefundCommand(command);
+        // TODO: Replace escrow-based seller ownership check with order-service validation API once
+        // order contract for seller refund confirmation is finalized.
+
+        List<Escrow> orderItemEscrows = escrowRepository.findAllByReferenceTypeAndReferenceIdIn(
+                EscrowReferenceType.ORDER_ITEM,
+                command.orderItemIds()
+        );
+
+        Map<UUID, Escrow> escrowByOrderItemId = new LinkedHashMap<>();
+        for (Escrow escrow : orderItemEscrows) {
+            escrowByOrderItemId.put(escrow.getReferenceId(), escrow);
+        }
+
+        UUID buyerMemberId = null;
+        List<PaymentRefundItemCommand> refundItems = new ArrayList<>();
+        for (UUID orderItemId : command.orderItemIds()) {
+            Escrow escrow = escrowByOrderItemId.get(orderItemId);
+            if (escrow == null) {
+                throw new InvalidOrderPaymentRequestException("escrow not found for orderItemId: " + orderItemId);
+            }
+            if (!Objects.equals(escrow.getOrderId(), command.orderId())) {
+                throw new InvalidOrderPaymentRequestException("orderId does not match escrow for orderItemId: " + orderItemId);
+            }
+            if (!Objects.equals(escrow.getSellerMemberId(), command.sellerMemberId())) {
+                throw new InvalidOrderPaymentRequestException("seller is not allowed for orderItemId: " + orderItemId);
+            }
+
+            if (buyerMemberId == null) {
+                buyerMemberId = escrow.getBuyerMemberId();
+            } else if (!Objects.equals(buyerMemberId, escrow.getBuyerMemberId())) {
+                throw new InvalidOrderPaymentRequestException("buyerMemberId must be same for seller refund items.");
+            }
+            refundItems.add(new PaymentRefundItemCommand(orderItemId, escrow.getAmount()));
+        }
+
+        List<PaymentRefundItemCommand> deductedRefundItems = applyRoundTripDeliveryFeeDeduction(refundItems);
+        // TODO: Rename orderCancelRequestId to neutral idempotency key once order contract is finalized.
+        return new PaymentRefundCommand(
+                command.orderId(),
+                Objects.requireNonNull(buyerMemberId),
+                command.orderCancelRequestId(),
+                command.refundType(),
+                command.reason(),
+                deductedRefundItems
+        );
+    }
+
+    private void validateSellerRefundCommand(SellerRefundCommand command) {
+        if (command == null) {
+            throw new InvalidOrderPaymentRequestException("seller refund command is required.");
+        }
+        if (command.orderId() == null) {
+            throw new InvalidOrderPaymentRequestException("orderId is required.");
+        }
+        if (command.sellerMemberId() == null) {
+            throw new InvalidOrderPaymentRequestException("sellerMemberId is required.");
+        }
+        if (command.orderCancelRequestId() == null) {
+            throw new InvalidOrderPaymentRequestException("orderCancelRequestId is required.");
+        }
+        if (command.refundType() == null) {
+            throw new InvalidOrderPaymentRequestException("refundType is required.");
+        }
+        if (command.orderItemIds() == null || command.orderItemIds().isEmpty()) {
+            throw new InvalidOrderPaymentRequestException("orderItemIds must not be empty.");
+        }
+        Set<UUID> seenOrderItemIds = new HashSet<>();
+        for (UUID orderItemId : command.orderItemIds()) {
+            if (orderItemId == null) {
+                throw new InvalidOrderPaymentRequestException("orderItemId is required.");
+            }
+            if (!seenOrderItemIds.add(orderItemId)) {
+                throw new InvalidOrderPaymentRequestException("orderItemId must be unique in seller refund items.");
+            }
+        }
+    }
+
+    private List<PaymentRefundItemCommand> applyRoundTripDeliveryFeeDeduction(List<PaymentRefundItemCommand> items) {
+        long remainingFee = ROUND_TRIP_DELIVERY_FEE;
+        List<PaymentRefundItemCommand> deductedItems = new ArrayList<>();
+        for (PaymentRefundItemCommand item : items) {
+            long amount = item.refundAmount();
+            long deductedAmount;
+            if (remainingFee > 0L) {
+                long consumedFee = Math.min(remainingFee, amount);
+                deductedAmount = amount - consumedFee;
+                remainingFee -= consumedFee;
+            } else {
+                deductedAmount = amount;
+            }
+            deductedItems.add(new PaymentRefundItemCommand(item.orderItemId(), deductedAmount));
+        }
+        return deductedItems;
     }
 
     private void validateRefundCommand(PaymentRefundCommand command) {
@@ -162,13 +310,6 @@ public class PaymentRefundService implements PaymentRefundUseCase {
         if (command.refundType() == null) {
             throw new InvalidOrderPaymentRequestException("refundType is required.");
         }
-        if (command.paymentMethod() == null) {
-            throw new InvalidOrderPaymentRequestException("paymentMethod is required.");
-        }
-        if ((command.paymentMethod() == PaymentRefundMethod.CARD || command.paymentMethod() == PaymentRefundMethod.MIXED)
-                && (command.reason() == null || command.reason().isBlank())) {
-            throw new InvalidOrderPaymentRequestException("reason is required for card refund.");
-        }
         if (command.items() == null || command.items().isEmpty()) {
             throw new InvalidOrderPaymentRequestException("refund items must not be empty.");
         }
@@ -186,19 +327,9 @@ public class PaymentRefundService implements PaymentRefundUseCase {
         return paymentRefundRepository.findByOrderCancelRequestId(orderCancelRequestId).orElse(null);
     }
 
-    private void validateNoOtherRefundForOrder(UUID orderId, UUID currentOrderCancelRequestId) {
-        PaymentRefund latestRefund = paymentRefundRepository.findLatestByOrderId(orderId).orElse(null);
-        if (latestRefund == null) {
-            return;
-        }
-        if (Objects.equals(latestRefund.getOrderCancelRequestId(), currentOrderCancelRequestId)) {
-            return;
-        }
-        throw new InvalidOrderPaymentRequestException("refund for orderId is already processed and cannot be requested again.");
-    }
-
     private PaymentRefund saveRequestedRefund(
             PaymentRefundCommand command,
+            PaymentRefundMethod paymentRefundMethod,
             Long requestedTotalRefundAmount,
             LocalDateTime refundRequestedAt
     ) {
@@ -208,7 +339,7 @@ public class PaymentRefundService implements PaymentRefundUseCase {
                 command.orderId(),
                 command.buyerMemberId(),
                 command.refundType(),
-                command.paymentMethod(),
+                paymentRefundMethod,
                 requestedTotalRefundAmount,
                 command.reason(),
                 refundRequestedAt
@@ -232,8 +363,8 @@ public class PaymentRefundService implements PaymentRefundUseCase {
         if (item.orderItemId() == null) {
             throw new InvalidOrderPaymentRequestException("orderItemId is required.");
         }
-        if (item.refundAmount() == null || item.refundAmount() <= 0) {
-            throw new InvalidOrderPaymentRequestException("refundAmount must be positive.");
+        if (item.refundAmount() == null || item.refundAmount() < 0) {
+            throw new InvalidOrderPaymentRequestException("refundAmount must not be negative.");
         }
     }
 
@@ -242,10 +373,47 @@ public class PaymentRefundService implements PaymentRefundUseCase {
         for (PaymentRefundItemCommand item : items) {
             totalAmount += item.refundAmount();
         }
-        if (totalAmount <= 0L) {
-            throw new InvalidOrderPaymentRequestException("total refund amount must be positive.");
+        if (totalAmount < 0L) {
+            throw new InvalidOrderPaymentRequestException("total refund amount must not be negative.");
         }
         return totalAmount;
+    }
+
+    private PaymentRefundMethod resolvePaymentRefundMethod(List<PaymentRefundItemCommand> itemCommands) {
+        List<CardTransaction> originalCardPayments = findOriginalCardPayments(itemCommands);
+        if (originalCardPayments.isEmpty()) {
+            return PaymentRefundMethod.WALLET;
+        }
+
+        int requestedOrderItemCount = itemCommands.stream()
+                .map(PaymentRefundItemCommand::orderItemId)
+                .collect(java.util.stream.Collectors.toSet())
+                .size();
+
+        int cardPaidOrderItemCount = originalCardPayments.stream()
+                .map(CardTransaction::getReferenceId)
+                .collect(java.util.stream.Collectors.toSet())
+                .size();
+
+        if (cardPaidOrderItemCount == requestedOrderItemCount) {
+            return PaymentRefundMethod.CARD;
+        }
+
+        return PaymentRefundMethod.MIXED;
+    }
+
+    private void validateCardRefundReason(
+            PaymentRefundMethod paymentRefundMethod,
+            String refundReason,
+            Long totalRefundAmount
+    ) {
+        if (totalRefundAmount == null || totalRefundAmount == 0L) {
+            return;
+        }
+        if ((paymentRefundMethod == PaymentRefundMethod.CARD || paymentRefundMethod == PaymentRefundMethod.MIXED)
+                && (refundReason == null || refundReason.isBlank())) {
+            throw new InvalidOrderPaymentRequestException("reason is required for card refund.");
+        }
     }
 
     private List<PaymentRefundItem> createRequestedRefundItems(
@@ -264,33 +432,30 @@ public class PaymentRefundService implements PaymentRefundUseCase {
                 .toList();
     }
 
-    private void executeRefundByPaymentMethod(
+    private List<PaymentRefundAllocation> executeRefundByPaymentMethod(
             PaymentRefund paymentRefund,
             List<PaymentRefundItemCommand> itemCommands
     ) {
         LocalDateTime now = timeProvider.now();
         if (paymentRefund.getPaymentMethod() == PaymentRefundMethod.WALLET) {
-            executeWalletRefund(paymentRefund, paymentRefund.getTotalRefundAmount(), now);
-            return;
+            return List.of(executeWalletRefund(paymentRefund, paymentRefund.getTotalRefundAmount(), now));
         }
         if (paymentRefund.getPaymentMethod() == PaymentRefundMethod.CARD) {
-            executeCardRefund(paymentRefund, itemCommands);
-            return;
+            return List.of(executeCardRefund(paymentRefund, itemCommands));
         }
         if (paymentRefund.getPaymentMethod() == PaymentRefundMethod.MIXED) {
-            executeMixedRefund(paymentRefund, itemCommands, now);
-            return;
+            return executeMixedRefund(paymentRefund, itemCommands, now);
         }
         throw new InvalidOrderPaymentRequestException("unsupported payment method.");
     }
 
-    private void executeWalletRefund(
+    private PaymentRefundAllocation executeWalletRefund(
             PaymentRefund paymentRefund,
             Long refundAmount,
             LocalDateTime refundedAt
     ) {
         if (refundAmount <= 0L) {
-            return;
+            throw new InvalidOrderPaymentRequestException("wallet refund amount must be positive.");
         }
         Wallet buyerWallet = walletRepository.findByMemberId(paymentRefund.getBuyerMemberId())
                 .orElseThrow(WalletNotFoundException::new);
@@ -310,6 +475,14 @@ public class PaymentRefundService implements PaymentRefundUseCase {
                 refundedAt
         );
         walletTransactionRepository.save(refundTransaction);
+
+        return PaymentRefundAllocation.walletAllocation(
+                identifierGenerator.generateUuid(),
+                paymentRefund.getRefundId(),
+                refundAmount,
+                refundTransaction.getTransactionId(),
+                refundedAt
+        );
     }
 
     private void refundHeldEscrows(
@@ -376,22 +549,31 @@ public class PaymentRefundService implements PaymentRefundUseCase {
         return heldEscrowByOrderItemId;
     }
 
-    private void executeCardRefund(PaymentRefund paymentRefund, List<PaymentRefundItemCommand> itemCommands) {
+    private PaymentRefundAllocation executeCardRefund(PaymentRefund paymentRefund, List<PaymentRefundItemCommand> itemCommands) {
         List<CardTransaction> originalPayments = findOriginalCardPayments(itemCommands);
         Map<UUID, CardTransaction> originalPaymentMap = mapOriginalPaymentsByOrderItemId(originalPayments);
         List<UUID> orderItemIds = itemCommands.stream().map(PaymentRefundItemCommand::orderItemId).distinct().toList();
+        long cardRefundAmount = calculateTotalRefundAmount(itemCommands);
 
         validateOriginalCardPayments(orderItemIds, originalPaymentMap, paymentRefund.getBuyerMemberId());
-        executeCardCancellation(
+        UUID cardCancelTransactionGroupId = executeCardCancellation(
                 paymentRefund,
                 itemCommands,
                 originalPayments,
                 originalPaymentMap,
-                calculateTotalRefundAmount(itemCommands)
+                cardRefundAmount
+        );
+
+        return PaymentRefundAllocation.cardAllocation(
+                identifierGenerator.generateUuid(),
+                paymentRefund.getRefundId(),
+                cardRefundAmount,
+                cardCancelTransactionGroupId,
+                timeProvider.now()
         );
     }
 
-    private void executeMixedRefund(
+    private List<PaymentRefundAllocation> executeMixedRefund(
             PaymentRefund paymentRefund,
             List<PaymentRefundItemCommand> itemCommands,
             LocalDateTime refundedAt
@@ -420,7 +602,7 @@ public class PaymentRefundService implements PaymentRefundUseCase {
         validateOriginalCardPayments(cardOrderItemIds, originalPaymentMap, paymentRefund.getBuyerMemberId());
 
         long cardRefundAmount = calculateTotalRefundAmount(cardRefundItems);
-        executeCardCancellation(
+        UUID cardCancelTransactionGroupId = executeCardCancellation(
                 paymentRefund,
                 cardRefundItems,
                 originalPayments,
@@ -429,7 +611,16 @@ public class PaymentRefundService implements PaymentRefundUseCase {
         );
 
         long walletRefundAmount = calculateTotalRefundAmount(walletRefundItems);
-        executeWalletRefund(paymentRefund, walletRefundAmount, refundedAt);
+        PaymentRefundAllocation walletAllocation = executeWalletRefund(paymentRefund, walletRefundAmount, refundedAt);
+
+        PaymentRefundAllocation cardAllocation = PaymentRefundAllocation.cardAllocation(
+                identifierGenerator.generateUuid(),
+                paymentRefund.getRefundId(),
+                cardRefundAmount,
+                cardCancelTransactionGroupId,
+                refundedAt
+        );
+        return List.of(cardAllocation, walletAllocation);
     }
 
     private List<CardTransaction> findOriginalCardPayments(List<PaymentRefundItemCommand> itemCommands) {
@@ -440,7 +631,7 @@ public class PaymentRefundService implements PaymentRefundUseCase {
         return cardTransactionRepository.findSuccessfulPaymentsByOrderItemIds(orderItemIds);
     }
 
-    private void executeCardCancellation(
+    private UUID executeCardCancellation(
             PaymentRefund paymentRefund,
             List<PaymentRefundItemCommand> cardRefundItems,
             List<CardTransaction> originalPayments,
@@ -479,6 +670,7 @@ public class PaymentRefundService implements PaymentRefundUseCase {
                 ))
                 .toList();
         cardTransactionRepository.saveAll(cancelTransactions);
+        return cancelTransactionGroupId;
     }
 
     private Map<UUID, Long> validateAndResolveRemainingAmounts(
@@ -649,6 +841,80 @@ public class PaymentRefundService implements PaymentRefundUseCase {
         for (PaymentRefundItem paymentRefundItem : paymentRefundItems) {
             paymentRefundItem.markFailed(failureReason, updatedAt);
         }
+    }
+
+    private void updateOrderPaymentStatusAfterRefundSucceeded(UUID orderId) {
+        OrderPayment orderPayment = orderPaymentRepository.findByOrderId(orderId).orElse(null);
+        if (orderPayment == null) {
+            return;
+        }
+
+        long totalRefundedAmount = paymentRefundRepository.findAllByOrderIdAndRefundStatus(orderId, PaymentRefundStatus.SUCCEEDED)
+                .stream()
+                .mapToLong(PaymentRefund::getTotalRefundAmount)
+                .sum();
+
+        LocalDateTime now = timeProvider.now();
+        orderPayment.markRefundStatusByTotalRefundedAmount(totalRefundedAmount, now);
+        orderPaymentRepository.save(orderPayment);
+    }
+
+    private void notifyCompletionByFlow(
+            PaymentRefund paymentRefund,
+            List<PaymentRefundItemCommand> itemCommands,
+            CompletionFlow completionFlow
+    ) {
+        if (completionFlow == CompletionFlow.CANCELLATION_API) {
+            notifyOrderCancellationCompletedByApi(paymentRefund.getOrderId(), itemCommands);
+            return;
+        }
+        publishOrderRefundCompletedByKafka(paymentRefund, itemCommands);
+    }
+
+    private void notifyOrderCancellationCompletedByApi(UUID orderId, List<PaymentRefundItemCommand> itemCommands) {
+        List<UUID> orderItemIds = itemCommands.stream()
+                .map(PaymentRefundItemCommand::orderItemId)
+                .distinct()
+                .toList();
+
+        boolean notified = orderRefundNotificationGateway.notifyRefundCompleted(orderId, orderItemIds);
+        if (!notified) {
+            // TODO: pg사 처리는 되었는데 order가 실패하면 롤백이 안되는데 어떻게 처리할지 고려하기
+            //  order 상태 변경을 먼저 진행하고 상태 변경 확인후 pg 사 처리하기 만약 pg 사 처리가 실패하면 order 되돌리기 요청 보내기
+            log.warn("Order refund completion notification failed. orderId={} orderItemCount={}", orderId, orderItemIds.size());
+        }
+    }
+
+    private void publishOrderRefundCompletedByKafka(PaymentRefund paymentRefund, List<PaymentRefundItemCommand> itemCommands) {
+        List<UUID> orderItemIds = itemCommands.stream()
+                .map(PaymentRefundItemCommand::orderItemId)
+                .distinct()
+                .toList();
+        try {
+            orderRefundResultEventPublisher.publish(
+                    new OrderRefundResultMessage(
+                            identifierGenerator.generateUuid(),
+                            paymentRefund.getRefundId(),
+                            paymentRefund.getOrderId(),
+                            orderItemIds,
+                            OrderRefundResultStatus.SUCCESS,
+                            null,
+                            Instant.now()
+                    )
+            );
+        } catch (RuntimeException exception) {
+            log.warn(
+                    "Order refund result event publish failed. refundId={} orderId={}",
+                    paymentRefund.getRefundId(),
+                    paymentRefund.getOrderId(),
+                    exception
+            );
+        }
+    }
+
+    private enum CompletionFlow {
+        CANCELLATION_API,
+        SELLER_REFUND_KAFKA
     }
 
     private String resolveFailureReason(String failureReason) {

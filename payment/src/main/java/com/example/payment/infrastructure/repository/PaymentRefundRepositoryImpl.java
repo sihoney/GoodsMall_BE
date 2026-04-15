@@ -1,7 +1,9 @@
 package com.example.payment.infrastructure.repository;
 
 import com.example.payment.domain.entity.PaymentRefund;
+import com.example.payment.domain.enumtype.PaymentRefundStatus;
 import com.example.payment.domain.repository.PaymentRefundRepository;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Repository;
@@ -33,5 +35,10 @@ public class PaymentRefundRepositoryImpl implements PaymentRefundRepository {
     @Override
     public Optional<PaymentRefund> findLatestByOrderId(UUID orderId) {
         return paymentRefundJpaRepository.findFirstByOrderIdOrderByCreatedAtDesc(orderId);
+    }
+
+    @Override
+    public List<PaymentRefund> findAllByOrderIdAndRefundStatus(UUID orderId, PaymentRefundStatus refundStatus) {
+        return paymentRefundJpaRepository.findAllByOrderIdAndRefundStatus(orderId, refundStatus);
     }
 }

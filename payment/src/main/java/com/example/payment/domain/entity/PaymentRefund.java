@@ -86,7 +86,7 @@ public class PaymentRefund {
         this.buyerMemberId = Objects.requireNonNull(buyerMemberId);
         this.refundType = Objects.requireNonNull(refundType);
         this.paymentMethod = Objects.requireNonNull(paymentMethod);
-        this.totalRefundAmount = validatePositiveAmount(totalRefundAmount);
+        this.totalRefundAmount = validateNonNegativeAmount(totalRefundAmount);
         this.refundStatus = Objects.requireNonNull(refundStatus);
         this.refundReason = refundReason;
         this.createdAt = Objects.requireNonNull(createdAt);
@@ -152,10 +152,10 @@ public class PaymentRefund {
         this.updatedAt = Objects.requireNonNull(updatedAt);
     }
 
-    private Long validatePositiveAmount(Long amount) {
+    private Long validateNonNegativeAmount(Long amount) {
         Objects.requireNonNull(amount);
-        if (amount <= 0) {
-            throw new IllegalArgumentException("Refund amount must be positive.");
+        if (amount < 0) {
+            throw new IllegalArgumentException("Refund amount must not be negative.");
         }
         return amount;
     }

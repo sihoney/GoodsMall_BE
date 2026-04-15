@@ -3,7 +3,7 @@ package com.example.payment.application.usecase;
 import com.example.payment.application.dto.PaymentRefundCommand;
 import com.example.payment.application.dto.PaymentRefundResult;
 
-public interface PaymentRefundUseCase {
+public interface PaymentCancellationUseCase {
 
-    PaymentRefundResult requestRefund(PaymentRefundCommand command);
+    PaymentRefundResult requestCancellation(PaymentRefundCommand command);
 }

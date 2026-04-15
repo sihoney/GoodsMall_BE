@@ -9,8 +9,13 @@ import com.example.payment.common.exception.InvalidCardPaymentRequestException;
 import com.example.payment.common.exception.PaymentGatewayException;
 import com.example.payment.domain.entity.CardTransaction;
 import com.example.payment.domain.entity.Escrow;
+import com.example.payment.domain.entity.OrderPayment;
+import com.example.payment.domain.entity.OrderPaymentAllocation;
 import com.example.payment.domain.enumtype.EscrowReferenceType;
+import com.example.payment.domain.enumtype.OrderPaymentMethod;
 import com.example.payment.domain.enumtype.CardTransactionStatus;
+import com.example.payment.domain.repository.OrderPaymentAllocationRepository;
+import com.example.payment.domain.repository.OrderPaymentRepository;
 import com.example.payment.domain.repository.CardTransactionRepository;
 import com.example.payment.domain.repository.EscrowRepository;
 import com.example.payment.domain.service.CardConfirmResultEventPublisher;
@@ -37,6 +42,8 @@ public class CardPaymentConfirmService implements CardPaymentConfirmUseCase {
 
     private final CardTransactionRepository cardTransactionRepository;
     private final EscrowRepository escrowRepository;
+    private final OrderPaymentRepository orderPaymentRepository;
+    private final OrderPaymentAllocationRepository orderPaymentAllocationRepository;
     private final TossPaymentGateway tossPaymentGateway;
     private final OrderPaymentValidationUseCase orderPaymentValidationUseCase;
     private final CardConfirmResultEventPublisher cardConfirmResultEventPublisher;
@@ -46,6 +53,8 @@ public class CardPaymentConfirmService implements CardPaymentConfirmUseCase {
     public CardPaymentConfirmService(
             CardTransactionRepository cardTransactionRepository,
             EscrowRepository escrowRepository,
+            OrderPaymentRepository orderPaymentRepository,
+            OrderPaymentAllocationRepository orderPaymentAllocationRepository,
             TossPaymentGateway tossPaymentGateway,
             OrderPaymentValidationUseCase orderPaymentValidationUseCase,
             CardConfirmResultEventPublisher cardConfirmResultEventPublisher,
@@ -54,6 +63,8 @@ public class CardPaymentConfirmService implements CardPaymentConfirmUseCase {
     ) {
         this.cardTransactionRepository = cardTransactionRepository;
         this.escrowRepository = escrowRepository;
+        this.orderPaymentRepository = orderPaymentRepository;
+        this.orderPaymentAllocationRepository = orderPaymentAllocationRepository;
         this.tossPaymentGateway = tossPaymentGateway;
         this.orderPaymentValidationUseCase = orderPaymentValidationUseCase;
         this.cardConfirmResultEventPublisher = cardConfirmResultEventPublisher;
@@ -97,6 +108,7 @@ public class CardPaymentConfirmService implements CardPaymentConfirmUseCase {
                     confirmation.approvedAt()
             );
             escrowRepository.saveAll(heldEscrows);
+            saveOrderPaymentRecords(command, transactionGroupId, confirmation.approvedAt());
             publishCardConfirmSuccess(command.orderId());
 
             return new CardPaymentConfirmResult(
@@ -288,5 +300,30 @@ public class CardPaymentConfirmService implements CardPaymentConfirmUseCase {
             return "card confirm failed";
         }
         return message;
+    }
+
+    private void saveOrderPaymentRecords(
+            CardPaymentConfirmCommand command,
+            UUID cardTransactionGroupId,
+            LocalDateTime paidAt
+    ) {
+        OrderPayment orderPayment = OrderPayment.createSucceeded(
+                identifierGenerator.generateUuid(),
+                command.orderId(),
+                command.buyerId(),
+                command.amount(),
+                OrderPaymentMethod.CARD,
+                paidAt
+        );
+        OrderPayment savedOrderPayment = orderPaymentRepository.save(orderPayment);
+
+        OrderPaymentAllocation cardAllocation = OrderPaymentAllocation.cardAllocation(
+                identifierGenerator.generateUuid(),
+                savedOrderPayment.getOrderPaymentId(),
+                command.amount(),
+                cardTransactionGroupId,
+                paidAt
+        );
+        orderPaymentAllocationRepository.saveAll(java.util.List.of(cardAllocation));
     }
 }

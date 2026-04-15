@@ -4,12 +4,12 @@ import com.example.payment.domain.enumtype.PaymentRefundType;
 import java.util.List;
 import java.util.UUID;
 
-public record PaymentRefundCommand(
+public record SellerRefundCommand(
         UUID orderId,
-        UUID buyerMemberId,
+        UUID sellerMemberId,
         UUID orderCancelRequestId,
         PaymentRefundType refundType,
         String reason,
-        List<PaymentRefundItemCommand> items
+        List<UUID> orderItemIds
 ) {
 }
