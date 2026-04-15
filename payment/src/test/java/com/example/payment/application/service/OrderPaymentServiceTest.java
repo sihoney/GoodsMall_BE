@@ -13,8 +13,11 @@ import com.example.payment.application.dto.OrderPaymentResult;
 import com.example.payment.common.exception.InvalidOrderPaymentRequestException;
 import com.example.payment.common.exception.WalletNotFoundException;
 import com.example.payment.domain.entity.Escrow;
+import com.example.payment.domain.entity.OrderPayment;
 import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.repository.EscrowRepository;
+import com.example.payment.domain.repository.OrderPaymentAllocationRepository;
+import com.example.payment.domain.repository.OrderPaymentRepository;
 import com.example.payment.domain.repository.WalletRepository;
 import com.example.payment.domain.repository.WalletTransactionRepository;
 import com.example.payment.domain.service.IdentifierGenerator;
@@ -43,6 +46,12 @@ class OrderPaymentServiceTest {
 
     @Mock
     private EscrowRepository escrowRepository;
+
+    @Mock
+    private OrderPaymentRepository orderPaymentRepository;
+
+    @Mock
+    private OrderPaymentAllocationRepository orderPaymentAllocationRepository;
 
     @Mock
     private IdentifierGenerator identifierGenerator;
@@ -93,6 +102,8 @@ class OrderPaymentServiceTest {
             given(walletRepository.save(any(Wallet.class))).willAnswer(invocation -> invocation.getArgument(0));
             given(walletTransactionRepository.save(any())).willAnswer(invocation -> invocation.getArgument(0));
             given(escrowRepository.saveAll(any())).willAnswer(invocation -> invocation.getArgument(0));
+            given(orderPaymentRepository.save(any(OrderPayment.class))).willAnswer(invocation -> invocation.getArgument(0));
+            given(orderPaymentAllocationRepository.saveAll(any())).willAnswer(invocation -> invocation.getArgument(0));
 
             OrderPaymentResult result = orderPaymentService.payOrder(command);
 
@@ -131,6 +142,8 @@ class OrderPaymentServiceTest {
             given(walletRepository.save(any(Wallet.class))).willAnswer(invocation -> invocation.getArgument(0));
             given(walletTransactionRepository.save(any())).willAnswer(invocation -> invocation.getArgument(0));
             given(escrowRepository.saveAll(any())).willAnswer(invocation -> invocation.getArgument(0));
+            given(orderPaymentRepository.save(any(OrderPayment.class))).willAnswer(invocation -> invocation.getArgument(0));
+            given(orderPaymentAllocationRepository.saveAll(any())).willAnswer(invocation -> invocation.getArgument(0));
 
             OrderPaymentResult result = orderPaymentService.payOrder(command);
 
