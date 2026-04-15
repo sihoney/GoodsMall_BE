@@ -1,13 +1,19 @@
 package com.example.member.presentation.exception;
 
+import com.example.member.common.exception.AccountVerificationAttemptLimitExceededException;
+import com.example.member.common.exception.AccountVerificationNotAllowedException;
+import com.example.member.common.exception.AccountVerificationNotFoundException;
+import com.example.member.common.exception.AccountVerificationResendLimitExceededException;
 import com.example.member.common.exception.DuplicateActiveRestrictionException;
 import com.example.member.common.exception.DuplicateMemberReportException;
 import com.example.member.common.exception.DuplicateMemberEmailException;
 import com.example.member.common.exception.EmailSendFailedException;
 import com.example.member.common.exception.EmailVerificationNotAllowedException;
 import com.example.member.common.exception.EmailVerificationRequiredException;
+import com.example.member.common.exception.ExpiredAccountVerificationException;
 import com.example.member.common.exception.ExpiredEmailVerificationException;
 import com.example.member.common.exception.InvalidLoginException;
+import com.example.member.common.exception.InvalidAccountVerificationCodeException;
 import com.example.member.common.exception.InvalidEmailVerificationTokenException;
 import com.example.member.common.exception.MemberNotFoundException;
 import com.example.member.common.exception.MemberReportNotFoundException;
@@ -162,5 +168,53 @@ public class MemberExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleIllegalState(IllegalStateException exception) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(ApiResponse.fail("INVALID_STATE", exception.getMessage()));
+    }
+
+    @ExceptionHandler(AccountVerificationNotFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> handleAccountVerificationNotFound(
+            AccountVerificationNotFoundException exception
+    ) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.fail("ACCOUNT_VERIFICATION_NOT_FOUND", exception.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidAccountVerificationCodeException.class)
+    public ResponseEntity<ApiResponse<Object>> handleInvalidAccountVerificationCode(
+            InvalidAccountVerificationCodeException exception
+    ) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.fail("ACCOUNT_VERIFICATION_CODE_INVALID", exception.getMessage()));
+    }
+
+    @ExceptionHandler(ExpiredAccountVerificationException.class)
+    public ResponseEntity<ApiResponse<Object>> handleExpiredAccountVerification(
+            ExpiredAccountVerificationException exception
+    ) {
+        return ResponseEntity.status(HttpStatus.GONE)
+                .body(ApiResponse.fail("ACCOUNT_VERIFICATION_EXPIRED", exception.getMessage()));
+    }
+
+    @ExceptionHandler(AccountVerificationAttemptLimitExceededException.class)
+    public ResponseEntity<ApiResponse<Object>> handleAccountVerificationAttemptLimitExceeded(
+            AccountVerificationAttemptLimitExceededException exception
+    ) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.fail("ACCOUNT_VERIFICATION_ATTEMPT_LIMIT_EXCEEDED", exception.getMessage()));
+    }
+
+    @ExceptionHandler(AccountVerificationResendLimitExceededException.class)
+    public ResponseEntity<ApiResponse<Object>> handleAccountVerificationResendLimitExceeded(
+            AccountVerificationResendLimitExceededException exception
+    ) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(ApiResponse.fail("ACCOUNT_VERIFICATION_RESEND_LIMIT_EXCEEDED", exception.getMessage()));
+    }
+
+    @ExceptionHandler(AccountVerificationNotAllowedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleAccountVerificationNotAllowed(
+            AccountVerificationNotAllowedException exception
+    ) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.fail("ACCOUNT_VERIFICATION_NOT_ALLOWED", exception.getMessage()));
     }
 }
