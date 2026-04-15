@@ -30,6 +30,7 @@ import com.example.payment.domain.repository.PaymentRefundRepository;
 import com.example.payment.domain.repository.WalletRepository;
 import com.example.payment.domain.repository.WalletTransactionRepository;
 import com.example.payment.domain.service.IdentifierGenerator;
+import com.example.payment.domain.service.OrderRefundNotificationGateway;
 import com.example.payment.domain.service.TimeProvider;
 import com.example.payment.domain.service.TossPaymentGateway;
 import java.time.LocalDateTime;
@@ -44,7 +45,9 @@ import java.util.UUID;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 public class PaymentRefundService implements PaymentRefundUseCase {
 
@@ -59,6 +62,7 @@ public class PaymentRefundService implements PaymentRefundUseCase {
     private final IdentifierGenerator identifierGenerator;
     private final TimeProvider timeProvider;
     private final OrderPaymentRepository orderPaymentRepository;
+    private final OrderRefundNotificationGateway orderRefundNotificationGateway;
 
     public PaymentRefundService(
             PaymentRefundRepository paymentRefundRepository,
@@ -71,7 +75,8 @@ public class PaymentRefundService implements PaymentRefundUseCase {
             TossPaymentGateway tossPaymentGateway,
             IdentifierGenerator identifierGenerator,
             TimeProvider timeProvider,
-            OrderPaymentRepository orderPaymentRepository
+            OrderPaymentRepository orderPaymentRepository,
+            OrderRefundNotificationGateway orderRefundNotificationGateway
     ) {
         this.paymentRefundRepository = paymentRefundRepository;
         this.paymentRefundAllocationRepository = paymentRefundAllocationRepository;
@@ -84,6 +89,7 @@ public class PaymentRefundService implements PaymentRefundUseCase {
         this.identifierGenerator = identifierGenerator;
         this.timeProvider = timeProvider;
         this.orderPaymentRepository = orderPaymentRepository;
+        this.orderRefundNotificationGateway = orderRefundNotificationGateway;
     }
 
     @Override
@@ -146,6 +152,8 @@ public class PaymentRefundService implements PaymentRefundUseCase {
 
             processingRefund.markSucceeded(succeededAt, succeededAt);
             PaymentRefund succeededRefund = paymentRefundRepository.save(processingRefund);
+
+            notifyOrderRefundCompleted(succeededRefund.getOrderId(), command.items());
 
             return toPaymentRefundResult(succeededRefund, succeededRefundItems);
         } catch (RuntimeException exception) {
@@ -718,6 +726,19 @@ public class PaymentRefundService implements PaymentRefundUseCase {
         LocalDateTime now = timeProvider.now();
         orderPayment.markRefundStatusByTotalRefundedAmount(totalRefundedAmount, now);
         orderPaymentRepository.save(orderPayment);
+    }
+
+    private void notifyOrderRefundCompleted(UUID orderId, List<PaymentRefundItemCommand> itemCommands) {
+        List<UUID> orderItemIds = itemCommands.stream()
+                .map(PaymentRefundItemCommand::orderItemId)
+                .distinct()
+                .toList();
+
+        boolean notified = orderRefundNotificationGateway.notifyRefundCompleted(orderId, orderItemIds);
+        if (!notified) {
+            // TODO: Add retry strategy (outbox/scheduler) after order API contract is finalized.
+            log.warn("Order refund completion notification failed. orderId={} orderItemCount={}", orderId, orderItemIds.size());
+        }
     }
 
     private String resolveFailureReason(String failureReason) {
