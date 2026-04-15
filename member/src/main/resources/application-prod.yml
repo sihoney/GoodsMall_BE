@@ -78,6 +78,11 @@ member:
   kafka:
     topic:
       signed-up: ${MEMBER_SIGNED_UP_TOPIC:member-signed-up}
+  account-verification:
+    expiration: ${ACCOUNT_VERIFICATION_EXPIRATION:5m}
+    max-attempts: ${ACCOUNT_VERIFICATION_MAX_ATTEMPTS:5}
+    max-resend-count: ${ACCOUNT_VERIFICATION_MAX_RESEND_COUNT:3}
+    resend-cooldown: ${ACCOUNT_VERIFICATION_RESEND_COOLDOWN:30s}
 
 logging:
   level:

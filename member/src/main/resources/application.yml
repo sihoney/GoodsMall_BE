@@ -3,6 +3,8 @@
     name: member-service
   config:
     import:
+      - "optional:file:member/.env[.properties]"
+      - "optional:file:.env[.properties]"
       - "configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
   cloud:
     config:
@@ -110,6 +112,11 @@ member:
   email-verification:
     expiration: 24h
     frontend-confirm-url: ${EMAIL_VERIFICATION_FRONTEND_URL:http://localhost:3000/email-verification}
+  account-verification:
+    expiration: 5m
+    max-attempts: 5
+    max-resend-count: 3
+    resend-cooldown: 30s
   kafka:
     topic:
       signed-up: member-signed-up
