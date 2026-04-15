@@ -7,6 +7,8 @@ import com.example.member.common.exception.MemberRestrictedException;
 import com.example.member.common.exception.RefreshTokenNotFoundException;
 import com.example.member.domain.entity.Member;
 import com.example.member.domain.entity.MemberRestriction;
+import com.example.member.infrastructure.redis.AuthSession;
+import com.example.member.infrastructure.redis.ParsedRefreshToken;
 import com.example.member.infrastructure.redis.RefreshTokenStore;
 import com.example.member.infrastructure.repository.MemberRepository;
 import com.example.member.presentation.dto.LoginRequest;
@@ -17,6 +19,7 @@ import com.example.member.security.JwtTokenProvider;
 import com.todaylunch.common.security.exception.InvalidTokenException;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -51,22 +54,13 @@ public class AuthService implements AuthUsecase {
         validateActiveMember(member);
         validateLoginRestriction(member);
 
-        String accessToken = jwtTokenProvider.createAccessToken(member);
-        String refreshToken = jwtTokenProvider.createRefreshToken(member);
+        return issueLoginResponse(member);
+    }
 
-        refreshTokenStore.save(
-                member.getMemberId(),
-                refreshToken,
-                Duration.ofMillis(jwtTokenProvider.getRefreshExpiration())
-        );
-
-        return new LoginResponse(
-                accessToken,
-                refreshToken,
-                "Bearer",
-                jwtTokenProvider.getAccessExpiration(),
-                jwtTokenProvider.getRefreshExpiration()
-        );
+    public LoginResponse login(Member member) {
+        validateActiveMember(member);
+        validateLoginRestriction(member);
+        return issueLoginResponse(member);
     }
 
     /**
@@ -79,30 +73,45 @@ public class AuthService implements AuthUsecase {
 
         String refreshToken = normalizeRequired(request.refreshToken(), "refreshToken");
         jwtTokenProvider.validateRefreshToken(refreshToken);
+        ParsedRefreshToken parsedRefreshToken = jwtTokenProvider.parseRefreshToken(refreshToken);
 
-        UUID memberId = jwtTokenProvider.extractMemberId(refreshToken);
-        MemberRestriction memberRestriction = memberRestrictionService.getActiveLoginRestriction(memberId, LocalDateTime.now());
+        MemberRestriction memberRestriction = memberRestrictionService.getActiveLoginRestriction(
+                parsedRefreshToken.memberId(),
+                LocalDateTime.now()
+        );
         if (memberRestriction != null) {
             throw new MemberRestrictedException(memberRestriction.getEndAt());
         }
 
-        String storedToken = refreshTokenStore.findByMemberId(memberId)
+        AuthSession authSession = refreshTokenStore.findBySessionId(parsedRefreshToken.sessionId())
                 .orElseThrow(RefreshTokenNotFoundException::new);
 
-        if (!storedToken.equals(refreshToken)) {
+        if (!Objects.equals(authSession.memberId(), parsedRefreshToken.memberId())
+                || !Objects.equals(authSession.refreshTokenId(), parsedRefreshToken.refreshTokenId())) {
+            refreshTokenStore.deleteSession(parsedRefreshToken.memberId(), parsedRefreshToken.sessionId());
             throw new InvalidTokenException();
         }
 
-        Member member = memberRepository.findById(memberId)
+        Member member = memberRepository.findById(parsedRefreshToken.memberId())
                 .orElseThrow(InvalidTokenException::new);
         validateActiveMember(member);
 
+        String newAccessToken = jwtTokenProvider.createAccessToken(member, parsedRefreshToken.sessionId());
+        String newRefreshToken = jwtTokenProvider.createRefreshToken(member, parsedRefreshToken.sessionId());
+        ParsedRefreshToken rotatedRefreshToken = jwtTokenProvider.parseRefreshToken(newRefreshToken);
+        refreshTokenStore.updateRefreshTokenId(
+                parsedRefreshToken.sessionId(),
+                rotatedRefreshToken.refreshTokenId(),
+                Duration.ofMillis(jwtTokenProvider.getRefreshExpiration())
+        );
+
         return new TokenRefreshResponse(
-                jwtTokenProvider.createAccessToken(member),
-                storedToken,
+                newAccessToken,
+                newRefreshToken,
                 "Bearer",
                 jwtTokenProvider.getAccessExpiration(),
-                jwtTokenProvider.getRefreshExpiration()
+                jwtTokenProvider.getRefreshExpiration(),
+                parsedRefreshToken.sessionId()
         );
     }
 
@@ -111,7 +120,7 @@ public class AuthService implements AuthUsecase {
      */
     @Override
     public void logout(UUID memberId) {
-        refreshTokenStore.delete(memberId);
+        refreshTokenStore.deleteAllSessions(memberId);
     }
 
     private void validateLoginRequest(LoginRequest request) {
@@ -147,5 +156,28 @@ public class AuthService implements AuthUsecase {
         if (!member.isActive()) {
             throw new EmailVerificationRequiredException();
         }
+    }
+
+    private LoginResponse issueLoginResponse(Member member) {
+        UUID sessionId = UUID.randomUUID();
+        String accessToken = jwtTokenProvider.createAccessToken(member, sessionId);
+        String refreshToken = jwtTokenProvider.createRefreshToken(member, sessionId);
+        ParsedRefreshToken parsedRefreshToken = jwtTokenProvider.parseRefreshToken(refreshToken);
+
+        refreshTokenStore.createSession(
+                member.getMemberId(),
+                sessionId,
+                parsedRefreshToken.refreshTokenId(),
+                Duration.ofMillis(jwtTokenProvider.getRefreshExpiration())
+        );
+
+        return new LoginResponse(
+                accessToken,
+                refreshToken,
+                "Bearer",
+                jwtTokenProvider.getAccessExpiration(),
+                jwtTokenProvider.getRefreshExpiration(),
+                sessionId
+        );
     }
 }

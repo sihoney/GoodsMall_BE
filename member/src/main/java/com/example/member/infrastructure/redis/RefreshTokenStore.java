@@ -2,13 +2,20 @@ package com.example.member.infrastructure.redis;
 
 import java.time.Duration;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public interface RefreshTokenStore {
 
-    void save(UUID memberId, String refreshToken, Duration ttl);
+    void createSession(UUID memberId, UUID sessionId, String refreshTokenId, Duration ttl);
 
-    Optional<String> findByMemberId(UUID memberId);
+    Optional<AuthSession> findBySessionId(UUID sessionId);
 
-    void delete(UUID memberId);
+    void updateRefreshTokenId(UUID sessionId, String refreshTokenId, Duration ttl);
+
+    void deleteSession(UUID memberId, UUID sessionId);
+
+    void deleteAllSessions(UUID memberId);
+
+    Set<UUID> findSessionIdsByMemberId(UUID memberId);
 }
