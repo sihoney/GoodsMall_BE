@@ -94,8 +94,7 @@ class OrderPaymentServiceTest {
                     orderId,
                     buyerMemberId,
                     12_000L,
-                    List.of(new OrderPaymentLineCommand(UUID.randomUUID(), sellerMemberId, 12_000L)),
-                    null
+                    List.of(new OrderPaymentLineCommand(UUID.randomUUID(), sellerMemberId, 12_000L))
             );
             Wallet buyerWallet = Wallet.create(buyerWalletId, buyerMemberId, 20_000L, now, now);
 
@@ -133,8 +132,7 @@ class OrderPaymentServiceTest {
                     List.of(
                             new OrderPaymentLineCommand(UUID.randomUUID(), sellerMemberId, 7_000L),
                             new OrderPaymentLineCommand(UUID.randomUUID(), secondSellerId, 5_000L)
-                    ),
-                    null
+                    )
             );
             Wallet buyerWallet = Wallet.create(buyerWalletId, buyerMemberId, 20_000L, now, now);
 
@@ -164,8 +162,7 @@ class OrderPaymentServiceTest {
                     orderId,
                     buyerMemberId,
                     12_000L,
-                    List.of(new OrderPaymentLineCommand(UUID.randomUUID(), sellerMemberId, 12_000L)),
-                    null
+                    List.of(new OrderPaymentLineCommand(UUID.randomUUID(), sellerMemberId, 12_000L))
             );
             Escrow existingEscrow = Escrow.createHeld(
                     escrowId,
@@ -173,7 +170,6 @@ class OrderPaymentServiceTest {
                     buyerMemberId,
                     sellerMemberId,
                     12_000L,
-                    null,
                     now
             );
             Wallet buyerWallet = Wallet.create(buyerWalletId, buyerMemberId, 20_000L, now, now);
@@ -197,8 +193,7 @@ class OrderPaymentServiceTest {
                     orderId,
                     buyerMemberId,
                     12_000L,
-                    List.of(new OrderPaymentLineCommand(UUID.randomUUID(), sellerMemberId, 12_000L)),
-                    null
+                    List.of(new OrderPaymentLineCommand(UUID.randomUUID(), sellerMemberId, 12_000L))
             );
 
             given(escrowRepository.findAllByOrderId(orderId)).willReturn(List.of());
@@ -215,8 +210,7 @@ class OrderPaymentServiceTest {
                     orderId,
                     buyerMemberId,
                     10_000L,
-                    List.of(new OrderPaymentLineCommand(UUID.randomUUID(), sellerMemberId, 12_000L)),
-                    null
+                    List.of(new OrderPaymentLineCommand(UUID.randomUUID(), sellerMemberId, 12_000L))
             );
 
             assertThatThrownBy(() -> orderPaymentService.payOrder(command))
@@ -231,8 +225,7 @@ class OrderPaymentServiceTest {
                     orderId,
                     buyerMemberId,
                     12_000L,
-                    List.of(new OrderPaymentLineCommand(UUID.randomUUID(), sellerMemberId, 12_000L)),
-                    null
+                    List.of(new OrderPaymentLineCommand(UUID.randomUUID(), sellerMemberId, 12_000L))
             );
             Wallet buyerWallet = Wallet.create(buyerWalletId, buyerMemberId, 5_000L, now, now);
 

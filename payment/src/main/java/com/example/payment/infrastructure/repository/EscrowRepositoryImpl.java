@@ -4,7 +4,6 @@ import com.example.payment.domain.entity.Escrow;
 import com.example.payment.domain.enumtype.EscrowReferenceType;
 import com.example.payment.domain.enumtype.EscrowStatus;
 import com.example.payment.domain.repository.EscrowRepository;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -58,11 +57,6 @@ public class EscrowRepositoryImpl implements EscrowRepository {
     @Override
     public List<Escrow> findAllByReferenceTypeAndReferenceIdIn(EscrowReferenceType referenceType, List<UUID> referenceIds) {
         return escrowJpaRepository.findAllByReferenceTypeAndReferenceIdIn(referenceType, referenceIds);
-    }
-
-    @Override
-    public List<Escrow> findReleaseTargets(LocalDateTime releaseAt) {
-        return escrowJpaRepository.findByEscrowStatusAndReleaseAtLessThanEqual(EscrowStatus.HELD, releaseAt);
     }
 
     @Override

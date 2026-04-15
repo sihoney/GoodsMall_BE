@@ -69,10 +69,12 @@ settlement:
   kafka:
     topics:
       settlement-candidate-created: payment.settlement-candidate-created
+      settlement-candidate-excluded: payment.settlement-candidate-excluded
       settlement-payout-requested: settlement.seller-payout-requested
       settlement-payout-result: payment.seller-payout-result
     consumer-groups:
       settlement-candidate-created: settlement-service
+      settlement-candidate-excluded: settlement-service
       settlement-payout-result: settlement-service
     retry:
       settlement-candidate-created:

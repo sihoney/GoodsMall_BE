@@ -73,9 +73,6 @@ public class Escrow {
     @Column(name = "released_at")
     private LocalDateTime releasedAt;
 
-    @Column(name = "release_at")
-    private LocalDateTime releaseAt;
-
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -95,7 +92,6 @@ public class Escrow {
             EscrowStatus escrowStatus,
             LocalDateTime refundedAt,
             LocalDateTime releasedAt,
-            LocalDateTime releaseAt,
             LocalDateTime createdAt,
             LocalDateTime updatedAt
     ) {
@@ -111,7 +107,6 @@ public class Escrow {
         this.escrowStatus = Objects.requireNonNull(escrowStatus);
         this.refundedAt = refundedAt;
         this.releasedAt = releasedAt;
-        this.releaseAt = releaseAt;
         this.createdAt = Objects.requireNonNull(createdAt);
         this.updatedAt = updatedAt;
     }
@@ -124,7 +119,6 @@ public class Escrow {
             UUID buyerMemberId,
             UUID sellerMemberId,
             Long amount,
-            LocalDateTime releaseAt,
             LocalDateTime createdAt
     ) {
         LocalDateTime now = Objects.requireNonNull(createdAt);
@@ -143,7 +137,6 @@ public class Escrow {
                 EscrowStatus.HELD,
                 null,
                 null,
-                releaseAt,
                 now,
                 now
         );
@@ -158,7 +151,6 @@ public class Escrow {
             UUID buyerMemberId,
             UUID sellerMemberId,
             Long amount,
-            LocalDateTime releaseAt,
             LocalDateTime createdAt
     ) {
         return createHeld(
@@ -169,7 +161,6 @@ public class Escrow {
                 buyerMemberId,
                 sellerMemberId,
                 amount,
-                releaseAt,
                 createdAt
         );
     }
@@ -203,7 +194,6 @@ public class Escrow {
                 escrowStatus,
                 refundedAt,
                 releasedAt,
-                releaseAt,
                 createdAt,
                 updatedAt
         );
@@ -283,7 +273,6 @@ public class Escrow {
                 escrowStatus,
                 refundedAt,
                 releasedAt,
-                releaseAt,
                 createdAt,
                 updatedAt
         );
@@ -352,14 +341,14 @@ public class Escrow {
     }
 
     /**
-     * HELD escrow에서 환불 금액만큼 정산대상 잔액(amount)을 차감한다.
+     * HELD/RELEASED escrow에서 환불 금액만큼 정산대상 잔액(amount)을 차감한다.
      * amount가 0이 되면 REFUNDED 상태로 전이한다.
      */
     public void applyRefundAmount(Long refundAmount, LocalDateTime refundedAt, LocalDateTime updatedAt) {
-        validateHeldStatus();
+        validateRefundableStatus();
         long validatedRefundAmount = validatePositiveAmount(refundAmount);
         if (validatedRefundAmount > amount) {
-            throw new IllegalArgumentException("Refund amount exceeds held escrow amount.");
+            throw new IllegalArgumentException("Refund amount exceeds escrow amount.");
         }
 
         this.amount -= validatedRefundAmount;
@@ -388,28 +377,19 @@ public class Escrow {
         return referenceType == EscrowReferenceType.ORDER_ITEM;
     }
 
-    public boolean isReleaseScheduled() {
-        return releaseAt != null;
-    }
-
     /**
      * 배송완료 이후 자동 구매확정 시점을 예약한다.
      * application에서 이중분기하더라도 엔티티는 마지막 방어선으로 상태를 다시 확인한다.
      */
-    public void scheduleReleaseAt(LocalDateTime releaseAt, LocalDateTime updatedAt) {
-        if (!isHeld()) {
-            throw new IllegalStateException("Only held escrow can be scheduled.");
-        }
-        if (this.releaseAt != null) {
-            throw new IllegalStateException("Release time is already scheduled.");
-        }
-        this.releaseAt = Objects.requireNonNull(releaseAt);
-        this.updatedAt = Objects.requireNonNull(updatedAt);
-    }
-
     private void validateHeldStatus() {
         if (!isHeld()) {
             throw new IllegalStateException("Only held escrow can be changed.");
+        }
+    }
+
+    private void validateRefundableStatus() {
+        if (!isHeld() && !isReleased()) {
+            throw new IllegalStateException("Only held or released escrow can be refunded.");
         }
     }
 

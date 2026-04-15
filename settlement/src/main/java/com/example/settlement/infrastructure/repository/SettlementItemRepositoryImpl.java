@@ -29,6 +29,11 @@ public class SettlementItemRepositoryImpl implements SettlementItemRepository {
         return settlementItemJpaRepository.save(settlementItem);
     }
 
+    @Override
+    public void delete(SettlementItem settlementItem) {
+        settlementItemJpaRepository.delete(settlementItem);
+    }
+
     /**
      * escrowId로 단건 조회한다. dedup(중복 방지) 체크에 사용된다.
      */

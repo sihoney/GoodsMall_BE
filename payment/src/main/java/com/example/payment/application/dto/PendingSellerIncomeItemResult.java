@@ -12,7 +12,6 @@ public record PendingSellerIncomeItemResult(
         UUID orderId,
         Long amount,
         EscrowStatus escrowStatus,
-        LocalDateTime releaseAt,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {

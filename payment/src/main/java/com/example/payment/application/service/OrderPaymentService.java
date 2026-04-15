@@ -108,7 +108,6 @@ public class OrderPaymentService implements OrderPaymentUseCase {
                         command.buyerMemberId(),
                         paymentLine.sellerMemberId(),
                         paymentLine.lineAmount(),
-                        command.releaseAt(),
                         now
                 ))
                 .toList();

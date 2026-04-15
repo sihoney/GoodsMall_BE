@@ -3,7 +3,6 @@ package com.example.payment.infrastructure.repository;
 import com.example.payment.domain.entity.Escrow;
 import com.example.payment.domain.enumtype.EscrowReferenceType;
 import com.example.payment.domain.enumtype.EscrowStatus;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import jakarta.persistence.LockModeType;
@@ -26,8 +25,6 @@ public interface EscrowJpaRepository extends JpaRepository<Escrow, UUID> {
     List<Escrow> findAllByOrderIdAndSellerMemberId(UUID orderId, UUID sellerMemberId);
 
     List<Escrow> findAllByReferenceTypeAndReferenceIdIn(EscrowReferenceType referenceType, List<UUID> referenceIds);
-
-    List<Escrow> findByEscrowStatusAndReleaseAtLessThanEqual(EscrowStatus escrowStatus, LocalDateTime releaseAt);
 
     Page<Escrow> findBySellerMemberIdAndEscrowStatus(UUID sellerMemberId, EscrowStatus escrowStatus, Pageable pageable);
 }

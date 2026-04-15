@@ -16,6 +16,8 @@ public interface SettlementItemRepository {
      */
     SettlementItem save(SettlementItem settlementItem);
 
+    void delete(SettlementItem settlementItem);
+
     /**
      * escrowId로 정산 원천 항목을 조회한다.
      * dedup(중복 방지) 체크에 사용된다.

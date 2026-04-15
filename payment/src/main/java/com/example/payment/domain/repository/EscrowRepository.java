@@ -2,7 +2,6 @@ package com.example.payment.domain.repository;
 
 import com.example.payment.domain.entity.Escrow;
 import com.example.payment.domain.enumtype.EscrowReferenceType;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -37,8 +36,6 @@ public interface EscrowRepository {
     List<Escrow> lockAllByOrderId(UUID orderId);
 
     List<Escrow> findAllByReferenceTypeAndReferenceIdIn(EscrowReferenceType referenceType, List<UUID> referenceIds);
-
-    List<Escrow> findReleaseTargets(LocalDateTime releaseAt);
 
     Page<Escrow> findPendingBySellerMemberId(UUID sellerMemberId, Pageable pageable);
 }

@@ -215,7 +215,6 @@ public class CardPaymentConfirmService implements CardPaymentConfirmUseCase {
                         command.buyerId(),
                         orderItem.sellerId(),
                         orderItem.lineAmount(),
-                        null,
                         createdAt
                 ))
                 .toList();
