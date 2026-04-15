@@ -10,6 +10,7 @@ import com.example.payment.common.exception.WalletNotFoundException;
 import com.example.payment.domain.entity.CardTransaction;
 import com.example.payment.domain.entity.Escrow;
 import com.example.payment.domain.entity.PaymentRefund;
+import com.example.payment.domain.entity.PaymentRefundAllocation;
 import com.example.payment.domain.entity.PaymentRefundItem;
 import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.entity.WalletTransaction;
@@ -20,6 +21,7 @@ import com.example.payment.domain.enumtype.PaymentRefundType;
 import com.example.payment.domain.enumtype.WalletTransactionType;
 import com.example.payment.domain.repository.CardTransactionRepository;
 import com.example.payment.domain.repository.EscrowRepository;
+import com.example.payment.domain.repository.PaymentRefundAllocationRepository;
 import com.example.payment.domain.repository.PaymentRefundItemRepository;
 import com.example.payment.domain.repository.PaymentRefundRepository;
 import com.example.payment.domain.repository.WalletRepository;
@@ -44,6 +46,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class PaymentRefundService implements PaymentRefundUseCase {
 
     private final PaymentRefundRepository paymentRefundRepository;
+    private final PaymentRefundAllocationRepository paymentRefundAllocationRepository;
     private final PaymentRefundItemRepository paymentRefundItemRepository;
     private final WalletRepository walletRepository;
     private final WalletTransactionRepository walletTransactionRepository;
@@ -55,6 +58,7 @@ public class PaymentRefundService implements PaymentRefundUseCase {
 
     public PaymentRefundService(
             PaymentRefundRepository paymentRefundRepository,
+            PaymentRefundAllocationRepository paymentRefundAllocationRepository,
             PaymentRefundItemRepository paymentRefundItemRepository,
             WalletRepository walletRepository,
             WalletTransactionRepository walletTransactionRepository,
@@ -65,6 +69,7 @@ public class PaymentRefundService implements PaymentRefundUseCase {
             TimeProvider timeProvider
     ) {
         this.paymentRefundRepository = paymentRefundRepository;
+        this.paymentRefundAllocationRepository = paymentRefundAllocationRepository;
         this.paymentRefundItemRepository = paymentRefundItemRepository;
         this.walletRepository = walletRepository;
         this.walletTransactionRepository = walletTransactionRepository;
@@ -92,7 +97,6 @@ public class PaymentRefundService implements PaymentRefundUseCase {
         if (existingRefund != null) {
             return toPaymentRefundResult(existingRefund, paymentRefundItemRepository.findAllByRefundId(existingRefund.getRefundId()));
         }
-        validateNoOtherRefundForOrder(command.orderId(), command.orderCancelRequestId());
 
         PaymentRefundMethod resolvedPaymentMethod = resolvePaymentRefundMethod(command.items());
         validateCardRefundReason(resolvedPaymentMethod, command.reason());
@@ -119,7 +123,8 @@ public class PaymentRefundService implements PaymentRefundUseCase {
         PaymentRefund processingRefund = paymentRefundRepository.save(savedRequestedRefund);
 
         try {
-            executeRefundByPaymentMethod(processingRefund, command.items());
+            List<PaymentRefundAllocation> refundAllocations = executeRefundByPaymentMethod(processingRefund, command.items());
+            paymentRefundAllocationRepository.saveAll(refundAllocations);
             refundHeldEscrows(
                     processingRefund.getOrderId(),
                     processingRefund.getTotalRefundAmount(),
@@ -181,17 +186,6 @@ public class PaymentRefundService implements PaymentRefundUseCase {
 
     private PaymentRefund findExistingRefundByRequestId(UUID orderCancelRequestId) {
         return paymentRefundRepository.findByOrderCancelRequestId(orderCancelRequestId).orElse(null);
-    }
-
-    private void validateNoOtherRefundForOrder(UUID orderId, UUID currentOrderCancelRequestId) {
-        PaymentRefund latestRefund = paymentRefundRepository.findLatestByOrderId(orderId).orElse(null);
-        if (latestRefund == null) {
-            return;
-        }
-        if (Objects.equals(latestRefund.getOrderCancelRequestId(), currentOrderCancelRequestId)) {
-            return;
-        }
-        throw new InvalidOrderPaymentRequestException("refund for orderId is already processed and cannot be requested again.");
     }
 
     private PaymentRefund saveRequestedRefund(
@@ -292,33 +286,30 @@ public class PaymentRefundService implements PaymentRefundUseCase {
                 .toList();
     }
 
-    private void executeRefundByPaymentMethod(
+    private List<PaymentRefundAllocation> executeRefundByPaymentMethod(
             PaymentRefund paymentRefund,
             List<PaymentRefundItemCommand> itemCommands
     ) {
         LocalDateTime now = timeProvider.now();
         if (paymentRefund.getPaymentMethod() == PaymentRefundMethod.WALLET) {
-            executeWalletRefund(paymentRefund, paymentRefund.getTotalRefundAmount(), now);
-            return;
+            return List.of(executeWalletRefund(paymentRefund, paymentRefund.getTotalRefundAmount(), now));
         }
         if (paymentRefund.getPaymentMethod() == PaymentRefundMethod.CARD) {
-            executeCardRefund(paymentRefund, itemCommands);
-            return;
+            return List.of(executeCardRefund(paymentRefund, itemCommands));
         }
         if (paymentRefund.getPaymentMethod() == PaymentRefundMethod.MIXED) {
-            executeMixedRefund(paymentRefund, itemCommands, now);
-            return;
+            return executeMixedRefund(paymentRefund, itemCommands, now);
         }
         throw new InvalidOrderPaymentRequestException("unsupported payment method.");
     }
 
-    private void executeWalletRefund(
+    private PaymentRefundAllocation executeWalletRefund(
             PaymentRefund paymentRefund,
             Long refundAmount,
             LocalDateTime refundedAt
     ) {
         if (refundAmount <= 0L) {
-            return;
+            throw new InvalidOrderPaymentRequestException("wallet refund amount must be positive.");
         }
         Wallet buyerWallet = walletRepository.findByMemberId(paymentRefund.getBuyerMemberId())
                 .orElseThrow(WalletNotFoundException::new);
@@ -338,6 +329,14 @@ public class PaymentRefundService implements PaymentRefundUseCase {
                 refundedAt
         );
         walletTransactionRepository.save(refundTransaction);
+
+        return PaymentRefundAllocation.walletAllocation(
+                identifierGenerator.generateUuid(),
+                paymentRefund.getRefundId(),
+                refundAmount,
+                refundTransaction.getTransactionId(),
+                refundedAt
+        );
     }
 
     private void refundHeldEscrows(
@@ -404,22 +403,31 @@ public class PaymentRefundService implements PaymentRefundUseCase {
         return heldEscrowByOrderItemId;
     }
 
-    private void executeCardRefund(PaymentRefund paymentRefund, List<PaymentRefundItemCommand> itemCommands) {
+    private PaymentRefundAllocation executeCardRefund(PaymentRefund paymentRefund, List<PaymentRefundItemCommand> itemCommands) {
         List<CardTransaction> originalPayments = findOriginalCardPayments(itemCommands);
         Map<UUID, CardTransaction> originalPaymentMap = mapOriginalPaymentsByOrderItemId(originalPayments);
         List<UUID> orderItemIds = itemCommands.stream().map(PaymentRefundItemCommand::orderItemId).distinct().toList();
+        long cardRefundAmount = calculateTotalRefundAmount(itemCommands);
 
         validateOriginalCardPayments(orderItemIds, originalPaymentMap, paymentRefund.getBuyerMemberId());
-        executeCardCancellation(
+        UUID cardCancelTransactionGroupId = executeCardCancellation(
                 paymentRefund,
                 itemCommands,
                 originalPayments,
                 originalPaymentMap,
-                calculateTotalRefundAmount(itemCommands)
+                cardRefundAmount
+        );
+
+        return PaymentRefundAllocation.cardAllocation(
+                identifierGenerator.generateUuid(),
+                paymentRefund.getRefundId(),
+                cardRefundAmount,
+                cardCancelTransactionGroupId,
+                timeProvider.now()
         );
     }
 
-    private void executeMixedRefund(
+    private List<PaymentRefundAllocation> executeMixedRefund(
             PaymentRefund paymentRefund,
             List<PaymentRefundItemCommand> itemCommands,
             LocalDateTime refundedAt
@@ -448,7 +456,7 @@ public class PaymentRefundService implements PaymentRefundUseCase {
         validateOriginalCardPayments(cardOrderItemIds, originalPaymentMap, paymentRefund.getBuyerMemberId());
 
         long cardRefundAmount = calculateTotalRefundAmount(cardRefundItems);
-        executeCardCancellation(
+        UUID cardCancelTransactionGroupId = executeCardCancellation(
                 paymentRefund,
                 cardRefundItems,
                 originalPayments,
@@ -457,7 +465,16 @@ public class PaymentRefundService implements PaymentRefundUseCase {
         );
 
         long walletRefundAmount = calculateTotalRefundAmount(walletRefundItems);
-        executeWalletRefund(paymentRefund, walletRefundAmount, refundedAt);
+        PaymentRefundAllocation walletAllocation = executeWalletRefund(paymentRefund, walletRefundAmount, refundedAt);
+
+        PaymentRefundAllocation cardAllocation = PaymentRefundAllocation.cardAllocation(
+                identifierGenerator.generateUuid(),
+                paymentRefund.getRefundId(),
+                cardRefundAmount,
+                cardCancelTransactionGroupId,
+                refundedAt
+        );
+        return List.of(cardAllocation, walletAllocation);
     }
 
     private List<CardTransaction> findOriginalCardPayments(List<PaymentRefundItemCommand> itemCommands) {
@@ -468,7 +485,7 @@ public class PaymentRefundService implements PaymentRefundUseCase {
         return cardTransactionRepository.findSuccessfulPaymentsByOrderItemIds(orderItemIds);
     }
 
-    private void executeCardCancellation(
+    private UUID executeCardCancellation(
             PaymentRefund paymentRefund,
             List<PaymentRefundItemCommand> cardRefundItems,
             List<CardTransaction> originalPayments,
@@ -507,6 +524,7 @@ public class PaymentRefundService implements PaymentRefundUseCase {
                 ))
                 .toList();
         cardTransactionRepository.saveAll(cancelTransactions);
+        return cancelTransactionGroupId;
     }
 
     private Map<UUID, Long> validateAndResolveRemainingAmounts(
