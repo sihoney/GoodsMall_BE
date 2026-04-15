@@ -49,8 +49,7 @@ public class OrderPaymentApiService implements OrderPaymentApiUseCase {
                     request.orderId(),
                     request.buyerId(),
                     toAmount(request.totalPrice()),
-                    toPaymentLines(request.orderLines()),
-                    null
+                    toPaymentLines(request.orderLines())
             ));
             return successResponse(request, result);
         } catch (WalletNotFoundException e) {

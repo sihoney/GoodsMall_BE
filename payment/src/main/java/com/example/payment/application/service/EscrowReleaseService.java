@@ -2,18 +2,15 @@ package com.example.payment.application.service;
 
 import com.example.payment.application.dto.EscrowReleaseCommand;
 import com.example.payment.application.dto.EscrowReleaseResult;
-import com.example.payment.application.event.AutoPurchaseConfirmedEvent;
 import com.example.payment.application.event.SettlementCandidateCreatedEvent;
 import com.example.payment.application.usecase.EscrowReleaseUseCase;
 import com.example.payment.common.exception.EscrowNotFoundException;
 import com.example.payment.common.exception.InvalidOrderPaymentRequestException;
 import com.example.payment.domain.entity.Escrow;
 import com.example.payment.domain.entity.EscrowTransaction;
-import com.example.payment.domain.enumtype.ConfirmationType;
 import com.example.payment.domain.enumtype.EscrowStatus;
 import com.example.payment.domain.repository.EscrowRepository;
 import com.example.payment.domain.repository.EscrowTransactionRepository;
-import com.example.payment.domain.service.AutoPurchaseConfirmedEventPublisher;
 import com.example.payment.domain.service.IdentifierGenerator;
 import com.example.payment.domain.service.SettlementCandidateCreatedEventPublisher;
 import com.example.payment.domain.service.TimeProvider;
@@ -34,7 +31,6 @@ public class EscrowReleaseService implements EscrowReleaseUseCase {
     private final EscrowRepository escrowRepository;
     private final EscrowTransactionRepository escrowTransactionRepository;
     private final IdentifierGenerator identifierGenerator;
-    private final AutoPurchaseConfirmedEventPublisher autoPurchaseConfirmedEventPublisher;
     private final SettlementCandidateCreatedEventPublisher settlementCandidateCreatedEventPublisher;
     private final TimeProvider timeProvider;
 
@@ -42,14 +38,12 @@ public class EscrowReleaseService implements EscrowReleaseUseCase {
             EscrowRepository escrowRepository,
             EscrowTransactionRepository escrowTransactionRepository,
             IdentifierGenerator identifierGenerator,
-            AutoPurchaseConfirmedEventPublisher autoPurchaseConfirmedEventPublisher,
             SettlementCandidateCreatedEventPublisher settlementCandidateCreatedEventPublisher,
             TimeProvider timeProvider
     ) {
         this.escrowRepository = escrowRepository;
         this.escrowTransactionRepository = escrowTransactionRepository;
         this.identifierGenerator = identifierGenerator;
-        this.autoPurchaseConfirmedEventPublisher = autoPurchaseConfirmedEventPublisher;
         this.settlementCandidateCreatedEventPublisher = settlementCandidateCreatedEventPublisher;
         this.timeProvider = timeProvider;
     }
@@ -111,14 +105,6 @@ public class EscrowReleaseService implements EscrowReleaseUseCase {
             return existingResult(command.orderId(), releasedAmount);
         }
 
-        if (command.confirmationType() == ConfirmationType.AUTO) {
-            Escrow firstEscrow = sellerEscrows.get(0);
-            autoPurchaseConfirmedEventPublisher.publish(new AutoPurchaseConfirmedEvent(
-                    firstEscrow.getOrderId(),
-                    firstEscrow.getBuyerMemberId(),
-                    now
-            ));
-        }
         // todo: 현재는 통신 기준이 정확하지 않아 반환값이 존재
         //  api 통신이면 살리고 카프카로 확정이면 반환값 제거 고려
         return new EscrowReleaseResult(

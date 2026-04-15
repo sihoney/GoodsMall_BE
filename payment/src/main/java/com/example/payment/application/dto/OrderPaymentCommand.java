@@ -1,6 +1,5 @@
 package com.example.payment.application.dto;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -12,7 +11,6 @@ public record OrderPaymentCommand(
         UUID orderId,
         UUID buyerMemberId,
         Long orderAmount,
-        List<OrderPaymentLineCommand> paymentLines,
-        LocalDateTime releaseAt
+        List<OrderPaymentLineCommand> paymentLines
 ) {
 }

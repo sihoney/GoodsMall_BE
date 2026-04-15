@@ -83,15 +83,12 @@ payment:
     topics:
       member-created: member-signed-up
       order-payment-result: payment.order-payment-result
-      order-delivery-completed: order.delivery-completed
       order-purchase-confirmed: order.purchase-confirmed
       settlement-candidate-created: payment.settlement-candidate-created
       settlement-payout-requested: settlement.seller-payout-requested
       settlement-payout-result: payment.seller-payout-result
-      auto-purchase-confirmed: payment.auto-purchase-confirmed
     consumer-groups:
       member-created: payment-service
-      order-delivery-completed: payment-service
       order-purchase-confirmed: payment-service
       settlement-payout-requested: payment-service
     retry:
@@ -101,10 +98,6 @@ payment:
         multiplier: 2.0
         max-interval-ms: 10000
         max-retries: 3
-  escrow:
-    auto-release:
-      fixed-delay-ms: 60000
-
 # --- 로깅 설정 (로컬: DEBUG) ---
 logging:
   level:

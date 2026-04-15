@@ -3,7 +3,6 @@ package com.example.payment.infrastructure.messaging.kafka;
 import com.example.payment.common.exception.InvalidOrderPaymentRequestException;
 import com.example.payment.application.dto.EscrowReleaseCommand;
 import com.example.payment.application.usecase.EscrowReleaseUseCase;
-import com.example.payment.domain.enumtype.ConfirmationType;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPurchaseConfirmedMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -66,9 +65,6 @@ public class OrderPurchaseConfirmedEventConsumer {
         }
         if (event.confirmedAt() == null) {
             throw new InvalidOrderPaymentRequestException("confirmedAt is required.");
-        }
-        if (event.confirmationType() != ConfirmationType.MANUAL) {
-            throw new InvalidOrderPaymentRequestException("Only MANUAL confirmation event is allowed.");
         }
     }
 }

@@ -2,7 +2,6 @@ package com.example.payment.infrastructure.config;
 
 import com.example.payment.common.exception.WalletNotFoundException;
 import com.example.payment.infrastructure.messaging.kafka.contract.MemberCreatedMessage;
-import com.example.payment.infrastructure.messaging.kafka.contract.OrderDeliveryCompletedMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPurchaseConfirmedMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.SellerSettlementPayoutRequestedMessage;
 import java.util.HashMap;
@@ -81,28 +80,10 @@ public class KafkaConsumerConfig {
     /**
      * 배송 완료 이벤트용 ConsumerFactory
      */
-    @Bean
-    public ConsumerFactory<String, OrderDeliveryCompletedMessage> orderDeliveryCompletedConsumerFactory(
-            @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers,
-            @Value("${payment.kafka.consumer-groups.order-delivery-completed:payment-service}") String groupId
-    ) {
-        return createConsumerFactory(bootstrapServers, groupId, OrderDeliveryCompletedMessage.class);
-    }
 
     /**
      * 배송 완료 이벤트를 처리할 ListenerContainerFactory
      */
-    @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, OrderDeliveryCompletedMessage>
-        orderDeliveryCompletedKafkaListenerContainerFactory(
-            ConsumerFactory<String, OrderDeliveryCompletedMessage> orderDeliveryCompletedConsumerFactory
-    ) {
-        ConcurrentKafkaListenerContainerFactory<String, OrderDeliveryCompletedMessage> factory =
-                new ConcurrentKafkaListenerContainerFactory<>();
-        factory.setConsumerFactory(orderDeliveryCompletedConsumerFactory);
-        return factory;
-    }
-
     /**
      * 주문 구매 확정 이벤트를 처리할 ListenerContainerFactory
      */

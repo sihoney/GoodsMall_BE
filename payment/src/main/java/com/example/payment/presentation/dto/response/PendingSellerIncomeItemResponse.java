@@ -13,7 +13,6 @@ public record PendingSellerIncomeItemResponse(
         UUID orderId,
         Long amount,
         EscrowStatus escrowStatus,
-        LocalDateTime releaseAt,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
@@ -27,7 +26,6 @@ public record PendingSellerIncomeItemResponse(
                 result.orderId(),
                 result.amount(),
                 result.escrowStatus(),
-                result.releaseAt(),
                 result.createdAt(),
                 result.updatedAt()
         );

@@ -264,7 +264,6 @@ public class PaymentSearchService implements PaymentSearchUseCase {
                 escrow.getOrderId(),
                 escrow.getAmount(),
                 escrow.getEscrowStatus(),
-                escrow.getReleaseAt(),
                 escrow.getCreatedAt(),
                 escrow.getUpdatedAt()
         );
