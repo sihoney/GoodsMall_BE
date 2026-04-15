@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS payment.escrow_transaction (
     order_item_id         UUID,
     seller_member_id      UUID         NOT NULL,
     buyer_member_id       UUID         NOT NULL,
-    trasaction_type       VARCHAR(30)  NOT NULL,
+    transaction_type      VARCHAR(30)  NOT NULL,
     amount                BIGINT       NOT NULL,
     before_amount         BIGINT       NOT NULL,
     after_amount          BIGINT       NOT NULL,
@@ -31,6 +31,5 @@ CREATE INDEX IF NOT EXISTS idx_escrow_transaction_order_id
 CREATE INDEX IF NOT EXISTS idx_escrow_transaction_occurred_at
     ON payment.escrow_transaction (occurred_at);
 
-CREATE INDEX IF NOT EXISTS idx_escrow_transaction_tx_type
-    ON payment.escrow_transaction (tx_type);
-
+CREATE INDEX IF NOT EXISTS idx_escrow_transaction_transaction_type
+    ON payment.escrow_transaction (transaction_type);
