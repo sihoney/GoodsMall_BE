@@ -7,9 +7,14 @@ import com.example.payment.application.usecase.OrderPaymentUseCase;
 import com.example.payment.common.exception.InvalidOrderPaymentRequestException;
 import com.example.payment.common.exception.WalletNotFoundException;
 import com.example.payment.domain.entity.Escrow;
+import com.example.payment.domain.entity.OrderPayment;
+import com.example.payment.domain.entity.OrderPaymentAllocation;
 import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.entity.WalletTransaction;
 import com.example.payment.domain.enumtype.EscrowReferenceType;
+import com.example.payment.domain.enumtype.OrderPaymentMethod;
+import com.example.payment.domain.repository.OrderPaymentAllocationRepository;
+import com.example.payment.domain.repository.OrderPaymentRepository;
 import com.example.payment.domain.repository.EscrowRepository;
 import com.example.payment.domain.repository.WalletRepository;
 import com.example.payment.domain.repository.WalletTransactionRepository;
@@ -32,6 +37,8 @@ public class OrderPaymentService implements OrderPaymentUseCase {
     private final WalletRepository walletRepository;
     private final WalletTransactionRepository walletTransactionRepository;
     private final EscrowRepository escrowRepository;
+    private final OrderPaymentRepository orderPaymentRepository;
+    private final OrderPaymentAllocationRepository orderPaymentAllocationRepository;
     private final IdentifierGenerator identifierGenerator;
     private final TimeProvider timeProvider;
 
@@ -39,12 +46,16 @@ public class OrderPaymentService implements OrderPaymentUseCase {
             WalletRepository walletRepository,
             WalletTransactionRepository walletTransactionRepository,
             EscrowRepository escrowRepository,
+            OrderPaymentRepository orderPaymentRepository,
+            OrderPaymentAllocationRepository orderPaymentAllocationRepository,
             IdentifierGenerator identifierGenerator,
             TimeProvider timeProvider
     ) {
         this.walletRepository = walletRepository;
         this.walletTransactionRepository = walletTransactionRepository;
         this.escrowRepository = escrowRepository;
+        this.orderPaymentRepository = orderPaymentRepository;
+        this.orderPaymentAllocationRepository = orderPaymentAllocationRepository;
         this.identifierGenerator = identifierGenerator;
         this.timeProvider = timeProvider;
     }
@@ -101,6 +112,11 @@ public class OrderPaymentService implements OrderPaymentUseCase {
         walletRepository.save(buyerWallet);
         walletTransactionRepository.save(purchaseTransaction);
         escrowRepository.saveAll(escrows);
+        saveOrderPaymentRecords(
+                command,
+                purchaseTransaction.getTransactionId(),
+                now
+        );
 
         return new OrderPaymentResult(
                 command.orderId(),
@@ -165,5 +181,30 @@ public class OrderPaymentService implements OrderPaymentUseCase {
         if (!Objects.equals(totalLineAmount, command.orderAmount())) {
             throw new InvalidOrderPaymentRequestException("lineAmount total must equal orderAmount.");
         }
+    }
+
+    private void saveOrderPaymentRecords(
+            OrderPaymentCommand command,
+            java.util.UUID walletTransactionId,
+            LocalDateTime paidAt
+    ) {
+        OrderPayment orderPayment = OrderPayment.createSucceeded(
+                identifierGenerator.generateUuid(),
+                command.orderId(),
+                command.buyerMemberId(),
+                command.orderAmount(),
+                OrderPaymentMethod.WALLET,
+                paidAt
+        );
+        OrderPayment savedOrderPayment = orderPaymentRepository.save(orderPayment);
+
+        OrderPaymentAllocation walletAllocation = OrderPaymentAllocation.walletAllocation(
+                identifierGenerator.generateUuid(),
+                savedOrderPayment.getOrderPaymentId(),
+                command.orderAmount(),
+                walletTransactionId,
+                paidAt
+        );
+        orderPaymentAllocationRepository.saveAll(java.util.List.of(walletAllocation));
     }
 }
