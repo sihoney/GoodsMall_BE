@@ -17,7 +17,7 @@ import com.example.payment.application.usecase.ChargeConfirmUseCase;
 import com.example.payment.application.usecase.ChargeCreateUseCase;
 import com.example.payment.application.usecase.ChargeRefundUseCase;
 import com.example.payment.application.usecase.OrderPaymentApiUseCase;
-import com.example.payment.application.usecase.PaymentRefundUseCase;
+import com.example.payment.application.usecase.PaymentCancellationUseCase;
 import com.example.payment.application.usecase.PaymentSearchUseCase;
 import com.example.payment.application.usecase.SellerRefundUseCase;
 import com.example.payment.presentation.dto.request.ChargeConfirmFailureRequest;
@@ -70,7 +70,7 @@ public class PaymentController {
     private final CardPaymentConfirmUseCase cardPaymentConfirmUseCase;
     private final ChargeConfirmFailureUseCase chargeConfirmFailureUseCase;
     private final ChargeRefundUseCase chargeRefundUseCase;
-    private final PaymentRefundUseCase paymentRefundUseCase;
+    private final PaymentCancellationUseCase paymentCancellationUseCase;
     private final SellerRefundUseCase sellerRefundUseCase;
     private final PaymentSearchUseCase paymentSearchUseCase;
     private final OrderPaymentApiUseCase orderPaymentApiUseCase;
@@ -81,7 +81,7 @@ public class PaymentController {
             CardPaymentConfirmUseCase cardPaymentConfirmUseCase,
             ChargeConfirmFailureUseCase chargeConfirmFailureUseCase,
             ChargeRefundUseCase chargeRefundUseCase,
-            PaymentRefundUseCase paymentRefundUseCase,
+            PaymentCancellationUseCase paymentCancellationUseCase,
             SellerRefundUseCase sellerRefundUseCase,
             PaymentSearchUseCase paymentSearchUseCase,
             OrderPaymentApiUseCase orderPaymentApiUseCase
@@ -91,7 +91,7 @@ public class PaymentController {
         this.cardPaymentConfirmUseCase = cardPaymentConfirmUseCase;
         this.chargeConfirmFailureUseCase = chargeConfirmFailureUseCase;
         this.chargeRefundUseCase = chargeRefundUseCase;
-        this.paymentRefundUseCase = paymentRefundUseCase;
+        this.paymentCancellationUseCase = paymentCancellationUseCase;
         this.sellerRefundUseCase = sellerRefundUseCase;
         this.paymentSearchUseCase = paymentSearchUseCase;
         this.orderPaymentApiUseCase = orderPaymentApiUseCase;
@@ -300,7 +300,7 @@ public class PaymentController {
                         .map(item -> new PaymentRefundItemCommand(item.orderItemId(), item.refundAmount()))
                         .toList()
         );
-        PaymentRefundResponse response = PaymentRefundResponse.from(paymentRefundUseCase.requestRefund(command));
+        PaymentRefundResponse response = PaymentRefundResponse.from(paymentCancellationUseCase.requestCancellation(command));
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
