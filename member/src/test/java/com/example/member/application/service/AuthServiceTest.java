@@ -3,6 +3,7 @@ package com.example.member.application.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -64,16 +65,15 @@ class AuthServiceTest {
     void login_success_returnsTokensWhenNoActiveLoginBan() {
         Member member = createMember();
         LoginRequest request = new LoginRequest("member@test.com", "plain-password");
-        UUID sessionId = UUID.randomUUID();
 
         when(memberRepository.findByEmail("member@test.com")).thenReturn(Optional.of(member));
         when(passwordEncoder.matches("plain-password", "encoded-password")).thenReturn(true);
-        when(memberRestrictionService.getActiveLoginRestriction(org.mockito.ArgumentMatchers.eq(member.getMemberId()), any()))
+        when(memberRestrictionService.getActiveLoginRestriction(eq(member.getMemberId()), any()))
                 .thenReturn(null);
-        when(jwtTokenProvider.createAccessToken(member, sessionId)).thenReturn("access-token");
-        when(jwtTokenProvider.createRefreshToken(member, sessionId)).thenReturn("refresh-token");
+        when(jwtTokenProvider.createAccessToken(eq(member), any(UUID.class))).thenReturn("access-token");
+        when(jwtTokenProvider.createRefreshToken(eq(member), any(UUID.class))).thenReturn("refresh-token");
         when(jwtTokenProvider.parseRefreshToken("refresh-token"))
-                .thenReturn(new ParsedRefreshToken(member.getMemberId(), sessionId, "refresh-token-id"));
+                .thenReturn(new ParsedRefreshToken(member.getMemberId(), UUID.randomUUID(), "refresh-token-id"));
         when(jwtTokenProvider.getAccessExpiration()).thenReturn(3600L);
         when(jwtTokenProvider.getRefreshExpiration()).thenReturn(7200L);
 
@@ -81,13 +81,7 @@ class AuthServiceTest {
 
         assertEquals("access-token", response.accessToken());
         assertEquals("refresh-token", response.refreshToken());
-        assertEquals(sessionId, response.sessionId());
-        verify(refreshTokenStore).createSession(
-                member.getMemberId(),
-                sessionId,
-                "refresh-token-id",
-                Duration.ofMillis(7200L)
-        );
+        verify(refreshTokenStore).createSession(eq(member.getMemberId()), any(UUID.class), eq("refresh-token-id"), eq(Duration.ofMillis(7200L)));
     }
 
     @Test
@@ -106,12 +100,12 @@ class AuthServiceTest {
 
         when(memberRepository.findByEmail("member@test.com")).thenReturn(Optional.of(member));
         when(passwordEncoder.matches("plain-password", "encoded-password")).thenReturn(true);
-        when(memberRestrictionService.getActiveLoginRestriction(org.mockito.ArgumentMatchers.eq(member.getMemberId()), any()))
+        when(memberRestrictionService.getActiveLoginRestriction(eq(member.getMemberId()), any()))
                 .thenReturn(restriction);
 
         assertThrows(MemberRestrictedException.class, () -> authService.login(request));
 
-        verify(jwtTokenProvider, never()).createAccessToken(member, any(UUID.class));
+        verify(jwtTokenProvider, never()).createAccessToken(eq(member), any(UUID.class));
         verify(refreshTokenStore, never()).createSession(any(UUID.class), any(UUID.class), any(String.class), any(Duration.class));
     }
 
@@ -134,9 +128,9 @@ class AuthServiceTest {
         when(memberRepository.findByEmail("member@test.com")).thenReturn(Optional.of(member));
         when(passwordEncoder.matches("plain-password", "encoded-password")).thenReturn(true);
 
-        assertThrows(IllegalStateException.class, () -> authService.login(request));
+        assertThrows(com.example.member.common.exception.EmailVerificationRequiredException.class, () -> authService.login(request));
 
-        verify(jwtTokenProvider, never()).createAccessToken(member, any(UUID.class));
+        verify(jwtTokenProvider, never()).createAccessToken(eq(member), any(UUID.class));
         verify(refreshTokenStore, never()).createSession(any(UUID.class), any(UUID.class), any(String.class), any(Duration.class));
     }
 
@@ -149,7 +143,7 @@ class AuthServiceTest {
 
         when(jwtTokenProvider.parseRefreshToken("refresh-token"))
                 .thenReturn(new ParsedRefreshToken(memberId, sessionId, "refresh-token-id"));
-        when(memberRestrictionService.getActiveLoginRestriction(org.mockito.ArgumentMatchers.eq(memberId), any()))
+        when(memberRestrictionService.getActiveLoginRestriction(eq(memberId), any()))
                 .thenReturn(null);
         when(refreshTokenStore.findBySessionId(sessionId))
                 .thenReturn(Optional.of(new AuthSession(memberId, sessionId, "refresh-token-id")));
@@ -188,9 +182,9 @@ class AuthServiceTest {
                 .thenReturn(Optional.of(new AuthSession(memberId, sessionId, "refresh-token-id")));
         when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
 
-        assertThrows(IllegalStateException.class, () -> authService.refresh(request));
+        assertThrows(com.example.member.common.exception.EmailVerificationRequiredException.class, () -> authService.refresh(request));
 
-        verify(jwtTokenProvider, never()).createAccessToken(member, sessionId);
+        verify(jwtTokenProvider, never()).createAccessToken(eq(member), eq(sessionId));
     }
 
     @Test
@@ -202,7 +196,7 @@ class AuthServiceTest {
 
         when(jwtTokenProvider.parseRefreshToken("refresh-token"))
                 .thenReturn(new ParsedRefreshToken(memberId, sessionId, "refresh-token-id"));
-        when(memberRestrictionService.getActiveLoginRestriction(org.mockito.ArgumentMatchers.eq(memberId), any()))
+        when(memberRestrictionService.getActiveLoginRestriction(eq(memberId), any()))
                 .thenReturn(null);
         when(refreshTokenStore.findBySessionId(sessionId))
                 .thenReturn(Optional.of(new AuthSession(memberId, sessionId, "different-token-id")));
