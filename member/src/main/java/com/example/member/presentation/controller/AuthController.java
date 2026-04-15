@@ -1,5 +1,6 @@
 package com.example.member.presentation.controller;
 
+import com.example.member.application.service.KakaoOAuthService;
 import com.example.member.application.service.EmailVerificationService;
 import com.example.member.application.usecase.AuthUsecase;
 import com.example.member.application.usecase.MemberUsecase;
@@ -9,6 +10,9 @@ import com.example.member.presentation.dto.CreateMemberRequest;
 import com.example.member.presentation.dto.CreateMemberResponse;
 import com.example.member.presentation.dto.EmailVerificationConfirmResponse;
 import com.example.member.presentation.dto.EmailVerificationSendResponse;
+import com.example.member.presentation.dto.KakaoOAuthLinkRequest;
+import com.example.member.presentation.dto.KakaoOAuthLinkResponse;
+import com.example.member.presentation.dto.KakaoOAuthLoginResponse;
 import com.example.member.presentation.dto.LoginRequest;
 import com.example.member.presentation.dto.LoginResponse;
 import com.example.member.presentation.dto.SendEmailVerificationRequest;
@@ -16,15 +20,20 @@ import com.example.member.presentation.dto.TokenRefreshRequest;
 import com.example.member.presentation.dto.TokenRefreshResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import com.todaylunch.common.security.auth.annotation.CurrentMember;
+import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -38,6 +47,7 @@ public class AuthController {
     private final AuthUsecase authUsecase;
     private final MemberUsecase memberUsecase;
     private final EmailVerificationService emailVerificationService;
+    private final KakaoOAuthService kakaoOAuthService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -58,6 +68,35 @@ public class AuthController {
     @Operation(summary = "토큰 재발급", description = "리프레시 토큰을 사용하여 엑세스 토큰을 재발급합니다.")
     public ResponseEntity<ApiResponse<TokenRefreshResponse>> refresh(@RequestBody TokenRefreshRequest request) {
         return ResponseEntity.ok(ApiResponse.success(authUsecase.refresh(request)));
+    }
+
+    @GetMapping("/oauth/kakao/authorize")
+    @Operation(summary = "카카오 로그인 시작", description = "카카오 로그인 페이지로 이동합니다.")
+    public void authorizeKakaoLogin(HttpServletResponse response) throws IOException {
+        String state = kakaoOAuthService.createAuthorizeState();
+        response.sendRedirect(kakaoOAuthService.buildAuthorizeUrl(state));
+    }
+
+    @GetMapping("/oauth/kakao/callback")
+    @Operation(summary = "카카오 로그인 콜백", description = "카카오 인증 코드를 검증하고 우리 서비스 토큰 또는 연결 안내를 반환합니다.")
+    public ResponseEntity<ApiResponse<KakaoOAuthLoginResponse>> kakaoCallback(
+            @RequestParam String code,
+            @RequestParam String state
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                kakaoOAuthService.loginByCode(code, state)
+        ));
+    }
+
+    @PostMapping("/oauth/kakao/link")
+    @Operation(summary = "카카오 계정 연결", description = "현재 로그인한 회원과 카카오 계정을 연결합니다.")
+    public ResponseEntity<ApiResponse<KakaoOAuthLinkResponse>> linkKakaoAccount(
+            @CurrentMember AuthenticatedMember authenticatedMember,
+            @RequestBody KakaoOAuthLinkRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                kakaoOAuthService.linkCurrentMember(authenticatedMember.memberId(), request.linkToken())
+        ));
     }
 
     @PostMapping("/logout/{memberId}")

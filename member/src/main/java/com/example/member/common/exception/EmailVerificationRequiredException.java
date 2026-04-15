@@ -1,8 +1,8 @@
 package com.example.member.common.exception;
 
-public class EmailVerificationRequiredException extends RuntimeException {
+public class EmailVerificationRequiredException extends IllegalStateException {
 
     public EmailVerificationRequiredException() {
-        super("Email verification is required before authentication.");
+        super("Email verification is required.");
     }
 }
