@@ -9,6 +9,7 @@ public interface EscrowTransactionJpaRepository extends JpaRepository<EscrowTran
 
     List<EscrowTransaction> findAllByOrderIdOrderByOccurredAtAsc(UUID orderId);
 
+    List<EscrowTransaction> findAllByOrderIdAndSellerMemberIdOrderByOccurredAtAsc(UUID orderId, UUID sellerMemberId);
+
     List<EscrowTransaction> findAllByEscrowIdOrderByOccurredAtAsc(UUID escrowId);
 }
-

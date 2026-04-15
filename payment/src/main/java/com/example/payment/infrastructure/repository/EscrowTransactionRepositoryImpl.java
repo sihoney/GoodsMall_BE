@@ -31,8 +31,12 @@ public class EscrowTransactionRepositoryImpl implements EscrowTransactionReposit
     }
 
     @Override
+    public List<EscrowTransaction> findAllByOrderIdAndSellerMemberIdOrderByOccurredAtAsc(UUID orderId, UUID sellerMemberId) {
+        return escrowTransactionJpaRepository.findAllByOrderIdAndSellerMemberIdOrderByOccurredAtAsc(orderId, sellerMemberId);
+    }
+
+    @Override
     public List<EscrowTransaction> findAllByEscrowIdOrderByOccurredAtAsc(UUID escrowId) {
         return escrowTransactionJpaRepository.findAllByEscrowIdOrderByOccurredAtAsc(escrowId);
     }
 }
-
