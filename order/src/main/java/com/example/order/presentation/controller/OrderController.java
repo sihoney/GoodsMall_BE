@@ -1,9 +1,12 @@
 package com.example.order.presentation.controller;
 
+import com.example.order.application.usecase.OrderCancelUseCase;
 import com.example.order.application.usecase.OrderCreateUseCase;
 import com.example.order.application.usecase.OrderSearchUseCase;
+import com.example.order.presentation.dto.request.OrderCancelRequest;
 import com.example.order.presentation.dto.request.OrderCreateRequest;
 import com.example.order.presentation.dto.request.PaymentValidationRequest;
+import com.example.order.presentation.dto.response.OrderCancelResponse;
 import com.example.order.presentation.dto.response.OrderCreateResponse;
 import com.example.order.presentation.dto.response.OrderDetailResponse;
 import com.example.order.presentation.dto.response.OrderSummaryResponse;
@@ -33,6 +36,7 @@ public class OrderController {
 
     private final OrderCreateUseCase orderCreateUseCase;
     private final OrderSearchUseCase orderSearchUseCase;
+    private final OrderCancelUseCase orderCancelUseCase;
 
     @PostMapping("/deposit")
     public ResponseEntity<OrderCreateResponse> createByDeposit(
@@ -76,5 +80,15 @@ public class OrderController {
             @Valid @RequestBody PaymentValidationRequest request
     ) {
         return ResponseEntity.ok(orderSearchUseCase.getPaymentValidation(orderId, request));
+    }
+
+    @PostMapping("/{orderId}/cancel")
+    public ResponseEntity<OrderCancelResponse> cancelOrder(
+            @CurrentMember AuthenticatedMember authenticatedMember,
+            @PathVariable UUID orderId,
+            @Valid @RequestBody OrderCancelRequest request
+    ) {
+        UUID memberId = authenticatedMember.memberId();
+        return ResponseEntity.ok(orderCancelUseCase.cancelOrder(orderId, memberId, request));
     }
 }
