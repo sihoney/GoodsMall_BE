@@ -16,6 +16,7 @@ import com.example.member.domain.enumtype.RestrictionType;
 import com.example.member.infrastructure.redis.AuthSession;
 import com.example.member.infrastructure.redis.ParsedRefreshToken;
 import com.example.member.infrastructure.redis.RefreshTokenStore;
+import com.example.member.infrastructure.redis.TokenBlacklistStore;
 import com.example.member.infrastructure.repository.MemberRepository;
 import com.example.member.presentation.dto.LoginRequest;
 import com.example.member.presentation.dto.LoginResponse;
@@ -49,6 +50,9 @@ class AuthServiceTest {
 
     @Mock
     private RefreshTokenStore refreshTokenStore;
+
+    @Mock
+    private TokenBlacklistStore tokenBlacklistStore;
 
     @Mock
     private MemberRestrictionService memberRestrictionService;
@@ -216,6 +220,55 @@ class AuthServiceTest {
         authService.logout(memberId);
 
         verify(refreshTokenStore).deleteAllSessions(memberId);
+    }
+
+    @Test
+    void logoutCurrentSession_blacklistsAccessTokenAndSession() {
+        UUID memberId = UUID.randomUUID();
+        UUID sessionId = UUID.randomUUID();
+        UUID accessTokenId = UUID.randomUUID();
+        String token = "access-token";
+
+        when(jwtTokenProvider.parseAccessToken(token))
+                .thenReturn(new com.example.member.infrastructure.redis.ParsedAccessToken(
+                        memberId,
+                        sessionId,
+                        accessTokenId.toString(),
+                        LocalDateTime.now().plusMinutes(10).toInstant(java.time.ZoneOffset.UTC)
+                ));
+        when(jwtTokenProvider.getRefreshExpiration()).thenReturn(7200L);
+
+        authService.logoutCurrentSession(token);
+
+        verify(refreshTokenStore).deleteSession(memberId, sessionId);
+        verify(tokenBlacklistStore).blacklistAccessToken(any(), any(Duration.class));
+        verify(tokenBlacklistStore).blacklistSession(any(), any(Duration.class));
+    }
+
+    @Test
+    void logoutAllSessions_blacklistsMemberSessions() {
+        UUID memberId = UUID.randomUUID();
+        UUID sessionId1 = UUID.randomUUID();
+        UUID sessionId2 = UUID.randomUUID();
+        UUID accessTokenId = UUID.randomUUID();
+        String token = "access-token";
+
+        when(jwtTokenProvider.parseAccessToken(token))
+                .thenReturn(new com.example.member.infrastructure.redis.ParsedAccessToken(
+                        memberId,
+                        sessionId1,
+                        accessTokenId.toString(),
+                        LocalDateTime.now().plusMinutes(10).toInstant(java.time.ZoneOffset.UTC)
+                ));
+        when(refreshTokenStore.findSessionIdsByMemberId(memberId)).thenReturn(java.util.Set.of(sessionId1, sessionId2));
+        when(jwtTokenProvider.getRefreshExpiration()).thenReturn(7200L);
+
+        authService.logoutAllSessions(token);
+
+        verify(tokenBlacklistStore).blacklistSession(sessionId1, Duration.ofMillis(7200L));
+        verify(tokenBlacklistStore).blacklistSession(sessionId2, Duration.ofMillis(7200L));
+        verify(refreshTokenStore).deleteAllSessions(memberId);
+        verify(tokenBlacklistStore).blacklistAccessToken(any(), any(Duration.class));
     }
 
     private Member createMember() {
