@@ -94,11 +94,15 @@ public class PaymentRefundService implements PaymentRefundUseCase {
         }
         validateNoOtherRefundForOrder(command.orderId(), command.orderCancelRequestId());
 
+        PaymentRefundMethod resolvedPaymentMethod = resolvePaymentRefundMethod(command.items());
+        validateCardRefundReason(resolvedPaymentMethod, command.reason());
+
         LocalDateTime refundRequestedAt = timeProvider.now();
         Long requestedTotalRefundAmount = calculateTotalRefundAmount(command.items());
 
         PaymentRefund savedRequestedRefund = saveRequestedRefund(
                 command,
+                resolvedPaymentMethod,
                 requestedTotalRefundAmount,
                 refundRequestedAt
         );
@@ -162,13 +166,6 @@ public class PaymentRefundService implements PaymentRefundUseCase {
         if (command.refundType() == null) {
             throw new InvalidOrderPaymentRequestException("refundType is required.");
         }
-        if (command.paymentMethod() == null) {
-            throw new InvalidOrderPaymentRequestException("paymentMethod is required.");
-        }
-        if ((command.paymentMethod() == PaymentRefundMethod.CARD || command.paymentMethod() == PaymentRefundMethod.MIXED)
-                && (command.reason() == null || command.reason().isBlank())) {
-            throw new InvalidOrderPaymentRequestException("reason is required for card refund.");
-        }
         if (command.items() == null || command.items().isEmpty()) {
             throw new InvalidOrderPaymentRequestException("refund items must not be empty.");
         }
@@ -199,6 +196,7 @@ public class PaymentRefundService implements PaymentRefundUseCase {
 
     private PaymentRefund saveRequestedRefund(
             PaymentRefundCommand command,
+            PaymentRefundMethod paymentRefundMethod,
             Long requestedTotalRefundAmount,
             LocalDateTime refundRequestedAt
     ) {
@@ -208,7 +206,7 @@ public class PaymentRefundService implements PaymentRefundUseCase {
                 command.orderId(),
                 command.buyerMemberId(),
                 command.refundType(),
-                command.paymentMethod(),
+                paymentRefundMethod,
                 requestedTotalRefundAmount,
                 command.reason(),
                 refundRequestedAt
@@ -246,6 +244,36 @@ public class PaymentRefundService implements PaymentRefundUseCase {
             throw new InvalidOrderPaymentRequestException("total refund amount must be positive.");
         }
         return totalAmount;
+    }
+
+    private PaymentRefundMethod resolvePaymentRefundMethod(List<PaymentRefundItemCommand> itemCommands) {
+        List<CardTransaction> originalCardPayments = findOriginalCardPayments(itemCommands);
+        if (originalCardPayments.isEmpty()) {
+            return PaymentRefundMethod.WALLET;
+        }
+
+        int requestedOrderItemCount = itemCommands.stream()
+                .map(PaymentRefundItemCommand::orderItemId)
+                .collect(java.util.stream.Collectors.toSet())
+                .size();
+
+        int cardPaidOrderItemCount = originalCardPayments.stream()
+                .map(CardTransaction::getReferenceId)
+                .collect(java.util.stream.Collectors.toSet())
+                .size();
+
+        if (cardPaidOrderItemCount == requestedOrderItemCount) {
+            return PaymentRefundMethod.CARD;
+        }
+
+        return PaymentRefundMethod.MIXED;
+    }
+
+    private void validateCardRefundReason(PaymentRefundMethod paymentRefundMethod, String refundReason) {
+        if ((paymentRefundMethod == PaymentRefundMethod.CARD || paymentRefundMethod == PaymentRefundMethod.MIXED)
+                && (refundReason == null || refundReason.isBlank())) {
+            throw new InvalidOrderPaymentRequestException("reason is required for card refund.");
+        }
     }
 
     private List<PaymentRefundItem> createRequestedRefundItems(

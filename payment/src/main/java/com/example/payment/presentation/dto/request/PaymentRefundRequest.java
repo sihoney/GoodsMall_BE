@@ -1,6 +1,5 @@
 package com.example.payment.presentation.dto.request;
 
-import com.example.payment.domain.enumtype.PaymentRefundMethod;
 import com.example.payment.domain.enumtype.PaymentRefundType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
@@ -20,9 +19,6 @@ public record PaymentRefundRequest(
 
         @NotNull(message = "refundType is required.")
         PaymentRefundType refundType,
-
-        @NotNull(message = "paymentMethod is required.")
-        PaymentRefundMethod paymentMethod,
 
         String reason,
 

@@ -110,7 +110,6 @@ public class PaymentController {
     /**
      * 회원의 charge 목록을 최신순 페이지 응답으로 반환한다.
      */
-    // todo: 프론트에서 페이지네이션을 처리할 것인지 페이지를 전달할 것인지 확인하기
     @GetMapping("/charges")
     @Operation(summary = "내 충전 목록 조회")
     public ResponseEntity<ApiResponse<PagedResponse<ChargeListItemResponse>>> findAllCharges(
@@ -118,7 +117,6 @@ public class PaymentController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        // todo : var 대신에 PagedResult<ChargeListItemResult>을 쓸 것인지 결정하기, var를 쓴 이유를 확실히하기
         var result = paymentSearchUseCase.findAllCharges(authenticatedMember.memberId(), page, size);
         List<ChargeListItemResponse> items = result.items().stream()
                 .map(ChargeListItemResponse::from)
@@ -137,7 +135,6 @@ public class PaymentController {
     /**
      * chargeId로 충전 내역을 조회하고 refund에서 환불 여부를 확인해서 같이 내용을 전달한다.
      */
-    // todo: 충전 상세 화면에 필요한 데이터가 최신 환불 이력 1건이 맞는지 확인해서 메서드 수정하기
     @GetMapping("/charges/{chargeId}")
     @Operation(summary = "충전 상세 조회")
     public ResponseEntity<ApiResponse<ChargeDetailResponse>> findChargeDetail(
@@ -160,7 +157,6 @@ public class PaymentController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        // todo : var 대신에 PagedResult<ChargeListItemResult>을 쓸 것인지 결정하기, var를 쓴 이유를 확실히하기
         var result = paymentSearchUseCase.findAllRefunds(authenticatedMember.memberId(), page, size);
         List<ChargeRefundSummaryResponse> items = result.items().stream()
                 .map(ChargeRefundSummaryResponse::from)
@@ -186,7 +182,6 @@ public class PaymentController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        // todo : var 대신에 PagedResult<ChargeListItemResult>을 쓸 것인지 결정하기, var를 쓴 이유를 확실히하기
         var result = paymentSearchUseCase.findAllTransactions(authenticatedMember.memberId(), page, size);
         List<WalletTransactionItemResponse> items = result.items().stream()
                 .map(WalletTransactionItemResponse::from)
@@ -212,7 +207,6 @@ public class PaymentController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        // todo : var 대신에 PagedResult<ChargeListItemResult>을 쓸 것인지 결정하기, var를 쓴 이유를 확실히하기
         var result = paymentSearchUseCase.findAllPendingSellerIncomes(authenticatedMember.memberId(), page, size);
         List<PendingSellerIncomeItemResponse> items = result.items().stream()
                 .map(PendingSellerIncomeItemResponse::from)
@@ -304,8 +298,6 @@ public class PaymentController {
     /**
      * 승인된 charge를 환불하고 wallet 잔액을 차감한다.
      */
-    // todo: 경로에 chargeId를 넣는것이 적절한 것인가?
-    // todo: front와 소통하여 chargeId를 body에 넣어서 보내는 방식으로 리팩토링 요청해야 할 수 있음
     @PostMapping("/charges/{chargeId}/refund")
     @Operation(summary = "충전 환불")
     public ResponseEntity<ApiResponse<ChargeRefundResponse>> refundCharge(
@@ -328,7 +320,6 @@ public class PaymentController {
                 request.buyerMemberId(),
                 request.orderCancelRequestId(),
                 request.refundType(),
-                request.paymentMethod(),
                 request.reason(),
                 request.items().stream()
                         .map(item -> new PaymentRefundItemCommand(item.orderItemId(), item.refundAmount()))
