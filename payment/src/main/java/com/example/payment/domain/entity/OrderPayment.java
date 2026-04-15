@@ -95,9 +95,32 @@ public class OrderPayment {
         );
     }
 
+    public void markRefundStatusByTotalRefundedAmount(Long totalRefundedAmount, LocalDateTime updatedAt) {
+        long validatedRefundedAmount = validateNonNegativeAmount(totalRefundedAmount);
+        if (validatedRefundedAmount > totalAmount) {
+            throw new IllegalArgumentException("total refunded amount exceeds total payment amount.");
+        }
+
+        if (validatedRefundedAmount == 0L) {
+            this.paymentStatus = OrderPaymentStatus.SUCCEEDED;
+        } else if (validatedRefundedAmount < totalAmount) {
+            this.paymentStatus = OrderPaymentStatus.PARTIAL_REFUNDED;
+        } else {
+            this.paymentStatus = OrderPaymentStatus.REFUNDED;
+        }
+        this.updatedAt = Objects.requireNonNull(updatedAt);
+    }
+
     private static Long validatePositiveAmount(Long amount) {
         if (Objects.requireNonNull(amount) <= 0L) {
             throw new IllegalArgumentException("totalAmount must be positive.");
+        }
+        return amount;
+    }
+
+    private static long validateNonNegativeAmount(Long amount) {
+        if (Objects.requireNonNull(amount) < 0L) {
+            throw new IllegalArgumentException("total refunded amount must not be negative.");
         }
         return amount;
     }

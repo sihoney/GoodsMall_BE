@@ -9,6 +9,7 @@ import com.example.payment.common.exception.InvalidOrderPaymentRequestException;
 import com.example.payment.common.exception.WalletNotFoundException;
 import com.example.payment.domain.entity.CardTransaction;
 import com.example.payment.domain.entity.Escrow;
+import com.example.payment.domain.entity.OrderPayment;
 import com.example.payment.domain.entity.PaymentRefund;
 import com.example.payment.domain.entity.PaymentRefundAllocation;
 import com.example.payment.domain.entity.PaymentRefundItem;
@@ -17,10 +18,12 @@ import com.example.payment.domain.entity.WalletTransaction;
 import com.example.payment.domain.enumtype.CardTransactionCancelScope;
 import com.example.payment.domain.enumtype.EscrowReferenceType;
 import com.example.payment.domain.enumtype.PaymentRefundMethod;
+import com.example.payment.domain.enumtype.PaymentRefundStatus;
 import com.example.payment.domain.enumtype.PaymentRefundType;
 import com.example.payment.domain.enumtype.WalletTransactionType;
 import com.example.payment.domain.repository.CardTransactionRepository;
 import com.example.payment.domain.repository.EscrowRepository;
+import com.example.payment.domain.repository.OrderPaymentRepository;
 import com.example.payment.domain.repository.PaymentRefundAllocationRepository;
 import com.example.payment.domain.repository.PaymentRefundItemRepository;
 import com.example.payment.domain.repository.PaymentRefundRepository;
@@ -55,6 +58,7 @@ public class PaymentRefundService implements PaymentRefundUseCase {
     private final TossPaymentGateway tossPaymentGateway;
     private final IdentifierGenerator identifierGenerator;
     private final TimeProvider timeProvider;
+    private final OrderPaymentRepository orderPaymentRepository;
 
     public PaymentRefundService(
             PaymentRefundRepository paymentRefundRepository,
@@ -66,7 +70,8 @@ public class PaymentRefundService implements PaymentRefundUseCase {
             EscrowRepository escrowRepository,
             TossPaymentGateway tossPaymentGateway,
             IdentifierGenerator identifierGenerator,
-            TimeProvider timeProvider
+            TimeProvider timeProvider,
+            OrderPaymentRepository orderPaymentRepository
     ) {
         this.paymentRefundRepository = paymentRefundRepository;
         this.paymentRefundAllocationRepository = paymentRefundAllocationRepository;
@@ -78,6 +83,7 @@ public class PaymentRefundService implements PaymentRefundUseCase {
         this.tossPaymentGateway = tossPaymentGateway;
         this.identifierGenerator = identifierGenerator;
         this.timeProvider = timeProvider;
+        this.orderPaymentRepository = orderPaymentRepository;
     }
 
     @Override
@@ -132,6 +138,7 @@ public class PaymentRefundService implements PaymentRefundUseCase {
                     command.items(),
                     timeProvider.now()
             );
+            updateOrderPaymentStatusAfterRefundSucceeded(processingRefund.getOrderId());
 
             LocalDateTime succeededAt = timeProvider.now();
             markAllRefundItemsSucceeded(savedRequestedRefundItems, succeededAt);
@@ -695,6 +702,22 @@ public class PaymentRefundService implements PaymentRefundUseCase {
         for (PaymentRefundItem paymentRefundItem : paymentRefundItems) {
             paymentRefundItem.markFailed(failureReason, updatedAt);
         }
+    }
+
+    private void updateOrderPaymentStatusAfterRefundSucceeded(UUID orderId) {
+        OrderPayment orderPayment = orderPaymentRepository.findByOrderId(orderId).orElse(null);
+        if (orderPayment == null) {
+            return;
+        }
+
+        long totalRefundedAmount = paymentRefundRepository.findAllByOrderIdAndRefundStatus(orderId, PaymentRefundStatus.SUCCEEDED)
+                .stream()
+                .mapToLong(PaymentRefund::getTotalRefundAmount)
+                .sum();
+
+        LocalDateTime now = timeProvider.now();
+        orderPayment.markRefundStatusByTotalRefundedAmount(totalRefundedAmount, now);
+        orderPaymentRepository.save(orderPayment);
     }
 
     private String resolveFailureReason(String failureReason) {
