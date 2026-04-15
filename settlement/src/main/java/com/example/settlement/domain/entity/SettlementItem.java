@@ -131,4 +131,39 @@ public class SettlementItem {
     public boolean isAlreadyAggregated() {
         return this.settlementId != null;
     }
+
+    public void applyRefund(Long grossReduction, Long feeReduction, Long netReduction) {
+        long validatedGrossReduction = requireNonNegative(grossReduction, "grossReduction");
+        long validatedFeeReduction = requireNonNegative(feeReduction, "feeReduction");
+        long validatedNetReduction = requireNonNegative(netReduction, "netReduction");
+
+        if (validatedGrossReduction > grossAmount) {
+            throw new IllegalArgumentException("grossReduction exceeds grossAmount.");
+        }
+        if (validatedFeeReduction > feeAmount) {
+            throw new IllegalArgumentException("feeReduction exceeds feeAmount.");
+        }
+        if (validatedNetReduction > netAmount) {
+            throw new IllegalArgumentException("netReduction exceeds netAmount.");
+        }
+        if (validatedGrossReduction != validatedFeeReduction + validatedNetReduction) {
+            throw new IllegalArgumentException("grossReduction must equal feeReduction + netReduction.");
+        }
+
+        this.grossAmount -= validatedGrossReduction;
+        this.feeAmount -= validatedFeeReduction;
+        this.netAmount -= validatedNetReduction;
+    }
+
+    public boolean isDepleted() {
+        return this.grossAmount == 0L && this.feeAmount == 0L && this.netAmount == 0L;
+    }
+
+    private long requireNonNegative(Long amount, String fieldName) {
+        long value = Objects.requireNonNull(amount, fieldName + " must not be null.");
+        if (value < 0L) {
+            throw new IllegalArgumentException(fieldName + " must not be negative.");
+        }
+        return value;
+    }
 }
