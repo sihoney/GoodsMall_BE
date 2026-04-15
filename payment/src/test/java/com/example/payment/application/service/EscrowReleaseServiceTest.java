@@ -14,6 +14,7 @@ import com.example.payment.domain.entity.Escrow;
 import com.example.payment.domain.enumtype.ConfirmationType;
 import com.example.payment.domain.enumtype.EscrowStatus;
 import com.example.payment.domain.repository.EscrowRepository;
+import com.example.payment.domain.repository.EscrowTransactionRepository;
 import com.example.payment.domain.service.AutoPurchaseConfirmedEventPublisher;
 import com.example.payment.domain.service.IdentifierGenerator;
 import com.example.payment.domain.service.SettlementCandidateCreatedEventPublisher;
@@ -36,6 +37,9 @@ class EscrowReleaseServiceTest {
 
     @Mock
     private EscrowRepository escrowRepository;
+
+    @Mock
+    private EscrowTransactionRepository escrowTransactionRepository;
 
     @Mock
     private IdentifierGenerator identifierGenerator;

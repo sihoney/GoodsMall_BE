@@ -16,6 +16,7 @@ import com.example.payment.domain.entity.Escrow;
 import com.example.payment.domain.entity.OrderPayment;
 import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.repository.EscrowRepository;
+import com.example.payment.domain.repository.EscrowTransactionRepository;
 import com.example.payment.domain.repository.OrderPaymentAllocationRepository;
 import com.example.payment.domain.repository.OrderPaymentRepository;
 import com.example.payment.domain.repository.WalletRepository;
@@ -46,6 +47,9 @@ class OrderPaymentServiceTest {
 
     @Mock
     private EscrowRepository escrowRepository;
+
+    @Mock
+    private EscrowTransactionRepository escrowTransactionRepository;
 
     @Mock
     private OrderPaymentRepository orderPaymentRepository;
