@@ -341,14 +341,14 @@ public class Escrow {
     }
 
     /**
-     * HELD escrow에서 환불 금액만큼 정산대상 잔액(amount)을 차감한다.
+     * HELD/RELEASED escrow에서 환불 금액만큼 정산대상 잔액(amount)을 차감한다.
      * amount가 0이 되면 REFUNDED 상태로 전이한다.
      */
     public void applyRefundAmount(Long refundAmount, LocalDateTime refundedAt, LocalDateTime updatedAt) {
-        validateHeldStatus();
+        validateRefundableStatus();
         long validatedRefundAmount = validatePositiveAmount(refundAmount);
         if (validatedRefundAmount > amount) {
-            throw new IllegalArgumentException("Refund amount exceeds held escrow amount.");
+            throw new IllegalArgumentException("Refund amount exceeds escrow amount.");
         }
 
         this.amount -= validatedRefundAmount;
@@ -384,6 +384,12 @@ public class Escrow {
     private void validateHeldStatus() {
         if (!isHeld()) {
             throw new IllegalStateException("Only held escrow can be changed.");
+        }
+    }
+
+    private void validateRefundableStatus() {
+        if (!isHeld() && !isReleased()) {
+            throw new IllegalStateException("Only held or released escrow can be refunded.");
         }
     }
 
