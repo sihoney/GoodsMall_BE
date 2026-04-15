@@ -11,6 +11,7 @@ import com.example.payment.common.exception.InvalidOrderPaymentRequestException;
 import com.example.payment.common.exception.WalletNotFoundException;
 import com.example.payment.domain.entity.CardTransaction;
 import com.example.payment.domain.entity.Escrow;
+import com.example.payment.domain.entity.EscrowTransaction;
 import com.example.payment.domain.entity.OrderPayment;
 import com.example.payment.domain.entity.PaymentRefund;
 import com.example.payment.domain.entity.PaymentRefundAllocation;
@@ -25,6 +26,7 @@ import com.example.payment.domain.enumtype.PaymentRefundType;
 import com.example.payment.domain.enumtype.WalletTransactionType;
 import com.example.payment.domain.repository.CardTransactionRepository;
 import com.example.payment.domain.repository.EscrowRepository;
+import com.example.payment.domain.repository.EscrowTransactionRepository;
 import com.example.payment.domain.repository.OrderPaymentRepository;
 import com.example.payment.domain.repository.PaymentRefundAllocationRepository;
 import com.example.payment.domain.repository.PaymentRefundItemRepository;
@@ -67,6 +69,7 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
     private final WalletTransactionRepository walletTransactionRepository;
     private final CardTransactionRepository cardTransactionRepository;
     private final EscrowRepository escrowRepository;
+    private final EscrowTransactionRepository escrowTransactionRepository;
     private final TossPaymentGateway tossPaymentGateway;
     private final IdentifierGenerator identifierGenerator;
     private final TimeProvider timeProvider;
@@ -82,6 +85,7 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
             WalletTransactionRepository walletTransactionRepository,
             CardTransactionRepository cardTransactionRepository,
             EscrowRepository escrowRepository,
+            EscrowTransactionRepository escrowTransactionRepository,
             TossPaymentGateway tossPaymentGateway,
             IdentifierGenerator identifierGenerator,
             TimeProvider timeProvider,
@@ -96,6 +100,7 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
         this.walletTransactionRepository = walletTransactionRepository;
         this.cardTransactionRepository = cardTransactionRepository;
         this.escrowRepository = escrowRepository;
+        this.escrowTransactionRepository = escrowTransactionRepository;
         this.tossPaymentGateway = tossPaymentGateway;
         this.identifierGenerator = identifierGenerator;
         this.timeProvider = timeProvider;
@@ -167,6 +172,7 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
                         processingRefund.getOrderId(),
                         processingRefund.getTotalRefundAmount(),
                         processingRefund.getBuyerMemberId(),
+                        processingRefund.getRefundId(),
                         command.items(),
                         timeProvider.now()
                 );
@@ -199,8 +205,6 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
 
     private PaymentRefundCommand buildSellerRefundCommandFromEscrow(SellerRefundCommand command) {
         validateSellerRefundCommand(command);
-        // TODO: Replace escrow-based seller ownership check with order-service validation API once
-        // order contract for seller refund confirmation is finalized.
 
         List<Escrow> orderItemEscrows = escrowRepository.findAllByReferenceTypeAndReferenceIdIn(
                 EscrowReferenceType.ORDER_ITEM,
@@ -489,6 +493,7 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
             UUID orderId,
             Long totalRefundAmount,
             UUID buyerMemberId,
+            UUID refundId,
             List<PaymentRefundItemCommand> itemCommands,
             LocalDateTime refundedAt
     ) {
@@ -514,14 +519,50 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
                         "held escrow not found for orderItemId: " + requestedRefundAmountEntry.getKey()
                 );
             }
+            long beforeAmount = heldEscrow.getAmount();
             heldEscrow.applyRefundAmount(requestedRefundAmountEntry.getValue(), refundedAt, refundedAt);
             escrowRepository.save(heldEscrow);
+            recordRefundEscrowTransaction(
+                    heldEscrow,
+                    requestedRefundAmountEntry.getValue(),
+                    beforeAmount,
+                    heldEscrow.getAmount(),
+                    refundId,
+                    refundedAt
+            );
             appliedTotalRefundAmount += requestedRefundAmountEntry.getValue();
         }
 
         if (appliedTotalRefundAmount != totalRefundAmount) {
             throw new InvalidOrderPaymentRequestException("refunded escrow amount does not match total refund amount.");
         }
+    }
+
+    private void recordRefundEscrowTransaction(
+            Escrow escrow,
+            Long refundAmount,
+            Long beforeAmount,
+            Long afterAmount,
+            UUID refundId,
+            LocalDateTime occurredAt
+    ) {
+        EscrowTransaction transaction = EscrowTransaction.refund(
+                identifierGenerator.generateUuid(),
+                escrow.getEscrowId(),
+                escrow.getOrderId(),
+                escrow.isOrderItemReference() ? escrow.getReferenceId() : null,
+                escrow.getSellerMemberId(),
+                escrow.getBuyerMemberId(),
+                refundAmount,
+                beforeAmount,
+                afterAmount,
+                refundId,
+                "PAYMENT_REFUND",
+                "escrow refund",
+                occurredAt,
+                occurredAt
+        );
+        escrowTransactionRepository.save(transaction);
     }
 
     private Map<UUID, Long> toRequestedRefundAmountByOrderItemId(List<PaymentRefundItemCommand> itemCommands) {

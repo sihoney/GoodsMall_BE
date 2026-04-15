@@ -7,12 +7,14 @@ import com.example.payment.application.usecase.OrderPaymentUseCase;
 import com.example.payment.common.exception.InvalidOrderPaymentRequestException;
 import com.example.payment.common.exception.WalletNotFoundException;
 import com.example.payment.domain.entity.Escrow;
+import com.example.payment.domain.entity.EscrowTransaction;
 import com.example.payment.domain.entity.OrderPayment;
 import com.example.payment.domain.entity.OrderPaymentAllocation;
 import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.entity.WalletTransaction;
 import com.example.payment.domain.enumtype.EscrowReferenceType;
 import com.example.payment.domain.enumtype.OrderPaymentMethod;
+import com.example.payment.domain.repository.EscrowTransactionRepository;
 import com.example.payment.domain.repository.OrderPaymentAllocationRepository;
 import com.example.payment.domain.repository.OrderPaymentRepository;
 import com.example.payment.domain.repository.EscrowRepository;
@@ -37,6 +39,7 @@ public class OrderPaymentService implements OrderPaymentUseCase {
     private final WalletRepository walletRepository;
     private final WalletTransactionRepository walletTransactionRepository;
     private final EscrowRepository escrowRepository;
+    private final EscrowTransactionRepository escrowTransactionRepository;
     private final OrderPaymentRepository orderPaymentRepository;
     private final OrderPaymentAllocationRepository orderPaymentAllocationRepository;
     private final IdentifierGenerator identifierGenerator;
@@ -46,6 +49,7 @@ public class OrderPaymentService implements OrderPaymentUseCase {
             WalletRepository walletRepository,
             WalletTransactionRepository walletTransactionRepository,
             EscrowRepository escrowRepository,
+            EscrowTransactionRepository escrowTransactionRepository,
             OrderPaymentRepository orderPaymentRepository,
             OrderPaymentAllocationRepository orderPaymentAllocationRepository,
             IdentifierGenerator identifierGenerator,
@@ -54,6 +58,7 @@ public class OrderPaymentService implements OrderPaymentUseCase {
         this.walletRepository = walletRepository;
         this.walletTransactionRepository = walletTransactionRepository;
         this.escrowRepository = escrowRepository;
+        this.escrowTransactionRepository = escrowTransactionRepository;
         this.orderPaymentRepository = orderPaymentRepository;
         this.orderPaymentAllocationRepository = orderPaymentAllocationRepository;
         this.identifierGenerator = identifierGenerator;
@@ -81,7 +86,6 @@ public class OrderPaymentService implements OrderPaymentUseCase {
 
         LocalDateTime now = timeProvider.now();
         // 지갑 금액과 결제 금액 차이는 도메인에 있음
-        // todo: 결제 금액에 비해 지갑 금액이 큰지 검증하는 로직 추가 여부 확인
         Long balanceAfter = buyerWallet.decreaseBalance(command.orderAmount(), now);
 
         // wallet 변동 사항 기록
@@ -112,6 +116,7 @@ public class OrderPaymentService implements OrderPaymentUseCase {
         walletRepository.save(buyerWallet);
         walletTransactionRepository.save(purchaseTransaction);
         escrowRepository.saveAll(escrows);
+        recordHoldEscrowTransactions(escrows, now);
         saveOrderPaymentRecords(
                 command,
                 purchaseTransaction.getTransactionId(),
@@ -206,5 +211,27 @@ public class OrderPaymentService implements OrderPaymentUseCase {
                 paidAt
         );
         orderPaymentAllocationRepository.saveAll(java.util.List.of(walletAllocation));
+    }
+
+    private void recordHoldEscrowTransactions(List<Escrow> escrows, LocalDateTime occurredAt) {
+        List<EscrowTransaction> transactions = escrows.stream()
+                .map(escrow -> EscrowTransaction.hold(
+                        identifierGenerator.generateUuid(),
+                        escrow.getEscrowId(),
+                        escrow.getOrderId(),
+                        escrow.isOrderItemReference() ? escrow.getReferenceId() : null,
+                        escrow.getSellerMemberId(),
+                        escrow.getBuyerMemberId(),
+                        escrow.getAmount(),
+                        0L,
+                        escrow.getAmount(),
+                        escrow.getReferenceId(),
+                        escrow.getReferenceType().name(),
+                        "escrow hold",
+                        occurredAt,
+                        occurredAt
+                ))
+                .toList();
+        escrowTransactionRepository.saveAll(transactions);
     }
 }

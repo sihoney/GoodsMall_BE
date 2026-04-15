@@ -8,9 +8,11 @@ import com.example.payment.application.usecase.EscrowReleaseUseCase;
 import com.example.payment.common.exception.EscrowNotFoundException;
 import com.example.payment.common.exception.InvalidOrderPaymentRequestException;
 import com.example.payment.domain.entity.Escrow;
+import com.example.payment.domain.entity.EscrowTransaction;
 import com.example.payment.domain.enumtype.ConfirmationType;
 import com.example.payment.domain.enumtype.EscrowStatus;
 import com.example.payment.domain.repository.EscrowRepository;
+import com.example.payment.domain.repository.EscrowTransactionRepository;
 import com.example.payment.domain.service.AutoPurchaseConfirmedEventPublisher;
 import com.example.payment.domain.service.IdentifierGenerator;
 import com.example.payment.domain.service.SettlementCandidateCreatedEventPublisher;
@@ -30,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class EscrowReleaseService implements EscrowReleaseUseCase {
 
     private final EscrowRepository escrowRepository;
+    private final EscrowTransactionRepository escrowTransactionRepository;
     private final IdentifierGenerator identifierGenerator;
     private final AutoPurchaseConfirmedEventPublisher autoPurchaseConfirmedEventPublisher;
     private final SettlementCandidateCreatedEventPublisher settlementCandidateCreatedEventPublisher;
@@ -37,12 +40,14 @@ public class EscrowReleaseService implements EscrowReleaseUseCase {
 
     public EscrowReleaseService(
             EscrowRepository escrowRepository,
+            EscrowTransactionRepository escrowTransactionRepository,
             IdentifierGenerator identifierGenerator,
             AutoPurchaseConfirmedEventPublisher autoPurchaseConfirmedEventPublisher,
             SettlementCandidateCreatedEventPublisher settlementCandidateCreatedEventPublisher,
             TimeProvider timeProvider
     ) {
         this.escrowRepository = escrowRepository;
+        this.escrowTransactionRepository = escrowTransactionRepository;
         this.identifierGenerator = identifierGenerator;
         this.autoPurchaseConfirmedEventPublisher = autoPurchaseConfirmedEventPublisher;
         this.settlementCandidateCreatedEventPublisher = settlementCandidateCreatedEventPublisher;
@@ -82,8 +87,10 @@ public class EscrowReleaseService implements EscrowReleaseUseCase {
                 throw new IllegalStateException("Escrow is not releasable.");
             }
 
+            long beforeAmount = escrow.getAmount();
             escrow.release(now, now);
             escrowRepository.save(escrow);
+            recordReleaseEscrowTransaction(escrow, beforeAmount, escrow.getAmount(), now);
             releasedAny = true;
             releasedAmount += escrow.getAmount();
 
@@ -150,5 +157,30 @@ public class EscrowReleaseService implements EscrowReleaseUseCase {
         if (command.confirmationType() == null) {
             throw new InvalidOrderPaymentRequestException("confirmationType is required.");
         }
+    }
+
+    private void recordReleaseEscrowTransaction(
+            Escrow escrow,
+            Long beforeAmount,
+            Long afterAmount,
+            LocalDateTime occurredAt
+    ) {
+        EscrowTransaction transaction = EscrowTransaction.release(
+                identifierGenerator.generateUuid(),
+                escrow.getEscrowId(),
+                escrow.getOrderId(),
+                escrow.isOrderItemReference() ? escrow.getReferenceId() : null,
+                escrow.getSellerMemberId(),
+                escrow.getBuyerMemberId(),
+                beforeAmount,
+                beforeAmount,
+                afterAmount,
+                null,
+                "ESCROW_RELEASE",
+                "escrow release",
+                occurredAt,
+                occurredAt
+        );
+        escrowTransactionRepository.save(transaction);
     }
 }

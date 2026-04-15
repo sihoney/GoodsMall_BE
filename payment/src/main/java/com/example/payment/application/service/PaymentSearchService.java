@@ -3,6 +3,7 @@ package com.example.payment.application.service;
 import com.example.payment.application.dto.ChargeDetailResult;
 import com.example.payment.application.dto.ChargeListItemResult;
 import com.example.payment.application.dto.ChargeRefundSummaryResult;
+import com.example.payment.application.dto.EscrowTransactionItemResult;
 import com.example.payment.application.dto.PagedResult;
 import com.example.payment.application.dto.PendingSellerIncomeItemResult;
 import com.example.payment.application.dto.WalletSummaryResult;
@@ -13,13 +14,16 @@ import com.example.payment.common.exception.WalletNotFoundException;
 import com.example.payment.domain.entity.Charge;
 import com.example.payment.domain.entity.ChargeRefund;
 import com.example.payment.domain.entity.Escrow;
+import com.example.payment.domain.entity.EscrowTransaction;
 import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.entity.WalletTransaction;
 import com.example.payment.domain.repository.ChargeRefundRepository;
 import com.example.payment.domain.repository.ChargeRepository;
 import com.example.payment.domain.repository.EscrowRepository;
+import com.example.payment.domain.repository.EscrowTransactionRepository;
 import com.example.payment.domain.repository.WalletRepository;
 import com.example.payment.domain.repository.WalletTransactionRepository;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -43,19 +47,22 @@ public class PaymentSearchService implements PaymentSearchUseCase {
     private final ChargeRefundRepository chargeRefundRepository;
     private final WalletTransactionRepository walletTransactionRepository;
     private final EscrowRepository escrowRepository;
+    private final EscrowTransactionRepository escrowTransactionRepository;
 
     public PaymentSearchService(
             WalletRepository walletRepository,
             ChargeRepository chargeRepository,
             ChargeRefundRepository chargeRefundRepository,
             WalletTransactionRepository walletTransactionRepository,
-            EscrowRepository escrowRepository
+            EscrowRepository escrowRepository,
+            EscrowTransactionRepository escrowTransactionRepository
     ) {
         this.walletRepository = walletRepository;
         this.chargeRepository = chargeRepository;
         this.chargeRefundRepository = chargeRefundRepository;
         this.walletTransactionRepository = walletTransactionRepository;
         this.escrowRepository = escrowRepository;
+        this.escrowTransactionRepository = escrowTransactionRepository;
     }
 
     /**
@@ -163,6 +170,14 @@ public class PaymentSearchService implements PaymentSearchUseCase {
         return toPagedResult(escrowPage.map(this::toPendingSellerIncomeItemResult));
     }
 
+    @Override
+    public List<EscrowTransactionItemResult> findEscrowTransactionsByOrderId(UUID sellerMemberId, UUID orderId) {
+        return escrowTransactionRepository.findAllByOrderIdAndSellerMemberIdOrderByOccurredAtAsc(orderId, sellerMemberId)
+                .stream()
+                .map(this::toEscrowTransactionItemResult)
+                .toList();
+    }
+
     /**
      * 모든 wallet 기반 조회의 공통 시작점이다.
      * wallet 미존재는 비즈니스 예외로 변환해 상위 응답 계층에서 일관되게 처리한다.
@@ -252,6 +267,26 @@ public class PaymentSearchService implements PaymentSearchUseCase {
                 escrow.getReleaseAt(),
                 escrow.getCreatedAt(),
                 escrow.getUpdatedAt()
+        );
+    }
+
+    private EscrowTransactionItemResult toEscrowTransactionItemResult(EscrowTransaction escrowTransaction) {
+        return new EscrowTransactionItemResult(
+                escrowTransaction.getEscrowTransactionId(),
+                escrowTransaction.getEscrowId(),
+                escrowTransaction.getOrderId(),
+                escrowTransaction.getOrderItemId(),
+                escrowTransaction.getSellerMemberId(),
+                escrowTransaction.getBuyerMemberId(),
+                escrowTransaction.getTransactionType(),
+                escrowTransaction.getAmount(),
+                escrowTransaction.getBeforeAmount(),
+                escrowTransaction.getAfterAmount(),
+                escrowTransaction.getReferenceId(),
+                escrowTransaction.getReferenceType(),
+                escrowTransaction.getDescription(),
+                escrowTransaction.getOccurredAt(),
+                escrowTransaction.getCreatedAt()
         );
     }
 

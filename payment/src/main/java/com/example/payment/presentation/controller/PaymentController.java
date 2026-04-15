@@ -37,6 +37,7 @@ import com.example.payment.presentation.dto.response.ChargeCreateResponse;
 import com.example.payment.presentation.dto.response.ChargeListItemResponse;
 import com.example.payment.presentation.dto.response.ChargeRefundSummaryResponse;
 import com.example.payment.presentation.dto.response.ChargeRefundResponse;
+import com.example.payment.presentation.dto.response.EscrowTransactionItemResponse;
 import com.example.payment.presentation.dto.response.OrderPaymentApiResponse;
 import com.example.payment.presentation.dto.response.PagedResponse;
 import com.example.payment.presentation.dto.response.PaymentRefundResponse;
@@ -205,6 +206,25 @@ public class PaymentController {
                 result.totalPages(),
                 result.hasNext()
         );
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/seller/orders/{orderId}/escrow-transactions")
+    @Operation(summary = "판매자 주문 escrow transaction 이력 조회")
+    public ResponseEntity<ApiResponse<List<EscrowTransactionItemResponse>>> findSellerOrderEscrowTransactions(
+            @CurrentMember AuthenticatedMember authenticatedMember,
+            @PathVariable UUID orderId
+    ) {
+        if (authenticatedMember.role() != MemberRole.SELLER) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "seller role is required.");
+        }
+
+        List<EscrowTransactionItemResponse> response = paymentSearchUseCase.findEscrowTransactionsByOrderId(
+                        authenticatedMember.memberId(),
+                        orderId
+                ).stream()
+                .map(EscrowTransactionItemResponse::from)
+                .toList();
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
