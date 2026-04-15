@@ -1,11 +1,11 @@
 package com.example.order.application.processor;
 
 import com.example.order.application.port.ProductPort;
-import com.example.order.application.port.ProductPort.ProductInfo;
+import com.example.order.application.port.dto.request.ProductStockDeductRequest;
+import com.example.order.application.port.dto.response.ProductInfo;
 import com.example.order.common.exception.CustomException;
 import com.example.order.common.exception.ErrorCode;
 import com.example.order.domain.enumtype.ProductOrderStatus;
-import com.example.order.infrastructure.client.dto.request.ProductRequest;
 import com.example.order.presentation.dto.request.OrderCreateRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -22,9 +22,9 @@ public class ProductProcessor {
 
     private final ProductPort productPort;
 
-    public void validateDuplicate(List<ProductRequest> productRequests) {
+    public void validateDuplicate(List<ProductStockDeductRequest> productRequests) {
         Set<UUID> requestedProductIds = productRequests.stream()
-                .map(ProductRequest::productId)
+                .map(ProductStockDeductRequest::productId)
                 .collect(Collectors.toSet());
 
         if (requestedProductIds.size() != productRequests.size()) {
@@ -32,7 +32,7 @@ public class ProductProcessor {
         }
     }
 
-    public Map<UUID, ProductInfo> deductStock(List<ProductRequest> productRequests) {
+    public Map<UUID, ProductInfo> deductStock(List<ProductStockDeductRequest> productRequests) {
         List<ProductInfo> products = productPort.deductStock(productRequests);
 
         if (products.size() != productRequests.size()) {

@@ -1,4 +1,4 @@
-package com.example.order.application.port;
+package com.example.order.application.port.dto.response;
 
 import com.example.order.domain.enumtype.PaymentStatus;
 

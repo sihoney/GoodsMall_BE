@@ -1,6 +1,7 @@
 package com.example.order.application.service;
 
-import com.example.order.application.port.ProductPort.ProductInfo;
+import com.example.order.application.port.dto.request.ProductStockDeductRequest;
+import com.example.order.application.port.dto.response.ProductInfo;
 import com.example.order.application.processor.PaymentProcessor;
 import com.example.order.application.processor.ProductProcessor;
 import com.example.order.application.usecase.OrderCreateUseCase;
@@ -8,7 +9,6 @@ import com.example.order.common.exception.CustomException;
 import com.example.order.common.exception.ErrorCode;
 import com.example.order.domain.entity.Order;
 import com.example.order.domain.repository.OrderRepository;
-import com.example.order.infrastructure.client.dto.request.ProductRequest;
 import com.example.order.presentation.dto.request.OrderCreateRequest;
 import com.example.order.presentation.dto.request.OrderItemCreateRequest;
 import com.example.order.presentation.dto.response.OrderCreateResponse;
@@ -53,7 +53,7 @@ public class OrderCreateService implements OrderCreateUseCase {
     private Order createOrder(UUID memberId, OrderCreateRequest request) {
         validateRequest(request);
 
-        List<ProductRequest> productRequests = toProductRequests(request);
+        List<ProductStockDeductRequest> productRequests = toProductStockDeductRequests(request);
         Map<UUID, ProductInfo> productMap = loadProducts(productRequests, request);
 
         Order order = buildOrder(memberId, request, productRequests, productMap);
@@ -70,14 +70,14 @@ public class OrderCreateService implements OrderCreateUseCase {
         }
     }
 
-    private List<ProductRequest> toProductRequests(OrderCreateRequest request) {
+    private List<ProductStockDeductRequest> toProductStockDeductRequests(OrderCreateRequest request) {
         return request.orderItemRequest().stream()
-                .map(item -> new ProductRequest(item.productId(), item.quantity()))
+                .map(item -> new ProductStockDeductRequest(item.productId(), item.quantity()))
                 .toList();
     }
 
     private Map<UUID, ProductInfo> loadProducts(
-            List<ProductRequest> productRequests,
+            List<ProductStockDeductRequest> productRequests,
             OrderCreateRequest request
     ) {
         productProcessor.validateDuplicate(productRequests);
@@ -91,7 +91,7 @@ public class OrderCreateService implements OrderCreateUseCase {
     private Order buildOrder(
             UUID memberId,
             OrderCreateRequest request,
-            List<ProductRequest> productRequests,
+            List<ProductStockDeductRequest> productRequests,
             Map<UUID, ProductInfo> productMap
     ) {
         ProductInfo representativeProduct = getRepresentativeProduct(productRequests, productMap);
@@ -110,7 +110,7 @@ public class OrderCreateService implements OrderCreateUseCase {
     }
 
     private ProductInfo getRepresentativeProduct(
-            List<ProductRequest> productRequests,
+            List<ProductStockDeductRequest> productRequests,
             Map<UUID, ProductInfo> productMap
     ) {
         UUID firstProductId = productRequests.get(0).productId();

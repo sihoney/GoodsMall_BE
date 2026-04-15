@@ -1,9 +1,9 @@
 package com.example.order.application.processor;
 
 import com.example.order.application.port.PaymentPort;
-import com.example.order.application.port.PaymentRequest;
-import com.example.order.application.port.PaymentRequestOrderLine;
-import com.example.order.application.port.PaymentResult;
+import com.example.order.application.port.dto.request.PaymentRequest;
+import com.example.order.application.port.dto.request.PaymentRequestOrderLine;
+import com.example.order.application.port.dto.response.PaymentResult;
 import com.example.order.common.exception.CustomException;
 import com.example.order.common.exception.ErrorCode;
 import com.example.order.domain.entity.Order;
