@@ -7,12 +7,9 @@ import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import java.util.UUID;
 
-public record PaymentRefundRequest(
+public record SellerRefundConfirmRequest(
         @NotNull(message = "orderId is required.")
         UUID orderId,
-
-        @NotNull(message = "buyerMemberId is required.")
-        UUID buyerMemberId,
 
         @NotNull(message = "orderCancelRequestId is required.")
         UUID orderCancelRequestId,
@@ -23,6 +20,6 @@ public record PaymentRefundRequest(
         String reason,
 
         @NotEmpty(message = "items must not be empty.")
-        List<@Valid PaymentRefundItemRequest> items
+        List<@Valid SellerRefundItemRequest> items
 ) {
 }
