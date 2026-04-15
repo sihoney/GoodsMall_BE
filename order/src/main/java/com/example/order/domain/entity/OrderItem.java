@@ -21,7 +21,7 @@ import java.util.UUID;
 
 @Getter
 @Entity
-@Table(name = "order_item")
+@Table(name = "order_item", schema = "order")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class OrderItem {
 
@@ -121,5 +121,19 @@ public class OrderItem {
 
     public BigDecimal getTotalPrice(BigDecimal unitPriceSnapshot, int quantity) {
         return unitPriceSnapshot.multiply(BigDecimal.valueOf(quantity));
+    }
+
+    public boolean cancel() {
+        if (this.status.equals(OrderItemStatus.PENDING)) {
+            this.status = OrderItemStatus.CANCELED;
+            return true;
+        }
+
+        if (this.status.equals(OrderItemStatus.PREPARING)) {
+            this.status = OrderItemStatus.CANCELED;
+            return true;
+        }
+
+        return false;
     }
 }
