@@ -5,6 +5,7 @@ import com.example.ai.common.exception.AiEmbeddingException;
 import com.example.ai.domain.service.RecommendationReranker;
 import com.example.ai.infrastructure.client.dto.request.OpenAiChatCompletionRequest;
 import com.example.ai.infrastructure.client.dto.request.OpenAiChatCompletionRequest.Message;
+import com.example.ai.infrastructure.client.dto.request.OpenAiChatCompletionRequest.ResponseFormat;
 import com.example.ai.infrastructure.client.dto.response.OpenAiChatCompletionResponse;
 import com.example.ai.infrastructure.config.RecommendationRerankProperties;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -27,7 +28,7 @@ import org.springframework.web.client.RestClientResponseException;
 public class OpenAiRecommendationReranker implements RecommendationReranker {
 
     private static final String DEFAULT_OPENAI_BASE_URL = "https://api.openai.com";
-    private static final String DEFAULT_RERANK_MODEL = "gpt-4o-mini";
+    private static final String DEFAULT_RERANK_MODEL = "gpt-5.4-nano";
 
     private final RestClient restClient;
     private final RecommendationRerankProperties properties;
@@ -76,7 +77,8 @@ public class OpenAiRecommendationReranker implements RecommendationReranker {
                         new Message("system", buildSystemPrompt()),
                         new Message("user", buildUserPrompt(baseProductId, candidates, selectCount))
                 ),
-                properties.temperature()
+                properties.temperature(),
+                new ResponseFormat("json_object")
         );
     }
 
@@ -120,7 +122,7 @@ public class OpenAiRecommendationReranker implements RecommendationReranker {
         }
 
         try {
-            JsonNode root = objectMapper.readTree(content);
+            JsonNode root = objectMapper.readTree(normalizeJsonContent(content));
             JsonNode idsNode = root.path("selectedProductIds");
             if (!idsNode.isArray()) {
                 throw new AiEmbeddingException("selectedProductIds 배열이 없습니다.");
@@ -175,5 +177,17 @@ public class OpenAiRecommendationReranker implements RecommendationReranker {
 
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
+    }
+
+    private String normalizeJsonContent(String content) {
+        String trimmed = content == null ? "" : content.trim();
+        if (trimmed.startsWith("```")) {
+            trimmed = trimmed
+                    .replaceFirst("^```json\\s*", "")
+                    .replaceFirst("^```\\s*", "")
+                    .replaceFirst("\\s*```$", "")
+                    .trim();
+        }
+        return trimmed;
     }
 }

@@ -48,7 +48,7 @@ ai:
   recommendation:
     rerank:
       enabled: ${AI_RECOMMENDATION_RERANK_ENABLED:false}
-      model: ${AI_RECOMMENDATION_RERANK_MODEL:gpt-5-nano}
+      model: ${AI_RECOMMENDATION_RERANK_MODEL:gpt-5.4-nano}
       openai-api-key: ${OPENAI_API_KEY:}
       openai-base-url: ${PROJECT_OPENAI_BASE_URL:https://api.openai.com}
       temperature: ${AI_RECOMMENDATION_RERANK_TEMPERATURE:0.0}
