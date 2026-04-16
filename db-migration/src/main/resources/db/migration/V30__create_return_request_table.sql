@@ -1,5 +1,5 @@
 -- return_request 테이블
-CREATE TABLE IF NOT EXISTS "order".return_request
+CREATE TABLE IF NOT EXISTS order_service.return_request
 (
     return_request_id       UUID PRIMARY KEY NOT NULL,
     claim_id                UUID             NOT NULL,
@@ -21,10 +21,10 @@ CREATE TABLE IF NOT EXISTS "order".return_request
     updated_at              TIMESTAMP        NOT NULL,
 
     CONSTRAINT fk_return_request_claim
-        FOREIGN KEY (claim_id) REFERENCES "order".claims (claim_id),
+        FOREIGN KEY (claim_id) REFERENCES order_service.claims (claim_id),
 
     CONSTRAINT fk_return_request_order_item
-        FOREIGN KEY (order_item_id) REFERENCES "order".order_item (order_item_id),
+        FOREIGN KEY (order_item_id) REFERENCES order_service.order_item (order_item_id),
 
     CONSTRAINT chk_return_request_status
         CHECK (status IN ('REQUESTED', 'PICKUP_REQUESTED', 'PICKED_UP', 'RECEIVED', 'COMPLETED', 'FAILED')),
@@ -39,6 +39,6 @@ CREATE TABLE IF NOT EXISTS "order".return_request
         CHECK (inspection_result IN ('PASS', 'FAIL'))
 );
 
-CREATE INDEX IF NOT EXISTS idx_return_request_claim_id ON "order".return_request (claim_id);
-CREATE INDEX IF NOT EXISTS idx_return_request_order_item_id ON "order".return_request (order_item_id);
-CREATE INDEX IF NOT EXISTS idx_return_request_seller_id ON "order".return_request (seller_id);
+CREATE INDEX IF NOT EXISTS idx_return_request_claim_id ON order_service.return_request (claim_id);
+CREATE INDEX IF NOT EXISTS idx_return_request_order_item_id ON order_service.return_request (order_item_id);
+CREATE INDEX IF NOT EXISTS idx_return_request_seller_id ON order_service.return_request (seller_id);
