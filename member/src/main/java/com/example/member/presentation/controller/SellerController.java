@@ -1,9 +1,9 @@
 package com.example.member.presentation.controller;
 
 import com.example.member.application.usecase.SellerUsecase;
+import com.example.member.presentation.dto.AccountVerificationSendResponse;
 import com.example.member.presentation.dto.ApiResponse;
 import com.example.member.presentation.dto.SellerRegisterRequest;
-import com.example.member.presentation.dto.SellerRegisterResponse;
 import com.example.member.presentation.dto.SellerResponse;
 import com.todaylunch.common.security.auth.annotation.CurrentMember;
 import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
@@ -27,8 +27,8 @@ public class SellerController {
     private final SellerUsecase sellerUsecase;
 
     @PostMapping("/register")
-    @Operation(summary = "판매자 등록", description = "현재 회원을 판매자로 등록합니다.")
-    public ResponseEntity<ApiResponse<SellerRegisterResponse>> registerSeller(
+    @Operation(summary = "판매자 등록 요청", description = "계좌 인증을 위한 판매자 등록 요청을 생성합니다.")
+    public ResponseEntity<ApiResponse<AccountVerificationSendResponse>> registerSeller(
             @CurrentMember AuthenticatedMember authenticatedMember,
             @RequestBody SellerRegisterRequest request
     ) {
@@ -39,7 +39,7 @@ public class SellerController {
     }
 
     @GetMapping("/me")
-    @Operation(summary = "내 판매자 정보 조회", description = "현재 회원의 판매자 정보를 조회합니다.")
+    @Operation(summary = "현재 판매자 정보 조회", description = "현재 회원의 판매자 정보를 조회합니다.")
     public ResponseEntity<ApiResponse<SellerResponse>> getCurrentSeller(
             @CurrentMember AuthenticatedMember authenticatedMember
     ) {

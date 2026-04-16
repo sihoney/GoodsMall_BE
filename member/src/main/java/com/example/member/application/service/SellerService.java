@@ -1,18 +1,17 @@
 package com.example.member.application.service;
 
+import com.example.member.application.usecase.AccountVerificationUsecase;
 import com.example.member.application.usecase.SellerUsecase;
 import com.example.member.common.exception.MemberNotFoundException;
 import com.example.member.common.exception.SellerAlreadyRegisteredException;
 import com.example.member.common.exception.SellerNotFoundException;
 import com.example.member.domain.entity.Member;
-import com.example.member.domain.entity.Seller;
 import com.example.member.infrastructure.repository.MemberRepository;
 import com.example.member.infrastructure.repository.SellerRepository;
+import com.example.member.presentation.dto.AccountVerificationCreateRequest;
+import com.example.member.presentation.dto.AccountVerificationSendResponse;
 import com.example.member.presentation.dto.SellerRegisterRequest;
-import com.example.member.presentation.dto.SellerRegisterResponse;
 import com.example.member.presentation.dto.SellerResponse;
-import com.todaylunch.common.security.auth.enumtype.MemberRole;
-import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,44 +24,34 @@ public class SellerService implements SellerUsecase {
 
     private final SellerRepository sellerRepository;
     private final MemberRepository memberRepository;
+    private final AccountVerificationUsecase accountVerificationUsecase;
 
-    // 판매자 등록
     @Transactional
     @Override
-    public SellerRegisterResponse registerSeller(
-            UUID memberId, 
-            SellerRegisterRequest request
-        ) {
+    public AccountVerificationSendResponse registerSeller(UUID memberId, SellerRegisterRequest request) {
         validateRegisterRequest(request);
-        Member member = getMember(memberId);
+        getMember(memberId);
 
         if (sellerRepository.existsByMemberId(memberId)) {
             throw new SellerAlreadyRegisteredException();
         }
 
-        // 판매자 엔티티 생성 및 저장
-        LocalDateTime now = LocalDateTime.now();
-        Seller seller = Seller.create(
-                UUID.randomUUID(),
+        return accountVerificationUsecase.createAccountVerification(
                 memberId,
-                normalizeRequired(request.bankName(), "bankName"),
-                normalizeRequired(request.account(), "account"),
-                now
+                new AccountVerificationCreateRequest(
+                        normalizeRequired(request.bankName(), "bankName"),
+                        normalizeRequired(request.account(), "account")
+                )
         );
-
-        // 회원의 역할을 SELLER로 변경
-        member.changeRole(MemberRole.SELLER, now);
-
-        return SellerRegisterResponse.from(sellerRepository.save(seller));
     }
 
-    // `판매자 정보 조회
     @Override
     public SellerResponse getCurrentSeller(UUID memberId) {
         getMember(memberId);
-        Seller seller = sellerRepository.findByMemberId(memberId)
-                .orElseThrow(SellerNotFoundException::new);
-        return SellerResponse.from(seller);
+        return SellerResponse.from(
+                sellerRepository.findByMemberId(memberId)
+                        .orElseThrow(SellerNotFoundException::new)
+        );
     }
 
     private void validateRegisterRequest(SellerRegisterRequest request) {
