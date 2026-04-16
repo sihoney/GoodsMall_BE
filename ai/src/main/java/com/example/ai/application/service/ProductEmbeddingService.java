@@ -1,5 +1,6 @@
 package com.example.ai.application.service;
 
+import com.example.ai.application.dto.ProductDeactivateCommand;
 import com.example.ai.application.dto.ProductEmbeddingCommand;
 import com.example.ai.application.usecase.ProductEmbeddingUseCase;
 import com.example.ai.common.exception.AiEmbeddingException;
@@ -41,6 +42,17 @@ public class ProductEmbeddingService implements ProductEmbeddingUseCase {
         log.info("Product embedding success: productId={}", command.productId());
     }
 
+    @Override
+    public void deactivate(ProductDeactivateCommand command) {
+        validateDeactivateCommand(command);
+
+        productEmbeddingRepository.findByProductId(command.productId())
+                .ifPresentOrElse(
+                        existing -> deactivateExistingEmbedding(existing, command),
+                        () -> log.info("Skip deactivate: embedding not found, productId={}", command.productId())
+                );
+    }
+
     private void validateCommand(ProductEmbeddingCommand command) {
         if (command == null) {
             throw new AiEmbeddingException("임베딩 요청 데이터가 비어 있습니다.");
@@ -78,5 +90,29 @@ public class ProductEmbeddingService implements ProductEmbeddingUseCase {
 
         existing.updateEmbedding(embeddingVector, command.sourceUpdatedAt());
         return existing;
+    }
+
+    private void validateDeactivateCommand(ProductDeactivateCommand command) {
+        if (command == null) {
+            throw new AiEmbeddingException("비활성화 요청 데이터가 비어 있습니다.");
+        }
+        if (command.productId() == null) {
+            throw new AiEmbeddingException("productId는 필수입니다.");
+        }
+        if (command.sourceUpdatedAt() == null) {
+            throw new AiEmbeddingException("sourceUpdatedAt은 필수입니다.");
+        }
+    }
+
+    private void deactivateExistingEmbedding(ProductEmbedding existing, ProductDeactivateCommand command) {
+        if (existing.getSourceUpdatedAt() != null && existing.getSourceUpdatedAt().isAfter(command.sourceUpdatedAt())) {
+            log.info("Skip stale deactivate event: productId={}, sourceUpdatedAt={}",
+                    command.productId(), command.sourceUpdatedAt());
+            return;
+        }
+
+        existing.deactivate(command.sourceUpdatedAt());
+        productEmbeddingRepository.save(existing);
+        log.info("Product embedding deactivated: productId={}", command.productId());
     }
 }

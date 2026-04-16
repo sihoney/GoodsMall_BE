@@ -58,6 +58,12 @@ ai:
     recommendation-ttl-seconds: ${AI_RECOMMENDATION_CACHE_TTL_SECONDS:600}
   event:
     idempotency-ttl-seconds: ${AI_EVENT_IDEMPOTENCY_TTL_SECONDS:259200}
+    product:
+      consumer-group: ${AI_PRODUCT_EVENT_CONSUMER_GROUP:ai-product-embedding-group}
+      topics:
+        created: ${AI_PRODUCT_CREATED_TOPIC:product.created}
+        updated: ${AI_PRODUCT_UPDATED_TOPIC:product.updated}
+        deleted: ${AI_PRODUCT_DELETED_TOPIC:product.deleted}
 
 logging:
   level:

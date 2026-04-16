@@ -78,6 +78,15 @@ public class ProductEmbedding {
         this.updatedAt = LocalDateTime.now();
     }
 
+    public void deactivate(LocalDateTime sourceUpdatedAt) {
+        if (sourceUpdatedAt == null) {
+            throw new AiEmbeddingException("sourceUpdatedAt은 필수입니다.");
+        }
+        this.active = false;
+        this.sourceUpdatedAt = sourceUpdatedAt;
+        this.updatedAt = LocalDateTime.now();
+    }
+
     private static String toVectorLiteral(List<Float> vector) {
         StringBuilder builder = new StringBuilder();
         builder.append('[');
