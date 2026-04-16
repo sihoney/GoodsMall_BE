@@ -4,15 +4,19 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.example.member.common.exception.InvalidAccountVerificationCodeException;
 import com.example.member.config.AccountVerificationProperties;
+import com.example.member.infrastructure.crypto.AccountEncryptionService;
 import com.example.member.domain.entity.Member;
 import com.example.member.infrastructure.redis.AccountVerificationSession;
 import com.example.member.infrastructure.redis.AccountVerificationSessionStore;
+import com.example.member.infrastructure.redis.SellerDraft;
+import com.example.member.infrastructure.redis.SellerDraftStore;
 import com.example.member.infrastructure.repository.MemberRepository;
 import com.example.member.presentation.dto.AccountVerificationConfirmRequest;
 import com.example.member.presentation.dto.AccountVerificationCreateRequest;
@@ -37,6 +41,15 @@ class AccountVerificationServiceTest {
     @Mock
     private AccountVerificationSessionStore sessionStore;
 
+    @Mock
+    private SellerDraftStore sellerDraftStore;
+
+    @Mock
+    private AccountEncryptionService accountEncryptionService;
+
+    @Mock
+    private SellerPromotionService sellerPromotionService;
+
     private final AccountVerificationProperties properties = new AccountVerificationProperties(
             Duration.ofMinutes(5),
             5,
@@ -46,24 +59,41 @@ class AccountVerificationServiceTest {
 
     @Test
     void createAccountVerification_success_savesPendingSession() {
-        AccountVerificationService service = new AccountVerificationService(memberRepository, sessionStore, properties);
+        AccountVerificationService service = new AccountVerificationService(
+                memberRepository,
+                sessionStore,
+                sellerDraftStore,
+                accountEncryptionService,
+                sellerPromotionService,
+                properties
+        );
         UUID memberId = UUID.randomUUID();
         Member member = createMember(memberId);
         AccountVerificationCreateRequest request = new AccountVerificationCreateRequest("KAKAO", "1234567890123");
 
         when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
         when(sessionStore.findCurrentSessionId(memberId)).thenReturn(Optional.empty());
+        when(sellerDraftStore.findCurrentDraftId(memberId)).thenReturn(Optional.empty());
+        when(accountEncryptionService.encrypt("1234567890123")).thenReturn("encrypted-account-number");
 
         AccountVerificationSendResponse response = service.createAccountVerification(memberId, request);
 
+        ArgumentCaptor<SellerDraft> draftCaptor = ArgumentCaptor.forClass(SellerDraft.class);
         ArgumentCaptor<AccountVerificationSession> sessionCaptor = ArgumentCaptor.forClass(AccountVerificationSession.class);
+        verify(sellerDraftStore).saveDraft(draftCaptor.capture(), any(Duration.class));
+        verify(sellerDraftStore).saveCurrentDraft(eq(memberId), any(String.class), any(Duration.class));
         verify(sessionStore).saveSession(sessionCaptor.capture(), any(Duration.class));
         verify(sessionStore).saveCurrentSession(any(UUID.class), any(String.class), any(Duration.class));
 
+        SellerDraft savedDraft = draftCaptor.getValue();
         AccountVerificationSession savedSession = sessionCaptor.getValue();
+        assertEquals(memberId, savedDraft.getMemberId());
+        assertEquals("KAKAO", savedDraft.getBankName());
+        assertEquals("encrypted-account-number", savedDraft.getEncryptedAccountNumber());
+        assertEquals("123-****-0123", savedDraft.getAccountNumberMasked());
         assertEquals(memberId, savedSession.getMemberId());
-        assertEquals("KAKAO", savedSession.getBankName());
-        assertEquals("123-****-0123", savedSession.getAccountNumberMasked());
+        assertEquals(savedDraft.getDraftId(), savedSession.getDraftId());
+        assertEquals(memberId, savedSession.getMemberId());
         assertEquals("PENDING", savedSession.getStatus().name());
         assertEquals(6, response.verificationCode().length());
         assertNotNull(response.sessionId());
@@ -73,7 +103,14 @@ class AccountVerificationServiceTest {
 
     @Test
     void confirmAccountVerification_invalidCode_throwsException() {
-        AccountVerificationService service = new AccountVerificationService(memberRepository, sessionStore, properties);
+        AccountVerificationService service = new AccountVerificationService(
+                memberRepository,
+                sessionStore,
+                sellerDraftStore,
+                accountEncryptionService,
+                sellerPromotionService,
+                properties
+        );
         UUID memberId = UUID.randomUUID();
         Member member = createMember(memberId);
         String sessionId = "av_test_session";
@@ -81,8 +118,7 @@ class AccountVerificationServiceTest {
         AccountVerificationSession session = AccountVerificationSession.create(
                 sessionId,
                 memberId,
-                "KAKAO",
-                "123-****-0123",
+                "ad_test_draft",
                 hash(correctCode),
                 LocalDateTime.now().minusMinutes(1),
                 LocalDateTime.now().plusMinutes(4)
@@ -102,7 +138,14 @@ class AccountVerificationServiceTest {
 
     @Test
     void confirmAccountVerification_success_returnsVerifiedResponse() {
-        AccountVerificationService service = new AccountVerificationService(memberRepository, sessionStore, properties);
+        AccountVerificationService service = new AccountVerificationService(
+                memberRepository,
+                sessionStore,
+                sellerDraftStore,
+                accountEncryptionService,
+                sellerPromotionService,
+                properties
+        );
         UUID memberId = UUID.randomUUID();
         Member member = createMember(memberId);
         String sessionId = "av_test_session";
@@ -110,8 +153,7 @@ class AccountVerificationServiceTest {
         AccountVerificationSession session = AccountVerificationSession.create(
                 sessionId,
                 memberId,
-                "KAKAO",
-                "123-****-0123",
+                "ad_test_draft",
                 hash(correctCode),
                 LocalDateTime.now().minusMinutes(1),
                 LocalDateTime.now().plusMinutes(4)
@@ -131,6 +173,7 @@ class AccountVerificationServiceTest {
         assertEquals("VERIFIED", response.status());
         assertNotNull(response.verifiedAt());
         verify(sessionStore).saveSession(any(AccountVerificationSession.class), any(Duration.class));
+        verify(sellerPromotionService).promoteAfterAccountVerified(memberId, sessionId);
         verify(sessionStore).releaseLock(sessionId);
     }
 
