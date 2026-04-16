@@ -6,6 +6,6 @@ import java.util.UUID;
 
 public interface RecommendationUseCase {
 
-    List<RecommendedProductResult> recommend(UUID productId, int limit);
+    List<RecommendedProductResult> recommend(UUID productId);
 }
 
