@@ -1,18 +1,24 @@
 package com.example.order.application.processor;
 
 import com.example.order.application.port.PaymentPort;
-import com.example.order.application.port.PaymentRequest;
-import com.example.order.application.port.PaymentRequestOrderLine;
-import com.example.order.application.port.PaymentResult;
+import com.example.order.application.port.dto.request.PaymentRefundLineRequest;
+import com.example.order.application.port.dto.request.PaymentRefundRequest;
+import com.example.order.application.port.dto.request.PaymentRequest;
+import com.example.order.application.port.dto.request.PaymentRequestOrderLine;
+import com.example.order.application.port.dto.response.PaymentRefundResult;
+import com.example.order.application.port.dto.response.PaymentResult;
 import com.example.order.common.exception.CustomException;
 import com.example.order.common.exception.ErrorCode;
 import com.example.order.domain.entity.Order;
+import com.example.order.domain.entity.OrderItem;
+import com.example.order.domain.enumtype.PaymentRefundType;
 import com.example.order.domain.enumtype.PaymentStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.util.List;
 
 @Slf4j
 @Component
@@ -42,6 +48,26 @@ public class PaymentProcessor {
                                 item.getTotalPrice(item.getUnitPriceSnapshot(), item.getQuantity())
                         ))
                         .toList()
+        );
+    }
+
+    public PaymentRefundResult refund(Order order, List<OrderItem> canceledItems, List<OrderItem> returnItems, String reason) {
+        PaymentRefundRequest request = toPaymentRefundRequest(order, canceledItems, returnItems, reason);
+        return paymentPort.requestRefund(request);
+    }
+
+    private PaymentRefundRequest toPaymentRefundRequest(Order order, List<OrderItem> canceledItems, List<OrderItem> returnItems, String reason) {
+        PaymentRefundType refundType = returnItems.isEmpty() ? PaymentRefundType.FULL : PaymentRefundType.PARTIAL;
+        List<PaymentRefundLineRequest> refundLines = canceledItems.stream()
+                .map(PaymentRefundLineRequest::from)
+                .toList();
+
+        return new PaymentRefundRequest(
+                order.getOrderId(),
+                order.getBuyerId(),
+                refundType,
+                reason,
+                refundLines
         );
     }
 

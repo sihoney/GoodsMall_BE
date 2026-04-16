@@ -1,4 +1,4 @@
-package com.example.order.application.port;
+package com.example.order.application.port.dto.request;
 
 import java.math.BigDecimal;
 import java.time.Instant;

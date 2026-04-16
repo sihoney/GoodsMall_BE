@@ -22,7 +22,7 @@ CREATE TABLE order_item
                                   'PREPARING',
                                   'SHIPPING',
                                   'DELIVERED',
-                                  'CANCELLED'
+                                  'CANCELED'
                 )
             )
 );

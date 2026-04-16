@@ -24,7 +24,7 @@ import java.util.UUID;
 
 @Getter
 @Entity
-@Table(name = "orders")
+@Table(name = "orders", schema = "order")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Order {
 
@@ -158,6 +158,11 @@ public class Order {
         this.totalPrice = this.totalPrice.add(
                 unitPrice.multiply(BigDecimal.valueOf(quantity))
         );
+    }
+
+    public void cancel(boolean hasReturnItems) {
+        this.status = hasReturnItems ? OrderStatus.PARTIAL_CANCELED : OrderStatus.CANCELED;
+        this.updatedAt = LocalDateTime.now();
     }
 
     public boolean confirm() {
