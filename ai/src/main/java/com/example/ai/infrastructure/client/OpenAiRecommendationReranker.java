@@ -18,6 +18,7 @@ import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -42,7 +43,10 @@ public class OpenAiRecommendationReranker implements RecommendationReranker {
         this.properties = properties;
         this.objectMapper = objectMapper;
         String baseUrl = isBlank(properties.openaiBaseUrl()) ? DEFAULT_OPENAI_BASE_URL : properties.openaiBaseUrl();
-        this.restClient = restClientBuilder.baseUrl(baseUrl).build();
+        this.restClient = restClientBuilder
+                .baseUrl(baseUrl)
+                .requestFactory(buildRequestFactory())
+                .build();
     }
 
     @Override
@@ -189,5 +193,16 @@ public class OpenAiRecommendationReranker implements RecommendationReranker {
                     .trim();
         }
         return trimmed;
+    }
+
+    private SimpleClientHttpRequestFactory buildRequestFactory() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(sanitizeTimeout(properties.connectTimeoutMs(), 1500));
+        factory.setReadTimeout(sanitizeTimeout(properties.readTimeoutMs(), 2500));
+        return factory;
+    }
+
+    private int sanitizeTimeout(int timeoutMs, int defaultValue) {
+        return timeoutMs > 0 ? timeoutMs : defaultValue;
     }
 }

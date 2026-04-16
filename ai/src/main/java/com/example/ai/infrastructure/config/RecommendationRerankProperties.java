@@ -8,6 +8,8 @@ public record RecommendationRerankProperties(
         String model,
         String openaiApiKey,
         String openaiBaseUrl,
-        double temperature
+        double temperature,
+        int connectTimeoutMs,
+        int readTimeoutMs
 ) {
 }
