@@ -7,9 +7,11 @@ import com.example.ai.common.exception.AiEmbeddingException;
 import com.example.ai.domain.entity.ProductEmbedding;
 import com.example.ai.domain.repository.ProductEmbeddingRepository;
 import com.example.ai.domain.service.EmbeddingGenerator;
+import com.example.ai.infrastructure.config.RecommendationCacheConfig;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +26,7 @@ public class ProductEmbeddingService implements ProductEmbeddingUseCase {
     private final ProductEmbeddingRepository productEmbeddingRepository;
 
     @Override
+    @CacheEvict(cacheNames = RecommendationCacheConfig.RECOMMENDATION_CACHE_NAME, allEntries = true)
     public void embedding(ProductEmbeddingCommand command) {
         validateCommand(command);
 
@@ -43,6 +46,7 @@ public class ProductEmbeddingService implements ProductEmbeddingUseCase {
     }
 
     @Override
+    @CacheEvict(cacheNames = RecommendationCacheConfig.RECOMMENDATION_CACHE_NAME, allEntries = true)
     public void deactivate(ProductDeactivateCommand command) {
         validateDeactivateCommand(command);
 
