@@ -22,6 +22,7 @@ spring:
       - cart
       - notification
       - order
+      - ai
     locations:
       - classpath:db/migration
 
