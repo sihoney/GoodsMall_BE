@@ -4,6 +4,8 @@ import com.example.ai.application.service.RecommendationLimitPolicy;
 import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.UUID;
+
+import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.interceptor.KeyGenerator;
@@ -45,10 +47,9 @@ public class RecommendationCacheConfig {
     public KeyGenerator recommendationCacheKeyGenerator() {
         return new KeyGenerator() {
             @Override
-            public Object generate(Object target, Method method, Object... params) {
+            public @NonNull Object generate(Object target, @NonNull Method method, Object @NonNull ... params) {
                 UUID productId = (UUID) params[0];
-                int limit = RecommendationLimitPolicy.normalize((Integer) params[1]);
-                return productId + ":" + limit;
+                return productId + ":" + RecommendationLimitPolicy.RELATED_TOP_LIMIT;
             }
         };
     }

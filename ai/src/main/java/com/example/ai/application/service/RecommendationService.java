@@ -27,23 +27,26 @@ public class RecommendationService implements RecommendationUseCase {
 
     @Override
     @Cacheable(sync = true)
-    public List<RecommendedProductResult> recommend(UUID productId, int limit) {
+    public List<RecommendedProductResult> recommend(UUID productId) {
         if (productId == null) {
             throw new AiEmbeddingException("productId는 필수입니다.");
         }
-
-        int normalizedLimit = RecommendationLimitPolicy.normalize(limit);
 
         ProductEmbedding source = productEmbeddingRepository.findByProductId(productId)
                 .filter(ProductEmbedding::isActive)
                 .orElseThrow(() -> new AiEmbeddingException("기준 상품의 활성 임베딩을 찾을 수 없습니다."));
 
-        return productEmbeddingRepository.findSimilarActive(productId, source.getEmbedding(), normalizedLimit)
+        return productEmbeddingRepository.findSimilarActive(
+                        productId,
+                        source.getEmbedding(),
+                        RecommendationLimitPolicy.CANDIDATE_LIMIT
+                )
                 .stream()
                 .map(match -> new RecommendedProductResult(
                         match.productId(),
                         clampSimilarity(1.0d - match.distance())
                 ))
+                .limit(RecommendationLimitPolicy.RELATED_TOP_LIMIT)
                 .toList();
     }
 
@@ -51,10 +54,6 @@ public class RecommendationService implements RecommendationUseCase {
         if (score < 0.0d) {
             return 0.0d;
         }
-        if (score > 1.0d) {
-            return 1.0d;
-        }
-        return score;
+        return Math.min(score, 1.0d);
     }
 }
-
