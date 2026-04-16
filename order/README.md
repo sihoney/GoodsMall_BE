@@ -14,6 +14,7 @@
   - [주문 API](#주문-api)
   - [배송 API](#배송-api)
 - [에러 코드](#에러-코드)
+- [에러 코드](#에러-코드)
 - [외부 연동](#외부-연동)
 - [이벤트](#이벤트)
 
@@ -35,7 +36,7 @@ order/
 
 - **Port**: `ProductPort`, `PaymentPort`, `TrackingPort` (인터페이스)
 - **Adapter**: `ProductClientAdapter`, `PaymentClientAdapter`, `SweetTrackerClientAdapter` (구현체)
-- **UseCase**: `OrderCreateUseCase`, `OrderSearchUseCase`, `DeliveryTrackingUseCase`
+- **UseCase**: `OrderCreateUseCase`, `OrderSearchUseCase`, `OrderCancelUseCase`, `DeliveryTrackingUseCase`
 
 ---
 
@@ -78,6 +79,27 @@ order/
 
 > 주문 시점의 상품 정보를 스냅샷으로 저장하여, 이후 상품 정보가 변경되어도 주문 내역이 보존됩니다.
 
+### Claim (클레임)
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| claimId | UUID | 클레임 ID (PK) |
+| orderItemId | UUID | 주문 상품 ID (FK) |
+| sellerId | UUID | 판매자 ID |
+| type | ClaimType | 클레임 유형 (취소/반품/교환) |
+| reason | String | 사유 |
+| detailReason | String | 상세 사유 (nullable) |
+| status | ClaimStatus | 클레임 상태 |
+| requesterType | RequesterType | 요청자 유형 |
+| responsibilityType | ResponsibilityType | 귀책 유형 (nullable) |
+| rejectReason | String | 반려 사유 (nullable) |
+| requestedAt | LocalDateTime | 요청 시각 |
+| completedAt | LocalDateTime | 완료 시각 (nullable) |
+| createdAt | LocalDateTime | 생성 시각 |
+| updatedAt | LocalDateTime | 수정 시각 |
+
+---
+
 ### Delivery (배송)
 
 | 필드 | 타입 | 설명 |
@@ -118,7 +140,47 @@ order/
 | `PREPARING` | 상품 준비 중 |
 | `SHIPPING` | 배송 중 |
 | `DELIVERED` | 배송 완료 |
-| `CANCELLED` | 취소됨 |
+| `CANCELED` | 취소됨 |
+
+### ClaimType (클레임 유형)
+
+| 값 | 설명 |
+|----|------|
+| `CANCEL` | 취소 |
+| `RETURN` | 반품 |
+| `EXCHANGE` | 교환 |
+
+### ClaimStatus (클레임 상태)
+
+| 값 | 설명 |
+|----|------|
+| `REQUESTED` | 요청됨 |
+| `APPROVED` | 승인됨 |
+| `REJECTED` | 반려됨 |
+| `COMPLETED` | 완료됨 |
+
+### RequesterType (요청자 유형)
+
+| 값 | 설명 |
+|----|------|
+| `BUYER` | 구매자 |
+| `SELLER` | 판매자 |
+| `ADMIN` | 관리자 |
+
+### ResponsibilityType (귀책 유형)
+
+| 값 | 설명 |
+|----|------|
+| `BUYER` | 구매자 귀책 |
+| `SELLER` | 판매자 귀책 |
+| `ADMIN` | 운영 정책상 처리 |
+
+### PaymentRefundType (환불 유형)
+
+| 값 | 설명 |
+|----|------|
+| `FULL` | 전체 환불 |
+| `PARTIAL` | 부분 환불 |
 
 ### DeliveryStatus (배송 상태)
 
@@ -318,11 +380,11 @@ order/
 
 ---
 
-### 주문 취소 (예정)
+### 주문 취소
 
-**DELETE** `/api/orders/{orderId}`
+**POST** `/api/orders/{orderId}/cancel`
 
-주문을 취소합니다. `CONFIRMED` 상태인 경우에만 취소가 가능합니다.
+주문을 취소합니다. 아이템 상태에 따라 즉시 취소(PENDING/PREPARING) 또는 반품 처리(SHIPPING/DELIVERED)로 분기됩니다.
 
 **Path Parameters**
 
@@ -330,13 +392,51 @@ order/
 |----------|------|------|
 | orderId | UUID | 주문 ID |
 
+**Request Body**
+
+```json
+{
+  "reason": "단순 변심",
+  "detailReason": "필요 없어졌습니다.",
+  "requesterType": "BUYER"
+}
+```
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| reason | String | Y | 취소 사유 |
+| detailReason | String | N | 상세 사유 |
+| requesterType | RequesterType | Y | 요청자 유형 (BUYER / SELLER / ADMIN) |
+
 **Response** `200 OK`
 
 ```json
 {
   "orderId": "550e8400-e29b-41d4-a716-446655440010",
-  "status": "CANCELED"
+  "refundedAmount": 35000,
+  "canceledAt": "2024-01-15T10:35:00"
 }
+```
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| orderId | UUID | 주문 ID |
+| refundedAmount | BigDecimal | 환불 금액 (반품 대상만 있을 경우 0) |
+| canceledAt | LocalDateTime | 취소 처리 시각 |
+
+**취소 흐름**
+
+```
+1. 주문 조회 및 본인 확인
+2. OrderItem 상태별 분류
+   - PENDING / PREPARING → 즉시 취소 (canceledItems)
+   - SHIPPING / DELIVERED → 반품 처리 대상 (returnItems)
+3. Order 상태 업데이트
+   - returnItems 없음 → CANCELED
+   - returnItems 있음 → PARTIAL_CANCELED
+4. Claim 저장 (CANCEL / RETURN)
+5. returnItems 있으면 → Kafka order.return-requested 이벤트 발행
+6. canceledItems 있으면 → Payment Service 환불 요청 → Kafka order.canceled 이벤트 발행
 ```
 
 ---
@@ -435,11 +535,13 @@ SweetTracker API를 통해 실시간 배송 추적 정보를 조회합니다.
 | 400 | `PRODUCT_NOT_ORDERABLE` | 판매 중이지 않은 상품 |
 | 400 | `INSUFFICIENT_STOCK` | 상품 재고 부족 |
 | 400 | `INVALID_PAYMENT_STATUS` | 유효하지 않은 결제 상태 |
+| 403 | `ORDER_FORBIDDEN` | 해당 주문에 대한 권한 없음 |
 | 404 | `PRODUCT_NOT_FOUND` | 상품을 찾을 수 없음 |
 | 404 | `ORDER_NOT_FOUND` | 주문을 찾을 수 없음 |
 | 404 | `DELIVERY_NOT_FOUND` | 배송 정보를 찾을 수 없음 |
 | 409 | `INVALID_PAYMENT_AMOUNT` | 결제 금액 불일치 |
 | 409 | `PAYMENT_FAILED` | 결제 처리 실패 |
+| 409 | `REFUND_FAILED` | 환불 처리 실패 |
 | 502 | `EXTERNAL_SERVICE_ERROR` | 외부 서비스 연동 실패 |
 
 **Error Response 형식**
@@ -497,6 +599,8 @@ SweetTracker API를 통해 실시간 배송 추적 정보를 조회합니다.
 | 토픽 | 이벤트 | 발행 시점 |
 |------|--------|-----------|
 | `order.created` | `OrderCreatedEvent` | 주문 확정(CONFIRMED) 후 |
+| `order.canceled` | `OrderCanceledEvent` | 즉시 취소 가능 아이템(PENDING/PREPARING) 환불 완료 후 |
+| `order.return-requested` | `OrderReturnRequestedEvent` | 배송 중/완료 아이템 반품 요청 시 |
 
 **OrderCreatedEvent**
 
@@ -512,6 +616,47 @@ SweetTracker API를 통해 실시간 배송 추적 정보를 조회합니다.
       "sellerId": "...",
       "quantity": 2,
       "unitPrice": 15000
+    }
+  ]
+}
+```
+
+**OrderCanceledEvent**
+
+```json
+{
+  "eventId": "...",
+  "eventType": "ORDER_CANCELED",
+  "orderId": "550e8400-e29b-41d4-a716-446655440010",
+  "buyerId": "550e8400-e29b-41d4-a716-446655440001",
+  "canceledAt": "2024-01-15T10:35:00Z",
+  "eventCreatedAt": "2024-01-15T10:35:00Z",
+  "canceledLines": [
+    {
+      "orderItemId": "...",
+      "productId": "...",
+      "sellerId": "...",
+      "quantity": 2
+    }
+  ]
+}
+```
+
+**OrderReturnRequestedEvent**
+
+```json
+{
+  "eventId": "...",
+  "eventType": "ORDER_RETURN_REQUESTED",
+  "orderId": "550e8400-e29b-41d4-a716-446655440010",
+  "buyerId": "550e8400-e29b-41d4-a716-446655440001",
+  "eventCreatedAt": "2024-01-15T10:35:00Z",
+  "returnLines": [
+    {
+      "orderItemId": "...",
+      "productId": "...",
+      "sellerId": "...",
+      "quantity": 1
     }
   ]
 }
