@@ -102,6 +102,11 @@ spring:
               predicates:
                 - Path=/api/settlements/**
 
+            - id: ai-service
+              uri: lb://ai-service
+              predicates:
+                - Path=/api/ai/**
+
             - id: member-service-docs
               uri: lb://member-service
               predicates:
@@ -156,6 +161,13 @@ spring:
               filters:
                 - SetPath=/v3/api-docs
 
+            - id: ai-service-docs
+              uri: lb://ai-service
+              predicates:
+                - Path=/swagger/ai/v3/api-docs
+              filters:
+                - SetPath=/v3/api-docs
+
 eureka:
   instance:
     prefer-ip-address: true
@@ -188,6 +200,8 @@ gateway:
         pattern: /api/categories/**
       - methods: [GET]
         pattern: /api/products/**
+      - methods: [GET]
+        pattern: /api/ai/**
     role-rules:
       - methods: [GET, PUT]
         pattern: /api/members/me
@@ -228,6 +242,9 @@ gateway:
       - methods: [POST, PATCH, GET]
         pattern: /api/admin/member-restrictions/**
         allowed-roles: [ADMIN]
+      - methods: [POST]
+        pattern: /api/ai/admin/**
+        allowed-roles: [ADMIN]
 
 logging:
   level:
@@ -252,3 +269,5 @@ springdoc:
         url: /swagger/order/v3/api-docs
       - name: notification-service
         url: /swagger/notification/v3/api-docs
+      - name: ai-service
+        url: /swagger/ai/v3/api-docs
