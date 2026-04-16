@@ -52,6 +52,8 @@ springdoc:
 ai:
   embedding:
     model: text-embedding-3-small
+    openai-api-key: ${OPENAI_API_KEY:}
+    openai-base-url: ${OPENAI_BASE_URL:https://api.openai.com}
   cache:
     recommendation-ttl-seconds: ${AI_RECOMMENDATION_CACHE_TTL_SECONDS:600}
   event:
