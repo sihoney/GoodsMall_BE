@@ -1,4 +1,4 @@
-CREATE TABLE delivery
+CREATE TABLE order_service.deliveries
 (
     delivery_id     UUID PRIMARY KEY NOT NULL,
     seller_id       UUID             NOT NULL,
@@ -12,10 +12,10 @@ CREATE TABLE delivery
     created_at      TIMESTAMP        NOT NULL,
     updated_at      TIMESTAMP        NOT NULL,
 
-    CONSTRAINT fk_delivery_order_item
-        FOREIGN KEY (order_item_id) REFERENCES order_item (order_item_id),
+    CONSTRAINT fk_deliveries_order_item
+        FOREIGN KEY (order_item_id) REFERENCES order_service.order_items (order_item_id),
 
-    CONSTRAINT uq_delivery_order_item
+    CONSTRAINT uq_deliveries_order_item
         UNIQUE (order_item_id),
 
     CONSTRAINT chk_delivery_status
