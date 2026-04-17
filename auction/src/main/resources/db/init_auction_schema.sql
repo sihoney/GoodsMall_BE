@@ -7,7 +7,7 @@ CREATE TABLE auction
     current_highest_price DECIMAL(19, 2),
     duration_minutes      INTEGER        NOT NULL,
     started_at            TIMESTAMP      NOT NULL,
-    ended_at              TIMESTAMP,
+    close_at              TIMESTAMP      NOT NULL,
     status                VARCHAR(30)    NOT NULL DEFAULT 'WAITING',
     created_at            TIMESTAMP      NOT NULL,
     updated_at            TIMESTAMP      NOT NULL,
@@ -26,6 +26,7 @@ CREATE INDEX idx_auction_product_id ON auction (product_id);
 CREATE INDEX idx_auction_seller_id  ON auction (seller_id);
 CREATE INDEX idx_auction_status     ON auction (status);
 CREATE INDEX idx_auction_started_at ON auction (started_at);
+CREATE INDEX idx_auction_close_at   ON auction (close_at);
 
 -- Bid
 CREATE TABLE bid
