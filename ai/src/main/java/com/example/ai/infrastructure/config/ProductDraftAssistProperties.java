@@ -9,6 +9,10 @@ public record ProductDraftAssistProperties(
         String openaiApiKey,
         String openaiBaseUrl,
         double temperature,
+        long lockTtlSeconds,
+        long resultTtlSeconds,
+        int waitTimeoutMs,
+        int pollIntervalMs,
         int connectTimeoutMs,
         int readTimeoutMs
 ) {
