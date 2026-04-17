@@ -340,7 +340,7 @@ flowchart TD
 
 | 항목 | 값 |
 |---|---|
-| 서비스 포트 | `8091` |
+| 서비스 포트 | `8088` |
 | Swagger UI | `/swagger-ui.html` |
 | API Docs | `/v3/api-docs` |
 

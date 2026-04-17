@@ -99,7 +99,7 @@ flowchart TD
 | 항목 | 값 |
 |---|---|
 | 서비스 이름 | `ai-service` |
-| 내부 실행 포트 | `8091` |
+| 내부 실행 포트 | `8088` |
 | DB 스키마 | `ai` |
 | 주요 저장소 | PostgreSQL + `pgvector`, Redis, Kafka |
 | Swagger Docs | `/v3/api-docs` |
@@ -108,7 +108,7 @@ flowchart TD
 직접 호출 기준 기본 주소:
 
 ```text
-http://localhost:8091
+http://localhost:8088
 ```
 
 Gateway 경유 기준 기본 주소:
