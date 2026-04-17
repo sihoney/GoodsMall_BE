@@ -123,6 +123,7 @@ public class ProductSearchService implements ProductSearchUseCase {
                 product.getPrice(),
                 product.getStockQuantity(),
                 product.getStatus(),
+                product.getType(),
                 product.getCategory().getCategoryId(),
                 product.getCategory().getName(),
                 product.getCreatedAt(),

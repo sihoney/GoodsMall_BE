@@ -3,6 +3,7 @@ package com.example.product.presentation.dto.response;
 import com.example.product.domain.entity.Product;
 import com.example.product.domain.entity.ProductImage;
 import com.example.product.domain.enumtype.ProductStatus;
+import com.example.product.domain.enumtype.ProductType;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -19,6 +20,7 @@ public record ProductResponse(
         BigDecimal price,
         Integer count,
         ProductStatus status,
+        ProductType type,
         UUID categoryId,
         String categoryName,
         LocalDateTime createdAt,
@@ -33,6 +35,7 @@ public record ProductResponse(
                 product.getPrice(),
                 product.getStockQuantity(),
                 product.getStatus(),
+                product.getType(),
                 product.getCategory().getCategoryId(),
                 product.getCategory().getName(),
                 product.getCreatedAt(),
@@ -52,6 +55,7 @@ public record ProductResponse(
                 product.getPrice(),
                 product.getStockQuantity(),
                 product.getStatus(),
+                product.getType(),
                 product.getCategory().getCategoryId(),
                 product.getCategory().getName(),
                 product.getCreatedAt(),

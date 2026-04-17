@@ -21,6 +21,7 @@ public class ProductDocument {
     private BigDecimal price;
     private Integer stockQuantity;
     private String status;
+    private String type;
     private Integer viewCount;
     private String thumbnailS3Key;
     private LocalDateTime createdAt;
@@ -40,6 +41,7 @@ public class ProductDocument {
         this.price = product.getPrice();
         this.stockQuantity = product.getStockQuantity();
         this.status = product.getStatus().name();
+        this.type = product.getType().name();
         this.viewCount = product.getViewCount();
         this.thumbnailS3Key = thumbnailS3Key;
         this.createdAt = product.getCreatedAt();
@@ -57,6 +59,7 @@ public class ProductDocument {
                 price,
                 stockQuantity,
                 status,
+                type,
                 viewCount,
                 thumbnailS3Key,
                 createdAt
@@ -101,6 +104,10 @@ public class ProductDocument {
 
     public String getStatus() {
         return status;
+    }
+
+    public String getType() {
+        return type;
     }
 
     public Integer getViewCount() {

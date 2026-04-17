@@ -3,6 +3,7 @@ package com.example.product.domain.entity;
 import com.example.product.common.exception.ProductAlreadyDeletedException;
 import com.example.product.common.exception.SellerNotAuthorizedException;
 import com.example.product.domain.enumtype.ProductStatus;
+import com.example.product.domain.enumtype.ProductType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -53,6 +54,10 @@ public class Product {
     @Column(name = "status", nullable = false)
     private ProductStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type", nullable = false)
+    private ProductType type;
+
     @Column(name = "view_count", nullable = false)
     private Integer viewCount;
 
@@ -74,7 +79,8 @@ public class Product {
             String description,
             BigDecimal price,
             Integer stock_quantity,
-            Category category   // 추가
+            Category category,
+            ProductType type
     ) {
         LocalDateTime now = LocalDateTime.now();
         this.productId = UUID.randomUUID();
@@ -85,6 +91,7 @@ public class Product {
         this.stockQuantity = stock_quantity;
         this.category = Objects.requireNonNull(category);
         this.status = ProductStatus.ACTIVE;
+        this.type = type != null ? type : ProductType.GENERAL;
         this.viewCount = 0;
         this.createdAt = now;
         this.updatedAt = now;
@@ -97,9 +104,10 @@ public class Product {
             String description,
             BigDecimal price,
             Integer count,
-            Category category
+            Category category,
+            ProductType type
     ) {
-        return new Product(sellerId, title, description, price, count, category);
+        return new Product(sellerId, title, description, price, count, category, type);
     }
 
     public void validateSeller(UUID requestSellerId) {

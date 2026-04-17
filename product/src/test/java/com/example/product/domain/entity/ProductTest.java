@@ -3,6 +3,7 @@ package com.example.product.domain.entity;
 import com.example.product.common.exception.ProductAlreadyDeletedException;
 import com.example.product.common.exception.SellerNotAuthorizedException;
 import com.example.product.domain.enumtype.ProductStatus;
+import com.example.product.domain.enumtype.ProductType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -36,7 +37,7 @@ class ProductTest {
             Integer stock = 50;
 
             // when
-            Product product = Product.create(SELLER_ID, title, description, price, stock, category);
+            Product product = Product.create(SELLER_ID, title, description, price, stock, category, ProductType.GENERAL);
 
             // then
             assertThat(product).isNotNull();
@@ -61,7 +62,7 @@ class ProductTest {
 
             // when & then
             assertThatThrownBy(() -> Product.create(
-                    SELLER_ID, null, "설명", new BigDecimal("8000"), 50, category
+                    SELLER_ID, null, "설명", new BigDecimal("8000"), 50, category, ProductType.GENERAL
             )).isInstanceOf(NullPointerException.class);
         }
 
@@ -72,7 +73,7 @@ class ProductTest {
 
             // when & then
             assertThatThrownBy(() -> Product.create(
-                    SELLER_ID, "김치찌개", "설명", null, 50, category
+                    SELLER_ID, "김치찌개", "설명", null, 50, category, ProductType.GENERAL
             )).isInstanceOf(NullPointerException.class);
         }
 
@@ -80,7 +81,7 @@ class ProductTest {
         void 카테고리가_null이면_예외가_발생한다() {
             // when & then
             assertThatThrownBy(() -> Product.create(
-                    SELLER_ID, "김치찌개", "설명", new BigDecimal("8000"), 50, null
+                    SELLER_ID, "김치찌개", "설명", new BigDecimal("8000"), 50, null, ProductType.GENERAL
             )).isInstanceOf(NullPointerException.class);
         }
 
@@ -91,7 +92,7 @@ class ProductTest {
 
             // when
             Product product = Product.create(
-                    SELLER_ID, "김치찌개", "매콤한 김치찌개", new BigDecimal("8000"), 0, category
+                    SELLER_ID, "김치찌개", "매콤한 김치찌개", new BigDecimal("8000"), 0, category, ProductType.GENERAL
             );
 
             // then
@@ -601,7 +602,8 @@ class ProductTest {
                 "매콤한 김치찌개",
                 new BigDecimal("8000"),
                 50,
-                category
+                category,
+                ProductType.GENERAL
         );
     }
 
