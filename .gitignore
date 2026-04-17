@@ -46,6 +46,7 @@ bin/
 product/.env
 
 private_docs/
+docs_private/
 
 ### setting ###
 **/src/main/resources/application-local.yml
