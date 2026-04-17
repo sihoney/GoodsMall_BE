@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:18
+    image: pgvector/pgvector:pg18
     container_name: goods-mall-postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
@@ -392,6 +392,44 @@ services:
       CONFIG_SERVER_URL: http://config:8888
     ports:
       - "8087:8087"
+
+  ai:
+    build:
+      context: .
+      dockerfile: ai/Dockerfile
+    container_name: goods-mall-ai
+    env_file:
+      - .env
+    depends_on:
+      discovery:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      config:
+        condition: service_started
+      db-migration:
+        condition: service_completed_successfully
+    environment:
+      DB_URL: ${DB_URL}
+      DB_USER_NAME: ${DB_USER_NAME}
+      DB_USER_PASSWORD: ${DB_USER_PASSWORD}
+      KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
+      REDIS_HOST: ${REDIS_HOST:redis}
+      REDIS_PORT: ${REDIS_PORT:6379}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      AI_EMBEDDING_MODEL: ${AI_EMBEDDING_MODEL}
+      AI_RECOMMENDATION_CACHE_TTL_SECONDS: ${AI_RECOMMENDATION_CACHE_TTL_SECONDS}
+      AI_EVENT_IDEMPOTENCY_TTL_SECONDS: ${AI_EVENT_IDEMPOTENCY_TTL_SECONDS}
+      EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "false"
+      EUREKA_INSTANCE_HOSTNAME: ai
+      CONFIG_SERVER_URL: http://config:8888
+    ports:
+      - "8091:8091"
 
 volumes:
   goods_mall_postgres_data:

@@ -8,6 +8,7 @@ CREATE TABLE product
     price          DECIMAL(10, 2)                                                   NOT NULL,
     stock_quantity INTEGER                                                          NOT NULL,
     status         VARCHAR(20) CHECK (status IN ('ACTIVE', 'SOLD_OUT', 'INACTIVE')) NOT NULL,
+    type           VARCHAR(20) DEFAULT 'GENERAL' NOT NULL CHECK (type IN ('GENERAL', 'AUCTION')),
     view_count     INTEGER   DEFAULT 0                                              NOT NULL,
     created_at     TIMESTAMP                                                        NOT NULL,
     updated_at     TIMESTAMP                                                        NOT NULL,

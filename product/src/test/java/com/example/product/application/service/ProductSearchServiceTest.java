@@ -5,6 +5,7 @@ import com.example.product.domain.entity.Category;
 import com.example.product.domain.entity.Product;
 import com.example.product.domain.entity.ProductImage;
 import com.example.product.domain.enumtype.ProductStatus;
+import com.example.product.domain.enumtype.ProductType;
 import com.example.product.domain.repository.CategoryRepository;
 import com.example.product.domain.repository.ProductImageRepository;
 import com.example.product.domain.repository.ProductRepository;
@@ -389,7 +390,8 @@ class ProductSearchServiceTest {
                 "맛있는 " + title,
                 new BigDecimal("8000"),
                 50,
-                category
+                category,
+                ProductType.GENERAL
         );
     }
 

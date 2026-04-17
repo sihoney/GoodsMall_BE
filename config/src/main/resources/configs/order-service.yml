@@ -15,7 +15,7 @@ spring:
       ddl-auto: validate
     properties:
       hibernate:
-        default_schema: order
+        default_schema: order_service
         dialect: org.hibernate.dialect.PostgreSQLDialect
         jdbc:
           time_zone: Asia/Seoul

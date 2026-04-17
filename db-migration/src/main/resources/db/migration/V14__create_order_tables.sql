@@ -1,5 +1,5 @@
 -- orders 테이블
-CREATE TABLE IF NOT EXISTS "order".orders
+CREATE TABLE IF NOT EXISTS order_service.orders
 (
     order_id                     UUID PRIMARY KEY NOT NULL,
     buyer_id                     UUID             NOT NULL,
@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS "order".orders
 );
 
 -- order_item 테이블
-CREATE TABLE IF NOT EXISTS "order".order_item
+CREATE TABLE IF NOT EXISTS order_service.order_item
 (
     order_item_id          UUID PRIMARY KEY NOT NULL,
     product_id             UUID             NOT NULL,
@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS "order".order_item
     updated_at             TIMESTAMP        NOT NULL,
 
     CONSTRAINT fk_order_item_order
-        FOREIGN KEY (order_id) REFERENCES "order".orders (order_id),
+        FOREIGN KEY (order_id) REFERENCES order_service.orders (order_id),
 
     CONSTRAINT chk_order_item_status
         CHECK (
@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS "order".order_item
 );
 
 -- delivery 테이블
-CREATE TABLE IF NOT EXISTS "order".delivery
+CREATE TABLE IF NOT EXISTS order_service.delivery
 (
     delivery_id     UUID PRIMARY KEY NOT NULL,
     seller_id       UUID             NOT NULL,
@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS "order".delivery
     updated_at      TIMESTAMP        NOT NULL,
 
     CONSTRAINT fk_delivery_order_item
-        FOREIGN KEY (order_item_id) REFERENCES "order".order_item (order_item_id),
+        FOREIGN KEY (order_item_id) REFERENCES order_service.order_item (order_item_id),
 
     CONSTRAINT uq_delivery_order_item
         UNIQUE (order_item_id),
@@ -92,8 +92,8 @@ CREATE TABLE IF NOT EXISTS "order".delivery
 );
 
 -- 인덱스 생성
-CREATE INDEX IF NOT EXISTS idx_order_buyer_id ON "order".orders (buyer_id);
-CREATE INDEX IF NOT EXISTS idx_order_item_order_id ON "order".order_item (order_id);
-CREATE INDEX IF NOT EXISTS idx_order_item_seller_id ON "order".order_item (seller_id);
-CREATE INDEX IF NOT EXISTS idx_delivery_order_item_id ON "order".delivery (order_item_id);
-CREATE INDEX IF NOT EXISTS idx_delivery_seller_id ON "order".delivery (seller_id);
+CREATE INDEX IF NOT EXISTS idx_order_buyer_id ON order_service.orders (buyer_id);
+CREATE INDEX IF NOT EXISTS idx_order_item_order_id ON order_service.order_item (order_id);
+CREATE INDEX IF NOT EXISTS idx_order_item_seller_id ON order_service.order_item (seller_id);
+CREATE INDEX IF NOT EXISTS idx_delivery_order_item_id ON order_service.delivery (order_item_id);
+CREATE INDEX IF NOT EXISTS idx_delivery_seller_id ON order_service.delivery (seller_id);

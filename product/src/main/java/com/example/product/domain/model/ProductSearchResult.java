@@ -14,6 +14,7 @@ public record ProductSearchResult(
         BigDecimal price,
         Integer stockQuantity,
         String status,
+        String type,
         Integer viewCount,
         String thumbnailS3Key,
         LocalDateTime createdAt

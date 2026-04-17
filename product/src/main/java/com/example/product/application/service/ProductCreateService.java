@@ -43,7 +43,8 @@ public class ProductCreateService implements ProductCreateUseCase {
                 request.description(),
                 request.price(),
                 request.stockQuantity(),
-                categoryRepository.findById(request.categoryId())
+                categoryRepository.findById(request.categoryId()),
+                request.type()
         );
 
         Product savedProduct = productRepository.save(product);
@@ -76,6 +77,7 @@ public class ProductCreateService implements ProductCreateUseCase {
                 product.getPrice(),
                 product.getStockQuantity(),
                 product.getStatus(),
+                product.getType(),
                 product.getCategory().getCategoryId(),
                 product.getCategory().getName(),
                 product.getCreatedAt(),

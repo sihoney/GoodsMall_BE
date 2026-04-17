@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/members/me/account-verifications")
-@Tag(name = "Account Verification", description = "Redis 기반 모의 계좌인증 API")
+@Tag(name = "Account Verification", description = "계좌 인증 API")
 public class AccountVerificationController {
 
     private final AccountVerificationUsecase accountVerificationUsecase;
@@ -34,7 +34,7 @@ public class AccountVerificationController {
     @PostMapping
     @Operation(
             summary = "계좌 인증 요청 생성",
-            description = "회원의 계좌 인증 세션을 생성하고 Redis에 저장합니다."
+            description = "회원의 계좌 인증 세션과 seller draft 를 생성하고 인증 코드를 반환합니다."
     )
     public ResponseEntity<ApiResponse<AccountVerificationSendResponse>> createAccountVerification(
             @CurrentMember AuthenticatedMember authenticatedMember,
@@ -49,7 +49,7 @@ public class AccountVerificationController {
     @PostMapping("/{sessionId}/confirm")
     @Operation(
             summary = "계좌 인증 확인",
-            description = "입력한 인증 코드를 검증하고 세션 상태를 VERIFIED로 변경합니다."
+            description = "입력한 인증 코드를 검증하고 세션을 VERIFIED 로 변경한 뒤, 판매자 전환을 진행합니다."
     )
     public ResponseEntity<ApiResponse<AccountVerificationConfirmResponse>> confirmAccountVerification(
             @CurrentMember AuthenticatedMember authenticatedMember,
@@ -65,7 +65,7 @@ public class AccountVerificationController {
     @GetMapping("/current")
     @Operation(
             summary = "현재 계좌 인증 상태 조회",
-            description = "회원의 현재 진행 중인 계좌 인증 상태를 조회합니다."
+            description = "현재 진행 중인 계좌 인증 세션과 draft 정보를 조회합니다."
     )
     public ResponseEntity<ApiResponse<AccountVerificationCurrentResponse>> getCurrentAccountVerification(
             @CurrentMember AuthenticatedMember authenticatedMember

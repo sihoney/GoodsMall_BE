@@ -23,7 +23,7 @@ import java.util.UUID;
 
 @Getter
 @Entity
-@Table(name = "return_request", schema = "order")
+@Table(name = "return_request", schema = "order_service")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ReturnRequest {
 

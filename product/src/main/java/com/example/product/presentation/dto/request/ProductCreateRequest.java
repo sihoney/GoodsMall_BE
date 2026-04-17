@@ -1,5 +1,6 @@
 package com.example.product.presentation.dto.request;
 
+import com.example.product.domain.enumtype.ProductType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -21,6 +22,8 @@ public record ProductCreateRequest(
         @PositiveOrZero
         Integer stockQuantity,
 
-        @NotNull UUID categoryId
+        @NotNull UUID categoryId,
+
+        ProductType type
 ) {
 }
