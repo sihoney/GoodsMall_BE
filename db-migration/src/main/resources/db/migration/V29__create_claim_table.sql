@@ -1,5 +1,5 @@
 -- claim 테이블
-CREATE TABLE IF NOT EXISTS "order".claims
+CREATE TABLE IF NOT EXISTS order_service.claims
 (
     claim_id            UUID PRIMARY KEY NOT NULL,
     order_item_id       UUID             NOT NULL,
@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS "order".claims
     updated_at          TIMESTAMP        NOT NULL,
 
     CONSTRAINT fk_claim_order_item
-        FOREIGN KEY (order_item_id) REFERENCES "order".order_item (order_item_id),
+        FOREIGN KEY (order_item_id) REFERENCES order_service.order_item (order_item_id),
 
     CONSTRAINT chk_claim_type
         CHECK (type IN ('CANCEL', 'RETURN', 'EXCHANGE')),
@@ -32,5 +32,5 @@ CREATE TABLE IF NOT EXISTS "order".claims
         CHECK (responsibility_type IN ('BUYER', 'SELLER', 'ADMIN'))
 );
 
-CREATE INDEX IF NOT EXISTS idx_claim_order_item_id ON "order".claims (order_item_id);
-CREATE INDEX IF NOT EXISTS idx_claim_seller_id ON "order".claims (seller_id);
+CREATE INDEX IF NOT EXISTS idx_claim_order_item_id ON order_service.claims (order_item_id);
+CREATE INDEX IF NOT EXISTS idx_claim_seller_id ON order_service.claims (seller_id);

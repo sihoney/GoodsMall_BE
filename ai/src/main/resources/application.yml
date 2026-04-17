@@ -1,0 +1,79 @@
+spring:
+  application:
+    name: ai-service
+  config:
+    import:
+      - "optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
+  cloud:
+    config:
+      fail-fast: false
+      retry:
+        initial-interval: 1000
+        max-attempts: 20
+        max-interval: 5000
+        multiplier: 1.5
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/goods_mall?currentSchema=ai
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        default_schema: ai
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+server:
+  port: 8091
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_DEFAULT_ZONE:http://localhost:8761/eureka}
+  instance:
+    prefer-ip-address: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:true}
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+ai:
+  embedding:
+    model: text-embedding-3-small
+    openai-api-key: ${OPENAI_API_KEY:}
+    openai-base-url: ${PROJECT_OPENAI_BASE_URL:https://api.openai.com}
+  recommendation:
+    rerank:
+      enabled: ${AI_RECOMMENDATION_RERANK_ENABLED:false}
+      model: ${AI_RECOMMENDATION_RERANK_MODEL:gpt-5.4-nano}
+      openai-api-key: ${OPENAI_API_KEY:}
+      openai-base-url: ${PROJECT_OPENAI_BASE_URL:https://api.openai.com}
+      temperature: ${AI_RECOMMENDATION_RERANK_TEMPERATURE:0.0}
+      connect-timeout-ms: ${AI_RECOMMENDATION_RERANK_CONNECT_TIMEOUT_MS:1500}
+      read-timeout-ms: ${AI_RECOMMENDATION_RERANK_READ_TIMEOUT_MS:2500}
+  cache:
+    recommendation-ttl-seconds: ${AI_RECOMMENDATION_CACHE_TTL_SECONDS:600}
+  event:
+    idempotency-ttl-seconds: ${AI_EVENT_IDEMPOTENCY_TTL_SECONDS:259200}
+    product:
+      consumer-group: ${AI_PRODUCT_EVENT_CONSUMER_GROUP:ai-product-embedding-group}
+      topics:
+        created: ${AI_PRODUCT_CREATED_TOPIC:product.created}
+        updated: ${AI_PRODUCT_UPDATED_TOPIC:product.updated}
+        deleted: ${AI_PRODUCT_DELETED_TOPIC:product.deleted}
+
+logging:
+  level:
+    com.example.ai: DEBUG

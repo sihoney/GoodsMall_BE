@@ -8,10 +8,13 @@ import com.example.member.common.exception.AccountVerificationResendLimitExceede
 import com.example.member.common.exception.ExpiredAccountVerificationException;
 import com.example.member.common.exception.InvalidAccountVerificationCodeException;
 import com.example.member.config.AccountVerificationProperties;
+import com.example.member.infrastructure.crypto.AccountEncryptionService;
 import com.example.member.domain.entity.Member;
 import com.example.member.domain.enumtype.AccountVerificationStatus;
 import com.example.member.infrastructure.redis.AccountVerificationSession;
 import com.example.member.infrastructure.redis.AccountVerificationSessionStore;
+import com.example.member.infrastructure.redis.SellerDraft;
+import com.example.member.infrastructure.redis.SellerDraftStore;
 import com.example.member.infrastructure.repository.MemberRepository;
 import com.example.member.presentation.dto.AccountVerificationCancelResponse;
 import com.example.member.presentation.dto.AccountVerificationConfirmRequest;
@@ -41,6 +44,9 @@ public class AccountVerificationService implements AccountVerificationUsecase {
 
     private final MemberRepository memberRepository;
     private final AccountVerificationSessionStore sessionStore;
+    private final SellerDraftStore sellerDraftStore;
+    private final AccountEncryptionService accountEncryptionService;
+    private final SellerPromotionService sellerPromotionService;
     private final AccountVerificationProperties properties;
 
     @Override
@@ -52,6 +58,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
         cleanupExistingCurrentSession(memberId);
 
         LocalDateTime now = LocalDateTime.now();
+        String draftId = generateDraftId();
         String sessionId = generateSessionId();
         String verificationCode = generateVerificationCode();
         String codeHash = hashCode(verificationCode);
@@ -59,23 +66,42 @@ public class AccountVerificationService implements AccountVerificationUsecase {
         String maskedAccountNumber = maskAccountNumber(normalizedAccount);
         LocalDateTime expiresAt = now.plus(properties.expiration());
 
+        String encryptedAccountNumber = accountEncryptionService.encrypt(normalizedAccount);
+        SellerDraft draft = SellerDraft.create(
+                draftId,
+                member.getMemberId(),
+                sessionId,
+                normalizeRequired(request.bankName(), "bankName"),
+                encryptedAccountNumber,
+                maskedAccountNumber,
+                now
+        );
+
+        sellerDraftStore.saveDraft(draft, properties.expiration());
+        sellerDraftStore.saveCurrentDraft(memberId, draftId, properties.expiration());
+
         AccountVerificationSession session = AccountVerificationSession.create(
                 sessionId,
                 member.getMemberId(),
-                normalizeRequired(request.bankName(), "bankName"),
-                maskedAccountNumber,
+                draftId,
                 codeHash,
                 now,
                 expiresAt
         );
 
-        sessionStore.saveSession(session, properties.expiration());
-        sessionStore.saveCurrentSession(memberId, sessionId, properties.expiration());
+        try {
+            sessionStore.saveSession(session, properties.expiration());
+            sessionStore.saveCurrentSession(memberId, sessionId, properties.expiration());
+        } catch (RuntimeException exception) {
+            sellerDraftStore.deleteDraft(draftId);
+            sellerDraftStore.deleteCurrentDraft(memberId);
+            throw exception;
+        }
 
         return new AccountVerificationSendResponse(
                 sessionId,
                 session.getStatus().name(),
-                maskedAccountNumber,
+                draft.getAccountNumberMasked(),
                 verificationCode,
                 expiresAt,
                 session.getAttemptCount(),
@@ -102,6 +128,11 @@ public class AccountVerificationService implements AccountVerificationUsecase {
                 throw new ExpiredAccountVerificationException();
             }
 
+            if (session.isVerified()) {
+                sellerPromotionService.promoteAfterAccountVerified(memberId, sessionId);
+                return buildConfirmResponse(session);
+            }
+
             if (!session.canConfirm()) {
                 throw new AccountVerificationNotAllowedException("Account verification session cannot be confirmed.");
             }
@@ -120,13 +151,8 @@ public class AccountVerificationService implements AccountVerificationUsecase {
 
             session.markVerified(now);
             sessionStore.saveSession(session, properties.expiration());
-            return new AccountVerificationConfirmResponse(
-                    session.getSessionId(),
-                    true,
-                    session.getStatus().name(),
-                    session.getVerifiedAt(),
-                    session.getAttemptCount()
-            );
+            sellerPromotionService.promoteAfterAccountVerified(memberId, sessionId);
+            return buildConfirmResponse(session);
         } finally {
             sessionStore.releaseLock(sessionId);
         }
@@ -143,6 +169,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
         Optional<AccountVerificationSession> session = sessionStore.findSession(currentSessionId.get());
         if (session.isEmpty()) {
             sessionStore.deleteCurrentSession(memberId);
+            sellerDraftStore.deleteCurrentDraft(memberId);
             return emptyCurrentResponse();
         }
 
@@ -152,15 +179,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
             sessionStore.saveSession(current, Duration.ZERO);
         }
 
-        return new AccountVerificationCurrentResponse(
-                current.getSessionId(),
-                current.getStatus().name(),
-                current.getBankName(),
-                current.getAccountNumberMasked(),
-                current.getExpiresAt(),
-                current.getAttemptCount(),
-                current.getResendCount()
-        );
+        return buildCurrentResponse(current);
     }
 
     @Override
@@ -183,6 +202,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
                 throw new AccountVerificationResendLimitExceededException();
             }
 
+            SellerDraft draft = getDraftBySession(session);
             String verificationCode = generateVerificationCode();
             String codeHash = hashCode(verificationCode);
             LocalDateTime expiresAt = now.plus(properties.expiration());
@@ -193,7 +213,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
             return new AccountVerificationSendResponse(
                     session.getSessionId(),
                     session.getStatus().name(),
-                    session.getAccountNumberMasked(),
+                    draft == null ? null : draft.getAccountNumberMasked(),
                     verificationCode,
                     session.getExpiresAt(),
                     session.getAttemptCount(),
@@ -213,6 +233,8 @@ public class AccountVerificationService implements AccountVerificationUsecase {
             LocalDateTime now = LocalDateTime.now();
             session.markCancelled(now);
             sessionStore.saveSession(session, properties.expiration());
+            sellerDraftStore.deleteDraft(session.getDraftId());
+            sellerDraftStore.deleteCurrentDraft(memberId);
             return new AccountVerificationCancelResponse(
                     session.getSessionId(),
                     session.getStatus().name(),
@@ -225,12 +247,17 @@ public class AccountVerificationService implements AccountVerificationUsecase {
 
     private void cleanupExistingCurrentSession(UUID memberId) {
         Optional<String> currentSessionId = sessionStore.findCurrentSessionId(memberId);
-        if (currentSessionId.isEmpty()) {
-            return;
+        if (currentSessionId.isPresent()) {
+            sessionStore.findSession(currentSessionId.get()).ifPresent(session ->
+                    sellerDraftStore.deleteDraft(session.getDraftId())
+            );
+            sessionStore.deleteCurrentSession(memberId);
+            sessionStore.deleteSession(currentSessionId.get());
         }
 
-        sessionStore.deleteCurrentSession(memberId);
-        sessionStore.deleteSession(currentSessionId.get());
+        Optional<String> currentDraftId = sellerDraftStore.findCurrentDraftId(memberId);
+        currentDraftId.ifPresent(sellerDraftStore::deleteDraft);
+        sellerDraftStore.deleteCurrentDraft(memberId);
     }
 
     private AccountVerificationSession getOwnedSession(UUID memberId, String sessionId) {
@@ -259,6 +286,37 @@ public class AccountVerificationService implements AccountVerificationUsecase {
         );
     }
 
+    private AccountVerificationCurrentResponse buildCurrentResponse(AccountVerificationSession session) {
+        Optional<SellerDraft> draft = getDraftBySessionOptional(session);
+        return new AccountVerificationCurrentResponse(
+                session.getSessionId(),
+                session.getStatus().name(),
+                draft.map(SellerDraft::getBankName).orElse(null),
+                draft.map(SellerDraft::getAccountNumberMasked).orElse(null),
+                session.getExpiresAt(),
+                session.getAttemptCount(),
+                session.getResendCount()
+        );
+    }
+
+    private AccountVerificationConfirmResponse buildConfirmResponse(AccountVerificationSession session) {
+        return new AccountVerificationConfirmResponse(
+                session.getSessionId(),
+                true,
+                session.getStatus().name(),
+                session.getVerifiedAt(),
+                session.getAttemptCount()
+        );
+    }
+
+    private Optional<SellerDraft> getDraftBySessionOptional(AccountVerificationSession session) {
+        return sellerDraftStore.findDraft(session.getDraftId());
+    }
+
+    private SellerDraft getDraftBySession(AccountVerificationSession session) {
+        return sellerDraftStore.findDraft(session.getDraftId()).orElse(null);
+    }
+
     private void validateCreateRequest(AccountVerificationCreateRequest request) {
         if (request == null) {
             throw new IllegalArgumentException("Account verification request body is required.");
@@ -274,6 +332,10 @@ public class AccountVerificationService implements AccountVerificationUsecase {
 
     private String generateSessionId() {
         return "av_" + UUID.randomUUID().toString().replace("-", "");
+    }
+
+    private String generateDraftId() {
+        return "ad_" + UUID.randomUUID().toString().replace("-", "");
     }
 
     private String generateVerificationCode() {

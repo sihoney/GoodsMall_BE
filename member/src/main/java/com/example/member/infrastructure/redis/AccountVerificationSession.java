@@ -13,8 +13,7 @@ public class AccountVerificationSession {
 
     private static final String FIELD_SESSION_ID = "sessionId";
     private static final String FIELD_MEMBER_ID = "memberId";
-    private static final String FIELD_BANK_NAME = "bankName";
-    private static final String FIELD_ACCOUNT_NUMBER_MASKED = "accountNumberMasked";
+    private static final String FIELD_DRAFT_ID = "draftId";
     private static final String FIELD_CODE_HASH = "codeHash";
     private static final String FIELD_STATUS = "status";
     private static final String FIELD_ATTEMPT_COUNT = "attemptCount";
@@ -27,8 +26,7 @@ public class AccountVerificationSession {
 
     private final String sessionId;
     private final UUID memberId;
-    private final String bankName;
-    private final String accountNumberMasked;
+    private final String draftId;
     private String codeHash;
     private AccountVerificationStatus status;
     private int attemptCount;
@@ -42,8 +40,7 @@ public class AccountVerificationSession {
     private AccountVerificationSession(
             String sessionId,
             UUID memberId,
-            String bankName,
-            String accountNumberMasked,
+            String draftId,
             String codeHash,
             AccountVerificationStatus status,
             int attemptCount,
@@ -56,8 +53,7 @@ public class AccountVerificationSession {
     ) {
         this.sessionId = Objects.requireNonNull(sessionId);
         this.memberId = Objects.requireNonNull(memberId);
-        this.bankName = Objects.requireNonNull(bankName);
-        this.accountNumberMasked = Objects.requireNonNull(accountNumberMasked);
+        this.draftId = Objects.requireNonNull(draftId);
         this.codeHash = Objects.requireNonNull(codeHash);
         this.status = Objects.requireNonNull(status);
         this.attemptCount = attemptCount;
@@ -72,8 +68,7 @@ public class AccountVerificationSession {
     public static AccountVerificationSession create(
             String sessionId,
             UUID memberId,
-            String bankName,
-            String accountNumberMasked,
+            String draftId,
             String codeHash,
             LocalDateTime requestedAt,
             LocalDateTime expiresAt
@@ -81,8 +76,7 @@ public class AccountVerificationSession {
         return new AccountVerificationSession(
                 sessionId,
                 memberId,
-                bankName,
-                accountNumberMasked,
+                draftId,
                 codeHash,
                 AccountVerificationStatus.PENDING,
                 0,
@@ -99,8 +93,7 @@ public class AccountVerificationSession {
         return new AccountVerificationSession(
                 stringValue(entries, FIELD_SESSION_ID),
                 UUID.fromString(stringValue(entries, FIELD_MEMBER_ID)),
-                stringValue(entries, FIELD_BANK_NAME),
-                stringValue(entries, FIELD_ACCOUNT_NUMBER_MASKED),
+                stringValue(entries, FIELD_DRAFT_ID),
                 stringValue(entries, FIELD_CODE_HASH),
                 AccountVerificationStatus.valueOf(stringValue(entries, FIELD_STATUS)),
                 intValue(entries, FIELD_ATTEMPT_COUNT),
@@ -117,8 +110,7 @@ public class AccountVerificationSession {
         Map<String, String> values = new HashMap<>();
         values.put(FIELD_SESSION_ID, sessionId);
         values.put(FIELD_MEMBER_ID, memberId.toString());
-        values.put(FIELD_BANK_NAME, bankName);
-        values.put(FIELD_ACCOUNT_NUMBER_MASKED, accountNumberMasked);
+        values.put(FIELD_DRAFT_ID, draftId);
         values.put(FIELD_CODE_HASH, codeHash);
         values.put(FIELD_STATUS, status.name());
         values.put(FIELD_ATTEMPT_COUNT, Integer.toString(attemptCount));
@@ -145,6 +137,10 @@ public class AccountVerificationSession {
 
     public boolean canResend() {
         return status == AccountVerificationStatus.PENDING || status == AccountVerificationStatus.FAILED;
+    }
+
+    public boolean isVerified() {
+        return status == AccountVerificationStatus.VERIFIED;
     }
 
     public void markVerified(LocalDateTime verifiedAt) {

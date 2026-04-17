@@ -117,6 +117,8 @@ member:
     max-attempts: 5
     max-resend-count: 3
     resend-cooldown: 30s
+    crypto:
+      secret-key: ${ACCOUNT_VERIFICATION_SECRET_KEY:local-dev-account-verification-secret-key}
   kafka:
     topic:
       signed-up: member-signed-up
