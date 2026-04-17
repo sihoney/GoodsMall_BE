@@ -17,6 +17,7 @@ on:
       - "gateway/**"
       - "discovery/**"
       - "config/**"
+      - "db-migration/**"
 
 # 같은 PR에서 새 커밋이 올라오면 이전 실행 취소
 concurrency:
@@ -54,9 +55,13 @@ jobs:
           # 로그 출력
           echo "changed files:"
           echo "$CHANGED_FILES"
-          
+
           # 변경된 모듈을 담을 배열
           MODULES=()
+
+          if grep -q '^db-migration/' <<< "$CHANGED_FILES"; then
+            MODULES+=('{"module_name":"db-migration"}')
+          fi
 
           if grep -q '^member/' <<< "$CHANGED_FILES"; then
             MODULES+=('{"module_name":"member"}')
@@ -97,12 +102,12 @@ jobs:
           if grep -q '^config/' <<< "$CHANGED_FILES"; then
             MODULES+=('{"module_name":"config"}')
           fi
-          
+
           # 변경된 모듈이 없는 경우 → build job skip
           if [ ${#MODULES[@]} -eq 0 ]; then
             echo 'has_changes=false' >> "$GITHUB_OUTPUT"
             echo 'matrix={"include":[]}' >> "$GITHUB_OUTPUT"
-          
+
           else
           # matrix 형식(JSON)으로 변환
             JSON=$(printf '%s\n' "${MODULES[@]}" | jq -cs '{include: .}')
