@@ -2,6 +2,14 @@ package com.example.ai.presentation.dto.request;
 
 import com.example.ai.application.dto.ProductDraftAssistCommand;
 import com.example.ai.application.dto.ProductDraftAssistField;
+import com.example.ai.common.exception.ProductDraftAssistDuplicateFieldKeyException;
+import com.example.ai.common.exception.ProductDraftAssistImageCountExceededException;
+import com.example.ai.common.exception.ProductDraftAssistImageEmptyException;
+import com.example.ai.common.exception.ProductDraftAssistImageRequiredException;
+import com.example.ai.common.exception.ProductDraftAssistImageTooLargeException;
+import com.example.ai.common.exception.ProductDraftAssistInputFieldsRequiredException;
+import com.example.ai.common.exception.ProductDraftAssistThumbnailIndexInvalidException;
+import com.example.ai.common.exception.ProductDraftAssistUnsupportedImageTypeException;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
@@ -54,32 +62,32 @@ public record ProductDraftAssistRequest(
 
     private void validateImages(List<MultipartFile> images) {
         if (images == null || images.isEmpty()) {
-            throw new IllegalArgumentException("이미지는 최소 1개 이상 필요합니다.");
+            throw new ProductDraftAssistImageRequiredException();
         }
 
         if (images.size() > MAX_IMAGE_COUNT) {
-            throw new IllegalArgumentException("이미지는 최대 5개까지 업로드할 수 있습니다.");
+            throw new ProductDraftAssistImageCountExceededException();
         }
 
         for (MultipartFile image : images) {
             if (image == null || image.isEmpty()) {
-                throw new IllegalArgumentException("비어 있는 이미지 파일은 업로드할 수 없습니다.");
+                throw new ProductDraftAssistImageEmptyException();
             }
 
             if (image.getSize() > MAX_IMAGE_SIZE) {
-                throw new IllegalArgumentException("이미지 파일은 각각 5MB 이하여야 합니다.");
+                throw new ProductDraftAssistImageTooLargeException();
             }
 
             String contentType = image.getContentType();
             if (contentType == null || !ALLOWED_IMAGE_TYPES.contains(contentType)) {
-                throw new IllegalArgumentException("JPG, PNG, WEBP, GIF 형식의 이미지만 업로드할 수 있습니다.");
+                throw new ProductDraftAssistUnsupportedImageTypeException();
             }
         }
     }
 
     private void validateInputFields() {
         if (inputFields == null || inputFields.isEmpty()) {
-            throw new IllegalArgumentException("inputFields는 최소 1개 이상 필요합니다.");
+            throw new ProductDraftAssistInputFieldsRequiredException();
         }
 
         Set<com.example.ai.application.dto.ProductDraftAssistFieldKey> duplicatedFieldKeys = new HashSet<>();
@@ -95,7 +103,7 @@ public record ProductDraftAssistRequest(
         }
 
         if (!duplicatedFieldKeys.isEmpty()) {
-            throw new IllegalArgumentException("inputFields에 중복된 fieldKey가 포함되어 있습니다.");
+            throw new ProductDraftAssistDuplicateFieldKeyException();
         }
     }
 
@@ -105,11 +113,11 @@ public record ProductDraftAssistRequest(
         }
 
         if (thumbnailIndex < 0) {
-            throw new IllegalArgumentException("thumbnailIndex는 0 이상이어야 합니다.");
+            throw new ProductDraftAssistThumbnailIndexInvalidException();
         }
 
         if (thumbnailIndex >= images.size()) {
-            throw new IllegalArgumentException("thumbnailIndex는 이미지 개수보다 작아야 합니다.");
+            throw new ProductDraftAssistThumbnailIndexInvalidException();
         }
     }
 

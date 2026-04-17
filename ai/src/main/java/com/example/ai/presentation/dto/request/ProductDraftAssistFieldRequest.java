@@ -2,6 +2,7 @@ package com.example.ai.presentation.dto.request;
 
 import com.example.ai.application.dto.ProductDraftAssistField;
 import com.example.ai.application.dto.ProductDraftAssistFieldKey;
+import com.example.ai.common.exception.ProductDraftAssistInputFieldInvalidException;
 
 public record ProductDraftAssistFieldRequest(
         ProductDraftAssistFieldKey fieldKey,
@@ -22,15 +23,15 @@ public record ProductDraftAssistFieldRequest(
 
     public void validate() {
         if (fieldKey == null) {
-            throw new IllegalArgumentException("inputFields.fieldKey는 필수입니다.");
+            throw new ProductDraftAssistInputFieldInvalidException();
         }
 
         if (fieldLabel == null || fieldLabel.isBlank()) {
-            throw new IllegalArgumentException("inputFields.fieldLabel은 필수입니다.");
+            throw new ProductDraftAssistInputFieldInvalidException();
         }
 
         if (maxLength != null && maxLength <= 0) {
-            throw new IllegalArgumentException("inputFields.maxLength는 1 이상이어야 합니다.");
+            throw new ProductDraftAssistInputFieldInvalidException();
         }
     }
 
