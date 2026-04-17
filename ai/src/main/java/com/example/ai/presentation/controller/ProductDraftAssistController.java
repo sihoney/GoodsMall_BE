@@ -54,8 +54,9 @@ public class ProductDraftAssistController {
                                       "data": {
                                         "suggestedTitle": "AI 추천 상품명",
                                         "suggestedDescription": "AI 추천 상품 설명",
+                                        "suggestedPrice": 39000,
                                         "suggestedKeywords": [],
-                                        "notes": "상품 등록 보조 AI 기본 API 뼈대가 준비되었습니다."
+                                        "notes": "브랜드와 상품 상태는 판매자가 다시 확인해 주세요."
                                       },
                                       "error": null
                                     }
