@@ -63,6 +63,19 @@ ai:
       temperature: ${AI_RECOMMENDATION_RERANK_TEMPERATURE:0.0}
       connect-timeout-ms: ${AI_RECOMMENDATION_RERANK_CONNECT_TIMEOUT_MS:1500}
       read-timeout-ms: ${AI_RECOMMENDATION_RERANK_READ_TIMEOUT_MS:2500}
+  product-draft:
+    assist:
+      enabled: ${AI_PRODUCT_DRAFT_ASSIST_ENABLED:false}
+      model: ${AI_PRODUCT_DRAFT_ASSIST_MODEL:gpt-5.4-nano}
+      openai-api-key: ${OPENAI_API_KEY:}
+      openai-base-url: ${PROJECT_OPENAI_BASE_URL:https://api.openai.com}
+      temperature: ${AI_PRODUCT_DRAFT_ASSIST_TEMPERATURE:0.2}
+      lock-ttl-seconds: ${AI_PRODUCT_DRAFT_ASSIST_LOCK_TTL_SECONDS:30}
+      result-ttl-seconds: ${AI_PRODUCT_DRAFT_ASSIST_RESULT_TTL_SECONDS:60}
+      wait-timeout-ms: ${AI_PRODUCT_DRAFT_ASSIST_WAIT_TIMEOUT_MS:2000}
+      poll-interval-ms: ${AI_PRODUCT_DRAFT_ASSIST_POLL_INTERVAL_MS:150}
+      connect-timeout-ms: ${AI_PRODUCT_DRAFT_ASSIST_CONNECT_TIMEOUT_MS:3000}
+      read-timeout-ms: ${AI_PRODUCT_DRAFT_ASSIST_READ_TIMEOUT_MS:10000}
   cache:
     recommendation-ttl-seconds: ${AI_RECOMMENDATION_CACHE_TTL_SECONDS:600}
   event:
