@@ -17,4 +17,16 @@ public class AiProductDraftAssistException extends CustomException {
     public AiProductDraftAssistException(String message, Throwable cause) {
         super(ErrorCode.AI_PRODUCT_DRAFT_ASSIST_ERROR, message, cause);
     }
+
+    protected AiProductDraftAssistException(ErrorCode errorCode, String message) {
+        super(errorCode, message);
+    }
+
+    protected AiProductDraftAssistException(ErrorCode errorCode, String message, Throwable cause) {
+        super(errorCode, message, cause);
+    }
+
+    protected AiProductDraftAssistException(ErrorCode errorCode, Throwable cause) {
+        super(errorCode, cause);
+    }
 }

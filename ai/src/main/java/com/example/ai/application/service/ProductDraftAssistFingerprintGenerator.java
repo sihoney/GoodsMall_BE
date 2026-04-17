@@ -2,7 +2,7 @@ package com.example.ai.application.service;
 
 import com.example.ai.application.dto.ProductDraftAssistCommand;
 import com.example.ai.application.dto.ProductDraftAssistField;
-import com.example.ai.common.exception.AiProductDraftAssistException;
+import com.example.ai.common.exception.ProductDraftAssistFingerprintException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -39,9 +39,9 @@ public class ProductDraftAssistFingerprintGenerator {
 
             return toHex(digest.digest());
         } catch (NoSuchAlgorithmException e) {
-            throw new AiProductDraftAssistException("요청 fingerprint 생성 알고리즘을 찾을 수 없습니다.", e);
+            throw new ProductDraftAssistFingerprintException("요청 fingerprint 생성 알고리즘을 찾을 수 없습니다.", e);
         } catch (IOException e) {
-            throw new AiProductDraftAssistException("요청 fingerprint 생성을 위한 이미지 읽기에 실패했습니다.", e);
+            throw new ProductDraftAssistFingerprintException("요청 fingerprint 생성을 위한 이미지 읽기에 실패했습니다.", e);
         }
     }
 

@@ -3,7 +3,10 @@ package com.example.ai.infrastructure.client;
 import com.example.ai.application.dto.ProductDraftAssistCommand;
 import com.example.ai.application.dto.ProductDraftAssistResult;
 import com.example.ai.application.service.ProductDraftAssistPromptBuilder;
-import com.example.ai.common.exception.AiProductDraftAssistException;
+import com.example.ai.common.exception.ProductDraftAssistConfigurationException;
+import com.example.ai.common.exception.ProductDraftAssistExternalCallException;
+import com.example.ai.common.exception.ProductDraftAssistImageReadException;
+import com.example.ai.common.exception.ProductDraftAssistResponseInvalidException;
 import com.example.ai.domain.service.ProductDraftGenerator;
 import com.example.ai.infrastructure.client.dto.request.OpenAiMultimodalChatCompletionRequest;
 import com.example.ai.infrastructure.client.dto.request.OpenAiMultimodalChatCompletionRequest.ContentPart;
@@ -74,10 +77,10 @@ public class OpenAiProductDraftGenerator implements ProductDraftGenerator {
 
     private void validateConfiguration() {
         if (!properties.enabled()) {
-            throw new AiProductDraftAssistException("ai.product-draft.assist.enabled 설정이 필요합니다.");
+            throw new ProductDraftAssistConfigurationException("ai.product-draft.assist.enabled 설정이 필요합니다.");
         }
         if (isBlank(properties.openaiApiKey())) {
-            throw new AiProductDraftAssistException("ai.product-draft.assist.openai-api-key 설정이 필요합니다.");
+            throw new ProductDraftAssistConfigurationException("ai.product-draft.assist.openai-api-key 설정이 필요합니다.");
         }
     }
 
@@ -115,7 +118,7 @@ public class OpenAiProductDraftGenerator implements ProductDraftGenerator {
                     .body(OpenAiChatCompletionResponse.class);
             return extractContent(response);
         } catch (RestClientResponseException e) {
-            throw new AiProductDraftAssistException(
+            throw new ProductDraftAssistExternalCallException(
                     "OpenAI 상품 초안 생성 호출 실패: status=%s body=%s".formatted(
                             e.getStatusCode(),
                             e.getResponseBodyAsString()
@@ -123,18 +126,18 @@ public class OpenAiProductDraftGenerator implements ProductDraftGenerator {
                     e
             );
         } catch (RestClientException e) {
-            throw new AiProductDraftAssistException("OpenAI 상품 초안 생성 호출 중 네트워크 오류가 발생했습니다.", e);
+            throw new ProductDraftAssistExternalCallException("OpenAI 상품 초안 생성 호출 중 네트워크 오류가 발생했습니다.", e);
         }
     }
 
     private String extractContent(OpenAiChatCompletionResponse response) {
         if (response == null || response.choices() == null || response.choices().isEmpty()) {
-            throw new AiProductDraftAssistException("OpenAI 상품 초안 생성 응답이 비어 있습니다.");
+            throw new ProductDraftAssistResponseInvalidException("OpenAI 상품 초안 생성 응답이 비어 있습니다.");
         }
 
         OpenAiChatCompletionResponse.Choice choice = response.choices().getFirst();
         if (choice == null || choice.message() == null || isBlank(choice.message().content())) {
-            throw new AiProductDraftAssistException("OpenAI 상품 초안 생성 응답 content가 비어 있습니다.");
+            throw new ProductDraftAssistResponseInvalidException("OpenAI 상품 초안 생성 응답 content가 비어 있습니다.");
         }
         return choice.message().content();
     }
@@ -143,7 +146,7 @@ public class OpenAiProductDraftGenerator implements ProductDraftGenerator {
         try {
             return objectMapper.readValue(normalizeJsonContent(content), ProductDraftAssistAiResponse.class);
         } catch (Exception e) {
-            throw new AiProductDraftAssistException("OpenAI 상품 초안 생성 응답 파싱에 실패했습니다.", e);
+            throw new ProductDraftAssistResponseInvalidException("OpenAI 상품 초안 생성 응답 파싱에 실패했습니다.", e);
         }
     }
 
@@ -153,7 +156,7 @@ public class OpenAiProductDraftGenerator implements ProductDraftGenerator {
             String base64 = Base64.getEncoder().encodeToString(image.getBytes());
             return "data:%s;base64,%s".formatted(mimeType, base64);
         } catch (IOException e) {
-            throw new AiProductDraftAssistException("이미지 파일을 읽는 중 오류가 발생했습니다.", e);
+            throw new ProductDraftAssistImageReadException("이미지 파일을 읽는 중 오류가 발생했습니다.", e);
         }
     }
 

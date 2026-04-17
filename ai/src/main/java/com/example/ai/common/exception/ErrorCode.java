@@ -20,7 +20,12 @@ public enum ErrorCode {
     AI_ASSIST_THUMBNAIL_INDEX_INVALID(HttpStatus.BAD_REQUEST, "thumbnailIndex 값이 올바르지 않습니다."),
 
     AI_EMBEDDING_ERROR(HttpStatus.UNPROCESSABLE_CONTENT, "AI 임베딩 처리 중 오류가 발생했습니다."),
-    AI_PRODUCT_DRAFT_ASSIST_ERROR(HttpStatus.UNPROCESSABLE_CONTENT, "상품 등록 보조 AI 처리 중 오류가 발생했습니다.");
+    AI_PRODUCT_DRAFT_ASSIST_ERROR(HttpStatus.UNPROCESSABLE_CONTENT, "상품 등록 보조 AI 처리 중 오류가 발생했습니다."),
+    AI_PRODUCT_DRAFT_ASSIST_CONFIGURATION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "상품 등록 보조 AI 설정 오류가 발생했습니다."),
+    AI_PRODUCT_DRAFT_ASSIST_EXTERNAL_CALL_ERROR(HttpStatus.BAD_GATEWAY, "상품 등록 보조 AI 외부 호출 중 오류가 발생했습니다."),
+    AI_PRODUCT_DRAFT_ASSIST_RESPONSE_INVALID_ERROR(HttpStatus.BAD_GATEWAY, "상품 등록 보조 AI 응답 형식이 올바르지 않습니다."),
+    AI_PRODUCT_DRAFT_ASSIST_IMAGE_READ_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "상품 등록 보조 AI 이미지 처리 중 오류가 발생했습니다."),
+    AI_PRODUCT_DRAFT_ASSIST_FINGERPRINT_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "상품 등록 보조 AI 요청 식별값 생성 중 오류가 발생했습니다.");
 
     private final HttpStatus httpStatus;
     private final String message;
