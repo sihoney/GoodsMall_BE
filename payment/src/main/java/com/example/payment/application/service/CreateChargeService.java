@@ -3,9 +3,9 @@ package com.example.payment.application.service;
 import com.example.payment.application.dto.ChargeCreateCommand;
 import com.example.payment.application.dto.ChargeCreateResult;
 import com.example.payment.application.usecase.ChargeCreateUseCase;
+import com.example.payment.common.exception.InvalidChargeRequestException;
 import com.example.payment.domain.entity.Charge;
 import com.example.payment.domain.entity.Wallet;
-import com.example.payment.common.exception.InvalidChargeRequestException;
 import com.example.payment.common.exception.WalletNotFoundException;
 import com.example.payment.domain.repository.ChargeRepository;
 import com.example.payment.domain.repository.WalletRepository;
@@ -50,9 +50,11 @@ public class CreateChargeService implements ChargeCreateUseCase {
     public ChargeCreateResult createCharge(ChargeCreateCommand command) {
         validateCommand(command);
 
+        // 지갑 여부를 확인
         Wallet wallet = walletRepository.findByMemberId(command.memberId())
                 .orElseThrow(WalletNotFoundException::new);
 
+        // uuid를 이용하여 orderId를 생성하기 위한 과정
         UUID chargeId = identifierGenerator.generateUuid();
         String pgOrderId = generatePgOrderId(chargeId);
         LocalDateTime requestedAt = timeProvider.now();
@@ -62,11 +64,11 @@ public class CreateChargeService implements ChargeCreateUseCase {
                 command.memberId(),
                 wallet.getWalletId(),
                 command.amount(),
-                command.pgProvider(),
                 pgOrderId,
                 requestedAt
         );
 
+        // JPA를 이용하여 데이터 등록
         chargeRepository.save(charge);
 
         return new ChargeCreateResult(
@@ -74,7 +76,6 @@ public class CreateChargeService implements ChargeCreateUseCase {
                 wallet.getWalletId(),
                 charge.getPgOrderId(),
                 charge.getRequestedAmount(),
-                charge.getPgProvider(),
                 charge.getChargeStatus()
         );
     }
@@ -93,9 +94,6 @@ public class CreateChargeService implements ChargeCreateUseCase {
         }
         if (command.amount() == null || command.amount() <= 0) {
             throw new InvalidChargeRequestException("amount must be positive.");
-        }
-        if (command.pgProvider() == null) {
-            throw new InvalidChargeRequestException("pgProvider is required.");
         }
     }
 }

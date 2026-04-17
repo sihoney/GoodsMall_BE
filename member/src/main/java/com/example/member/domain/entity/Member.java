@@ -145,12 +145,37 @@ public class Member {
     }
 
     public void changeStatus(MemberStatus status, LocalDateTime updatedAt) {
-        this.status = Objects.requireNonNull(status);
+        MemberStatus nextStatus = Objects.requireNonNull(status);
+        validateStatusTransition(nextStatus);
+        this.status = nextStatus;
         this.updatedAt = Objects.requireNonNull(updatedAt);
     }
 
+    // TODO: 관리자 기능으로 회원 상태를 변경하는 경우, 특정 상태로의 전환이 허용되는지 검증하는 로직 추가 (예: PENDING_VERIFICATION -> ACTIVE, ACTIVE -> SUSPENDED 등)
     public void changeRole(MemberRole role, LocalDateTime updatedAt) {
         this.role = Objects.requireNonNull(role);
         this.updatedAt = Objects.requireNonNull(updatedAt);
+    }
+
+    public boolean isActive() {
+        return status == MemberStatus.ACTIVE;
+    }
+
+    private void validateStatusTransition(MemberStatus nextStatus) {
+        if (status == nextStatus) {
+            return;
+        }
+
+        boolean allowed = switch (status) {
+            case PENDING_VERIFICATION -> nextStatus == MemberStatus.ACTIVE || nextStatus == MemberStatus.DELETED;
+            case ACTIVE -> nextStatus == MemberStatus.SUSPENDED || nextStatus == MemberStatus.WITHDRAWN;
+            case SUSPENDED -> nextStatus == MemberStatus.ACTIVE;
+            case WITHDRAWN -> nextStatus == MemberStatus.DELETED;
+            case DELETED -> false;
+        };
+
+        if (!allowed) {
+            throw new IllegalStateException("Invalid member status transition: " + status + " -> " + nextStatus);
+        }
     }
 }

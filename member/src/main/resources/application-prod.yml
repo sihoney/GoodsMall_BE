@@ -38,6 +38,17 @@ springdoc:
 apigateway:
   host: ${API_GATEWAY_HOST}
 
+oauth:
+  kakao:
+    client-id: ${KAKAO_CLIENT_ID}
+    client-secret: ${KAKAO_CLIENT_SECRET}
+    authorize-uri: ${KAKAO_AUTHORIZE_URI:https://kauth.kakao.com/oauth/authorize}
+    token-uri: ${KAKAO_TOKEN_URI:https://kauth.kakao.com/oauth/token}
+    user-info-uri: ${KAKAO_USER_INFO_URI:https://kapi.kakao.com/v2/user/me}
+    redirect-uri: ${KAKAO_REDIRECT_URI}
+    state-ttl: ${KAKAO_OAUTH_STATE_TTL:10m}
+    pending-link-ttl: ${KAKAO_OAUTH_PENDING_LINK_TTL:10m}
+
 jwt:
   secret: ${JWT_SECRET_KEY}
   issuer: member-service
@@ -67,6 +78,13 @@ member:
   kafka:
     topic:
       signed-up: ${MEMBER_SIGNED_UP_TOPIC:member-signed-up}
+  account-verification:
+    expiration: ${ACCOUNT_VERIFICATION_EXPIRATION:5m}
+    max-attempts: ${ACCOUNT_VERIFICATION_MAX_ATTEMPTS:5}
+    max-resend-count: ${ACCOUNT_VERIFICATION_MAX_RESEND_COUNT:3}
+    resend-cooldown: ${ACCOUNT_VERIFICATION_RESEND_COOLDOWN:30s}
+    crypto:
+      secret-key: ${ACCOUNT_VERIFICATION_SECRET_KEY}
 
 logging:
   level:

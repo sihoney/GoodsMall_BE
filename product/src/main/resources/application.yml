@@ -3,10 +3,14 @@ spring:
     name: product-service
   config:
     import:
-      - "configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
+      # optional: Config Server -> 연결을 하지 안하도 사용 가능하게 진행
+      # 로컬 개발 환경에서 Config Server(8888) 없이 단독 실행하려면 optional 필요
+      - "optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
   cloud:
     config:
-      fail-fast: true
+      # fail-fast: true 설정 시 Config Server 연결 실패하면 중단
+      # false로 설정하여 연결 실패해도 로컬 기본값으로 기동 진행
+      fail-fast: false
       retry:
         initial-interval: 1000
         max-attempts: 20
@@ -16,9 +20,9 @@ spring:
   # 로컬 개발용 기본값 (Config Server 미연결 시 사용)
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/goods_mall?currentSchema=product
-    username: goods
-    password: dhsmfwjatlaapsb
+    url:  ${DB_URL:jdbc:postgresql://localhost:5432/goods_mall?currentSchema=product}
+    username: ${DB_USER_NAME:postgres}
+    password: ${DB_USER_PASSWORD:post1234}
 
   jpa:
     hibernate:
@@ -33,6 +37,15 @@ server:
 
 eureka:
   client:
+    # register-with-eureka: 기본값 true
+    # true일 경우 Eureka Server(8761)에 자신을 등록 시도
+    # Eureka Server 미실행 시 연결 재시도가 반복되어 기동 지연 발생
+    # 로컬에서 단독 실행하려면 false로 설정
+    register-with-eureka: false
+    # fetch-registry: 기본값 true
+    # true일 경우 다른 서비스 목록을 Eureka에서 조회
+    # 서비스 디스커버리가 필요 없는 단독 실행 시 false로 설정
+    fetch-registry: false
     service-url:
       defaultZone: ${EUREKA_DEFAULT_ZONE:http://localhost:8761/eureka}
   instance:
@@ -49,7 +62,28 @@ cloud:
     s3:
       bucket: ${AWS_S3_BUCKET:test-bucket}
 
+  # --- Elasticsearch 설정 (로컬 기본값) ---
+  elasticsearch:
+    uris: http://localhost:9200
+
+  # --- Kafka 설정 (로컬 기본값) ---
+  kafka:
+    bootstrap-servers: localhost:29092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
 logging:
   level:
     com.example.product: DEBUG
     org.hibernate.SQL: DEBUG
+
+# --- Product 서비스 설정 ---
+product:
+  kafka:
+    topic:
+      product-changed: product.changed
+    consumer-groups:
+      product-es-sync: product-es-sync-group
+  elasticsearch:
+    init-index: false

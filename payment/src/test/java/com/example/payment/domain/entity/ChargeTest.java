@@ -1,7 +1,6 @@
 package com.example.payment.domain.entity;
 
 import com.example.payment.domain.enumtype.ChargeStatus;
-import com.example.payment.domain.enumtype.PgProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -35,7 +34,6 @@ class ChargeTest {
                 memberId,
                 walletId,
                 10_000L,
-                PgProvider.TOSS,
                 "CHARGE-" + chargeId,
                 requestedAt
         );
@@ -89,9 +87,9 @@ class ChargeTest {
             Charge charge = createPendingCharge();
             LocalDateTime approvedAt = LocalDateTime.of(2024, 1, 1, 12, 5, 0);
 
-            charge.approve(10_000L, "paymentKey-abc", approvedAt);
+            charge.approve(10_000L, "paymentKey-abc", approvedAt, null);
 
-            assertThat(charge.getChargeStatus()).isEqualTo(ChargeStatus.SUCCESS);
+            assertThat(charge.getChargeStatus()).isEqualTo(ChargeStatus.CONFIRM_SUCCESS);
         }
 
         @Test
@@ -100,7 +98,7 @@ class ChargeTest {
             Charge charge = createPendingCharge();
             LocalDateTime approvedAt = LocalDateTime.of(2024, 1, 1, 12, 5, 0);
 
-            charge.approve(10_000L, "paymentKey-abc", approvedAt);
+            charge.approve(10_000L, "paymentKey-abc", approvedAt, null);
 
             assertThat(charge.getApprovedAmount()).isEqualTo(10_000L);
             assertThat(charge.getPgPaymentKey()).isEqualTo("paymentKey-abc");
@@ -112,7 +110,7 @@ class ChargeTest {
         void approve_isPendingIsFalse() {
             Charge charge = createPendingCharge();
 
-            charge.approve(10_000L, "paymentKey-abc", LocalDateTime.now());
+            charge.approve(10_000L, "paymentKey-abc", LocalDateTime.now(), null);
 
             assertThat(charge.isPending()).isFalse();
         }
@@ -121,9 +119,9 @@ class ChargeTest {
         @DisplayName("이미 SUCCESS인 Charge에 approve()를 호출하면 예외가 발생한다")
         void approve_alreadySuccess_throwsException() {
             Charge charge = createPendingCharge();
-            charge.approve(10_000L, "paymentKey-abc", LocalDateTime.now());
+            charge.approve(10_000L, "paymentKey-abc", LocalDateTime.now(), null);
 
-            assertThatThrownBy(() -> charge.approve(10_000L, "paymentKey-abc2", LocalDateTime.now()))
+            assertThatThrownBy(() -> charge.approve(10_000L, "paymentKey-abc2", LocalDateTime.now(), null))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("Only pending charges can be changed.");
         }
@@ -134,7 +132,7 @@ class ChargeTest {
             Charge charge = createPendingCharge();
             charge.fail("reason", LocalDateTime.now());
 
-            assertThatThrownBy(() -> charge.approve(10_000L, "paymentKey-abc", LocalDateTime.now()))
+            assertThatThrownBy(() -> charge.approve(10_000L, "paymentKey-abc", LocalDateTime.now(), null))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("Only pending charges can be changed.");
         }
@@ -152,7 +150,7 @@ class ChargeTest {
 
             charge.fail("payment declined", failedAt);
 
-            assertThat(charge.getChargeStatus()).isEqualTo(ChargeStatus.FAILED);
+            assertThat(charge.getChargeStatus()).isEqualTo(ChargeStatus.CONFIRM_FAILED);
         }
 
         @Test
@@ -171,7 +169,7 @@ class ChargeTest {
         @DisplayName("이미 SUCCESS인 Charge에 fail()을 호출하면 예외가 발생한다")
         void fail_alreadySuccess_throwsException() {
             Charge charge = createPendingCharge();
-            charge.approve(10_000L, "paymentKey-abc", LocalDateTime.now());
+            charge.approve(10_000L, "paymentKey-abc", LocalDateTime.now(), null);
 
             assertThatThrownBy(() -> charge.fail("reason", LocalDateTime.now()))
                     .isInstanceOf(IllegalStateException.class)

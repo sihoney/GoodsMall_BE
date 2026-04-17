@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 /**
  * 외부 결제 게이트웨이 승인/취소를 추상화한 도메인 서비스 포트다.
  */
+// todo: 도에인에 있는 것이 맞는지 아닌지 판단해서 application인지 infrastructure에 옮길지 확인하기
+// todo: 인터페이스를 구현할 필요가 있는지 확인하기
 public interface TossPaymentGateway {
 
     TossPaymentConfirmation confirm(String paymentKey, String orderId, Long amount);
@@ -18,7 +20,10 @@ public interface TossPaymentGateway {
             String paymentKey,
             String orderId,
             Long approvedAmount,
-            LocalDateTime approvedAt
+            LocalDateTime approvedAt,
+            String method,
+            String transferBankCode,
+            String cardCompany
     ) {
     }
 

@@ -13,5 +13,9 @@ public interface AuthUsecase {
 
 	TokenRefreshResponse refresh(TokenRefreshRequest request);
 
+	void logoutCurrentSession(String accessToken);
+
+	void logoutAllSessions(String accessToken);
+
 	void logout(UUID memberId);
 }

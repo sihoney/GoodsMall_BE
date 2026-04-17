@@ -8,13 +8,17 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.example.payment.application.dto.OrderPaymentCommand;
+import com.example.payment.application.dto.OrderPaymentLineCommand;
 import com.example.payment.application.dto.OrderPaymentResult;
-import com.example.payment.application.dto.OrderPaymentSellerCommand;
 import com.example.payment.common.exception.InvalidOrderPaymentRequestException;
 import com.example.payment.common.exception.WalletNotFoundException;
 import com.example.payment.domain.entity.Escrow;
+import com.example.payment.domain.entity.OrderPayment;
 import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.repository.EscrowRepository;
+import com.example.payment.domain.repository.EscrowTransactionRepository;
+import com.example.payment.domain.repository.OrderPaymentAllocationRepository;
+import com.example.payment.domain.repository.OrderPaymentRepository;
 import com.example.payment.domain.repository.WalletRepository;
 import com.example.payment.domain.repository.WalletTransactionRepository;
 import com.example.payment.domain.service.IdentifierGenerator;
@@ -43,6 +47,15 @@ class OrderPaymentServiceTest {
 
     @Mock
     private EscrowRepository escrowRepository;
+
+    @Mock
+    private EscrowTransactionRepository escrowTransactionRepository;
+
+    @Mock
+    private OrderPaymentRepository orderPaymentRepository;
+
+    @Mock
+    private OrderPaymentAllocationRepository orderPaymentAllocationRepository;
 
     @Mock
     private IdentifierGenerator identifierGenerator;
@@ -81,8 +94,7 @@ class OrderPaymentServiceTest {
                     orderId,
                     buyerMemberId,
                     12_000L,
-                    List.of(new OrderPaymentSellerCommand(sellerMemberId, 12_000L)),
-                    null
+                    List.of(new OrderPaymentLineCommand(UUID.randomUUID(), sellerMemberId, 12_000L))
             );
             Wallet buyerWallet = Wallet.create(buyerWalletId, buyerMemberId, 20_000L, now, now);
 
@@ -93,6 +105,8 @@ class OrderPaymentServiceTest {
             given(walletRepository.save(any(Wallet.class))).willAnswer(invocation -> invocation.getArgument(0));
             given(walletTransactionRepository.save(any())).willAnswer(invocation -> invocation.getArgument(0));
             given(escrowRepository.saveAll(any())).willAnswer(invocation -> invocation.getArgument(0));
+            given(orderPaymentRepository.save(any(OrderPayment.class))).willAnswer(invocation -> invocation.getArgument(0));
+            given(orderPaymentAllocationRepository.saveAll(any())).willAnswer(invocation -> invocation.getArgument(0));
 
             OrderPaymentResult result = orderPaymentService.payOrder(command);
 
@@ -116,10 +130,9 @@ class OrderPaymentServiceTest {
                     buyerMemberId,
                     12_000L,
                     List.of(
-                            new OrderPaymentSellerCommand(sellerMemberId, 7_000L),
-                            new OrderPaymentSellerCommand(secondSellerId, 5_000L)
-                    ),
-                    null
+                            new OrderPaymentLineCommand(UUID.randomUUID(), sellerMemberId, 7_000L),
+                            new OrderPaymentLineCommand(UUID.randomUUID(), secondSellerId, 5_000L)
+                    )
             );
             Wallet buyerWallet = Wallet.create(buyerWalletId, buyerMemberId, 20_000L, now, now);
 
@@ -131,6 +144,8 @@ class OrderPaymentServiceTest {
             given(walletRepository.save(any(Wallet.class))).willAnswer(invocation -> invocation.getArgument(0));
             given(walletTransactionRepository.save(any())).willAnswer(invocation -> invocation.getArgument(0));
             given(escrowRepository.saveAll(any())).willAnswer(invocation -> invocation.getArgument(0));
+            given(orderPaymentRepository.save(any(OrderPayment.class))).willAnswer(invocation -> invocation.getArgument(0));
+            given(orderPaymentAllocationRepository.saveAll(any())).willAnswer(invocation -> invocation.getArgument(0));
 
             OrderPaymentResult result = orderPaymentService.payOrder(command);
 
@@ -147,8 +162,7 @@ class OrderPaymentServiceTest {
                     orderId,
                     buyerMemberId,
                     12_000L,
-                    List.of(new OrderPaymentSellerCommand(sellerMemberId, 12_000L)),
-                    null
+                    List.of(new OrderPaymentLineCommand(UUID.randomUUID(), sellerMemberId, 12_000L))
             );
             Escrow existingEscrow = Escrow.createHeld(
                     escrowId,
@@ -156,7 +170,6 @@ class OrderPaymentServiceTest {
                     buyerMemberId,
                     sellerMemberId,
                     12_000L,
-                    null,
                     now
             );
             Wallet buyerWallet = Wallet.create(buyerWalletId, buyerMemberId, 20_000L, now, now);
@@ -180,8 +193,7 @@ class OrderPaymentServiceTest {
                     orderId,
                     buyerMemberId,
                     12_000L,
-                    List.of(new OrderPaymentSellerCommand(sellerMemberId, 12_000L)),
-                    null
+                    List.of(new OrderPaymentLineCommand(UUID.randomUUID(), sellerMemberId, 12_000L))
             );
 
             given(escrowRepository.findAllByOrderId(orderId)).willReturn(List.of());
@@ -198,13 +210,12 @@ class OrderPaymentServiceTest {
                     orderId,
                     buyerMemberId,
                     10_000L,
-                    List.of(new OrderPaymentSellerCommand(sellerMemberId, 12_000L)),
-                    null
+                    List.of(new OrderPaymentLineCommand(UUID.randomUUID(), sellerMemberId, 12_000L))
             );
 
             assertThatThrownBy(() -> orderPaymentService.payOrder(command))
                     .isInstanceOf(InvalidOrderPaymentRequestException.class)
-                    .hasMessageContaining("total must equal orderAmount");
+                    .hasMessageContaining("lineAmount total must equal orderAmount");
         }
 
         @Test
@@ -214,8 +225,7 @@ class OrderPaymentServiceTest {
                     orderId,
                     buyerMemberId,
                     12_000L,
-                    List.of(new OrderPaymentSellerCommand(sellerMemberId, 12_000L)),
-                    null
+                    List.of(new OrderPaymentLineCommand(UUID.randomUUID(), sellerMemberId, 12_000L))
             );
             Wallet buyerWallet = Wallet.create(buyerWalletId, buyerMemberId, 5_000L, now, now);
 

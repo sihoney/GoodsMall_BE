@@ -10,6 +10,8 @@ public interface ChargeRepository {
 
     Optional<Charge> findByChargeId(UUID chargeId);
 
+    Optional<Charge> findByPgOrderId(String pgOrderId);
+
     Optional<Charge> findByChargeIdAndMemberId(UUID chargeId, UUID memberId);
 
     Page<Charge> findByMemberId(UUID memberId, Pageable pageable);

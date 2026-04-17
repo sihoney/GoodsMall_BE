@@ -3,7 +3,6 @@ package com.example.payment.infrastructure.messaging.kafka;
 import com.example.payment.common.exception.InvalidOrderPaymentRequestException;
 import com.example.payment.application.dto.EscrowReleaseCommand;
 import com.example.payment.application.usecase.EscrowReleaseUseCase;
-import com.example.payment.domain.enumtype.ConfirmationType;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPurchaseConfirmedMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +34,7 @@ public class OrderPurchaseConfirmedEventConsumer {
      * 수동 구매확정 이벤트만 escrow release 요청으로 전달한다.
      * AUTO 구매확정은 scheduler 경로에서 처리되므로 consumer 단계에서 차단한다.
      */
+    // todo: 수동 구매 확정 또한 사용자가 요청하는 반응이므로 필요시 order와 api 통신을 써야할지 고려
     public void listen(String eventJson) {
         try {
             OrderPurchaseConfirmedMessage event = objectMapper.readValue(eventJson, OrderPurchaseConfirmedMessage.class);
@@ -65,9 +65,6 @@ public class OrderPurchaseConfirmedEventConsumer {
         }
         if (event.confirmedAt() == null) {
             throw new InvalidOrderPaymentRequestException("confirmedAt is required.");
-        }
-        if (event.confirmationType() != ConfirmationType.MANUAL) {
-            throw new InvalidOrderPaymentRequestException("Only MANUAL confirmation event is allowed.");
         }
     }
 }

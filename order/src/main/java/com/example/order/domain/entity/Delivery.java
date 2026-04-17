@@ -20,7 +20,7 @@ import java.util.UUID;
 
 @Getter
 @Entity
-@Table(name = "delivery")
+@Table(name = "deliveries", schema = "order_service")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Delivery {
 
@@ -104,5 +104,13 @@ public class Delivery {
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );
+    }
+
+    public void ship(String courierCode, String invoiceNumber) {
+        this.courierCode = courierCode;
+        this.invoiceNumber = invoiceNumber;
+        this.status = DeliveryStatus.SHIPPED;
+        this.shippedAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
 }

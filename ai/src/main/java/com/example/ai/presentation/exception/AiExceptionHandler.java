@@ -1,0 +1,73 @@
+package com.example.ai.presentation.exception;
+
+import com.example.ai.common.exception.CustomException;
+import com.example.ai.common.exception.ErrorCode;
+import com.example.ai.presentation.dto.response.ApiErrorResponse;
+import com.example.ai.presentation.dto.response.ApiResponse;
+import com.todaylunch.common.security.exception.AuthorizationDeniedException;
+import com.todaylunch.common.security.exception.InvalidTokenException;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+@Slf4j
+@RestControllerAdvice
+public class AiExceptionHandler {
+
+    @ExceptionHandler(InvalidTokenException.class)
+    public ResponseEntity<ApiResponse<Object>> handleInvalidToken(InvalidTokenException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.fail("INVALID_TOKEN", e.getMessage()));
+    }
+
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleAuthorizationDenied(AuthorizationDeniedException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.fail("FORBIDDEN", e.getMessage()));
+    }
+
+    @ExceptionHandler(CustomException.class)
+    public ResponseEntity<ApiResponse<Object>> handleCustomException(CustomException e, HttpServletRequest request) {
+        log.warn("AI custom exception. path={}, code={}, message={}",
+                request.getRequestURI(),
+                e.getErrorCode().name(),
+                e.getMessage());
+        return ResponseEntity.status(e.getErrorCode().getHttpStatus())
+                .body(ApiResponse.fail(e.getErrorCode().name(), e.getMessage()));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<Object>> handleIllegalArgument(IllegalArgumentException e, HttpServletRequest request) {
+        return handleInvalidInputException(e, request);
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiResponse<Object>> handleIllegalState(IllegalStateException e, HttpServletRequest request) {
+        return handleInvalidInputException(e, request);
+    }
+
+    @ExceptionHandler(NullPointerException.class)
+    public ResponseEntity<ApiResponse<Object>> handleNullPointer(NullPointerException e, HttpServletRequest request) {
+        return handleInvalidInputException(e, request);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiResponse<Object>> handleUnexpected(Exception e, HttpServletRequest request) {
+        log.error("Unexpected AI exception. path={}", request.getRequestURI(), e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ApiResponse<>(false, null, ApiErrorResponse.of("INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다.")));
+    }
+
+    private ResponseEntity<ApiResponse<Object>> handleInvalidInputException(
+            RuntimeException e,
+            HttpServletRequest request
+    ) {
+        log.warn("AI invalid input exception. path={}, message={}", request.getRequestURI(), e.getMessage());
+        return ResponseEntity.status(ErrorCode.INVALID_INPUT_VALUE.getHttpStatus())
+                .body(ApiResponse.fail(ErrorCode.INVALID_INPUT_VALUE.name(), e.getMessage()));
+    }
+}
+

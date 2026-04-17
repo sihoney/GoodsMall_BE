@@ -60,15 +60,18 @@ public class ConfirmChargeService implements ChargeConfirmUseCase {
     public ChargeConfirmResult confirmCharge(ChargeConfirmCommand command) {
         validateCommand(command);
 
+        // 충전 내역을 조회하여 PENDING 상태인지, PG 승인 정보와 일치하는지 검증한다.
         Charge charge = chargeRepository.findByChargeId(command.chargeId())
                 .orElseThrow(ChargeNotFoundException::new);
 
         if (!charge.isPending()) {
             throw new IllegalStateException("Charge is not pending.");
         }
+        // 데이터 무결성 검사를 위하여 PG 승인 응답과 charge 요청 정보를 대조한다.
         if (!Objects.equals(charge.getPgOrderId(), command.pgOrderId())) {
             throw new InvalidChargeRequestException("pgOrderId does not match charge.");
         }
+        // 금액 검증은 pg 요청에서 온 금액과 기록된 금액을 모두 비교
         if (!Objects.equals(charge.getRequestedAmount(), command.amount())) {
             throw new InvalidChargeRequestException("amount does not match charge.");
         }
@@ -87,17 +90,20 @@ public class ConfirmChargeService implements ChargeConfirmUseCase {
             failCharge(charge, e.getMessage());
             throw e;
         }
-
+        // 지갑을 조회
         Wallet wallet = walletRepository.findByWalletId(charge.getWalletId())
                 .orElseThrow(WalletNotFoundException::new);
-
+        // 승인 결과 db에 반영
         charge.approve(
                 confirmation.approvedAmount(),
                 confirmation.paymentKey(),
-                confirmation.approvedAt()
+                confirmation.approvedAt(),
+                resolveTossBankCode(confirmation)
         );
 
+        // 지갑 증가 메서드를 이용해서 값을 증가
         Long balanceAfter = wallet.increaseBalance(confirmation.approvedAmount(), confirmation.approvedAt());
+        // 지갑 변경 이력을 저장
         WalletTransaction walletTransaction = WalletTransaction.charge(
                 identifierGenerator.generateUuid(),
                 wallet.getWalletId(),
@@ -149,5 +155,15 @@ public class ConfirmChargeService implements ChargeConfirmUseCase {
             return "Payment confirmation failed.";
         }
         return failureReason;
+    }
+
+    private String resolveTossBankCode(TossPaymentGateway.TossPaymentConfirmation confirmation) {
+        if (!"계좌이체".equals(confirmation.method())) {
+            return null;
+        }
+        if (confirmation.transferBankCode() == null || confirmation.transferBankCode().isBlank()) {
+            throw new PaymentGatewayException("Toss transfer response is missing bankCode.");
+        }
+        return confirmation.transferBankCode();
     }
 }

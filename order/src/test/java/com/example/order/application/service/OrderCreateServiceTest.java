@@ -1,15 +1,14 @@
 package com.example.order.application.service;
 
-import com.example.order.application.port.PaymentPort;
-import com.example.order.application.port.ProductPort;
-import com.example.order.application.port.ProductPort.ProductInfo;
+import com.example.order.application.port.dto.request.ProductStockDeductRequest;
+import com.example.order.application.port.dto.response.ProductInfo;
+import com.example.order.application.processor.PaymentProcessor;
+import com.example.order.application.processor.ProductProcessor;
 import com.example.order.common.exception.CustomException;
 import com.example.order.common.exception.ErrorCode;
 import com.example.order.domain.entity.Order;
-import com.example.order.domain.enumtype.PaymentStatus;
 import com.example.order.domain.enumtype.ProductOrderStatus;
 import com.example.order.domain.repository.OrderRepository;
-import com.example.order.infrastructure.client.dto.request.ProductRequest;
 import com.example.order.presentation.dto.request.OrderCreateRequest;
 import com.example.order.presentation.dto.request.OrderItemCreateRequest;
 import com.example.order.presentation.dto.response.OrderCreateResponse;
@@ -25,10 +24,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,10 +39,10 @@ class OrderCreateServiceTest {
     private OrderRepository orderRepository;
 
     @Mock
-    private ProductPort productPort;
+    private ProductProcessor productProcessor;
 
     @Mock
-    private PaymentPort paymentPort;
+    private PaymentProcessor paymentProcessor;
 
     @Mock
     private DeliveryCreateService deliveryCreateService;
@@ -80,12 +81,12 @@ class OrderCreateServiceTest {
                     List.of()
             );
 
-            assertThatThrownBy(() -> orderCreateService.create(memberId, request))
+            assertThatThrownBy(() -> orderCreateService.createByDeposit(memberId, request))
                     .isInstanceOf(CustomException.class)
                     .extracting("errorCode")
                     .isEqualTo(ErrorCode.INVALID_INPUT_VALUE);
 
-            verifyNoInteractions(productPort, paymentPort, deliveryCreateService, orderRepository);
+            verifyNoInteractions(productProcessor, paymentProcessor, deliveryCreateService, orderRepository);
         }
 
         @Test
@@ -103,12 +104,16 @@ class OrderCreateServiceTest {
                     )
             );
 
-            assertThatThrownBy(() -> orderCreateService.create(memberId, request))
+            doThrow(new CustomException(ErrorCode.DUPLICATE_PRODUCT_REQUEST))
+                    .when(productProcessor).validateDuplicate(anyList());
+
+            assertThatThrownBy(() -> orderCreateService.createByDeposit(memberId, request))
                     .isInstanceOf(CustomException.class)
                     .extracting("errorCode")
                     .isEqualTo(ErrorCode.DUPLICATE_PRODUCT_REQUEST);
 
-            verifyNoInteractions(productPort, paymentPort, deliveryCreateService, orderRepository);
+            verify(productProcessor).validateDuplicate(anyList());
+            verifyNoInteractions(paymentProcessor, deliveryCreateService, orderRepository);
         }
 
         @Test
@@ -126,18 +131,17 @@ class OrderCreateServiceTest {
                     )
             );
 
-            when(productPort.checkAvailability(anyList()))
-                    .thenReturn(List.of(
-                            productInfo(productId1, sellerId1, ProductOrderStatus.ORDERABLE, BigDecimal.valueOf(1000))
-                    ));
+            doThrow(new CustomException(ErrorCode.PRODUCT_NOT_FOUND))
+                    .when(productProcessor).deductStock(anyList());
 
-            assertThatThrownBy(() -> orderCreateService.create(memberId, request))
+            assertThatThrownBy(() -> orderCreateService.createByDeposit(memberId, request))
                     .isInstanceOf(CustomException.class)
                     .extracting("errorCode")
                     .isEqualTo(ErrorCode.PRODUCT_NOT_FOUND);
 
-            verify(productPort).checkAvailability(anyList());
-            verifyNoInteractions(paymentPort, deliveryCreateService);
+            verify(productProcessor).validateDuplicate(anyList());
+            verify(productProcessor).deductStock(anyList());
+            verifyNoInteractions(paymentProcessor, deliveryCreateService);
             verify(orderRepository, never()).save(any(Order.class));
         }
 
@@ -155,19 +159,21 @@ class OrderCreateServiceTest {
                     )
             );
 
-            when(productPort.checkAvailability(anyList()))
-                    .thenReturn(List.of(
-                            productInfo(productId1, sellerId1, ProductOrderStatus.INSUFFICIENT_STOCK, BigDecimal.valueOf(1000))
-                    ));
+            when(productProcessor.deductStock(anyList()))
+                    .thenReturn(Map.of(productId1, productInfo(productId1, sellerId1, ProductOrderStatus.INSUFFICIENT_STOCK, BigDecimal.valueOf(1000))));
 
-            assertThatThrownBy(() -> orderCreateService.create(memberId, request))
+            doThrow(new CustomException(ErrorCode.INSUFFICIENT_STOCK))
+                    .when(productProcessor).validateStatus(any(), any());
+
+            assertThatThrownBy(() -> orderCreateService.createByDeposit(memberId, request))
                     .isInstanceOf(CustomException.class)
                     .extracting("errorCode")
                     .isEqualTo(ErrorCode.INSUFFICIENT_STOCK);
 
-            verify(productPort).checkAvailability(anyList());
+            verify(productProcessor).deductStock(anyList());
+            verify(productProcessor).validateStatus(any(), any());
             verify(orderRepository, never()).save(any(Order.class));
-            verifyNoInteractions(paymentPort, deliveryCreateService);
+            verifyNoInteractions(paymentProcessor, deliveryCreateService);
         }
 
         @Test
@@ -184,19 +190,21 @@ class OrderCreateServiceTest {
                     )
             );
 
-            when(productPort.checkAvailability(anyList()))
-                    .thenReturn(List.of(
-                            productInfo(productId1, sellerId1, ProductOrderStatus.NOT_FOR_SALE, BigDecimal.valueOf(1000))
-                    ));
+            when(productProcessor.deductStock(anyList()))
+                    .thenReturn(Map.of(productId1, productInfo(productId1, sellerId1, ProductOrderStatus.NOT_FOR_SALE, BigDecimal.valueOf(1000))));
 
-            assertThatThrownBy(() -> orderCreateService.create(memberId, request))
+            doThrow(new CustomException(ErrorCode.PRODUCT_NOT_ORDERABLE))
+                    .when(productProcessor).validateStatus(any(), any());
+
+            assertThatThrownBy(() -> orderCreateService.createByDeposit(memberId, request))
                     .isInstanceOf(CustomException.class)
                     .extracting("errorCode")
                     .isEqualTo(ErrorCode.PRODUCT_NOT_ORDERABLE);
 
-            verify(productPort).checkAvailability(anyList());
+            verify(productProcessor).deductStock(anyList());
+            verify(productProcessor).validateStatus(any(), any());
             verify(orderRepository, never()).save(any(Order.class));
-            verifyNoInteractions(paymentPort, deliveryCreateService);
+            verifyNoInteractions(paymentProcessor, deliveryCreateService);
         }
 
         @Test
@@ -204,27 +212,22 @@ class OrderCreateServiceTest {
         void create_fail_when_payment_order_id_mismatch() {
             OrderCreateRequest request = validRequest();
 
-            when(productPort.checkAvailability(anyList()))
-                    .thenReturn(validProducts());
+            when(productProcessor.deductStock(anyList()))
+                    .thenReturn(validProductMap());
 
             when(orderRepository.save(any(Order.class)))
                     .thenAnswer(invocation -> invocation.getArgument(0));
 
-            when(paymentPort.requestPayment(any()))
-                    .thenReturn(new PaymentPort.PaymentResult(
-                            UUID.randomUUID(),   // 다른 orderId
-                            BigDecimal.valueOf(4000),
-                            PaymentStatus.SUCCESS,
-                            null
-                    ));
+            doThrow(new CustomException(ErrorCode.PAYMENT_FAILED))
+                    .when(paymentProcessor).process(any(Order.class));
 
-            assertThatThrownBy(() -> orderCreateService.create(memberId, request))
+            assertThatThrownBy(() -> orderCreateService.createByDeposit(memberId, request))
                     .isInstanceOf(CustomException.class)
                     .extracting("errorCode")
                     .isEqualTo(ErrorCode.PAYMENT_FAILED);
 
             verify(orderRepository).save(any(Order.class));
-            verify(paymentPort).requestPayment(any());
+            verify(paymentProcessor).process(any(Order.class));
             verifyNoInteractions(deliveryCreateService);
         }
 
@@ -233,31 +236,23 @@ class OrderCreateServiceTest {
         void create_fail_when_payment_status_is_not_success() {
             OrderCreateRequest request = validRequest();
 
-            when(productPort.checkAvailability(anyList()))
-                    .thenReturn(validProducts());
+            when(productProcessor.deductStock(anyList()))
+                    .thenReturn(validProductMap());
 
             when(orderRepository.save(any(Order.class)))
                     .thenAnswer(invocation -> invocation.getArgument(0));
 
-            when(paymentPort.requestPayment(any()))
-                    .thenAnswer(invocation -> {
-                        PaymentPort.PaymentRequest paymentRequest = invocation.getArgument(0);
-                        return new PaymentPort.PaymentResult(
-                                paymentRequest.orderId(),
-                                BigDecimal.ZERO,
-                                PaymentStatus.FAILED,
-                                "PAYMENT_DECLINED"
-                        );
-                    });
+            doThrow(new CustomException(ErrorCode.PAYMENT_FAILED))
+                    .when(paymentProcessor).process(any(Order.class));
 
-            assertThatThrownBy(() -> orderCreateService.create(memberId, request))
+            assertThatThrownBy(() -> orderCreateService.createByDeposit(memberId, request))
                     .isInstanceOf(CustomException.class)
                     .extracting("errorCode")
                     .isEqualTo(ErrorCode.PAYMENT_FAILED);
 
-            verify(productPort).checkAvailability(anyList());
+            verify(productProcessor).deductStock(anyList());
             verify(orderRepository).save(any(Order.class));
-            verify(paymentPort).requestPayment(any());
+            verify(paymentProcessor).process(any(Order.class));
             verifyNoInteractions(deliveryCreateService);
         }
 
@@ -266,24 +261,13 @@ class OrderCreateServiceTest {
         void create_success() {
             OrderCreateRequest request = validRequest();
 
-            when(productPort.checkAvailability(anyList()))
-                    .thenReturn(validProducts());
+            when(productProcessor.deductStock(anyList()))
+                    .thenReturn(validProductMap());
 
             when(orderRepository.save(any(Order.class)))
                     .thenAnswer(invocation -> invocation.getArgument(0));
 
-            when(paymentPort.requestPayment(any()))
-                    .thenAnswer(invocation -> {
-                        PaymentPort.PaymentRequest paymentRequest = invocation.getArgument(0);
-                        return new PaymentPort.PaymentResult(
-                                paymentRequest.orderId(),
-                                BigDecimal.valueOf(4000),
-                                PaymentStatus.SUCCESS,
-                                null
-                        );
-                    });
-
-            OrderCreateResponse response = orderCreateService.create(memberId, request);
+            OrderCreateResponse response = orderCreateService.createByDeposit(memberId, request);
 
             assertThat(response).isNotNull();
 
@@ -293,8 +277,8 @@ class OrderCreateServiceTest {
             Order savedOrder = orderCaptor.getValue();
             assertThat(savedOrder).isNotNull();
 
-            verify(productPort).checkAvailability(anyList());
-            verify(paymentPort).requestPayment(any());
+            verify(productProcessor).deductStock(anyList());
+            verify(paymentProcessor).process(savedOrder);
             verify(deliveryCreateService).create(savedOrder);
         }
 
@@ -303,36 +287,25 @@ class OrderCreateServiceTest {
         void create_calls_product_port_with_expected_requests() {
             OrderCreateRequest request = validRequest();
 
-            when(productPort.checkAvailability(anyList()))
-                    .thenReturn(validProducts());
+            when(productProcessor.deductStock(anyList()))
+                    .thenReturn(validProductMap());
 
             when(orderRepository.save(any(Order.class)))
                     .thenAnswer(invocation -> invocation.getArgument(0));
 
-            when(paymentPort.requestPayment(any()))
-                    .thenAnswer(invocation -> {
-                        PaymentPort.PaymentRequest paymentRequest = invocation.getArgument(0);
-                        return new PaymentPort.PaymentResult(
-                                paymentRequest.orderId(),
-                                BigDecimal.valueOf(4000),
-                                PaymentStatus.SUCCESS,
-                                null
-                        );
-                    });
-
-            orderCreateService.create(memberId, request);
+            orderCreateService.createByDeposit(memberId, request);
 
             @SuppressWarnings("unchecked")
-            ArgumentCaptor<List<ProductRequest>> captor = ArgumentCaptor.forClass((Class) List.class);
-            verify(productPort).checkAvailability(captor.capture());
+            ArgumentCaptor<List<ProductStockDeductRequest>> captor = ArgumentCaptor.forClass((Class) List.class);
+            verify(productProcessor).deductStock(captor.capture());
 
-            List<ProductRequest> actual = captor.getValue();
+            List<ProductStockDeductRequest> actual = captor.getValue();
             assertThat(actual).hasSize(2);
             assertThat(actual)
-                    .extracting(ProductRequest::productId)
+                    .extracting(ProductStockDeductRequest::productId)
                     .containsExactly(productId1, productId2);
             assertThat(actual)
-                    .extracting(ProductRequest::quantity)
+                    .extracting(ProductStockDeductRequest::quantity)
                     .containsExactly(1, 2);
         }
 
@@ -350,10 +323,10 @@ class OrderCreateServiceTest {
             );
         }
 
-        private List<ProductInfo> validProducts() {
-            return List.of(
-                    productInfo(productId1, sellerId1, ProductOrderStatus.ORDERABLE, BigDecimal.valueOf(1000)),
-                    productInfo(productId2, sellerId2, ProductOrderStatus.ORDERABLE, BigDecimal.valueOf(1500))
+        private Map<UUID, ProductInfo> validProductMap() {
+            return Map.of(
+                    productId1, productInfo(productId1, sellerId1, ProductOrderStatus.ORDERABLE, BigDecimal.valueOf(1000)),
+                    productId2, productInfo(productId2, sellerId2, ProductOrderStatus.ORDERABLE, BigDecimal.valueOf(1500))
             );
         }
 

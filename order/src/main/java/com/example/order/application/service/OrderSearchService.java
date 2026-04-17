@@ -5,10 +5,13 @@ import com.example.order.common.exception.CustomException;
 import com.example.order.common.exception.ErrorCode;
 import com.example.order.domain.entity.Order;
 import com.example.order.domain.repository.OrderRepository;
+import com.example.order.presentation.dto.request.PaymentValidationRequest;
 import com.example.order.presentation.dto.response.OrderDetailResponse;
 import com.example.order.presentation.dto.response.OrderItemDetailResponse;
 import com.example.order.presentation.dto.response.OrderSummaryResponse;
+import com.example.order.presentation.dto.response.PaymentValidationResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -31,6 +34,7 @@ public class OrderSearchService implements OrderSearchUseCase {
     }
 
     @Override
+    @Cacheable(cacheNames = "order:detail", key = "#orderId + ':' + #memberId")
     public OrderDetailResponse getOrderDetail(UUID orderId, UUID memberId) {
         Order order = orderRepository.findByOrderIdAndBuyerId(orderId, memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
@@ -40,5 +44,17 @@ public class OrderSearchService implements OrderSearchUseCase {
                 .toList();
 
         return OrderDetailResponse.from(order, orderItems);
+    }
+
+    @Override
+    public PaymentValidationResponse getPaymentValidation(UUID orderId, PaymentValidationRequest request) {
+        Order order = orderRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
+
+        if (request.amount().compareTo(order.getTotalPrice()) != 0) {
+            throw new CustomException(ErrorCode.INVALID_PAYMENT_AMOUNT);
+        }
+
+        return PaymentValidationResponse.from(order);
     }
 }

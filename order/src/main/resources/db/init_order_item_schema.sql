@@ -1,4 +1,4 @@
-CREATE TABLE order_item
+CREATE TABLE order_service.order_items
 (
     order_item_id          UUID PRIMARY KEY NOT NULL,
     product_id             UUID             NOT NULL,
@@ -12,8 +12,8 @@ CREATE TABLE order_item
     created_at             TIMESTAMP        NOT NULL,
     updated_at             TIMESTAMP        NOT NULL,
 
-    CONSTRAINT fk_order_item_order
-        FOREIGN KEY (order_id) REFERENCES "order" (order_id),
+    CONSTRAINT fk_order_items_order
+        FOREIGN KEY (order_id) REFERENCES order_service.orders (order_id),
 
     CONSTRAINT chk_order_item_status
         CHECK (
@@ -22,7 +22,7 @@ CREATE TABLE order_item
                                   'PREPARING',
                                   'SHIPPING',
                                   'DELIVERED',
-                                  'CANCELLED'
+                                  'CANCELED'
                 )
             )
 );

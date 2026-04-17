@@ -1,7 +1,5 @@
 package com.example.order.domain.entity;
 
-import com.example.order.common.exception.CustomException;
-import com.example.order.common.exception.ErrorCode;
 import com.example.order.domain.enumtype.OrderStatus;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -26,7 +24,7 @@ import java.util.UUID;
 
 @Getter
 @Entity
-@Table(name = "orders")
+@Table(name = "orders", schema = "order_service")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Order {
 
@@ -162,15 +160,17 @@ public class Order {
         );
     }
 
-    public boolean confirm(BigDecimal paidAmount) {
+    public void cancel(boolean hasReturnItems) {
+        this.status = hasReturnItems ? OrderStatus.PARTIAL_CANCELED : OrderStatus.CANCELED;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public boolean confirm() {
         if (this.status == OrderStatus.CONFIRMED) {
             return false;
         }
         if (this.status == OrderStatus.CANCELED) {
             return false;
-        }
-        if (this.totalPrice.compareTo(paidAmount) != 0) {
-            throw new CustomException(ErrorCode.INVALID_PAYMENT_AMOUNT);
         }
 
         this.status = OrderStatus.CONFIRMED;

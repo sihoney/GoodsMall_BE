@@ -1,7 +1,6 @@
 package com.example.payment.application.dto;
 
 import com.example.payment.domain.enumtype.ChargeStatus;
-import com.example.payment.domain.enumtype.PgProvider;
 import java.util.UUID;
 
 public record ChargeCreateResult(
@@ -9,7 +8,6 @@ public record ChargeCreateResult(
         UUID walletId,
         String pgOrderId,
         Long amount,
-        PgProvider pgProvider,
         ChargeStatus chargeStatus
 ) {
 }

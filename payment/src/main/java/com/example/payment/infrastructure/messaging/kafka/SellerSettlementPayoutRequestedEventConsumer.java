@@ -28,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class SellerSettlementPayoutRequestedEventConsumer {
 
     private static final Logger log = LoggerFactory.getLogger(SellerSettlementPayoutRequestedEventConsumer.class);
+    // todo: enum 타입으로 묶을지 고려하기
     private static final String SETTLEMENT_REFERENCE_TYPE = "SETTLEMENT";
 
     private final WalletRepository walletRepository;
@@ -62,24 +63,30 @@ public class SellerSettlementPayoutRequestedEventConsumer {
             containerFactory = "sellerSettlementPayoutRequestedKafkaListenerContainerFactory"
     )
     public void listen(SellerSettlementPayoutRequestedMessage event) {
+        // 이벤트 검증
         validateEvent(event);
 
+        // 시간 일관성을 위해 이벤트 처리 시작 시점의 시간을 기준으로 사용한다.
         LocalDateTime now = timeProvider.now();
         try {
             WalletTransaction existingTransaction = walletTransactionRepository
                     .findByReferenceIdAndReferenceType(event.settlementId(), SETTLEMENT_REFERENCE_TYPE)
                     .orElse(null);
+            // 이미 동일한 settlementId로 지급 처리된 거래가 있으면 중복 처리 방지 위해 성공으로 간주하고 종료한다.
+            // settlement 서비스가 상태를 맞출 수 있도록 성공 결과 이벤트는 항상 발행.
             if (existingTransaction != null) {
                 publishSuccess(event, now);
                 return;
             }
-
+            // 판매자 지갑이 있는지 검증
             Wallet wallet = walletRepository.findByMemberId(event.sellerMemberId())
                     .orElseThrow(WalletNotFoundException::new);
 
+            // 증가 후 잔액(balanceAfter)을 반환해 거래 이력에 스냅샷처럼 남긴다.
             Long balanceAfter = wallet.increaseBalance(event.payoutAmount(), now);
             walletRepository.save(wallet);
 
+            // 예치금이 변경되어 기록을 남긴다.
             WalletTransaction settlementTransaction = WalletTransaction.create(
                     identifierGenerator.generateUuid(),
                     wallet.getWalletId(),
@@ -93,9 +100,11 @@ public class SellerSettlementPayoutRequestedEventConsumer {
             );
             walletTransactionRepository.save(settlementTransaction);
 
+            // 성공 이벤트를 발행
             publishSuccess(event, now);
         } catch (WalletNotFoundException e) {
             log.error("[PayoutFailure] settlementId={} reason={}", event.settlementId(), PayoutFailureReason.WALLET_NOT_FOUND);
+            // 지갑이 없어서 실패한 경우 재시도 해도 의미 없으므로 재시도하지 않게 실패 이벤트를 발행
             publishFailure(event, now);
         } catch (RuntimeException e) {
             // RETRYABLE 오류는 Kafka 에러 처리기에서 재시도/백오프를 수행하도록 전파한다.

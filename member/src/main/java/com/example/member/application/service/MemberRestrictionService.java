@@ -1,7 +1,6 @@
 package com.example.member.application.service;
 
 import com.example.member.application.usecase.MemberRestrictionUsecase;
-import com.example.member.common.exception.AdminAccessDeniedException;
 import com.example.member.common.exception.DuplicateActiveRestrictionException;
 import com.example.member.common.exception.MemberNotFoundException;
 import com.example.member.common.exception.MemberRestrictionNotFoundException;
@@ -12,7 +11,7 @@ import com.example.member.infrastructure.repository.MemberRestrictionRepository;
 import com.example.member.presentation.dto.CreateMemberRestrictionRequest;
 import com.example.member.presentation.dto.MemberRestrictionResponse;
 import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
-import com.todaylunch.common.security.auth.enumtype.MemberRole;
+import com.todaylunch.common.security.auth.util.RoleGuard;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -34,7 +33,7 @@ public class MemberRestrictionService implements MemberRestrictionUsecase {
             AuthenticatedMember authenticatedMember,
             CreateMemberRestrictionRequest request
     ) {
-        validateAdmin(authenticatedMember);
+        RoleGuard.requireAdmin(authenticatedMember);
         validateCreateRequest(request);
 
         UUID memberId = request.memberId();
@@ -66,7 +65,7 @@ public class MemberRestrictionService implements MemberRestrictionUsecase {
             AuthenticatedMember authenticatedMember,
             UUID restrictionId
     ) {
-        validateAdmin(authenticatedMember);
+        RoleGuard.requireAdmin(authenticatedMember);
 
         MemberRestriction memberRestriction = memberRestrictionRepository.findById(restrictionId)
                 .orElseThrow(MemberRestrictionNotFoundException::new);
@@ -81,7 +80,7 @@ public class MemberRestrictionService implements MemberRestrictionUsecase {
             AuthenticatedMember authenticatedMember,
             UUID memberId
     ) {
-        validateAdmin(authenticatedMember);
+        RoleGuard.requireAdmin(authenticatedMember);
         memberRepository.findById(memberId).orElseThrow(MemberNotFoundException::new);
 
         return memberRestrictionRepository.findAllByMemberId(memberId).stream()
@@ -92,12 +91,6 @@ public class MemberRestrictionService implements MemberRestrictionUsecase {
     public MemberRestriction getActiveLoginRestriction(UUID memberId, LocalDateTime now) {
         return memberRestrictionRepository.findActiveRestriction(memberId, RestrictionType.LOGIN_BAN, now)
                 .orElse(null);
-    }
-
-    private void validateAdmin(AuthenticatedMember authenticatedMember) {
-        if (authenticatedMember == null || authenticatedMember.role() != MemberRole.ADMIN) {
-            throw new AdminAccessDeniedException();
-        }
     }
 
     private void validateCreateRequest(CreateMemberRestrictionRequest request) {

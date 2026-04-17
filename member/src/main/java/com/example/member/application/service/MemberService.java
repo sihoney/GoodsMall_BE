@@ -30,6 +30,7 @@ public class MemberService implements MemberUsecase {
     private final PasswordEncoder passwordEncoder;
     private final MemberEventPublisher memberEventPublisher;
     private final ProfileImageUrlResolver profileImageUrlResolver;
+    private final EmailVerificationService emailVerificationService;
 
     @Transactional
     @Override
@@ -38,6 +39,7 @@ public class MemberService implements MemberUsecase {
         MemberCreateCommand command = MemberCreateCommand.from(request);
 
         String email = normalizeRequired(command.email(), "email");
+        // TODO: 이메일 인증 구현 후 회원 생성 전에 인증 완료 여부를 검증한다.
         if (memberRepository.existsByEmail(email)) {
             throw new DuplicateMemberEmailException();
         }
@@ -52,14 +54,14 @@ public class MemberService implements MemberUsecase {
                 normalizeNullable(command.address()),
                 normalizeProfileImageKey(command.profileImageKey()),
                 command.role() == null ? MemberRole.USER : command.role(),
-                MemberStatus.ACTIVE,
+                MemberStatus.PENDING_VERIFICATION,
                 now,
                 now
         );
 
         Member savedMember = memberRepository.save(member);
-
-        memberEventPublisher.publishMemberSignedUp(savedMember); // 회원 가입 이벤트 발행
+        emailVerificationService.createSignupVerification(savedMember);     // 회원 가입 이메일 인증 생성 및 발송
+        memberEventPublisher.publishMemberSignedUp(savedMember);            // 회원 가입 이벤트 발행
         
         return CreateMemberResponse.from(savedMember, resolveProfileImageUrl(savedMember));
     }

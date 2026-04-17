@@ -4,11 +4,16 @@ import com.example.product.application.usecase.ProductUpdateUseCase;
 import com.example.product.common.exception.ProductNotFoundException;
 import com.example.product.domain.entity.Category;
 import com.example.product.domain.entity.Product;
+import com.example.product.domain.entity.ProductImage;
+import com.example.product.domain.enumtype.ProductOrderStatus;
 import com.example.product.domain.enumtype.ProductStatus;
 import com.example.product.domain.repository.CategoryRepository;
 import com.example.product.domain.repository.ProductRepository;
+import com.example.product.presentation.dto.request.ProductCheckRequest;
 import com.example.product.presentation.dto.request.ProductUpdateRequest;
+import com.example.product.presentation.dto.response.ProductAvailabilityResponse;
 import com.example.product.presentation.dto.response.ProductResponse;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -39,7 +44,7 @@ public class ProductUpdateService implements ProductUpdateUseCase {
 
     @Override
     public ProductResponse increaseStock(String sellerId, String productId, Integer quantity) {
-        Product product = findProduct(productId);
+        Product product = findProductWithLock(productId);
         validateSellerAuthorization(product, sellerId);
         product.increaseStock(quantity);
         Product saved = saveProduct(product);
@@ -48,7 +53,7 @@ public class ProductUpdateService implements ProductUpdateUseCase {
 
     @Override
     public ProductResponse decreaseStock(String sellerId, String productId, Integer quantity) {
-        Product product = findProduct(productId);
+        Product product = findProductWithLock(productId);
         validateSellerAuthorization(product, sellerId);
         product.decreaseStock(quantity);
         Product saved = saveProduct(product);
@@ -73,8 +78,41 @@ public class ProductUpdateService implements ProductUpdateUseCase {
         return ProductResponse.from(saved);
     }
 
+    @Override
+    public List<ProductAvailabilityResponse> deductStock(List<ProductCheckRequest> productRequests) {
+        return productRequests.stream()
+                .map(this::validateAndDeductStock)
+                .toList();
+    }
+
+    private ProductAvailabilityResponse validateAndDeductStock(ProductCheckRequest request) {
+        Product product = productRepository.findByIdWithLock(request.productId())
+                .orElse(null);
+
+        if (product == null) {
+            return ProductAvailabilityResponse.notForSale(request.productId());
+        }
+
+        String thumbnail = productRepository.findThumbnailImageByProductId(request.productId())
+                .map(ProductImage::getS3Key).orElse(null);
+
+        ProductAvailabilityResponse response = ProductAvailabilityResponse.of(product, request.quantity(), thumbnail);
+
+        if (response.getProductOrderStatus() == ProductOrderStatus.ORDERABLE) {
+            product.decreaseStock(request.quantity());
+            productRepository.save(product);
+        }
+
+        return response;
+    }
+
     private Product findProduct(String productId) {
         return productRepository.findById(UUID.fromString(productId))
+                .orElseThrow(ProductNotFoundException::new);
+    }
+
+    private Product findProductWithLock(String productId) {
+        return productRepository.findByIdWithLock(UUID.fromString(productId))
                 .orElseThrow(ProductNotFoundException::new);
     }
 

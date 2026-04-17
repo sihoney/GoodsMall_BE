@@ -1,5 +1,5 @@
 -- orders 테이블
-CREATE TABLE IF NOT EXISTS "order".orders
+CREATE TABLE IF NOT EXISTS order_service.orders
 (
     order_id                     UUID PRIMARY KEY NOT NULL,
     buyer_id                     UUID             NOT NULL,
@@ -30,8 +30,8 @@ CREATE TABLE IF NOT EXISTS "order".orders
             )
 );
 
--- order_item 테이블
-CREATE TABLE IF NOT EXISTS "order".order_item
+-- order_items 테이블
+CREATE TABLE IF NOT EXISTS order_service.order_items
 (
     order_item_id          UUID PRIMARY KEY NOT NULL,
     product_id             UUID             NOT NULL,
@@ -45,8 +45,8 @@ CREATE TABLE IF NOT EXISTS "order".order_item
     created_at             TIMESTAMP        NOT NULL,
     updated_at             TIMESTAMP        NOT NULL,
 
-    CONSTRAINT fk_order_item_order
-        FOREIGN KEY (order_id) REFERENCES "order".orders (order_id),
+    CONSTRAINT fk_order_items_order
+        FOREIGN KEY (order_id) REFERENCES order_service.orders (order_id),
 
     CONSTRAINT chk_order_item_status
         CHECK (
@@ -55,13 +55,13 @@ CREATE TABLE IF NOT EXISTS "order".order_item
                                   'PREPARING',
                                   'SHIPPING',
                                   'DELIVERED',
-                                  'CANCELLED'
+                                  'CANCELED'
                 )
             )
 );
 
--- delivery 테이블
-CREATE TABLE IF NOT EXISTS "order".delivery
+-- deliveries 테이블
+CREATE TABLE IF NOT EXISTS order_service.deliveries
 (
     delivery_id     UUID PRIMARY KEY NOT NULL,
     seller_id       UUID             NOT NULL,
@@ -75,10 +75,10 @@ CREATE TABLE IF NOT EXISTS "order".delivery
     created_at      TIMESTAMP        NOT NULL,
     updated_at      TIMESTAMP        NOT NULL,
 
-    CONSTRAINT fk_delivery_order_item
-        FOREIGN KEY (order_item_id) REFERENCES "order".order_item (order_item_id),
+    CONSTRAINT fk_deliveries_order_item
+        FOREIGN KEY (order_item_id) REFERENCES order_service.order_items (order_item_id),
 
-    CONSTRAINT uq_delivery_order_item
+    CONSTRAINT uq_deliveries_order_item
         UNIQUE (order_item_id),
 
     CONSTRAINT chk_delivery_status
@@ -92,8 +92,8 @@ CREATE TABLE IF NOT EXISTS "order".delivery
 );
 
 -- 인덱스 생성
-CREATE INDEX IF NOT EXISTS idx_order_buyer_id ON "order".orders (buyer_id);
-CREATE INDEX IF NOT EXISTS idx_order_item_order_id ON "order".order_item (order_id);
-CREATE INDEX IF NOT EXISTS idx_order_item_seller_id ON "order".order_item (seller_id);
-CREATE INDEX IF NOT EXISTS idx_delivery_order_item_id ON "order".delivery (order_item_id);
-CREATE INDEX IF NOT EXISTS idx_delivery_seller_id ON "order".delivery (seller_id);
+CREATE INDEX IF NOT EXISTS idx_order_buyer_id ON order_service.orders (buyer_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_service.order_items (order_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_seller_id ON order_service.order_items (seller_id);
+CREATE INDEX IF NOT EXISTS idx_deliveries_order_item_id ON order_service.deliveries (order_item_id);
+CREATE INDEX IF NOT EXISTS idx_deliveries_seller_id ON order_service.deliveries (seller_id);

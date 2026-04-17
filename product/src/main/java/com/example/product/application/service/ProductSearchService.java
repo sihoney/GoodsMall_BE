@@ -4,14 +4,11 @@ import com.example.product.application.usecase.ProductSearchUseCase;
 import com.example.product.common.exception.ProductNotFoundException;
 import com.example.product.domain.entity.Product;
 import com.example.product.domain.entity.ProductImage;
-import com.example.product.domain.enumtype.ProductOrderStatus;
 import com.example.product.domain.enumtype.ProductStatus;
 import com.example.product.domain.repository.CategoryRepository;
 import com.example.product.domain.repository.ProductImageRepository;
 import com.example.product.domain.repository.ProductRepository;
-import com.example.product.domain.service.ImageUploadService;
-import com.example.product.presentation.dto.request.ProductCheckRequest;
-import com.example.product.presentation.dto.response.ProductAvailabilityResponse;
+import com.example.product.domain.repository.FileStorageRepository;
 import com.example.product.presentation.dto.response.ProductImageResponse;
 import com.example.product.presentation.dto.response.ProductResponse;
 import java.math.BigDecimal;
@@ -32,7 +29,7 @@ public class ProductSearchService implements ProductSearchUseCase {
     private final ProductRepository productRepository;
     private final ProductImageRepository productImageRepository;
     private final CategoryRepository categoryRepository;
-    private final ImageUploadService imageUploadService;
+    private final FileStorageRepository fileStorageRepository;
 
     @Override
     public Page<ProductResponse> findDisplayProducts(
@@ -101,37 +98,11 @@ public class ProductSearchService implements ProductSearchUseCase {
     }
 
     @Override
-    @Transactional
-    public List<ProductAvailabilityResponse> checkAvailability(List<ProductCheckRequest> productRequests) {
-        return productRequests.stream()
-                .map(this::checkAndDeductStock)
-                .toList();
-    }
-
-    @Override
     public List<ProductResponse> findByProductIds(List<UUID> productIds) {
         List<Product> products = productRepository.findAllByProductIdIn(productIds);
         return products.stream()
                 .map(ProductResponse::from)
                 .toList();
-    }
-
-    private ProductAvailabilityResponse checkAndDeductStock(ProductCheckRequest request) {
-        Product product = productRepository.findById(request.productId())
-                .orElseThrow(ProductNotFoundException::new);
-
-        String thumbnailKeySnapshot = productRepository.findThumbnailImageByProductId(request.productId())
-                .map(ProductImage::getS3Key)
-                .orElse(null);
-
-        ProductAvailabilityResponse response = ProductAvailabilityResponse.of(product, request.quantity(), thumbnailKeySnapshot);
-
-        if (response.getProductOrderStatus() == ProductOrderStatus.ORDERABLE) {
-            product.decreaseStock(request.quantity());
-            productRepository.save(product);
-        }
-
-        return response;
     }
 
     /**
@@ -140,7 +111,7 @@ public class ProductSearchService implements ProductSearchUseCase {
     private ProductResponse buildProductResponse(Product product, List<ProductImage> images) {
         List<ProductImageResponse> imageResponses = images.stream()
                 .map(image -> {
-                    String presignedUrl = imageUploadService.generatePresignedUrl(image.getS3Key());
+                    String presignedUrl = fileStorageRepository.generatePresignedUrl(image.getS3Key());
                     return ProductImageResponse.from(image, presignedUrl);
                 })
                 .toList();
@@ -152,6 +123,7 @@ public class ProductSearchService implements ProductSearchUseCase {
                 product.getPrice(),
                 product.getStockQuantity(),
                 product.getStatus(),
+                product.getType(),
                 product.getCategory().getCategoryId(),
                 product.getCategory().getName(),
                 product.getCreatedAt(),

@@ -19,6 +19,7 @@ public record ChargeRefundResponse(
     /**
      * application 결과를 presentation 응답 형식으로 변환한다.
      */
+    // todo : 필드가 달라지는 것이 없는데 나눌 것인지 확인
     public static ChargeRefundResponse from(ChargeRefundResult result) {
         return new ChargeRefundResponse(
                 result.chargeId(),

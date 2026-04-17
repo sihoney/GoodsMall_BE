@@ -96,10 +96,10 @@ public class ProductController {
      * @return 상품 구매 가능 상태 목록 (200 OK)
      */
     @PostMapping("/check-availability")
-    public ResponseEntity<List<ProductAvailabilityResponse>> checkAvailability(
+    public ResponseEntity<List<ProductAvailabilityResponse>> deductStock(
             @Valid @RequestBody List<ProductCheckRequest> productRequests
     ) {
-        List<ProductAvailabilityResponse> response = productSearchUseCase.checkAvailability(productRequests);
+        List<ProductAvailabilityResponse> response = productUpdateUseCase.deductStock(productRequests);
         return ResponseEntity.ok(response);
     }
 

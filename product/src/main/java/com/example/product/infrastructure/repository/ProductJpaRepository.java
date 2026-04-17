@@ -8,7 +8,9 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -47,6 +49,10 @@ public interface ProductJpaRepository extends JpaRepository<Product, UUID> {
     Page<Product> findBySellerId(UUID sellerId, Pageable pageable);
 
     Optional<Product> findById(UUID productId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT p FROM Product p WHERE p.productId = :productId")
+    Optional<Product> findByIdWithLock(@Param("productId") UUID productId);
 
     List<Product> findAllByProductIdIn(List<UUID> productIds);
 }

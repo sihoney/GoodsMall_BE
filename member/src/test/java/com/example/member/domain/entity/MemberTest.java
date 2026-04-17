@@ -1,6 +1,7 @@
 package com.example.member.domain.entity;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.example.member.domain.enumtype.MemberStatus;
 import java.time.LocalDateTime;
@@ -45,5 +46,51 @@ class MemberTest {
         assertEquals("New address", member.getAddress());
         assertEquals("new-image", member.getProfileImageKey());
         assertEquals(updatedAt, member.getUpdatedAt());
+    }
+
+    @Test
+    void changeStatus_pendingVerificationToActive_updatesStatus() {
+        LocalDateTime createdAt = LocalDateTime.of(2026, 3, 27, 10, 0);
+        LocalDateTime updatedAt = createdAt.plusHours(1);
+        Member member = Member.create(
+                UUID.randomUUID(),
+                "before@test.com",
+                "before-password",
+                "before-nickname",
+                "010-0000-0000",
+                "Old address",
+                "old-image",
+                MemberRole.USER,
+                MemberStatus.PENDING_VERIFICATION,
+                createdAt,
+                createdAt
+        );
+
+        member.changeStatus(MemberStatus.ACTIVE, updatedAt);
+
+        assertEquals(MemberStatus.ACTIVE, member.getStatus());
+        assertEquals(updatedAt, member.getUpdatedAt());
+    }
+
+    @Test
+    void changeStatus_pendingVerificationToWithdrawn_throwsIllegalStateException() {
+        LocalDateTime now = LocalDateTime.of(2026, 3, 27, 10, 0);
+        Member member = Member.create(
+                UUID.randomUUID(),
+                "before@test.com",
+                "before-password",
+                "before-nickname",
+                "010-0000-0000",
+                "Old address",
+                "old-image",
+                MemberRole.USER,
+                MemberStatus.PENDING_VERIFICATION,
+                now,
+                now
+        );
+
+        assertThrows(IllegalStateException.class, () ->
+                member.changeStatus(MemberStatus.WITHDRAWN, now.plusHours(1))
+        );
     }
 }

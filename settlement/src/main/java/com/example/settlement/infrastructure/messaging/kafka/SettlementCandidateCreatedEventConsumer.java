@@ -34,6 +34,7 @@ public class SettlementCandidateCreatedEventConsumer {
     )
     public void listen(String eventJson) {
         try {
+            // objectMapper를 활용해 JSON 문자열을 SettlementCandidateCreatedMessage 객체로 변환한다.
             SettlementCandidateCreatedMessage event = objectMapper.readValue(eventJson, SettlementCandidateCreatedMessage.class);
             validateEvent(event);
             monthlySettlementService.registerSettlementItem(new SettlementItemCreateCommand(

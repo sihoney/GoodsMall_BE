@@ -163,6 +163,32 @@ public class Settlement {
         this.updatedAt = Objects.requireNonNull(updatedAt);
     }
 
+    public void deduct(
+            Long salesAmount,
+            Long feeAmount,
+            Long finalSettlementAmount,
+            LocalDateTime updatedAt
+    ) {
+        long validatedSalesAmount = validateNonNegative(salesAmount, "salesAmount");
+        long validatedFeeAmount = validateNonNegative(feeAmount, "feeAmount");
+        long validatedFinalSettlementAmount = validateNonNegative(finalSettlementAmount, "finalSettlementAmount");
+
+        if (validatedSalesAmount > this.totalSalesAmount) {
+            throw new IllegalArgumentException("salesAmount exceeds totalSalesAmount.");
+        }
+        if (validatedFeeAmount > this.feeAmount) {
+            throw new IllegalArgumentException("feeAmount exceeds feeAmount.");
+        }
+        if (validatedFinalSettlementAmount > this.finalSettlementAmount) {
+            throw new IllegalArgumentException("finalSettlementAmount exceeds finalSettlementAmount.");
+        }
+
+        this.totalSalesAmount -= validatedSalesAmount;
+        this.feeAmount -= validatedFeeAmount;
+        this.finalSettlementAmount -= validatedFinalSettlementAmount;
+        this.updatedAt = Objects.requireNonNull(updatedAt);
+    }
+
     public void complete(Long settledAmount, LocalDateTime settledAt, LocalDateTime updatedAt) {
         this.settledAmount = Objects.requireNonNull(settledAmount);
         this.settledAt = Objects.requireNonNull(settledAt);

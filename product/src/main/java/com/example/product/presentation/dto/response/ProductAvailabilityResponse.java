@@ -13,12 +13,19 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ProductAvailabilityResponse {
 
-    private UUID productId;           // 상품 ID
-    private UUID sellerId;            // 판매자 ID
-    private String name;              // 상품 이름
-    private BigDecimal price;         // 상품 가격
-    private String thumbnailKeySnapshot;    // 사진 S3 key 주소
-    private ProductOrderStatus productOrderStatus;  // 구매 가능 상태
+    private UUID productId;
+    private UUID sellerId;
+    private String name;
+    private BigDecimal price;
+    private String thumbnailKeySnapshot;
+    private ProductOrderStatus productOrderStatus;
+
+    public static ProductAvailabilityResponse notForSale(UUID productId) {
+        return new ProductAvailabilityResponse(
+            productId, null, null, null, null,
+            ProductOrderStatus.NOT_FOR_SALE
+        );
+    }
 
     public static ProductAvailabilityResponse of(
         Product product,

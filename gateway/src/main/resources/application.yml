@@ -1,4 +1,4 @@
-server:
+﻿server:
   port: 8080
 
 spring:
@@ -6,14 +6,18 @@ spring:
     name: gateway-service
   config:
     import: optional:file:gateway/.env[.properties],optional:file:.env[.properties]
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
   cloud:
     gateway:
       server:
         webflux:
           globalcors:
-            add-to-simple-url-handler-mapping:   true # CORS 설정을 글로벌 URL 핸들러 매핑에 추가
-            cors-configurations: # CORS 설정 정의
-              '[/**]':
+            add-to-simple-url-handler-mapping: true
+            cors-configurations: #
+              "[/**]":
                 allowedOrigins:
                   - http://localhost:5173
                 allowedMethods:
@@ -24,7 +28,7 @@ spring:
                   - DELETE
                   - OPTIONS
                 allowedHeaders:
-                  - '*'
+                  - "*"
                 allowCredentials: true
           routes:
             - id: member-auth-service
@@ -60,7 +64,7 @@ spring:
             - id: product-service
               uri: lb://product-service
               predicates:
-                - Path=/api/product/**
+                - Path=/api/products/**
 
             - id: category-service
               uri: lb://product-service
@@ -101,6 +105,11 @@ spring:
               uri: lb://settlement-service
               predicates:
                 - Path=/api/settlements/**
+
+            - id: ai-service
+              uri: lb://ai-service
+              predicates:
+                - Path=/api/ai/**
 
             - id: member-service-docs
               uri: lb://member-service
@@ -156,6 +165,13 @@ spring:
               filters:
                 - SetPath=/v3/api-docs
 
+            - id: ai-service-docs
+              uri: lb://ai-service
+              predicates:
+                - Path=/swagger/ai/v3/api-docs
+              filters:
+                - SetPath=/v3/api-docs
+
 eureka:
   instance:
     prefer-ip-address: true
@@ -172,6 +188,75 @@ jwt:
 gateway:
   auth:
     jwt-validation-enabled: ${GATEWAY_JWT_VALIDATION_ENABLED:true}
+    public-paths:
+      - /api/auth
+      - /api/auth/login
+      - /api/auth/refresh
+      - /api/auth/oauth/kakao/authorize
+      - /api/auth/oauth/kakao/callback
+      - /api/auth/email-verifications
+      - /api/auth/email-verifications/confirm
+      - /api/auth/profile-images/presign
+      - /swagger/**
+      - /swagger-ui.html
+    public-rules:
+      - methods: [GET]
+        pattern: /api/category/**
+      - methods: [GET]
+        pattern: /api/categories/**
+      - methods: [GET]
+        pattern: /api/products/**
+      - methods: [GET]
+        pattern: /api/ai/**
+    role-rules:
+      - methods: [GET, PUT]
+        pattern: /api/members/me
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [POST]
+        pattern: /api/auth/logout/**
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [POST]
+        pattern: /api/auth/oauth/kakao/link
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [POST, GET]
+        pattern: /api/member-reports/**
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [GET, PATCH]
+        pattern: /api/notifications/**
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [GET, POST, PUT, DELETE]
+        pattern: /api/carts/**
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [GET, POST, DELETE]
+        pattern: /api/wishes/**
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [GET, POST]
+        pattern: /api/orders/**
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [GET, POST]
+        pattern: /api/payments/**
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [POST, GET, PUT]
+        pattern: /api/sellers/**
+        allowed-roles: [SELLER, ADMIN]
+      - methods: [GET]
+        pattern: /api/products/seller
+        allowed-roles: [SELLER, ADMIN]
+      - methods: [POST, PUT, PATCH, DELETE]
+        pattern: /api/products/**
+        allowed-roles: [SELLER, ADMIN]
+      - methods: [POST, GET]
+        pattern: /api/settlements/**
+        allowed-roles: [SELLER, ADMIN]
+      - methods: [GET, PATCH]
+        pattern: /api/admin/member-reports/**
+        allowed-roles: [ADMIN]
+      - methods: [POST, PATCH, GET]
+        pattern: /api/admin/member-restrictions/**
+        allowed-roles: [ADMIN]
+      - methods: [POST]
+        pattern: /api/ai/admin/**
+        allowed-roles: [ADMIN]
 
 logging:
   level:
@@ -196,3 +281,5 @@ springdoc:
         url: /swagger/order/v3/api-docs
       - name: notification-service
         url: /swagger/notification/v3/api-docs
+      - name: ai-service
+        url: /swagger/ai/v3/api-docs

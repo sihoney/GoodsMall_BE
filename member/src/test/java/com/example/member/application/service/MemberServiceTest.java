@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import com.example.member.application.event.MemberEventPublisher;
 import com.example.member.application.support.ProfileImageUrlResolver;
+import com.example.member.application.service.EmailVerificationService;
 import com.example.member.common.exception.DuplicateMemberEmailException;
 import com.example.member.domain.entity.Member;
 import com.example.member.domain.enumtype.MemberStatus;
@@ -42,6 +43,9 @@ class MemberServiceTest {
     @Mock
     private ProfileImageUrlResolver profileImageUrlResolver;
 
+    @Mock
+    private EmailVerificationService emailVerificationService;
+
     @InjectMocks
     private MemberService memberService;
 
@@ -63,6 +67,7 @@ class MemberServiceTest {
         when(profileImageUrlResolver.isSupportedKey("members/profile/profile.png")).thenReturn(true);
         when(profileImageUrlResolver.resolve("members/profile/profile.png"))
                 .thenReturn("https://cdn.test/members/profile/profile.png");
+        when(emailVerificationService.createSignupVerification(any(Member.class))).thenReturn(null);
 
         CreateMemberResponse response = memberService.createMember(request);
 
@@ -76,7 +81,7 @@ class MemberServiceTest {
         assertEquals("tester", savedMember.getNickname());
         assertEquals("members/profile/profile.png", savedMember.getProfileImageKey());
         assertEquals(MemberRole.USER, savedMember.getRole());
-        assertEquals(MemberStatus.ACTIVE, savedMember.getStatus());
+        assertEquals(MemberStatus.PENDING_VERIFICATION, savedMember.getStatus());
         assertEquals(savedMember.getMemberId(), response.memberId());
         assertEquals(savedMember.getNickname(), response.nickname());
         assertEquals("https://cdn.test/members/profile/profile.png", response.profileImageUrl());

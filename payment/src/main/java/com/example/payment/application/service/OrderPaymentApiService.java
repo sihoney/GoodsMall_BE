@@ -1,8 +1,8 @@
 package com.example.payment.application.service;
 
 import com.example.payment.application.dto.OrderPaymentCommand;
+import com.example.payment.application.dto.OrderPaymentLineCommand;
 import com.example.payment.application.dto.OrderPaymentResult;
-import com.example.payment.application.dto.OrderPaymentSellerCommand;
 import com.example.payment.application.usecase.OrderPaymentApiUseCase;
 import com.example.payment.application.usecase.OrderPaymentUseCase;
 import com.example.payment.common.exception.InvalidOrderPaymentRequestException;
@@ -17,14 +17,14 @@ import com.example.payment.presentation.dto.response.OrderPaymentApiResponse;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 /**
  * 주문 결제 API 진입 서비스다.
- * 기존 Kafka consumer가 수행하던 요청 검증, seller 집계, 실패 코드 매핑을 담당한다.
+ * 기존 Kafka consumer가 수행하던 요청 검증, orderItem 단위 정규화, 실패 코드 매핑을 담당한다.
  */
 @Service
 public class OrderPaymentApiService implements OrderPaymentApiUseCase {
@@ -43,14 +43,13 @@ public class OrderPaymentApiService implements OrderPaymentApiUseCase {
     @Override
     public OrderPaymentApiResponse payOrder(OrderPaymentApiRequest request) {
         validateRequest(request);
-
+        // todo : 요청 기록 시간이 필요한 경우 parsInt 값을 localtime으로 변경해야함
         try {
             OrderPaymentResult result = orderPaymentUseCase.payOrder(new OrderPaymentCommand(
                     request.orderId(),
                     request.buyerId(),
                     toAmount(request.totalPrice()),
-                    aggregateSellerPayments(request.orderLines()),
-                    null
+                    toPaymentLines(request.orderLines())
             ));
             return successResponse(request, result);
         } catch (WalletNotFoundException e) {
@@ -125,12 +124,16 @@ public class OrderPaymentApiService implements OrderPaymentApiUseCase {
         }
 
         BigDecimal lineTotalAmount = BigDecimal.ZERO;
+        Set<UUID> seenOrderItemIds = new HashSet<>();
         for (OrderPaymentApiOrderLineRequest orderLine : request.orderLines()) {
             if (orderLine == null) {
                 throw new InvalidOrderPaymentRequestException("orderLines must not contain null.");
             }
             if (orderLine.orderItemId() == null) {
                 throw new InvalidOrderPaymentRequestException("orderItemId is required.");
+            }
+            if (!seenOrderItemIds.add(orderLine.orderItemId())) {
+                throw new InvalidOrderPaymentRequestException("orderItemId must be unique in orderLines.");
             }
             if (orderLine.sellerId() == null) {
                 throw new InvalidOrderPaymentRequestException("sellerId is required.");
@@ -149,18 +152,18 @@ public class OrderPaymentApiService implements OrderPaymentApiUseCase {
         }
     }
 
-    private List<OrderPaymentSellerCommand> aggregateSellerPayments(List<OrderPaymentApiOrderLineRequest> orderLines) {
-        Map<UUID, Long> sellerPaymentMap = orderLines.stream()
-                .collect(Collectors.groupingBy(
-                        OrderPaymentApiOrderLineRequest::sellerId,
-                        Collectors.summingLong(line -> toAmount(line.lineTotalPrice()))
-                ));
-
-        return sellerPaymentMap.entrySet().stream()
-                .map(entry -> new OrderPaymentSellerCommand(entry.getKey(), entry.getValue()))
+    // orderLines를 orderItem 단위 결제 입력으로 정규화한다.
+    private List<OrderPaymentLineCommand> toPaymentLines(List<OrderPaymentApiOrderLineRequest> orderLines) {
+        return orderLines.stream()
+                .map(line -> new OrderPaymentLineCommand(
+                        line.orderItemId(),
+                        line.sellerId(),
+                        toAmount(line.lineTotalPrice())
+                ))
                 .toList();
     }
 
+    // long 값을 BigDecimal로 변경
     private Long toAmount(BigDecimal amount) {
         try {
             return amount.longValueExact();

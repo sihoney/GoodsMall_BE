@@ -2,7 +2,6 @@ package com.example.payment.presentation.dto.response;
 
 import com.example.payment.application.dto.ChargeDetailResult;
 import com.example.payment.domain.enumtype.ChargeStatus;
-import com.example.payment.domain.enumtype.PgProvider;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -15,7 +14,7 @@ public record ChargeDetailResponse(
         UUID walletId,
         Long requestedAmount,
         Long approvedAmount,
-        PgProvider pgProvider,
+        String tossBankCode,
         String pgOrderId,
         String pgPaymentKey,
         ChargeStatus chargeStatus,
@@ -37,7 +36,7 @@ public record ChargeDetailResponse(
                 result.walletId(),
                 result.requestedAmount(),
                 result.approvedAmount(),
-                result.pgProvider(),
+                result.tossBankCode(),
                 result.pgOrderId(),
                 result.pgPaymentKey(),
                 result.chargeStatus(),
