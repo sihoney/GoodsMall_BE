@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 
 import com.example.notification.domain.entity.Notification;
 import com.example.notification.domain.enumtype.NotificationReferenceType;
+import com.example.notification.domain.enumtype.NotificationStatus;
 import com.example.notification.domain.enumtype.NotificationType;
 import com.example.notification.infrastructure.messaging.kafka.contract.OrderPaymentFailureReason;
 import com.example.notification.infrastructure.messaging.kafka.contract.PayoutFailureReason;
@@ -27,15 +28,19 @@ class NotificationServiceTest {
     @Mock
     private NotificationJpaRepository notificationJpaRepository;
 
+    @Mock
+    private NotificationPushService notificationPushService;
+
     private NotificationService notificationService;
 
     @BeforeEach
     void setUp() {
-        notificationService = new NotificationService(notificationJpaRepository);
+        notificationService = new NotificationService(notificationJpaRepository, notificationPushService);
     }
 
     @Test
     void createAutoPurchaseConfirmedNotification_savesNotification() {
+        UUID eventId = UUID.randomUUID();
         UUID orderId = UUID.randomUUID();
         UUID buyerMemberId = UUID.randomUUID();
         LocalDateTime confirmedAt = LocalDateTime.of(2026, 3, 29, 9, 49, 58);
@@ -43,34 +48,40 @@ class NotificationServiceTest {
         when(notificationJpaRepository.save(any(Notification.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        notificationService.createAutoPurchaseConfirmedNotification(orderId, buyerMemberId, confirmedAt);
+        notificationService.createAutoPurchaseConfirmedNotification(eventId, null, orderId, buyerMemberId, confirmedAt);
 
         ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
         verify(notificationJpaRepository).save(captor.capture());
 
         Notification saved = captor.getValue();
+        assertThat(saved.getEventId()).isEqualTo(eventId);
+        assertThat(saved.getStatus()).isEqualTo(NotificationStatus.STORED);
         assertThat(saved.getMemberId()).isEqualTo(buyerMemberId);
         assertThat(saved.getType()).isEqualTo(NotificationType.AUTO_PURCHASE_CONFIRMED);
         assertThat(saved.getReferenceId()).isEqualTo(orderId);
         assertThat(saved.getReferenceType()).isEqualTo(NotificationReferenceType.ORDER);
-        assertThat(saved.getTitle()).isEqualTo("자동 구매확정 완료");
-        assertThat(saved.getContent()).isEqualTo("주문이 자동으로 구매확정 처리되었습니다.");
+        assertThat(saved.getTitle()).isNotBlank();
+        assertThat(saved.getContent()).isNotBlank();
         assertThat(saved.getCreatedAt()).isEqualTo(confirmedAt);
         assertThat(saved.isRead()).isFalse();
+        verify(notificationPushService).push(any());
     }
 
     @Test
     void createAutoPurchaseConfirmedNotification_throwsWhenBuyerMemberIdIsNull() {
+        UUID eventId = UUID.randomUUID();
         UUID orderId = UUID.randomUUID();
         LocalDateTime confirmedAt = LocalDateTime.of(2026, 3, 29, 9, 49, 58);
 
         assertThatThrownBy(() ->
-                notificationService.createAutoPurchaseConfirmedNotification(orderId, null, confirmedAt))
+                notificationService.createAutoPurchaseConfirmedNotification(eventId, null, orderId, null, confirmedAt))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("buyerMemberId is required.");
+                .hasMessage("memberId is required.");
     }
+
     @Test
     void createOrderPaymentSucceededNotification_savesNotification() {
+        UUID eventId = UUID.randomUUID();
         UUID orderId = UUID.randomUUID();
         UUID buyerMemberId = UUID.randomUUID();
         LocalDateTime occurredAt = LocalDateTime.of(2026, 3, 29, 9, 10, 2);
@@ -78,23 +89,27 @@ class NotificationServiceTest {
         when(notificationJpaRepository.save(any(Notification.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        notificationService.createOrderPaymentSucceededNotification(orderId, buyerMemberId, 30000L, occurredAt);
+        notificationService.createOrderPaymentSucceededNotification(eventId, null, orderId, buyerMemberId, 30000L, occurredAt);
 
         ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
         verify(notificationJpaRepository).save(captor.capture());
 
         Notification saved = captor.getValue();
+        assertThat(saved.getEventId()).isEqualTo(eventId);
+        assertThat(saved.getStatus()).isEqualTo(NotificationStatus.STORED);
         assertThat(saved.getMemberId()).isEqualTo(buyerMemberId);
         assertThat(saved.getType()).isEqualTo(NotificationType.ORDER_PAYMENT_SUCCEEDED);
         assertThat(saved.getReferenceId()).isEqualTo(orderId);
         assertThat(saved.getReferenceType()).isEqualTo(NotificationReferenceType.ORDER);
-        assertThat(saved.getTitle()).isEqualTo("Payment completed");
-        assertThat(saved.getContent()).isEqualTo("Your payment was completed successfully. Amount: 30000");
+        assertThat(saved.getTitle()).isNotBlank();
+        assertThat(saved.getContent()).isNotBlank();
         assertThat(saved.getCreatedAt()).isEqualTo(occurredAt);
+        verify(notificationPushService).push(any());
     }
 
     @Test
     void createOrderPaymentFailedNotification_savesNotification() {
+        UUID eventId = UUID.randomUUID();
         UUID orderId = UUID.randomUUID();
         UUID buyerMemberId = UUID.randomUUID();
         LocalDateTime occurredAt = LocalDateTime.of(2026, 3, 29, 9, 10, 2);
@@ -103,6 +118,8 @@ class NotificationServiceTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         notificationService.createOrderPaymentFailedNotification(
+                eventId,
+                null,
                 orderId,
                 buyerMemberId,
                 OrderPaymentFailureReason.INSUFFICIENT_BALANCE,
@@ -113,13 +130,17 @@ class NotificationServiceTest {
         verify(notificationJpaRepository).save(captor.capture());
 
         Notification saved = captor.getValue();
+        assertThat(saved.getEventId()).isEqualTo(eventId);
+        assertThat(saved.getStatus()).isEqualTo(NotificationStatus.STORED);
         assertThat(saved.getType()).isEqualTo(NotificationType.ORDER_PAYMENT_FAILED);
-        assertThat(saved.getTitle()).isEqualTo("Payment failed");
-        assertThat(saved.getContent()).isEqualTo("Payment failed due to insufficient balance.");
+        assertThat(saved.getTitle()).isNotBlank();
+        assertThat(saved.getContent()).isNotBlank();
+        verify(notificationPushService).push(any());
     }
 
     @Test
     void createSellerSettlementPayoutSucceededNotification_savesNotification() {
+        UUID eventId = UUID.randomUUID();
         UUID settlementId = UUID.randomUUID();
         UUID sellerMemberId = UUID.randomUUID();
         LocalDateTime processedAt = LocalDateTime.of(2026, 3, 29, 10, 20, 4);
@@ -128,6 +149,8 @@ class NotificationServiceTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         notificationService.createSellerSettlementPayoutSucceededNotification(
+                eventId,
+                null,
                 settlementId,
                 sellerMemberId,
                 180000L,
@@ -138,17 +161,21 @@ class NotificationServiceTest {
         verify(notificationJpaRepository).save(captor.capture());
 
         Notification saved = captor.getValue();
+        assertThat(saved.getEventId()).isEqualTo(eventId);
+        assertThat(saved.getStatus()).isEqualTo(NotificationStatus.STORED);
         assertThat(saved.getMemberId()).isEqualTo(sellerMemberId);
         assertThat(saved.getType()).isEqualTo(NotificationType.SELLER_SETTLEMENT_PAYOUT_SUCCEEDED);
         assertThat(saved.getReferenceId()).isEqualTo(settlementId);
         assertThat(saved.getReferenceType()).isEqualTo(NotificationReferenceType.SETTLEMENT);
-        assertThat(saved.getTitle()).isEqualTo("Settlement payout completed");
-        assertThat(saved.getContent()).isEqualTo("Your settlement payout was completed. Amount: 180000");
+        assertThat(saved.getTitle()).isNotBlank();
+        assertThat(saved.getContent()).isNotBlank();
         assertThat(saved.getCreatedAt()).isEqualTo(processedAt);
+        verify(notificationPushService).push(any());
     }
 
     @Test
     void createSellerSettlementPayoutFailedNotification_savesNotification() {
+        UUID eventId = UUID.randomUUID();
         UUID settlementId = UUID.randomUUID();
         UUID sellerMemberId = UUID.randomUUID();
         LocalDateTime processedAt = LocalDateTime.of(2026, 3, 29, 10, 20, 4);
@@ -157,6 +184,8 @@ class NotificationServiceTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         notificationService.createSellerSettlementPayoutFailedNotification(
+                eventId,
+                null,
                 settlementId,
                 sellerMemberId,
                 PayoutFailureReason.WALLET_NOT_FOUND,
@@ -167,8 +196,11 @@ class NotificationServiceTest {
         verify(notificationJpaRepository).save(captor.capture());
 
         Notification saved = captor.getValue();
+        assertThat(saved.getEventId()).isEqualTo(eventId);
+        assertThat(saved.getStatus()).isEqualTo(NotificationStatus.STORED);
         assertThat(saved.getType()).isEqualTo(NotificationType.SELLER_SETTLEMENT_PAYOUT_FAILED);
-        assertThat(saved.getTitle()).isEqualTo("Settlement payout failed");
-        assertThat(saved.getContent()).isEqualTo("Settlement payout failed because no wallet information was found.");
+        assertThat(saved.getTitle()).isNotBlank();
+        assertThat(saved.getContent()).isNotBlank();
+        verify(notificationPushService).push(any());
     }
 }

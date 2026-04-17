@@ -1,40 +1,46 @@
 package com.example.notification.application.service;
 
+import com.example.notification.application.dto.NotificationCommand;
 import com.example.notification.application.usecase.NotificationUsecase;
 import com.example.notification.common.exception.NotificationNotFoundException;
 import com.example.notification.domain.entity.Notification;
 import com.example.notification.domain.enumtype.NotificationReferenceType;
+import com.example.notification.domain.enumtype.NotificationStatus;
 import com.example.notification.domain.enumtype.NotificationType;
 import com.example.notification.infrastructure.messaging.kafka.contract.OrderPaymentFailureReason;
 import com.example.notification.infrastructure.messaging.kafka.contract.PayoutFailureReason;
 import com.example.notification.infrastructure.repository.NotificationJpaRepository;
-import com.example.notification.presentation.dto.NotificationResponse;
-import com.example.notification.presentation.dto.NotificationUnreadCountResponse;
-import com.example.notification.presentation.dto.PagedResponse;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import com.example.notification.presentation.dto.NotificationResponse;
+import com.example.notification.presentation.dto.NotificationUnreadCountResponse;
+import com.example.notification.presentation.dto.PagedResponse;
 
+@Slf4j
 @Service
 @Transactional(readOnly = true)
 public class NotificationService implements NotificationUsecase {
 
     private final NotificationJpaRepository notificationJpaRepository;
+    private final NotificationPushService notificationPushService;
 
-    public NotificationService(NotificationJpaRepository notificationJpaRepository) {
+    public NotificationService(
+            NotificationJpaRepository notificationJpaRepository,
+            NotificationPushService notificationPushService
+    ) {
         this.notificationJpaRepository = notificationJpaRepository;
+        this.notificationPushService = notificationPushService;
     }
 
-    // 알림 조회
     @Override
-    public PagedResponse<NotificationResponse> getMyNotifications(
-        UUID memberId, 
-        int page, 
-        int size
-    ) {
+    public PagedResponse<NotificationResponse> getMyNotifications(UUID memberId, int page, int size) {
         var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         var result = notificationJpaRepository.findAllByMemberIdOrderByCreatedAtDesc(memberId, pageable);
         var items = result.getContent().stream()
@@ -51,13 +57,11 @@ public class NotificationService implements NotificationUsecase {
         );
     }
 
-    // 읽지 않은 알림 수 조회
     @Override
     public NotificationUnreadCountResponse getUnreadNotificationCount(UUID memberId) {
         return new NotificationUnreadCountResponse(notificationJpaRepository.countByMemberIdAndReadFalse(memberId));
     }
 
-    // 알림 읽음 처리
     @Override
     @Transactional
     public NotificationResponse markAsRead(UUID memberId, UUID notificationId) {
@@ -72,28 +76,52 @@ public class NotificationService implements NotificationUsecase {
         return NotificationResponse.from(notification);
     }
 
-    // 자동 구매확정 알림 생성
+    @Override
+    @Transactional
+    public void createNotification(NotificationCommand command) {
+        if (command == null) {
+            throw new IllegalArgumentException("notification command is required.");
+        }
+        validateCommonArguments(command.eventId(), command.memberId(), command.occurredAt());
+        if (command.type() == null) {
+            throw new IllegalArgumentException("type is required.");
+        }
+        if (command.title() == null || command.title().isBlank()) {
+            throw new IllegalArgumentException("title is required.");
+        }
+        if (command.content() == null || command.content().isBlank()) {
+            throw new IllegalArgumentException("content is required.");
+        }
+        saveNotification(
+                command.eventId(),
+                command.traceId(),
+                command.memberId(),
+                command.type(),
+                command.title(),
+                command.content(),
+                command.referenceId(),
+                command.referenceType(),
+                command.occurredAt()
+        );
+    }
+
     @Override
     @Transactional
     public void createAutoPurchaseConfirmedNotification(
-        UUID orderId, 
-        UUID buyerMemberId, 
-        LocalDateTime confirmedAt
+            UUID eventId,
+            String traceId,
+            UUID orderId,
+            UUID buyerMemberId,
+            LocalDateTime confirmedAt
     ) {
-        // 필수 파라미터 검증
+        validateCommonArguments(eventId, buyerMemberId, confirmedAt);
         if (orderId == null) {
             throw new IllegalArgumentException("orderId is required.");
         }
-        if (buyerMemberId == null) {
-            throw new IllegalArgumentException("buyerMemberId is required.");
-        }
-        if (confirmedAt == null) {
-            throw new IllegalArgumentException("confirmedAt is required.");
-        }
 
-        // 알림 생성
-        Notification notification = Notification.create(
-                UUID.randomUUID(),
+        saveNotification(
+                eventId,
+                traceId,
                 buyerMemberId,
                 NotificationType.AUTO_PURCHASE_CONFIRMED,
                 "자동 구매확정 완료",
@@ -102,26 +130,24 @@ public class NotificationService implements NotificationUsecase {
                 NotificationReferenceType.ORDER,
                 confirmedAt
         );
-
-        notificationJpaRepository.save(notification);
     }
 
-    // 주문 결제 성공 알림 생성
     @Override
     @Transactional
     public void createOrderPaymentSucceededNotification(
+            UUID eventId,
+            String traceId,
             UUID orderId,
             UUID buyerMemberId,
             Long paidAmount,
             LocalDateTime occurredAt
     ) {
-        validateOrderArguments(orderId, buyerMemberId, occurredAt);
-        if (paidAmount == null || paidAmount <= 0) {
-            throw new IllegalArgumentException("paidAmount must be positive.");
-        }
+        validateCommonArguments(eventId, buyerMemberId, occurredAt);
+        validateOrderArguments(orderId, paidAmount);
 
-        Notification notification = Notification.create(
-                UUID.randomUUID(),
+        saveNotification(
+                eventId,
+                traceId,
                 buyerMemberId,
                 NotificationType.ORDER_PAYMENT_SUCCEEDED,
                 "Payment completed",
@@ -130,26 +156,29 @@ public class NotificationService implements NotificationUsecase {
                 NotificationReferenceType.ORDER,
                 occurredAt
         );
-
-        notificationJpaRepository.save(notification);
     }
 
-    // 주문 결제 실패 알림 생성
     @Override
     @Transactional
     public void createOrderPaymentFailedNotification(
+            UUID eventId,
+            String traceId,
             UUID orderId,
             UUID buyerMemberId,
             OrderPaymentFailureReason failureReason,
             LocalDateTime occurredAt
     ) {
-        validateOrderArguments(orderId, buyerMemberId, occurredAt);
+        validateCommonArguments(eventId, buyerMemberId, occurredAt);
+        if (orderId == null) {
+            throw new IllegalArgumentException("orderId is required.");
+        }
         if (failureReason == null) {
             throw new IllegalArgumentException("failureReason is required.");
         }
 
-        Notification notification = Notification.create(
-                UUID.randomUUID(),
+        saveNotification(
+                eventId,
+                traceId,
                 buyerMemberId,
                 NotificationType.ORDER_PAYMENT_FAILED,
                 "Payment failed",
@@ -158,19 +187,136 @@ public class NotificationService implements NotificationUsecase {
                 NotificationReferenceType.ORDER,
                 occurredAt
         );
-
-        notificationJpaRepository.save(notification);
     }
 
-    private void validateOrderArguments(UUID orderId, UUID buyerMemberId, LocalDateTime occurredAt) {
-        if (orderId == null) {
-            throw new IllegalArgumentException("orderId is required.");
+    @Override
+    @Transactional
+    public void createSellerSettlementPayoutSucceededNotification(
+            UUID eventId,
+            String traceId,
+            UUID settlementId,
+            UUID sellerMemberId,
+            Long payoutAmount,
+            LocalDateTime processedAt
+    ) {
+        validateCommonArguments(eventId, sellerMemberId, processedAt);
+        if (settlementId == null) {
+            throw new IllegalArgumentException("settlementId is required.");
         }
-        if (buyerMemberId == null) {
-            throw new IllegalArgumentException("buyerMemberId is required.");
+        if (payoutAmount == null || payoutAmount <= 0) {
+            throw new IllegalArgumentException("payoutAmount must be positive.");
+        }
+
+        saveNotification(
+                eventId,
+                traceId,
+                sellerMemberId,
+                NotificationType.SELLER_SETTLEMENT_PAYOUT_SUCCEEDED,
+                "Settlement payout completed",
+                "Your settlement payout was completed. Amount: " + payoutAmount,
+                settlementId,
+                NotificationReferenceType.SETTLEMENT,
+                processedAt
+        );
+    }
+
+    @Override
+    @Transactional
+    public void createSellerSettlementPayoutFailedNotification(
+            UUID eventId,
+            String traceId,
+            UUID settlementId,
+            UUID sellerMemberId,
+            PayoutFailureReason failureReason,
+            LocalDateTime processedAt
+    ) {
+        validateCommonArguments(eventId, sellerMemberId, processedAt);
+        if (settlementId == null) {
+            throw new IllegalArgumentException("settlementId is required.");
+        }
+        if (failureReason == null) {
+            throw new IllegalArgumentException("failureReason is required.");
+        }
+
+        saveNotification(
+                eventId,
+                traceId,
+                sellerMemberId,
+                NotificationType.SELLER_SETTLEMENT_PAYOUT_FAILED,
+                "Settlement payout failed",
+                mapPayoutFailureReasonToContent(failureReason),
+                settlementId,
+                NotificationReferenceType.SETTLEMENT,
+                processedAt
+        );
+    }
+
+    private void saveNotification(
+            UUID eventId,
+            String traceId,
+            UUID memberId,
+            NotificationType type,
+            String title,
+            String content,
+            UUID referenceId,
+            NotificationReferenceType referenceType,
+            LocalDateTime occurredAt
+    ) {
+        if (notificationJpaRepository.existsByEventId(eventId)) {
+            log.info("Duplicate notification ignored. eventId={} memberId={} type={}", eventId, memberId, type);
+            return;
+        }
+
+        Notification notification = Notification.create(
+                UUID.randomUUID(),
+                eventId,
+                traceId,
+                memberId,
+                type,
+                title,
+                content,
+                referenceId,
+                referenceType,
+                NotificationStatus.STORED,
+                occurredAt
+        );
+
+        Notification savedNotification = notificationJpaRepository.save(notification);
+        pushAfterCommit(NotificationResponse.from(savedNotification));
+    }
+
+    private void pushAfterCommit(NotificationResponse notificationResponse) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    notificationPushService.push(notificationResponse);
+                }
+            });
+            return;
+        }
+
+        notificationPushService.push(notificationResponse);
+    }
+
+    private void validateCommonArguments(UUID eventId, UUID memberId, LocalDateTime occurredAt) {
+        if (eventId == null) {
+            throw new IllegalArgumentException("eventId is required.");
+        }
+        if (memberId == null) {
+            throw new IllegalArgumentException("memberId is required.");
         }
         if (occurredAt == null) {
             throw new IllegalArgumentException("occurredAt is required.");
+        }
+    }
+
+    private void validateOrderArguments(UUID orderId, Long paidAmount) {
+        if (orderId == null) {
+            throw new IllegalArgumentException("orderId is required.");
+        }
+        if (paidAmount == null || paidAmount <= 0) {
+            throw new IllegalArgumentException("paidAmount must be positive.");
         }
     }
 
@@ -182,72 +328,6 @@ public class NotificationService implements NotificationUsecase {
             case DUPLICATE_ORDER_PAYMENT -> "Payment was already processed for this order.";
             case INTERNAL_ERROR -> "Payment failed due to a temporary internal error.";
         };
-    }
-
-    @Override
-    @Transactional
-    public void createSellerSettlementPayoutSucceededNotification(
-            UUID settlementId,
-            UUID sellerMemberId,
-            Long payoutAmount,
-            LocalDateTime processedAt
-    ) {
-        validateSettlementArguments(settlementId, sellerMemberId, processedAt);
-        if (payoutAmount == null || payoutAmount <= 0) {
-            throw new IllegalArgumentException("payoutAmount must be positive.");
-        }
-
-        Notification notification = Notification.create(
-                UUID.randomUUID(),
-                sellerMemberId,
-                NotificationType.SELLER_SETTLEMENT_PAYOUT_SUCCEEDED,
-                "Settlement payout completed",
-                "Your settlement payout was completed. Amount: " + payoutAmount,
-                settlementId,
-                NotificationReferenceType.SETTLEMENT,
-                processedAt
-        );
-
-        notificationJpaRepository.save(notification);
-    }
-
-    @Override
-    @Transactional
-    public void createSellerSettlementPayoutFailedNotification(
-            UUID settlementId,
-            UUID sellerMemberId,
-            PayoutFailureReason failureReason,
-            LocalDateTime processedAt
-    ) {
-        validateSettlementArguments(settlementId, sellerMemberId, processedAt);
-        if (failureReason == null) {
-            throw new IllegalArgumentException("failureReason is required.");
-        }
-
-        Notification notification = Notification.create(
-                UUID.randomUUID(),
-                sellerMemberId,
-                NotificationType.SELLER_SETTLEMENT_PAYOUT_FAILED,
-                "Settlement payout failed",
-                mapPayoutFailureReasonToContent(failureReason),
-                settlementId,
-                NotificationReferenceType.SETTLEMENT,
-                processedAt
-        );
-
-        notificationJpaRepository.save(notification);
-    }
-
-    private void validateSettlementArguments(UUID settlementId, UUID sellerMemberId, LocalDateTime processedAt) {
-        if (settlementId == null) {
-            throw new IllegalArgumentException("settlementId is required.");
-        }
-        if (sellerMemberId == null) {
-            throw new IllegalArgumentException("sellerMemberId is required.");
-        }
-        if (processedAt == null) {
-            throw new IllegalArgumentException("processedAt is required.");
-        }
     }
 
     private String mapPayoutFailureReasonToContent(PayoutFailureReason failureReason) {
