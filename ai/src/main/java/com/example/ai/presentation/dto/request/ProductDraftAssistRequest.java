@@ -12,6 +12,7 @@ public record ProductDraftAssistRequest(
         List<ProductDraftAssistFieldRequest> inputFields,
         String titleDraft,
         String descriptionDraft,
+        String priceDraft,
         String categoryName,
         String categoryPathText,
         Integer thumbnailIndex
@@ -44,6 +45,7 @@ public record ProductDraftAssistRequest(
                 draftFields,
                 normalize(titleDraft),
                 normalize(descriptionDraft),
+                normalize(priceDraft),
                 normalize(categoryName),
                 normalize(categoryPathText),
                 resolveThumbnailIndex()

@@ -8,6 +8,7 @@ public record ProductDraftAssistCommand(
         List<ProductDraftAssistField> inputFields,
         String titleDraft,
         String descriptionDraft,
+        String priceDraft,
         String categoryName,
         String categoryPathText,
         int thumbnailIndex

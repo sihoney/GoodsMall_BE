@@ -1,9 +1,9 @@
-package com.example.ai.application.dto;
+package com.example.ai.infrastructure.client.dto.response;
 
 import java.math.BigDecimal;
 import java.util.List;
 
-public record ProductDraftAssistResult(
+public record ProductDraftAssistAiResponse(
         String suggestedTitle,
         String suggestedDescription,
         BigDecimal suggestedPrice,
