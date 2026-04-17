@@ -3,6 +3,7 @@ package com.todaylunch.gateway.filter;
 import com.todaylunch.gateway.security.GatewayAuthProperties;
 import com.todaylunch.gateway.security.GatewayJwtValidator;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
@@ -15,6 +16,7 @@ import org.springframework.util.AntPathMatcher;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
@@ -74,6 +76,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                     .build();
             return chain.filter(exchange.mutate().request(mutatedRequest).build());
         } catch (Exception exception) {
+            log.warn("[JWT] validation failed: {} - {}", exception.getClass().getSimpleName(), exception.getMessage(), exception);
             return unauthorized(exchange);
         }
     }
@@ -84,9 +87,16 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     }
 
     private boolean isPublic(String method, String path) {
+        boolean hasMatchingRoleRule = gatewayAuthProperties.roleRules().stream()
+                .anyMatch(rule -> matchesMethod(rule.methods(), method)
+                        && antPathMatcher.match(rule.pattern(), path));
+        if (hasMatchingRoleRule) {
+            return false;
+        }
+
         boolean matchedPublicPath = gatewayAuthProperties.publicPaths().stream()
                 .anyMatch(pattern -> antPathMatcher.match(pattern, path));
-        
+
         if (matchedPublicPath) {
             return true;
         }

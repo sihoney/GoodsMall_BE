@@ -239,6 +239,9 @@ gateway:
       - methods: [POST, GET, PUT]
         pattern: /api/sellers/**
         allowed-roles: [SELLER, ADMIN]
+      - methods: [GET]
+        pattern: /api/products/seller
+        allowed-roles: [SELLER, ADMIN]
       - methods: [POST, PUT, PATCH, DELETE]
         pattern: /api/products/**
         allowed-roles: [SELLER, ADMIN]
