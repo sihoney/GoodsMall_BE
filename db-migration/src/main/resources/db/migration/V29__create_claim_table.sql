@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS order_service.claims
     updated_at          TIMESTAMP        NOT NULL,
 
     CONSTRAINT fk_claim_order_item
-        FOREIGN KEY (order_item_id) REFERENCES order_service.order_item (order_item_id),
+        FOREIGN KEY (order_item_id) REFERENCES order_service.order_items (order_item_id),
 
     CONSTRAINT chk_claim_type
         CHECK (type IN ('CANCEL', 'RETURN', 'EXCHANGE')),

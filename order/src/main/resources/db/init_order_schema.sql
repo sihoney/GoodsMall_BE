@@ -1,4 +1,6 @@
-CREATE TABLE "order"
+CREATE SCHEMA IF NOT EXISTS order_service;
+
+CREATE TABLE order_service.orders
 (
     order_id                     UUID PRIMARY KEY NOT NULL,
     buyer_id                     UUID             NOT NULL,

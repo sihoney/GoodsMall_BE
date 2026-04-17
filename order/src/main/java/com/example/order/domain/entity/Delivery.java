@@ -20,7 +20,7 @@ import java.util.UUID;
 
 @Getter
 @Entity
-@Table(name = "delivery", schema = "order_service")
+@Table(name = "deliveries", schema = "order_service")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Delivery {
 
