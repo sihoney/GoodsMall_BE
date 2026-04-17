@@ -40,6 +40,8 @@ public class ProductDraftAssistController {
                     - request: JSON 요청 객체
                     request.inputFields.fieldKey 허용값은 TITLE, DESCRIPTION, PRICE 입니다.
                     thumbnailIndex가 없으면 첫 번째 이미지를 대표 이미지로 사용합니다.
+                    OpenAI 호출 실패, 응답 파싱 실패, 중복 요청 대기 초과 시에는 fallback 초안을 반환할 수 있습니다.
+                    설정 누락이나 잘못된 입력 검증 실패는 에러 응답으로 반환됩니다.
                     """
     )
     @ApiResponses(value = {
@@ -59,6 +61,40 @@ public class ProductDraftAssistController {
                                         "notes": "브랜드와 상품 상태는 판매자가 다시 확인해 주세요."
                                       },
                                       "error": null
+                                    }
+                                    """)
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "잘못된 요청",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "success": false,
+                                      "data": null,
+                                      "error": {
+                                        "code": "AI_ASSIST_IMAGE_REQUIRED",
+                                        "message": "이미지는 최소 1개 이상 필요합니다."
+                                      }
+                                    }
+                                    """)
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "500",
+                    description = "설정 또는 내부 처리 오류",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "success": false,
+                                      "data": null,
+                                      "error": {
+                                        "code": "AI_PRODUCT_DRAFT_ASSIST_CONFIGURATION_ERROR",
+                                        "message": "ai.product-draft.assist.openai-api-key 설정이 필요합니다."
+                                      }
                                     }
                                     """)
                     )
