@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.example.product.domain.entity.Category;
 import com.example.product.domain.entity.Product;
 import com.example.product.domain.enumtype.ProductStatus;
+import com.example.product.domain.enumtype.ProductType;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import java.math.BigDecimal;
@@ -472,7 +473,8 @@ class ProductJpaRepositoryTest {
                 description,
                 price,
                 stock,
-                childCategory
+                childCategory,
+                ProductType.GENERAL
         );
         product.updateStatus(status);
         entityManager.persist(product);
