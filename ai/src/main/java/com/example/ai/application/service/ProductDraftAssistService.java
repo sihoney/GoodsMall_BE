@@ -15,6 +15,7 @@ public class ProductDraftAssistService implements ProductDraftAssistUseCase {
 
     private final ProductDraftGenerator productDraftGenerator;
     private final ProductDraftAssistFallbackFactory fallbackFactory;
+    private final ProductDraftAssistResultRefiner resultRefiner;
 
     @Override
     public ProductDraftAssistResult createProductDraft(ProductDraftAssistCommand command) {
@@ -34,10 +35,11 @@ public class ProductDraftAssistService implements ProductDraftAssistUseCase {
 
         try {
             ProductDraftAssistResult generatedResult = productDraftGenerator.generate(command);
-            return fallbackFactory.merge(generatedResult, fallbackResult);
+            ProductDraftAssistResult mergedResult = fallbackFactory.merge(generatedResult, fallbackResult);
+            return resultRefiner.refine(mergedResult);
         } catch (AiProductDraftAssistException e) {
             log.warn("Product draft assist fallback applied. reason={}", e.getMessage(), e);
-            return fallbackResult;
+            return resultRefiner.refine(fallbackResult);
         }
     }
 }

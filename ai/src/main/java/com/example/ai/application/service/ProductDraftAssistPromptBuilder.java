@@ -64,8 +64,25 @@ public class ProductDraftAssistPromptBuilder {
         builder.append("- 가격은 숫자만 반환하고 통화 기호나 쉼표를 넣지 않는다.\n");
         builder.append("- PRICE 필드가 없으면 suggestedPrice는 0으로 반환한다.\n");
         builder.append("- TITLE, DESCRIPTION, PRICE 외 필드는 무시한다.\n");
+        builder.append("- 각 텍스트 응답은 해당 입력칸의 maxLength를 초과하지 않도록 작성한다.\n");
+        builder.append(buildFieldLengthInstructions(command.inputFields()));
         builder.append('\n');
         builder.append("요청된 입력 필드: ").append(buildRequestedFieldSummary(command.inputFields()));
+        return builder.toString();
+    }
+
+    private String buildFieldLengthInstructions(List<ProductDraftAssistField> inputFields) {
+        StringBuilder builder = new StringBuilder();
+        for (ProductDraftAssistField inputField : inputFields) {
+            if (inputField.maxLength() == null || inputField.maxLength() <= 0) {
+                continue;
+            }
+            builder.append("- ")
+                    .append(inputField.fieldKey().name())
+                    .append(" 필드는 ")
+                    .append(inputField.maxLength())
+                    .append("자 이내로 작성한다.\n");
+        }
         return builder.toString();
     }
 
