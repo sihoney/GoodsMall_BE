@@ -5,7 +5,6 @@ import com.example.payment.application.dto.PaymentRefundItemCommand;
 import com.example.payment.application.dto.PaymentRefundItemResult;
 import com.example.payment.application.dto.PaymentRefundResult;
 import com.example.payment.application.dto.SellerRefundCommand;
-import com.example.payment.application.event.SettlementCandidateExcludedEvent;
 import com.example.payment.application.usecase.PaymentCancellationUseCase;
 import com.example.payment.application.usecase.SellerRefundUseCase;
 import com.example.payment.common.exception.InvalidOrderPaymentRequestException;
@@ -37,7 +36,6 @@ import com.example.payment.domain.repository.WalletTransactionRepository;
 import com.example.payment.domain.service.IdentifierGenerator;
 import com.example.payment.domain.service.OrderRefundNotificationGateway;
 import com.example.payment.domain.service.OrderRefundResultEventPublisher;
-import com.example.payment.domain.service.SettlementCandidateExcludedEventPublisher;
 import com.example.payment.domain.service.TimeProvider;
 import com.example.payment.domain.service.TossPaymentGateway;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderRefundResultMessage;
@@ -54,7 +52,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -79,8 +76,6 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
     private final OrderPaymentRepository orderPaymentRepository;
     private final OrderRefundNotificationGateway orderRefundNotificationGateway;
     private final OrderRefundResultEventPublisher orderRefundResultEventPublisher;
-    private final SettlementCandidateExcludedEventPublisher settlementCandidateExcludedEventPublisher;
-    private final long refundAvailableDays;
 
     public PaymentRefundService(
             PaymentRefundRepository paymentRefundRepository,
@@ -96,9 +91,7 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
             TimeProvider timeProvider,
             OrderPaymentRepository orderPaymentRepository,
             OrderRefundNotificationGateway orderRefundNotificationGateway,
-            OrderRefundResultEventPublisher orderRefundResultEventPublisher,
-            SettlementCandidateExcludedEventPublisher settlementCandidateExcludedEventPublisher,
-            @Value("${payment.policy.refund-available-days:7}") long refundAvailableDays
+            OrderRefundResultEventPublisher orderRefundResultEventPublisher
     ) {
         this.paymentRefundRepository = paymentRefundRepository;
         this.paymentRefundAllocationRepository = paymentRefundAllocationRepository;
@@ -114,8 +107,6 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
         this.orderPaymentRepository = orderPaymentRepository;
         this.orderRefundNotificationGateway = orderRefundNotificationGateway;
         this.orderRefundResultEventPublisher = orderRefundResultEventPublisher;
-        this.settlementCandidateExcludedEventPublisher = settlementCandidateExcludedEventPublisher;
-        this.refundAvailableDays = refundAvailableDays;
     }
 
     @Override
@@ -512,11 +503,11 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
                 EscrowReferenceType.ORDER_ITEM,
                 requestedRefundAmountByOrderItemId.keySet().stream().toList()
         ).stream()
-                .filter(escrow -> escrow.isHeld() || escrow.isReleased())
+                .filter(Escrow::isHeld)
                 .toList();
 
         if (refundableEscrows.isEmpty()) {
-            throw new InvalidOrderPaymentRequestException("refundable escrow not found for refund.");
+            throw new InvalidOrderPaymentRequestException("held escrow not found for refund.");
         }
 
         Map<UUID, Escrow> escrowByOrderItemId = mapRefundableEscrowsByOrderItemId(refundableEscrows, buyerMemberId, orderId);
@@ -525,11 +516,9 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
             Escrow escrow = escrowByOrderItemId.get(requestedRefundAmountEntry.getKey());
             if (escrow == null) {
                 throw new InvalidOrderPaymentRequestException(
-                        "refundable escrow not found for orderItemId: " + requestedRefundAmountEntry.getKey()
+                        "held escrow not found for orderItemId: " + requestedRefundAmountEntry.getKey()
                 );
             }
-            boolean wasReleasedBeforeRefund = escrow.isReleased();
-            validateReleasedEscrowRefundWindow(escrow, refundedAt);
 
             long beforeAmount = escrow.getAmount();
             escrow.applyRefundAmount(requestedRefundAmountEntry.getValue(), refundedAt, refundedAt);
@@ -542,14 +531,6 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
                     refundId,
                     refundedAt
             );
-            if (wasReleasedBeforeRefund) {
-                publishSettlementCandidateExcludedEvent(
-                        escrow,
-                        refundId,
-                        requestedRefundAmountEntry.getValue(),
-                        refundedAt
-                );
-            }
             appliedTotalRefundAmount += requestedRefundAmountEntry.getValue();
         }
 
@@ -608,39 +589,6 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
             refundableEscrowByOrderItemId.put(refundableEscrow.getReferenceId(), refundableEscrow);
         }
         return refundableEscrowByOrderItemId;
-    }
-
-    private void validateReleasedEscrowRefundWindow(Escrow escrow, LocalDateTime refundedAt) {
-        if (!escrow.isReleased()) {
-            return;
-        }
-        LocalDateTime releasedAt = escrow.getReleasedAt();
-        if (releasedAt == null) {
-            throw new InvalidOrderPaymentRequestException("released escrow has no releasedAt.");
-        }
-        LocalDateTime refundDeadline = releasedAt.plusDays(refundAvailableDays);
-        if (refundedAt.isAfter(refundDeadline)) {
-            throw new InvalidOrderPaymentRequestException("refund period expired for released escrow.");
-        }
-    }
-
-    private void publishSettlementCandidateExcludedEvent(
-            Escrow escrow,
-            UUID refundId,
-            Long refundAmount,
-            LocalDateTime occurredAt
-    ) {
-        settlementCandidateExcludedEventPublisher.publish(new SettlementCandidateExcludedEvent(
-                identifierGenerator.generateUuid(),
-                refundId,
-                escrow.getOrderId(),
-                escrow.getEscrowId(),
-                escrow.getReferenceId(),
-                escrow.getSellerMemberId(),
-                escrow.getBuyerMemberId(),
-                refundAmount,
-                occurredAt
-        ));
     }
 
     private PaymentRefundAllocation executeCardRefund(PaymentRefund paymentRefund, List<PaymentRefundItemCommand> itemCommands) {
