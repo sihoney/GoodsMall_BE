@@ -61,8 +61,11 @@ toss:
     fail-url: ${TOSS_PAYMENTS_FAIL_URL}
     widget-enabled: ${TOSS_PAYMENTS_WIDGET_ENABLED:true}
 
-# --- Payment Kafka Topic/Consumer Group 설정 ---
 payment:
+  withdraw:
+    crypto:
+      secret-key: ${PAYMENT_WITHDRAW_CRYPTO_SECRET_KEY:local-dev-payment-withdraw-secret-key}
+  # --- Payment Kafka Topic/Consumer Group 설정 ---
   kafka:
     topics:
       member-created: ${PAYMENT_KAFKA_TOPIC_MEMBER_CREATED:member-signed-up}
