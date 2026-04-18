@@ -1,6 +1,6 @@
 # Payment Service
 
-`payment` 모듈은 결제와 지갑을 담당하는 서비스입니다. 사용자 지갑 생성, 충전/충전 확정/환불, 주문 결제, 에스크로 보관, 구매 확정 이후 정산 후보 발행, 정산금 입금을 처리합니다.
+`payment` 모듈은 결제와 지갑을 담당하는 서비스입니다. 사용자 지갑 생성, 충전/충전 확정/환불, 주문 결제, 에스크로 보관, 구매 확정 이후 정산 후보 발행, 판매자 환불, 정산금 입금을 처리합니다.
 
 ## 1. 한눈에 보는 역할
 
@@ -10,7 +10,7 @@
 - 사용자의 충전 요청을 생성하고, Toss Payments 승인 결과를 반영한다.
 - 충전 환불 시 PG 취소와 지갑 차감을 함께 처리한다.
 - 주문 결제 시 구매자 지갑에서 금액을 차감하고 판매자별 `escrow`를 만든다.
-- 배송 완료 후 자동 구매 확정 예약, 수동/자동 구매 확정 시 `escrow release`를 수행한다.
+- 구매 확정 이벤트를 받아 `escrow release`를 수행한다.
 - `escrow`가 release 되면 settlement 모듈이 사용할 정산 후보 이벤트를 발행한다.
 - settlement 모듈의 지급 요청을 받아 판매자 지갑에 정산금을 적립한다.
 
@@ -83,8 +83,6 @@ http://localhost:8080
 | Eureka | `EUREKA_DEFAULT_ZONE` |
 | Toss | `TOSS_PAYMENTS_BASE_URL`, `TOSS_PAYMENTS_CLIENT_KEY`, `TOSS_PAYMENTS_SECRET_KEY`, `TOSS_PAYMENTS_SUCCESS_URL`, `TOSS_PAYMENTS_FAIL_URL`, `TOSS_PAYMENTS_WIDGET_ENABLED` |
 | Payment Kafka | `PAYMENT_KAFKA_TOPIC_*`, `PAYMENT_KAFKA_CONSUMER_GROUP_*`, `PAYMENT_KAFKA_RETRY_*` |
-| Scheduler | `PAYMENT_ESCROW_AUTO_RELEASE_FIXED_DELAY_MS` |
-
 로컬 Docker Compose 예시 성격의 값은 루트 `.env.example`과 `payment/.env`에 포함되어 있습니다.
 
 ## 4. AWS 배포 고려사항
@@ -150,8 +148,6 @@ https://<frontend-domain>/payments/toss/fail
 - Eureka 등록 hostname/ip 설정이 현재 배포 방식과 맞는지
 - Kafka bootstrap 주소가 VPC 내부에서 실제 해석되는지
 - Config Server 장애 시 `fail-fast: true` 때문에 기동이 실패할 수 있는지
-- 스케줄러 주기(`PAYMENT_ESCROW_AUTO_RELEASE_FIXED_DELAY_MS`)가 운영 기준에 맞는지
-
 ## 5. 기술 스택과 외부 의존성
 
 - Java 21
@@ -204,7 +200,6 @@ https://<frontend-domain>/payments/toss/fail
 | Topic | 메시지 타입 | 목적 |
 |---|---|---|
 | `member-signed-up` | `MemberCreatedMessage` | 회원 생성 시 wallet 생성 |
-| `order.delivery-completed` | `OrderDeliveryCompletedMessage` | 배송 완료 시 auto release 예약 |
 | `order.purchase-confirmed` | `OrderPurchaseConfirmedMessage` | 수동 구매 확정 시 escrow release |
 | `settlement.seller-payout-requested` | `SellerSettlementPayoutRequestedMessage` | 정산 지급 요청 처리 |
 
@@ -217,7 +212,6 @@ https://<frontend-domain>/payments/toss/fail
 |---|---|---|
 | `payment.order-payment-result` | `OrderPaymentResultMessage` | 주문 결제 결과를 order 쪽에 전달 |
 | `payment.settlement-candidate-created` | `SettlementCandidateCreatedMessage` | 정산 후보 생성 알림 |
-| `payment.auto-purchase-confirmed` | `AutoPurchaseConfirmedMessage` | 자동 구매 확정 알림 |
 | `payment.seller-payout-result` | `SellerSettlementPayoutResultMessage` | 정산금 지급 결과를 settlement에 전달 |
 
 - 결제 관련해서는 이벤트를 잘 사용하지 않는다고 하여 order와 API 통신으로 변경될 수 있습니다.
@@ -534,19 +528,19 @@ Toss 승인 결과를 반영합니다. 승인 성공 시 charge 상태를 확정
    - 부분 취소및 부분 환불로 인하여 seller별이 아닌 order_item 별로 변경될 예정입니다.
 4. payment가 `payment.order-payment-result` 이벤트 발행
 
-### 10.4 배송 완료 이후 -> order에서 책임지면 없어질 10.5와 동일하게 변경될 예정
-
-1. order 모듈이 `order.delivery-completed` 발행
-2. payment가 release 예정 시각을 저장
-3. 스케줄러가 `payment.escrow.auto-release.fixed-delay-ms` 기본 60초 주기로 release 대상 조회
-4. 자동 구매 확정이면 `payment.auto-purchase-confirmed` 발행
-5. `escrow release` 후 `payment.settlement-candidate-created` 발행
-
-### 10.5 수동 구매 확정 시
+### 10.4 구매 확정 시
 
 1. order 모듈이 `order.purchase-confirmed` 발행
-2. payment가 `ConfirmationType.MANUAL`만 허용해 escrow release
-3. settlement 후보 이벤트 발행
+2. payment가 escrow release
+3. `payment.settlement-candidate-created` 이벤트 발행
+
+### 10.5 판매자 환불 시
+
+1. 판매자가 환불 요청 API를 호출
+2. payment가 `HELD escrow` 상태인지 검증
+3. 환불 금액 계산 후 환불 이력과 `escrow_transaction(REFUND)` 기록
+4. 왕복 배송비 `6000원` 차감 정책을 반영
+5. 구매 확정 이후 상태면 환불 불가 처리
 
 ### 10.6 정산 지급 시
 
@@ -561,7 +555,6 @@ Toss 승인 결과를 반영합니다. 승인 성공 시 charge 상태를 확정
 | 메시지 | 주요 필드 |
 |---|---|
 | `MemberCreatedMessage` | `eventId`, `memberId`, `email`, `occurredAt` |
-| `OrderDeliveryCompletedMessage` | `eventId`, `orderId`, `deliveredAt`, `occurredAt` |
 | `OrderPurchaseConfirmedMessage` | `eventId`, `orderId`, `sellerMemberId`, `confirmedAt`, `confirmationType` |
 | `SellerSettlementPayoutRequestedMessage` | `eventId`, `settlementId`, `sellerMemberId`, `settlementYear`, `settlementMonth`, `payoutAmount`, `requestedAt` |
 
@@ -571,7 +564,6 @@ Toss 승인 결과를 반영합니다. 승인 성공 시 charge 상태를 확정
 |---|---|
 | `OrderPaymentResultMessage` | `eventId`, `orderId`, `buyerMemberId`, `amount`, `status`, `reasonCode`, `occurredAt` |
 | `SettlementCandidateCreatedMessage` | `eventId`, `orderId`, `escrowId`, `sellerMemberId`, `grossAmount`, `releasedAt`, `confirmationType`, `occurredAt` |
-| `AutoPurchaseConfirmedMessage` | `orderId`, `buyerMemberId`, `confirmedAt` |
 | `SellerSettlementPayoutResultMessage` | `eventId`, `requestEventId`, `settlementId`, `sellerMemberId`, `payoutAmount`, `resultStatus`, `failureReason`, `processedAt` |
 
 ## 12. 운영 시 참고사항
@@ -588,4 +580,4 @@ Toss 승인 결과를 반영합니다. 승인 성공 시 charge 상태를 확정
 
 - `refund` API에는 소유자 검증 TODO가 남아 있습니다.
 - 주문 결제 API는 HTTP 응답과 별도로 Kafka 결과 이벤트도 발행합니다.
-- 구매 확정은 order 모듈이 책임지는 방향으로 변경될 예정입니다. 따라서 관련 Kafka 이벤트와 API는 변경될 수 있습니다.
+- 구매 확정 이후 환불은 현재 정책상 허용하지 않습니다.
