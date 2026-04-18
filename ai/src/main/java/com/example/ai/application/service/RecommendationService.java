@@ -45,7 +45,7 @@ public class RecommendationService implements RecommendationUseCase {
 
         List<RecommendedProductResult> candidates = productEmbeddingRepository.findSimilarActive(
                         productId,
-                        source.getEmbedding(),
+                        source.getEmbeddingLiteral(),
                         RecommendationLimitPolicy.CANDIDATE_LIMIT
                 )
                 .stream()
@@ -98,7 +98,7 @@ public class RecommendationService implements RecommendationUseCase {
         List<RecommendedProductResult> selected = new ArrayList<>();
         for (UUID selectedId : selectedIds) {
             RecommendedProductResult match = candidateMap.get(selectedId);
-            if (match != null && !containsProduct(selected, selectedId)) {
+            if (match != null && doesNotContainProduct(selected, selectedId)) {
                 selected.add(match);
             }
             if (selected.size() == selectCount) {
@@ -107,7 +107,7 @@ public class RecommendationService implements RecommendationUseCase {
         }
 
         for (RecommendedProductResult item : baseline) {
-            if (!containsProduct(selected, item.productId())) {
+            if (doesNotContainProduct(selected, item.productId())) {
                 selected.add(item);
             }
             if (selected.size() == selectCount) {
@@ -118,13 +118,13 @@ public class RecommendationService implements RecommendationUseCase {
         return selected;
     }
 
-    private boolean containsProduct(List<RecommendedProductResult> items, UUID productId) {
+    private boolean doesNotContainProduct(List<RecommendedProductResult> items, UUID productId) {
         for (RecommendedProductResult item : items) {
             if (item.productId().equals(productId)) {
-                return true;
+                return false;
             }
         }
-        return false;
+        return true;
     }
 
     private double clampSimilarity(double score) {

@@ -40,6 +40,7 @@ dependencies {
     implementation 'org.springframework.retry:spring-retry'
 
     runtimeOnly 'org.postgresql:postgresql'
+    implementation 'org.hibernate.orm:hibernate-vector'
     implementation 'com.pgvector:pgvector:0.1.6'
 
     compileOnly 'org.projectlombok:lombok'
