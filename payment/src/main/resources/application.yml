@@ -79,6 +79,9 @@ toss:
 
 # --- Payment Kafka Topic/Consumer Group 설정 (로컬 기본값) ---
 payment:
+  withdraw:
+    crypto:
+      secret-key: ${PAYMENT_WITHDRAW_CRYPTO_SECRET_KEY:local-dev-payment-withdraw-secret-key}
   kafka:
     topics:
       member-created: member-signed-up
