@@ -43,7 +43,6 @@ import com.example.payment.infrastructure.messaging.kafka.contract.OrderRefundRe
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -112,17 +111,17 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
     @Override
     @Transactional
     public PaymentRefundResult requestCancellation(PaymentRefundCommand command) {
-        return processCancellationOrSellerRefund(command, CompletionFlow.CANCELLATION_API);
+        return processCancellation(command, CompletionFlow.CANCELLATION_API);
     }
 
     @Override
     @Transactional
     public PaymentRefundResult requestSellerRefund(SellerRefundCommand command) {
         PaymentRefundCommand sellerRefundCommand = buildSellerRefundCommandFromEscrow(command);
-        return processCancellationOrSellerRefund(sellerRefundCommand, CompletionFlow.SELLER_REFUND_KAFKA);
+        return processCancellation(sellerRefundCommand, CompletionFlow.SELLER_REFUND_KAFKA);
     }
 
-    private PaymentRefundResult processCancellationOrSellerRefund(
+    private PaymentRefundResult processCancellation(
             PaymentRefundCommand command,
             CompletionFlow completionFlow
     ) {
@@ -211,7 +210,7 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
                 command.orderItemIds()
         );
 
-        Map<UUID, Escrow> escrowByOrderItemId = new LinkedHashMap<>();
+        Map<UUID, Escrow> escrowByOrderItemId = new HashMap<>();
         for (Escrow escrow : orderItemEscrows) {
             escrowByOrderItemId.put(escrow.getReferenceId(), escrow);
         }
@@ -229,6 +228,9 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
             if (!Objects.equals(escrow.getSellerMemberId(), command.sellerMemberId())) {
                 throw new InvalidOrderPaymentRequestException("seller is not allowed for orderItemId: " + orderItemId);
             }
+            if (!escrow.isHeld()) {
+                throw new InvalidOrderPaymentRequestException("seller refund is allowed only before purchase confirmation.");
+            }
 
             if (buyerMemberId == null) {
                 buyerMemberId = escrow.getBuyerMemberId();
@@ -238,15 +240,13 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
             refundItems.add(new PaymentRefundItemCommand(orderItemId, escrow.getAmount()));
         }
 
-        List<PaymentRefundItemCommand> deductedRefundItems = applyRoundTripDeliveryFeeDeduction(refundItems);
-        // TODO: Rename orderCancelRequestId to neutral idempotency key once order contract is finalized.
         return new PaymentRefundCommand(
                 command.orderId(),
                 Objects.requireNonNull(buyerMemberId),
                 command.orderCancelRequestId(),
                 command.refundType(),
                 command.reason(),
-                deductedRefundItems
+                applyRoundTripDeliveryFeeDeduction(refundItems)
         );
     }
 
@@ -269,6 +269,7 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
         if (command.orderItemIds() == null || command.orderItemIds().isEmpty()) {
             throw new InvalidOrderPaymentRequestException("orderItemIds must not be empty.");
         }
+
         Set<UUID> seenOrderItemIds = new HashSet<>();
         for (UUID orderItemId : command.orderItemIds()) {
             if (orderItemId == null) {
