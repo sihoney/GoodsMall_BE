@@ -311,6 +311,7 @@ public class PaymentSearchService implements PaymentSearchUseCase {
                 withdrawRequest.getAmount(),
                 withdrawRequest.getFee(),
                 withdrawRequest.getActualAmount(),
+                withdrawRequest.getMaskedBankAccount(),
                 withdrawRequest.getStatus(),
                 withdrawRequest.getRequestedAt(),
                 withdrawRequest.getProcessedAt()

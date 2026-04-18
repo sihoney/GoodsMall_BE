@@ -9,6 +9,7 @@ public record WithdrawResult(
         Long amount,
         Long fee,
         Long actualAmount,
+        String maskedBankAccount,
         WithdrawStatus status,
         Long walletBalance,
         LocalDateTime requestedAt,

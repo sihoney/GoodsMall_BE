@@ -39,11 +39,14 @@ public class WithdrawRequest {
     @Column(name = "actual_amount", nullable = false)
     private Long actualAmount;
 
-    @Column(name = "bank_account", nullable = false)
-    private String bankAccount;
+    @Column(name = "encrypted_bank_account", nullable = false)
+    private String encryptedBankAccount;
 
-    @Column(name = "account_holder", nullable = false)
-    private String accountHolder;
+    @Column(name = "encrypted_account_holder", nullable = false)
+    private String encryptedAccountHolder;
+
+    @Column(name = "masked_bank_account", nullable = false)
+    private String maskedBankAccount;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
@@ -74,8 +77,9 @@ public class WithdrawRequest {
             Long amount,
             Long fee,
             Long actualAmount,
-            String bankAccount,
-            String accountHolder,
+            String encryptedBankAccount,
+            String encryptedAccountHolder,
+            String maskedBankAccount,
             WithdrawStatus status,
             String failureReason,
             UUID walletTransactionId,
@@ -90,8 +94,9 @@ public class WithdrawRequest {
         this.amount = Objects.requireNonNull(amount);
         this.fee = Objects.requireNonNull(fee);
         this.actualAmount = Objects.requireNonNull(actualAmount);
-        this.bankAccount = Objects.requireNonNull(bankAccount);
-        this.accountHolder = Objects.requireNonNull(accountHolder);
+        this.encryptedBankAccount = Objects.requireNonNull(encryptedBankAccount);
+        this.encryptedAccountHolder = Objects.requireNonNull(encryptedAccountHolder);
+        this.maskedBankAccount = Objects.requireNonNull(maskedBankAccount);
         this.status = Objects.requireNonNull(status);
         this.failureReason = failureReason;
         this.walletTransactionId = walletTransactionId;
@@ -108,8 +113,9 @@ public class WithdrawRequest {
             Long amount,
             Long fee,
             Long actualAmount,
-            String bankAccount,
-            String accountHolder,
+            String encryptedBankAccount,
+            String encryptedAccountHolder,
+            String maskedBankAccount,
             LocalDateTime requestedAt
     ) {
         validatePositiveAmount(amount, "withdraw amount must be positive.");
@@ -125,8 +131,9 @@ public class WithdrawRequest {
                 amount,
                 fee,
                 actualAmount,
-                bankAccount,
-                accountHolder,
+                encryptedBankAccount,
+                encryptedAccountHolder,
+                maskedBankAccount,
                 WithdrawStatus.REQUESTED,
                 null,
                 null,

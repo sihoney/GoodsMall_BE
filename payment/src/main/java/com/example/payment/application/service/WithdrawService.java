@@ -13,6 +13,8 @@ import com.example.payment.domain.repository.WalletTransactionRepository;
 import com.example.payment.domain.repository.WithdrawRequestRepository;
 import com.example.payment.domain.service.IdentifierGenerator;
 import com.example.payment.domain.service.TimeProvider;
+import com.example.payment.infrastructure.crypto.WithdrawAccountEncryptionService;
+import com.example.payment.infrastructure.crypto.WithdrawAccountMaskingService;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -31,19 +33,25 @@ public class WithdrawService implements WithdrawUseCase {
     private final WithdrawRequestRepository withdrawRequestRepository;
     private final IdentifierGenerator identifierGenerator;
     private final TimeProvider timeProvider;
+    private final WithdrawAccountEncryptionService withdrawAccountEncryptionService;
+    private final WithdrawAccountMaskingService withdrawAccountMaskingService;
 
     public WithdrawService(
             WalletRepository walletRepository,
             WalletTransactionRepository walletTransactionRepository,
             WithdrawRequestRepository withdrawRequestRepository,
             IdentifierGenerator identifierGenerator,
-            TimeProvider timeProvider
+            TimeProvider timeProvider,
+            WithdrawAccountEncryptionService withdrawAccountEncryptionService,
+            WithdrawAccountMaskingService withdrawAccountMaskingService
     ) {
         this.walletRepository = walletRepository;
         this.walletTransactionRepository = walletTransactionRepository;
         this.withdrawRequestRepository = withdrawRequestRepository;
         this.identifierGenerator = identifierGenerator;
         this.timeProvider = timeProvider;
+        this.withdrawAccountEncryptionService = withdrawAccountEncryptionService;
+        this.withdrawAccountMaskingService = withdrawAccountMaskingService;
     }
 
     @Override
@@ -57,8 +65,18 @@ public class WithdrawService implements WithdrawUseCase {
         LocalDateTime now = timeProvider.now();
         Long fee = calculateFee();
         Long actualAmount = command.amount() - fee;
+        String normalizedBankAccount = normalizeBankAccount(command.bankAccount());
+        String normalizedAccountHolder = normalizeAccountHolder(command.accountHolder());
 
-        WithdrawRequest withdrawRequest = createWithdrawRequest(command, wallet, fee, actualAmount, now);
+        WithdrawRequest withdrawRequest = createWithdrawRequest(
+                command,
+                wallet,
+                fee,
+                actualAmount,
+                normalizedBankAccount,
+                normalizedAccountHolder,
+                now
+        );
         withdrawRequestRepository.save(withdrawRequest);
 
         Long balanceAfter = wallet.decreaseBalance(command.amount(), now);
@@ -82,6 +100,7 @@ public class WithdrawService implements WithdrawUseCase {
                 withdrawRequest.getAmount(),
                 withdrawRequest.getFee(),
                 withdrawRequest.getActualAmount(),
+                withdrawRequest.getMaskedBankAccount(),
                 withdrawRequest.getStatus(),
                 wallet.getBalance(),
                 withdrawRequest.getRequestedAt(),
@@ -125,6 +144,8 @@ public class WithdrawService implements WithdrawUseCase {
             Wallet wallet,
             Long fee,
             Long actualAmount,
+            String normalizedBankAccount,
+            String normalizedAccountHolder,
             LocalDateTime requestedAt
     ) {
         return WithdrawRequest.createRequested(
@@ -134,8 +155,9 @@ public class WithdrawService implements WithdrawUseCase {
                 command.amount(),
                 fee,
                 actualAmount,
-                command.bankAccount(),
-                command.accountHolder(),
+                withdrawAccountEncryptionService.encrypt(normalizedBankAccount),
+                withdrawAccountEncryptionService.encrypt(normalizedAccountHolder),
+                withdrawAccountMaskingService.mask(normalizedBankAccount),
                 requestedAt
         );
     }
@@ -155,8 +177,24 @@ public class WithdrawService implements WithdrawUseCase {
                 WalletTransactionType.WITHDRAWAL,
                 withdrawRequestId,
                 WITHDRAW_REFERENCE_TYPE,
-                "seller withdraw",
+                "wallet withdraw",
                 createdAt
         );
+    }
+
+    private String normalizeBankAccount(String bankAccount) {
+        String normalized = bankAccount.trim().replace("-", "").replace(" ", "");
+        if (!normalized.matches("\\d{6,20}")) {
+            throw new IllegalArgumentException("bankAccount must contain only digits and be between 6 and 20 characters.");
+        }
+        return normalized;
+    }
+
+    private String normalizeAccountHolder(String accountHolder) {
+        String normalized = accountHolder.trim();
+        if (normalized.isEmpty()) {
+            throw new IllegalArgumentException("accountHolder is required.");
+        }
+        return normalized;
     }
 }

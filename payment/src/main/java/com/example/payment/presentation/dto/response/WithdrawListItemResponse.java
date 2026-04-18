@@ -10,6 +10,7 @@ public record WithdrawListItemResponse(
         Long amount,
         Long fee,
         Long actualAmount,
+        String maskedBankAccount,
         WithdrawStatus status,
         LocalDateTime requestedAt,
         LocalDateTime processedAt
@@ -21,6 +22,7 @@ public record WithdrawListItemResponse(
                 result.amount(),
                 result.fee(),
                 result.actualAmount(),
+                result.maskedBankAccount(),
                 result.status(),
                 result.requestedAt(),
                 result.processedAt()
