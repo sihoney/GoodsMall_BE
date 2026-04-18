@@ -20,23 +20,23 @@ import com.example.payment.application.usecase.OrderPaymentApiUseCase;
 import com.example.payment.application.usecase.PaymentCancellationUseCase;
 import com.example.payment.application.usecase.PaymentSearchUseCase;
 import com.example.payment.application.usecase.SellerRefundUseCase;
+import com.example.payment.presentation.dto.request.CardPaymentConfirmRequest;
 import com.example.payment.presentation.dto.request.ChargeConfirmFailureRequest;
 import com.example.payment.presentation.dto.request.ChargeConfirmRequest;
 import com.example.payment.presentation.dto.request.ChargeCreateRequest;
 import com.example.payment.presentation.dto.request.ChargeRefundRequest;
-import com.example.payment.presentation.dto.request.CardPaymentConfirmRequest;
 import com.example.payment.presentation.dto.request.OrderPaymentApiRequest;
 import com.example.payment.presentation.dto.request.PaymentCancellationRequest;
 import com.example.payment.presentation.dto.request.SellerRefundConfirmRequest;
 import com.example.payment.presentation.dto.response.ApiResponse;
 import com.example.payment.presentation.dto.response.CardPaymentConfirmResponse;
 import com.example.payment.presentation.dto.response.ChargeConfirmFailureResponse;
-import com.example.payment.presentation.dto.response.ChargeDetailResponse;
 import com.example.payment.presentation.dto.response.ChargeConfirmResponse;
 import com.example.payment.presentation.dto.response.ChargeCreateResponse;
+import com.example.payment.presentation.dto.response.ChargeDetailResponse;
 import com.example.payment.presentation.dto.response.ChargeListItemResponse;
-import com.example.payment.presentation.dto.response.ChargeRefundSummaryResponse;
 import com.example.payment.presentation.dto.response.ChargeRefundResponse;
+import com.example.payment.presentation.dto.response.ChargeRefundSummaryResponse;
 import com.example.payment.presentation.dto.response.EscrowTransactionItemResponse;
 import com.example.payment.presentation.dto.response.OrderPaymentApiResponse;
 import com.example.payment.presentation.dto.response.PagedResponse;
@@ -59,7 +59,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
-
 
 @RestController
 @RequestMapping("/api/payments")
@@ -245,7 +244,6 @@ public class PaymentController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
 
-
     @PostMapping("/charge/fail")
     @Operation(summary = "충전 실패 반영")
     public ResponseEntity<ApiResponse<ChargeConfirmFailureResponse>> confirmChargeFailure(
@@ -264,7 +262,9 @@ public class PaymentController {
 
     @PostMapping("/confirm")
     @Operation(summary = "충전 승인 확정")
-    public ResponseEntity<ApiResponse<ChargeConfirmResponse>> confirmCharge(@Valid @RequestBody ChargeConfirmRequest request) {
+    public ResponseEntity<ApiResponse<ChargeConfirmResponse>> confirmCharge(
+            @Valid @RequestBody ChargeConfirmRequest request
+    ) {
         ChargeConfirmCommand command = new ChargeConfirmCommand(
                 request.chargeId(),
                 request.paymentKey(),

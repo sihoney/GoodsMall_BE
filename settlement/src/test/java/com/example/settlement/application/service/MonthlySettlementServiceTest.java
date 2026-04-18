@@ -14,7 +14,6 @@ import com.example.settlement.domain.entity.Settlement;
 import com.example.settlement.domain.entity.SettlementItem;
 import com.example.settlement.domain.enumtype.SettlementStatus;
 import com.example.settlement.domain.repository.SettlementItemRepository;
-import com.example.settlement.domain.repository.SettlementRefundManualActionRepository;
 import com.example.settlement.domain.repository.SettlementRepository;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -37,17 +36,13 @@ class MonthlySettlementServiceTest {
     @Mock
     private SettlementItemRepository settlementItemRepository;
 
-    @Mock
-    private SettlementRefundManualActionRepository settlementRefundManualActionRepository;
-
     private MonthlySettlementService monthlySettlementService;
 
     @BeforeEach
     void setUp() {
         monthlySettlementService = new MonthlySettlementService(
                 settlementRepository,
-                settlementItemRepository,
-                settlementRefundManualActionRepository
+                settlementItemRepository
         );
     }
 
