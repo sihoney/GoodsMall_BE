@@ -9,8 +9,6 @@ public record WithdrawCreateRequest(
         @Positive(message = "amount must be positive.")
         Long amount,
 
-        String bankCode,
-
         @NotBlank(message = "bankAccount is required.")
         String bankAccount,
 

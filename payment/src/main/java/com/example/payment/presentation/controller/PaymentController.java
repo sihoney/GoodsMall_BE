@@ -396,7 +396,6 @@ public class PaymentController {
                 new WithdrawCommand(
                         authenticatedMember.memberId(),
                         request.amount(),
-                        request.bankCode(),
                         request.bankAccount(),
                         request.accountHolder()
                 )

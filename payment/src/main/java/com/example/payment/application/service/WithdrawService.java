@@ -134,7 +134,6 @@ public class WithdrawService implements WithdrawUseCase {
                 command.amount(),
                 fee,
                 actualAmount,
-                command.bankCode(),
                 command.bankAccount(),
                 command.accountHolder(),
                 requestedAt

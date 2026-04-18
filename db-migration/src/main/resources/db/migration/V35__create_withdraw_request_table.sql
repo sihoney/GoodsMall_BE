@@ -5,7 +5,6 @@ CREATE TABLE IF NOT EXISTS payment.withdraw_request (
     amount                BIGINT       NOT NULL,
     fee                   BIGINT       NOT NULL,
     actual_amount         BIGINT       NOT NULL,
-    bank_code             VARCHAR(30),
     bank_account          VARCHAR(100) NOT NULL,
     account_holder        VARCHAR(100) NOT NULL,
     status                VARCHAR(30)  NOT NULL,

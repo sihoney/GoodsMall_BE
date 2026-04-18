@@ -39,9 +39,6 @@ public class WithdrawRequest {
     @Column(name = "actual_amount", nullable = false)
     private Long actualAmount;
 
-    @Column(name = "bank_code")
-    private String bankCode;
-
     @Column(name = "bank_account", nullable = false)
     private String bankAccount;
 
@@ -77,7 +74,6 @@ public class WithdrawRequest {
             Long amount,
             Long fee,
             Long actualAmount,
-            String bankCode,
             String bankAccount,
             String accountHolder,
             WithdrawStatus status,
@@ -94,7 +90,6 @@ public class WithdrawRequest {
         this.amount = Objects.requireNonNull(amount);
         this.fee = Objects.requireNonNull(fee);
         this.actualAmount = Objects.requireNonNull(actualAmount);
-        this.bankCode = bankCode;
         this.bankAccount = Objects.requireNonNull(bankAccount);
         this.accountHolder = Objects.requireNonNull(accountHolder);
         this.status = Objects.requireNonNull(status);
@@ -113,7 +108,6 @@ public class WithdrawRequest {
             Long amount,
             Long fee,
             Long actualAmount,
-            String bankCode,
             String bankAccount,
             String accountHolder,
             LocalDateTime requestedAt
@@ -131,7 +125,6 @@ public class WithdrawRequest {
                 amount,
                 fee,
                 actualAmount,
-                bankCode,
                 bankAccount,
                 accountHolder,
                 WithdrawStatus.REQUESTED,
