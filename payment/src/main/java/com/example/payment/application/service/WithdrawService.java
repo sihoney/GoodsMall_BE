@@ -3,7 +3,12 @@ package com.example.payment.application.service;
 import com.example.payment.application.dto.WithdrawCommand;
 import com.example.payment.application.dto.WithdrawResult;
 import com.example.payment.application.usecase.WithdrawUseCase;
+import com.example.payment.common.exception.InsufficientWalletBalanceException;
+import com.example.payment.common.exception.InvalidWithdrawAccountException;
+import com.example.payment.common.exception.InvalidWithdrawRequestException;
 import com.example.payment.common.exception.WalletNotFoundException;
+import com.example.payment.common.exception.WithdrawAmountBelowMinimumException;
+import com.example.payment.common.exception.WithdrawAmountNotGreaterThanFeeException;
 import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.entity.WalletTransaction;
 import com.example.payment.domain.entity.WithdrawRequest;
@@ -110,28 +115,28 @@ public class WithdrawService implements WithdrawUseCase {
 
     private void validateCommand(WithdrawCommand command) {
         if (command.memberId() == null) {
-            throw new IllegalArgumentException("memberId is required.");
+            throw new InvalidWithdrawRequestException("회원 정보가 없어 출금 요청을 처리할 수 없습니다.");
         }
         if (command.amount() == null || command.amount() <= 0) {
-            throw new IllegalArgumentException("amount must be positive.");
+            throw new InvalidWithdrawRequestException("출금 금액은 0보다 커야 합니다.");
         }
         if (command.bankAccount() == null || command.bankAccount().isBlank()) {
-            throw new IllegalArgumentException("bankAccount is required.");
+            throw new InvalidWithdrawAccountException("출금 계좌번호는 필수입니다.");
         }
         if (command.accountHolder() == null || command.accountHolder().isBlank()) {
-            throw new IllegalArgumentException("accountHolder is required.");
+            throw new InvalidWithdrawAccountException("예금주는 필수입니다.");
         }
     }
 
     private void validateWithdrawalPolicy(Wallet wallet, Long amount) {
         if (amount < MINIMUM_WITHDRAW_AMOUNT) {
-            throw new IllegalArgumentException("amount must be at least " + MINIMUM_WITHDRAW_AMOUNT + ".");
+            throw new WithdrawAmountBelowMinimumException();
         }
         if (amount <= WITHDRAW_FEE) {
-            throw new IllegalArgumentException("withdraw amount must be greater than fee.");
+            throw new WithdrawAmountNotGreaterThanFeeException();
         }
         if (wallet.getBalance() < amount) {
-            throw new IllegalArgumentException("balance is insufficient.");
+            throw new InsufficientWalletBalanceException();
         }
     }
 
@@ -185,7 +190,7 @@ public class WithdrawService implements WithdrawUseCase {
     private String normalizeBankAccount(String bankAccount) {
         String normalized = bankAccount.trim().replace("-", "").replace(" ", "");
         if (!normalized.matches("\\d{6,20}")) {
-            throw new IllegalArgumentException("bankAccount must contain only digits and be between 6 and 20 characters.");
+            throw new InvalidWithdrawAccountException("출금 계좌번호는 숫자만 입력할 수 있으며 6자 이상 20자 이하여야 합니다.");
         }
         return normalized;
     }
@@ -193,7 +198,7 @@ public class WithdrawService implements WithdrawUseCase {
     private String normalizeAccountHolder(String accountHolder) {
         String normalized = accountHolder.trim();
         if (normalized.isEmpty()) {
-            throw new IllegalArgumentException("accountHolder is required.");
+            throw new InvalidWithdrawAccountException("예금주는 공백일 수 없습니다.");
         }
         return normalized;
     }
