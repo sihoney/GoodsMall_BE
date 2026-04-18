@@ -1,5 +1,8 @@
 package com.todaylunch.auction.domain.entity;
 
+import com.todaylunch.auction.common.exception.domain.AuctionNotOngoingException;
+import com.todaylunch.auction.common.exception.domain.BidPriceNotHigherException;
+import com.todaylunch.auction.common.exception.domain.SelfBidNotAllowedException;
 import com.todaylunch.auction.domain.enumtype.AuctionStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -119,12 +122,15 @@ public class Auction {
     }
 
 
-    public void applyConfirmedBid(BigDecimal bidPrice, LocalDateTime now) {
+    public void applyConfirmedBid(UUID bidderId, BigDecimal bidPrice, LocalDateTime now) {
+        if (this.sellerId.equals(bidderId)) {
+            throw new SelfBidNotAllowedException();
+        }
         if (this.status != AuctionStatus.ONGOING) {
-            throw new IllegalStateException("진행 중인 경매가 아닙니다");
+            throw new AuctionNotOngoingException();
         }
         if (!isHigherThanCurrent(bidPrice)) {
-            throw new IllegalArgumentException("현재 최고가보다 높은 금액이어야 합니다");
+            throw new BidPriceNotHigherException();
         }
         this.currentHighestPrice = bidPrice;
         extendTimeIfNearEnd(now);
