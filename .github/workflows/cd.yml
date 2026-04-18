@@ -16,6 +16,8 @@ on:
       - "discovery/**"
       - "config/**"
       - "db-migration/**"
+      - "ai/**"
+      - "auction/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -43,13 +45,13 @@ jobs:
       - name: checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
 
       - name: detect changed modules
         id: set-matrix
         shell: bash
         run: |
-          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+          CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
 
           echo "changed files:"
           echo "$CHANGED_FILES"
@@ -100,6 +102,14 @@ jobs:
             MODULES+=('{"module_name":"config"}')
           fi
 
+          if grep -q '^ai/' <<< "$CHANGED_FILES"; then
+            MODULES+=('{"module_name":"ai"}')
+          fi
+
+          if grep -q '^auction/' <<< "$CHANGED_FILES"; then
+            MODULES+=('{"module_name":"auction"}')
+          fi
+
           # 변경된 모듈이 없는 경우 → build job skip
           if [ ${#MODULES[@]} -eq 0 ]; then
             echo 'has_changes=false' >> "$GITHUB_OUTPUT"
@@ -123,7 +133,7 @@ jobs:
         id: set-flags
         shell: bash
         run: |
-          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+          CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
 
           # db-migration 변경 여부를 따로 저장해서 deploy 단계에서 migration 선실행 여부 결정
           if grep -q '^db-migration/' <<< "$CHANGED_FILES"; then
@@ -198,12 +208,12 @@ jobs:
 
             # db-migration이 변경된 경우에만 migration 이미지 pull 후 선실행
             if [ "${{ needs.detect-changes.outputs.migration_changed }}" = "true" ]; then
-              docker pull $IMAGE_PREFIX/db-migration:latest || true
+              docker pull $IMAGE_PREFIX/db-migration:latest
               docker compose run --rm db-migration
             fi
 
             for service in ${{ needs.detect-changes.outputs.services }}; do
-              docker pull $IMAGE_PREFIX/\$service:latest || true
+              docker pull $IMAGE_PREFIX/\$service:latest
             done
 
             # 실제 앱 서비스만 재기동
