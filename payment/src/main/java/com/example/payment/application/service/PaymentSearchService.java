@@ -8,6 +8,7 @@ import com.example.payment.application.dto.PagedResult;
 import com.example.payment.application.dto.PendingSellerIncomeItemResult;
 import com.example.payment.application.dto.WalletSummaryResult;
 import com.example.payment.application.dto.WalletTransactionItemResult;
+import com.example.payment.application.dto.WithdrawListItemResult;
 import com.example.payment.application.usecase.PaymentSearchUseCase;
 import com.example.payment.common.exception.ChargeNotFoundException;
 import com.example.payment.common.exception.WalletNotFoundException;
@@ -17,12 +18,14 @@ import com.example.payment.domain.entity.Escrow;
 import com.example.payment.domain.entity.EscrowTransaction;
 import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.entity.WalletTransaction;
+import com.example.payment.domain.entity.WithdrawRequest;
 import com.example.payment.domain.repository.ChargeRefundRepository;
 import com.example.payment.domain.repository.ChargeRepository;
 import com.example.payment.domain.repository.EscrowRepository;
 import com.example.payment.domain.repository.EscrowTransactionRepository;
 import com.example.payment.domain.repository.WalletRepository;
 import com.example.payment.domain.repository.WalletTransactionRepository;
+import com.example.payment.domain.repository.WithdrawRequestRepository;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -48,6 +51,7 @@ public class PaymentSearchService implements PaymentSearchUseCase {
     private final WalletTransactionRepository walletTransactionRepository;
     private final EscrowRepository escrowRepository;
     private final EscrowTransactionRepository escrowTransactionRepository;
+    private final WithdrawRequestRepository withdrawRequestRepository;
 
     public PaymentSearchService(
             WalletRepository walletRepository,
@@ -55,7 +59,8 @@ public class PaymentSearchService implements PaymentSearchUseCase {
             ChargeRefundRepository chargeRefundRepository,
             WalletTransactionRepository walletTransactionRepository,
             EscrowRepository escrowRepository,
-            EscrowTransactionRepository escrowTransactionRepository
+            EscrowTransactionRepository escrowTransactionRepository,
+            WithdrawRequestRepository withdrawRequestRepository
     ) {
         this.walletRepository = walletRepository;
         this.chargeRepository = chargeRepository;
@@ -63,6 +68,7 @@ public class PaymentSearchService implements PaymentSearchUseCase {
         this.walletTransactionRepository = walletTransactionRepository;
         this.escrowRepository = escrowRepository;
         this.escrowTransactionRepository = escrowTransactionRepository;
+        this.withdrawRequestRepository = withdrawRequestRepository;
     }
 
     /**
@@ -168,6 +174,16 @@ public class PaymentSearchService implements PaymentSearchUseCase {
         );
 
         return toPagedResult(escrowPage.map(this::toPendingSellerIncomeItemResult));
+    }
+
+    @Override
+    public PagedResult<WithdrawListItemResult> findAllWithdrawRequests(UUID memberId, int page, int size) {
+        Page<WithdrawRequest> withdrawRequestPage = withdrawRequestRepository.findByMemberId(
+                memberId,
+                createPageRequest(page, size, "requestedAt")
+        );
+
+        return toPagedResult(withdrawRequestPage.map(this::toWithdrawListItemResult));
     }
 
     @Override
@@ -286,6 +302,18 @@ public class PaymentSearchService implements PaymentSearchUseCase {
                 escrowTransaction.getDescription(),
                 escrowTransaction.getOccurredAt(),
                 escrowTransaction.getCreatedAt()
+        );
+    }
+
+    private WithdrawListItemResult toWithdrawListItemResult(WithdrawRequest withdrawRequest) {
+        return new WithdrawListItemResult(
+                withdrawRequest.getWithdrawRequestId(),
+                withdrawRequest.getAmount(),
+                withdrawRequest.getFee(),
+                withdrawRequest.getActualAmount(),
+                withdrawRequest.getStatus(),
+                withdrawRequest.getRequestedAt(),
+                withdrawRequest.getProcessedAt()
         );
     }
 

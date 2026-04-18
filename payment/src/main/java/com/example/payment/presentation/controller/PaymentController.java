@@ -11,6 +11,7 @@ import com.example.payment.application.dto.ChargeRefundCommand;
 import com.example.payment.application.dto.PaymentRefundCommand;
 import com.example.payment.application.dto.PaymentRefundItemCommand;
 import com.example.payment.application.dto.SellerRefundCommand;
+import com.example.payment.application.dto.WithdrawCommand;
 import com.example.payment.application.usecase.CardPaymentConfirmUseCase;
 import com.example.payment.application.usecase.ChargeConfirmFailureUseCase;
 import com.example.payment.application.usecase.ChargeConfirmUseCase;
@@ -20,6 +21,7 @@ import com.example.payment.application.usecase.OrderPaymentApiUseCase;
 import com.example.payment.application.usecase.PaymentCancellationUseCase;
 import com.example.payment.application.usecase.PaymentSearchUseCase;
 import com.example.payment.application.usecase.SellerRefundUseCase;
+import com.example.payment.application.usecase.WithdrawUseCase;
 import com.example.payment.presentation.dto.request.CardPaymentConfirmRequest;
 import com.example.payment.presentation.dto.request.ChargeConfirmFailureRequest;
 import com.example.payment.presentation.dto.request.ChargeConfirmRequest;
@@ -28,6 +30,7 @@ import com.example.payment.presentation.dto.request.ChargeRefundRequest;
 import com.example.payment.presentation.dto.request.OrderPaymentApiRequest;
 import com.example.payment.presentation.dto.request.PaymentCancellationRequest;
 import com.example.payment.presentation.dto.request.SellerRefundConfirmRequest;
+import com.example.payment.presentation.dto.request.WithdrawCreateRequest;
 import com.example.payment.presentation.dto.response.ApiResponse;
 import com.example.payment.presentation.dto.response.CardPaymentConfirmResponse;
 import com.example.payment.presentation.dto.response.ChargeConfirmFailureResponse;
@@ -44,6 +47,8 @@ import com.example.payment.presentation.dto.response.PaymentRefundResponse;
 import com.example.payment.presentation.dto.response.PendingSellerIncomeItemResponse;
 import com.example.payment.presentation.dto.response.WalletSummaryResponse;
 import com.example.payment.presentation.dto.response.WalletTransactionItemResponse;
+import com.example.payment.presentation.dto.response.WithdrawListItemResponse;
+import com.example.payment.presentation.dto.response.WithdrawResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -74,6 +79,7 @@ public class PaymentController {
     private final SellerRefundUseCase sellerRefundUseCase;
     private final PaymentSearchUseCase paymentSearchUseCase;
     private final OrderPaymentApiUseCase orderPaymentApiUseCase;
+    private final WithdrawUseCase withdrawUseCase;
 
     public PaymentController(
             ChargeCreateUseCase chargeCreateUseCase,
@@ -84,7 +90,8 @@ public class PaymentController {
             PaymentCancellationUseCase paymentCancellationUseCase,
             SellerRefundUseCase sellerRefundUseCase,
             PaymentSearchUseCase paymentSearchUseCase,
-            OrderPaymentApiUseCase orderPaymentApiUseCase
+            OrderPaymentApiUseCase orderPaymentApiUseCase,
+            WithdrawUseCase withdrawUseCase
     ) {
         this.chargeCreateUseCase = chargeCreateUseCase;
         this.chargeConfirmUseCase = chargeConfirmUseCase;
@@ -95,6 +102,7 @@ public class PaymentController {
         this.sellerRefundUseCase = sellerRefundUseCase;
         this.paymentSearchUseCase = paymentSearchUseCase;
         this.orderPaymentApiUseCase = orderPaymentApiUseCase;
+        this.withdrawUseCase = withdrawUseCase;
     }
 
     @GetMapping("/wallet")
@@ -198,6 +206,28 @@ public class PaymentController {
                 .map(PendingSellerIncomeItemResponse::from)
                 .toList();
         PagedResponse<PendingSellerIncomeItemResponse> response = new PagedResponse<>(
+                items,
+                result.page(),
+                result.size(),
+                result.totalElements(),
+                result.totalPages(),
+                result.hasNext()
+        );
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/withdrawals")
+    @Operation(summary = "예치금 출금 내역 조회")
+    public ResponseEntity<ApiResponse<PagedResponse<WithdrawListItemResponse>>> findAllWithdrawRequests(
+            @CurrentMember AuthenticatedMember authenticatedMember,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        var result = paymentSearchUseCase.findAllWithdrawRequests(authenticatedMember.memberId(), page, size);
+        List<WithdrawListItemResponse> items = result.items().stream()
+                .map(WithdrawListItemResponse::from)
+                .toList();
+        PagedResponse<WithdrawListItemResponse> response = new PagedResponse<>(
                 items,
                 result.page(),
                 result.size(),
@@ -354,5 +384,23 @@ public class PaymentController {
             @Valid @RequestBody OrderPaymentApiRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.success(orderPaymentApiUseCase.payOrder(request)));
+    }
+
+    @PostMapping("/withdrawals")
+    @Operation(summary = "예치금 출금 요청")
+    public ResponseEntity<ApiResponse<WithdrawResponse>> withdraw(
+            @CurrentMember AuthenticatedMember authenticatedMember,
+            @Valid @RequestBody WithdrawCreateRequest request
+    ) {
+        WithdrawResponse response = WithdrawResponse.from(withdrawUseCase.withdraw(
+                new WithdrawCommand(
+                        authenticatedMember.memberId(),
+                        request.amount(),
+                        request.bankCode(),
+                        request.bankAccount(),
+                        request.accountHolder()
+                )
+        ));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
 }
