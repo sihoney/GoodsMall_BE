@@ -3,14 +3,10 @@ package com.example.settlement.application.service;
 import com.example.settlement.application.dto.MonthlySettlementAggregateCommand;
 import com.example.settlement.application.dto.MonthlySettlementAggregateResult;
 import com.example.settlement.application.dto.SettlementItemCreateCommand;
-import com.example.settlement.application.dto.SettlementRefundExclusionCommand;
 import com.example.settlement.application.usecase.MonthlySettlementUseCase;
 import com.example.settlement.domain.entity.Settlement;
 import com.example.settlement.domain.entity.SettlementItem;
-import com.example.settlement.domain.entity.SettlementRefundManualAction;
-import com.example.settlement.domain.enumtype.SettlementStatus;
 import com.example.settlement.domain.repository.SettlementItemRepository;
-import com.example.settlement.domain.repository.SettlementRefundManualActionRepository;
 import com.example.settlement.domain.repository.SettlementRepository;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
@@ -29,20 +25,16 @@ public class MonthlySettlementService implements MonthlySettlementUseCase {
 
     private static final long FEE_RATE_PERCENT = 10L;
     private static final long HUNDRED_PERCENT = 100L;
-    private static final String PAID_SETTLEMENT_REFUND = "PAID_SETTLEMENT_REFUND";
 
     private final SettlementRepository settlementRepository;
     private final SettlementItemRepository settlementItemRepository;
-    private final SettlementRefundManualActionRepository settlementRefundManualActionRepository;
 
     public MonthlySettlementService(
             SettlementRepository settlementRepository,
-            SettlementItemRepository settlementItemRepository,
-            SettlementRefundManualActionRepository settlementRefundManualActionRepository
+            SettlementItemRepository settlementItemRepository
     ) {
         this.settlementRepository = settlementRepository;
         this.settlementItemRepository = settlementItemRepository;
-        this.settlementRefundManualActionRepository = settlementRefundManualActionRepository;
     }
 
     /**
@@ -74,37 +66,6 @@ public class MonthlySettlementService implements MonthlySettlementUseCase {
                 command.releasedAt(),
                 LocalDateTime.now()
         ));
-    }
-
-    @Override
-    public void applyRefundExclusion(SettlementRefundExclusionCommand command) {
-        validateRefundExclusionCommand(command);
-
-        SettlementItem settlementItem = settlementItemRepository.findByEscrowId(command.escrowId()).orElse(null);
-        if (settlementItem == null) {
-            return;
-        }
-
-        long grossReduction = Math.min(command.refundAmount(), settlementItem.getGrossAmount());
-        long feeReduction = calculateFeeAmount(grossReduction);
-        long netReduction = grossReduction - feeReduction;
-
-        if (settlementItem.getSettlementId() == null) {
-            applyReductionToSettlementItem(settlementItem, grossReduction, feeReduction, netReduction);
-            return;
-        }
-
-        Settlement settlement = settlementRepository.findBySettlementId(settlementItem.getSettlementId())
-                .orElseThrow(() -> new IllegalArgumentException("Settlement not found: " + settlementItem.getSettlementId()));
-
-        if (settlement.getSettlementStatus() == SettlementStatus.COMPLETED) {
-            recordManualActionIfAbsent(command, settlementItem, settlement);
-            return;
-        }
-
-        settlement.deduct(grossReduction, feeReduction, netReduction, command.occurredAt());
-        settlementRepository.save(settlement);
-        applyReductionToSettlementItem(settlementItem, grossReduction, feeReduction, netReduction);
     }
 
     /**
@@ -235,66 +196,6 @@ public class MonthlySettlementService implements MonthlySettlementUseCase {
         if (!command.releasedAtFrom().isBefore(command.releasedAtTo())) {
             throw new IllegalArgumentException("releasedAtFrom must be before releasedAtTo.");
         }
-    }
-
-    private void validateRefundExclusionCommand(SettlementRefundExclusionCommand command) {
-        Objects.requireNonNull(command, "command must not be null.");
-        requireUuid(command.eventId(), "eventId");
-        requireUuid(command.refundId(), "refundId");
-        requireUuid(command.orderId(), "orderId");
-        requireUuid(command.escrowId(), "escrowId");
-        requireUuid(command.orderItemId(), "orderItemId");
-        requireUuid(command.sellerId(), "sellerId");
-        requireUuid(command.buyerId(), "buyerId");
-        Objects.requireNonNull(command.occurredAt(), "occurredAt must not be null.");
-        if (command.refundAmount() == null || command.refundAmount() <= 0L) {
-            throw new IllegalArgumentException("refundAmount must be positive.");
-        }
-    }
-
-    private void applyReductionToSettlementItem(
-            SettlementItem settlementItem,
-            long grossReduction,
-            long feeReduction,
-            long netReduction
-    ) {
-        settlementItem.applyRefund(grossReduction, feeReduction, netReduction);
-        if (settlementItem.isDepleted()) {
-            settlementItemRepository.delete(settlementItem);
-            return;
-        }
-        settlementItemRepository.save(settlementItem);
-    }
-
-    private void recordManualActionIfAbsent(
-            SettlementRefundExclusionCommand command,
-            SettlementItem settlementItem,
-            Settlement settlement
-    ) {
-        boolean exists = settlementRefundManualActionRepository.findByRefundIdAndEscrowId(
-                command.refundId(),
-                command.escrowId()
-        ).isPresent();
-        if (exists) {
-            return;
-        }
-
-        settlementRefundManualActionRepository.save(SettlementRefundManualAction.create(
-                UUID.randomUUID(),
-                command.eventId(),
-                command.refundId(),
-                settlement.getSettlementId(),
-                settlementItem.getSettlementItemId(),
-                command.orderId(),
-                command.escrowId(),
-                command.orderItemId(),
-                command.sellerId(),
-                command.buyerId(),
-                command.refundAmount(),
-                PAID_SETTLEMENT_REFUND,
-                command.occurredAt(),
-                command.occurredAt()
-        ));
     }
 
     /**
