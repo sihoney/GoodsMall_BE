@@ -1,6 +1,7 @@
 package com.example.settlement.infrastructure.repository;
 
 import com.example.settlement.domain.entity.SettlementItem;
+import com.example.settlement.domain.enumtype.SettlementItemStatus;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -27,10 +28,10 @@ public interface SettlementItemJpaRepository extends JpaRepository<SettlementIte
     );
 
     /**
-     * 지정 기간 내 settlementId가 null인 미집계 항목만 조회한다.
-     * 집계 재실행 시 이미 처리된 항목을 skip(건너뜀)해 idempotency(멱등성)를 보장한다.
+     * 지정 기간 내 UNASSIGNED 상태 항목만 조회한다.
      */
-    List<SettlementItem> findBySettlementIdIsNullAndReleasedAtGreaterThanEqualAndReleasedAtLessThan(
+    List<SettlementItem> findBySettlementItemStatusAndReleasedAtGreaterThanEqualAndReleasedAtLessThan(
+            SettlementItemStatus settlementItemStatus,
             LocalDateTime releasedAtFrom,
             LocalDateTime releasedAtTo
     );
@@ -38,8 +39,9 @@ public interface SettlementItemJpaRepository extends JpaRepository<SettlementIte
     /**
      * 판매자 기준 부분 정산 가능 항목을 최신 정산일 순으로 조회한다.
      */
-    List<SettlementItem> findBySellerIdAndSettlementIdIsNullAndGrossAmountGreaterThanOrderByReleasedAtDesc(
+    List<SettlementItem> findBySellerIdAndSettlementItemStatusAndGrossAmountGreaterThanOrderByReleasedAtDesc(
             UUID sellerId,
+            SettlementItemStatus settlementItemStatus,
             Long grossAmount
     );
 

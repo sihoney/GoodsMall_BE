@@ -30,8 +30,7 @@ public interface SettlementItemRepository {
     List<SettlementItem> findByReleasedAtBetween(LocalDateTime releasedAtFrom, LocalDateTime releasedAtTo);
 
     /**
-     * 지정 기간 내 아직 월 집계에 포함되지 않은 미집계 항목만 조회한다.
-     * settlementId가 null인 항목만 반환하므로 집계 재실행 시 idempotency(멱등성)를 보장한다.
+     * 지정 기간 내 아직 어떤 정산에도 연결되지 않은 UNASSIGNED 항목만 조회한다.
      */
     List<SettlementItem> findUnassignedByReleasedAtBetween(LocalDateTime releasedAtFrom, LocalDateTime releasedAtTo);
 
