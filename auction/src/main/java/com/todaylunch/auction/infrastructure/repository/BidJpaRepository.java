@@ -4,6 +4,8 @@ import com.todaylunch.auction.domain.entity.Bid;
 import com.todaylunch.auction.domain.enumtype.BidStatus;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -22,4 +24,12 @@ public interface BidJpaRepository extends JpaRepository<Bid, UUID> {
             @Param("auctionId") UUID auctionId,
             @Param("status") BidStatus status
     );
+
+    @Query("""
+            select b
+            from Bid b
+            join fetch b.auction
+            where b.auction.auctionId = :auctionId
+            """)
+    Page<Bid> findAllByAuctionId(@Param("auctionId") UUID auctionId, Pageable pageable);
 }

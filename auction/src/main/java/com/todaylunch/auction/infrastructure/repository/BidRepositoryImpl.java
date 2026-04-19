@@ -6,6 +6,8 @@ import com.todaylunch.auction.domain.repository.BidRepository;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -22,5 +24,10 @@ public class BidRepositoryImpl implements BidRepository {
     @Override
     public Optional<Bid> findActiveByAuctionId(UUID auctionId) {
         return jpaRepository.findTopByAuctionIdAndStatus(auctionId, BidStatus.ACTIVE);
+    }
+
+    @Override
+    public Page<Bid> findAllByAuctionId(UUID auctionId, Pageable pageable) {
+        return jpaRepository.findAllByAuctionId(auctionId, pageable);
     }
 }
