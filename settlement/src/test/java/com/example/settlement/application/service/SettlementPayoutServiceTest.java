@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import com.example.settlement.domain.entity.Settlement;
 import com.example.settlement.domain.enumtype.SettlementStatus;
+import com.example.settlement.domain.enumtype.SettlementType;
 import com.example.settlement.domain.repository.SettlementRepository;
 import com.example.settlement.infrastructure.messaging.kafka.KafkaSellerSettlementPayoutRequestedEventPublisher;
 import com.example.settlement.infrastructure.messaging.kafka.contract.PayoutFailureReason;
@@ -45,7 +46,7 @@ class SettlementPayoutServiceTest {
     @Test
     @DisplayName("월별 PENDING 정산건 수만큼 지급 요청 이벤트를 발행한다")
     void requestMonthlyPayouts_publishesEventsForPendingSettlements() {
-        Settlement pendingSettlement = Settlement.createPending(
+        Settlement pendingSettlement = Settlement.createMonthlyPending(
                 UUID.randomUUID(),
                 UUID.randomUUID(),
                 2026,
@@ -58,7 +59,8 @@ class SettlementPayoutServiceTest {
         when(settlementRepository.findBySettlementYearAndSettlementMonthAndSettlementStatus(
                 2026,
                 3,
-                SettlementStatus.PENDING
+                SettlementStatus.PENDING,
+                SettlementType.MONTHLY
         )).thenReturn(List.of(pendingSettlement));
 
         int requestedCount = settlementPayoutService.requestMonthlyPayouts(2026, 3);
@@ -71,7 +73,7 @@ class SettlementPayoutServiceTest {
     @DisplayName("SUCCESS 결과를 받으면 settlement 상태를 COMPLETED로 반영한다")
     void applyPayoutResult_success_completesSettlement() {
         UUID settlementId = UUID.randomUUID();
-        Settlement settlement = Settlement.createPending(
+        Settlement settlement = Settlement.createMonthlyPending(
                 settlementId,
                 UUID.randomUUID(),
                 2026,
@@ -105,6 +107,7 @@ class SettlementPayoutServiceTest {
         Settlement settlement = Settlement.create(
                 settlementId,
                 UUID.randomUUID(),
+                SettlementType.MONTHLY,
                 2026,
                 3,
                 10_000L,
@@ -137,7 +140,7 @@ class SettlementPayoutServiceTest {
     @DisplayName("NON_RETRYABLE 실패 결과를 받으면 settlement 상태를 FAILED로 반영하고 failureReason을 저장한다")
     void applyPayoutResult_nonRetryableFailure_failsSettlementWithReason() {
         UUID settlementId = UUID.randomUUID();
-        Settlement settlement = Settlement.createPending(
+        Settlement settlement = Settlement.createMonthlyPending(
                 settlementId,
                 UUID.randomUUID(),
                 2026,
@@ -169,7 +172,7 @@ class SettlementPayoutServiceTest {
     @DisplayName("RETRYABLE 실패 결과를 받으면 settlement 상태를 FAILED로 반영하고 failureReason을 저장한다")
     void applyPayoutResult_retryableFailure_failsSettlementWithReason() {
         UUID settlementId = UUID.randomUUID();
-        Settlement settlement = Settlement.createPending(
+        Settlement settlement = Settlement.createMonthlyPending(
                 settlementId,
                 UUID.randomUUID(),
                 2026,
@@ -201,7 +204,7 @@ class SettlementPayoutServiceTest {
     @DisplayName("failureReason 없이 FAILED 결과를 받으면 INTERNAL_ERROR로 처리한다")
     void applyPayoutResult_failedWithNullReason_usesInternalError() {
         UUID settlementId = UUID.randomUUID();
-        Settlement settlement = Settlement.createPending(
+        Settlement settlement = Settlement.createMonthlyPending(
                 settlementId,
                 UUID.randomUUID(),
                 2026,
@@ -236,6 +239,7 @@ class SettlementPayoutServiceTest {
         Settlement failedSettlement = Settlement.create(
                 settlementId,
                 UUID.randomUUID(),
+                SettlementType.MONTHLY,
                 2026,
                 3,
                 10_000L,
@@ -251,7 +255,8 @@ class SettlementPayoutServiceTest {
         when(settlementRepository.findBySettlementYearAndSettlementMonthAndSettlementStatus(
                 2026,
                 3,
-                SettlementStatus.FAILED
+                SettlementStatus.FAILED,
+                SettlementType.MONTHLY
         )).thenReturn(List.of(failedSettlement));
 
         int retriedCount = settlementPayoutService.requestRetryableFailedPayouts(2026, 3);
@@ -269,6 +274,7 @@ class SettlementPayoutServiceTest {
         Settlement failedSettlement = Settlement.create(
                 UUID.randomUUID(),
                 UUID.randomUUID(),
+                SettlementType.MONTHLY,
                 2026,
                 3,
                 10_000L,
@@ -284,7 +290,8 @@ class SettlementPayoutServiceTest {
         when(settlementRepository.findBySettlementYearAndSettlementMonthAndSettlementStatus(
                 2026,
                 3,
-                SettlementStatus.FAILED
+                SettlementStatus.FAILED,
+                SettlementType.MONTHLY
         )).thenReturn(List.of(failedSettlement));
 
         int retriedCount = settlementPayoutService.requestRetryableFailedPayouts(2026, 3);
@@ -302,6 +309,7 @@ class SettlementPayoutServiceTest {
         Settlement failedSettlement = Settlement.create(
                 settlementId,
                 UUID.randomUUID(),
+                SettlementType.MONTHLY,
                 2026,
                 3,
                 10_000L,
@@ -332,6 +340,7 @@ class SettlementPayoutServiceTest {
         Settlement failedSettlement = Settlement.create(
                 settlementId,
                 UUID.randomUUID(),
+                SettlementType.MONTHLY,
                 2026,
                 3,
                 10_000L,
@@ -365,6 +374,7 @@ class SettlementPayoutServiceTest {
         Settlement retryableFailedSettlement = Settlement.create(
                 retryableId,
                 UUID.randomUUID(),
+                SettlementType.MONTHLY,
                 2026,
                 3,
                 10_000L,
@@ -380,6 +390,7 @@ class SettlementPayoutServiceTest {
         Settlement nonRetryableFailedSettlement = Settlement.create(
                 nonRetryableId,
                 UUID.randomUUID(),
+                SettlementType.MONTHLY,
                 2026,
                 3,
                 10_000L,
@@ -395,6 +406,7 @@ class SettlementPayoutServiceTest {
         Settlement completedSettlement = Settlement.create(
                 notFailedStatusId,
                 UUID.randomUUID(),
+                SettlementType.MONTHLY,
                 2026,
                 3,
                 10_000L,
@@ -449,6 +461,7 @@ class SettlementPayoutServiceTest {
         Settlement retryableFailedSettlement = Settlement.create(
                 duplicatedId,
                 UUID.randomUUID(),
+                SettlementType.MONTHLY,
                 2026,
                 3,
                 10_000L,

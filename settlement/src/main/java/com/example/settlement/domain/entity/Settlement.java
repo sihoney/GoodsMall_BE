@@ -1,6 +1,7 @@
 package com.example.settlement.domain.entity;
 
 import com.example.settlement.domain.enumtype.SettlementStatus;
+import com.example.settlement.domain.enumtype.SettlementType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -26,6 +27,10 @@ public class Settlement {
 
     @Column(name = "seller_id", nullable = false)
     private UUID sellerId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "settlement_type", nullable = false)
+    private SettlementType settlementType;
 
     @Column(name = "settlement_year", nullable = false)
     private Integer settlementYear;
@@ -64,6 +69,7 @@ public class Settlement {
     private Settlement(
             UUID settlementId,
             UUID sellerId,
+            SettlementType settlementType,
             Integer settlementYear,
             Integer settlementMonth,
             Long totalSalesAmount,
@@ -78,6 +84,7 @@ public class Settlement {
     ) {
         this.settlementId = Objects.requireNonNull(settlementId);
         this.sellerId = Objects.requireNonNull(sellerId);
+        this.settlementType = Objects.requireNonNull(settlementType);
         this.settlementYear = Objects.requireNonNull(settlementYear);
         this.settlementMonth = Objects.requireNonNull(settlementMonth);
         this.totalSalesAmount = Objects.requireNonNull(totalSalesAmount);
@@ -94,6 +101,7 @@ public class Settlement {
     public static Settlement create(
             UUID settlementId,
             UUID sellerId,
+            SettlementType settlementType,
             Integer settlementYear,
             Integer settlementMonth,
             Long totalSalesAmount,
@@ -109,6 +117,7 @@ public class Settlement {
         return new Settlement(
                 settlementId,
                 sellerId,
+                settlementType,
                 settlementYear,
                 settlementMonth,
                 totalSalesAmount,
@@ -123,7 +132,7 @@ public class Settlement {
         );
     }
 
-    public static Settlement createPending(
+    public static Settlement createMonthlyPending(
             UUID settlementId,
             UUID sellerId,
             Integer settlementYear,
@@ -137,6 +146,36 @@ public class Settlement {
         return new Settlement(
                 settlementId,
                 sellerId,
+                SettlementType.MONTHLY,
+                settlementYear,
+                settlementMonth,
+                validateNonNegative(totalSalesAmount, "totalSalesAmount"),
+                validateNonNegative(feeAmount, "feeAmount"),
+                validateNonNegative(finalSettlementAmount, "finalSettlementAmount"),
+                0L,
+                SettlementStatus.PENDING,
+                null,
+                null,
+                now,
+                now
+        );
+    }
+
+    public static Settlement createPartialPending(
+            UUID settlementId,
+            UUID sellerId,
+            Integer settlementYear,
+            Integer settlementMonth,
+            Long totalSalesAmount,
+            Long feeAmount,
+            Long finalSettlementAmount,
+            LocalDateTime requestedAt
+    ) {
+        LocalDateTime now = Objects.requireNonNull(requestedAt);
+        return new Settlement(
+                settlementId,
+                sellerId,
+                SettlementType.PARTIAL,
                 settlementYear,
                 settlementMonth,
                 validateNonNegative(totalSalesAmount, "totalSalesAmount"),

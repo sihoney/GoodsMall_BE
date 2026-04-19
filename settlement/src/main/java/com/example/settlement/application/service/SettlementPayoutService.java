@@ -4,6 +4,7 @@ import com.example.settlement.application.dto.FailedPayoutReplayResult;
 import com.example.settlement.application.usecase.SettlementPayoutUseCase;
 import com.example.settlement.domain.entity.Settlement;
 import com.example.settlement.domain.enumtype.SettlementStatus;
+import com.example.settlement.domain.enumtype.SettlementType;
 import com.example.settlement.domain.repository.SettlementRepository;
 import com.example.settlement.infrastructure.messaging.kafka.KafkaSellerSettlementPayoutRequestedEventPublisher;
 import com.example.settlement.infrastructure.messaging.kafka.contract.PayoutFailureReason;
@@ -67,7 +68,8 @@ public class SettlementPayoutService implements SettlementPayoutUseCase {
                 .findBySettlementYearAndSettlementMonthAndSettlementStatus(
                         settlementYear,
                         settlementMonth,
-                        SettlementStatus.PENDING
+                        SettlementStatus.PENDING,
+                        SettlementType.MONTHLY
                 );
         // 동일 실행 배치에서 같은 요청 시각을 사용하기 위해 현재 시각을 한 번만 구한다.
         LocalDateTime now = LocalDateTime.now();
@@ -167,7 +169,8 @@ public class SettlementPayoutService implements SettlementPayoutUseCase {
                 .findBySettlementYearAndSettlementMonthAndSettlementStatus(
                         settlementYear,
                         settlementMonth,
-                        SettlementStatus.FAILED
+                        SettlementStatus.FAILED,
+                        SettlementType.MONTHLY
                 );
 
         LocalDateTime now = LocalDateTime.now();
