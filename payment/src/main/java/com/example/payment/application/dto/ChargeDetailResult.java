@@ -20,8 +20,6 @@ public record ChargeDetailResult(
         LocalDateTime requestedAt,
         LocalDateTime approvedAt,
         LocalDateTime failedAt,
-        String failureReason,
-        boolean hasRefundHistory,
-        ChargeRefundSummaryResult latestRefund
+        String failureReason
 ) {
 }

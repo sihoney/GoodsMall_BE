@@ -2,7 +2,6 @@ package com.example.payment.application.usecase;
 
 import com.example.payment.application.dto.ChargeDetailResult;
 import com.example.payment.application.dto.ChargeListItemResult;
-import com.example.payment.application.dto.ChargeRefundSummaryResult;
 import com.example.payment.application.dto.EscrowTransactionItemResult;
 import com.example.payment.application.dto.PagedResult;
 import com.example.payment.application.dto.PendingSellerIncomeItemResult;
@@ -32,11 +31,6 @@ public interface PaymentSearchUseCase {
      * 회원의 단건 charge 상세를 조회한다.
      */
     ChargeDetailResult findChargeDetail(UUID memberId, UUID chargeId);
-
-    /**
-     * 회원의 charge refund 목록을 최신순으로 조회한다.
-     */
-    PagedResult<ChargeRefundSummaryResult> findAllRefunds(UUID memberId, int page, int size);
 
     /**
      * 회원 wallet의 거래 내역을 최신순으로 조회한다.
