@@ -40,4 +40,9 @@ public interface SettlementItemRepository {
      * settlementId가 null이고 grossAmount가 0보다 큰 항목만 반환한다.
      */
     List<SettlementItem> findAvailableSettlementItemsForPartialSettlementBySellerId(UUID sellerId);
+
+    /**
+     * settlementItemId 목록으로 정산 원천 항목을 조회한다.
+     */
+    List<SettlementItem> findAllBySettlementItemIdIn(List<UUID> settlementItemIds);
 }

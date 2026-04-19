@@ -42,4 +42,6 @@ public interface SettlementItemJpaRepository extends JpaRepository<SettlementIte
             UUID sellerId,
             Long grossAmount
     );
+
+    List<SettlementItem> findBySettlementItemIdIn(List<UUID> settlementItemIds);
 }
