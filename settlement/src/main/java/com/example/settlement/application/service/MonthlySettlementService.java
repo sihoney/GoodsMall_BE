@@ -11,9 +11,12 @@ import com.example.settlement.domain.repository.SettlementItemRepository;
 import com.example.settlement.domain.repository.SettlementRepository;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -78,78 +81,79 @@ public class MonthlySettlementService implements MonthlySettlementUseCase {
     public MonthlySettlementAggregateResult aggregateMonthlySettlements(MonthlySettlementAggregateCommand command) {
         validateAggregateCommand(command); // 검증
 
-        // settlementId가 null인 미집계 항목만 조회해 dedup(중복 방지)를 보장한다.
-        List<SettlementItem> settlementItems = settlementItemRepository.findUnassignedByReleasedAtBetween(
+        List<SettlementItem> unassignedSettlementItems = settlementItemRepository.findUnassignedByReleasedAtBetween(
                 command.releasedAtFrom(),
                 command.releasedAtTo()
         );
-
-        int createdSettlementCount = 0; // 새로 생성된 정산서 개수 파악
-        int updatedSettlementCount = 0; // 기존 정산서 업데이트 개수 파악
-
-        // todo: 반복문 관련 잦은 save, search는 성능에 영향을 줄 수 있으니 최적화 방법 고려
-        for (SettlementItem settlementItem : settlementItems) {
-            // 년, 월 기준으로 이미 만들어진 정산서가 있는지 조회
-            // todo: N+1 조회 가능성이 있으므로 향후 최적화 필요.
-            //  예를 들어, 집계 대상 항목들의 판매자 ID와 연/월 기준으로 미리 정산서를 조회해 캐싱하는 방식으로 개선할 수 있다.
-            Settlement settlement = settlementRepository.findBySellerIdAndSettlementYearAndSettlementMonthAndSettlementType(
-                    settlementItem.getSellerId(),
+        if (unassignedSettlementItems.isEmpty()) {
+            return new MonthlySettlementAggregateResult(
                     command.settlementYear(),
                     command.settlementMonth(),
-                    SettlementType.MONTHLY
-            ).orElse(null);
-
-            // todo: 동시성 문제 해결 필요.
-            //  여러 집계 작업이 동시에 실행될 때 같은 판매자/연월에 대해 중복으로 정산서가 생성될 수 있다.
-            //  (sellerId, year, month) 유니크 제약 있는지 확인 필요. 없다면 낙관적 락이나 PESSIMISTIC_WRITE 락 고려.
-            // 정산서가 없을 경우 새롭게 생성
-            if (settlement == null) {
-                // 정산서를 Pending 상태로 생성한다. 집계가 완료된 후에야 확정 상태로 변경.
-                settlement = Settlement.createMonthlyPending(
-                        UUID.randomUUID(),
-                        settlementItem.getSellerId(),
-                        command.settlementYear(),
-                        command.settlementMonth(),
-                        settlementItem.getGrossAmount(),
-                        settlementItem.getFeeAmount(),
-                        settlementItem.getNetAmount(),
-                        // todo: 루프안에서 now는 미세한 시간 차이를 발생 시킬 수 있다.
-                        //  시간 차이에 대해서 상관 있는지 없는지 체크할 것.
-                        LocalDateTime.now()
-                );
-                // 새로 만든 정산서 저장
-                settlement = settlementRepository.save(settlement);
-                // 만들어진 정산 Id를 정산 아이템 테이블과 연결
-                settlementItem.assignSettlement(settlement.getSettlementId());
-                settlementItemRepository.save(settlementItem);
-                createdSettlementCount++;
-                continue;
-            }
-            // 이미 정산서가 있으면 금액을 누적한다.
-            settlement.accumulate(
-                    settlementItem.getGrossAmount(),
-                    settlementItem.getFeeAmount(),
-                    settlementItem.getNetAmount(),
-                    // todo: 루프안에서 now는 미세한 시간 차이를 발생 시킬 수 있다.
-                    LocalDateTime.now()
+                    0,
+                    0,
+                    0
             );
-            settlementRepository.save(settlement);
-            settlementItem.assignSettlement(settlement.getSettlementId());
-            settlementItemRepository.save(settlementItem);
-            updatedSettlementCount++;
         }
 
-        // 최종 처리 결과를 반환한다.
-        // 어떤 연/월을 집계했는지,
-        // 몇 건의 정산서를 새로 만들었는지,
-        // 몇 건을 기존 정산서에 누적했는지,
-        // 총 몇 개의 원천 항목을 처리했는지 담는다.
+        List<SettlementItem> processingSettlementItems = claimSettlementItemsForMonthlyAggregation(unassignedSettlementItems);
+        if (processingSettlementItems.isEmpty()) {
+            return new MonthlySettlementAggregateResult(
+                    command.settlementYear(),
+                    command.settlementMonth(),
+                    0,
+                    0,
+                    0
+            );
+        }
+
+        Map<UUID, List<SettlementItem>> settlementItemsBySellerId = processingSettlementItems.stream()
+                .collect(Collectors.groupingBy(SettlementItem::getSellerId, LinkedHashMap::new, Collectors.toList()));
+        Map<UUID, Settlement> monthlySettlementBySellerId = loadExistingMonthlySettlementsBySellerId(
+                settlementItemsBySellerId.keySet().stream().toList(),
+                command.settlementYear(),
+                command.settlementMonth()
+        );
+        LocalDateTime now = LocalDateTime.now();
+
+        int createdSettlementCount = 0;
+        int updatedSettlementCount = 0;
+        for (Map.Entry<UUID, List<SettlementItem>> entry : settlementItemsBySellerId.entrySet()) {
+            UUID sellerId = entry.getKey();
+            List<SettlementItem> sellerSettlementItems = entry.getValue();
+            Settlement settlement = monthlySettlementBySellerId.get(sellerId);
+
+            long totalGrossAmount = sumGrossAmount(sellerSettlementItems);
+            long totalFeeAmount = sumFeeAmount(sellerSettlementItems);
+            long totalNetAmount = sumNetAmount(sellerSettlementItems);
+
+            if (settlement == null) {
+                settlement = settlementRepository.save(Settlement.createMonthlyPending(
+                        UUID.randomUUID(),
+                        sellerId,
+                        command.settlementYear(),
+                        command.settlementMonth(),
+                        totalGrossAmount,
+                        totalFeeAmount,
+                        totalNetAmount,
+                        now
+                ));
+                monthlySettlementBySellerId.put(sellerId, settlement);
+                createdSettlementCount++;
+            } else {
+                settlement.accumulate(totalGrossAmount, totalFeeAmount, totalNetAmount, now);
+                settlementRepository.save(settlement);
+                updatedSettlementCount++;
+            }
+
+            assignSettlementToItems(settlement, sellerSettlementItems);
+        }
+
         return new MonthlySettlementAggregateResult(
                 command.settlementYear(),
                 command.settlementMonth(),
                 createdSettlementCount,
                 updatedSettlementCount,
-                settlementItems.size()
+                processingSettlementItems.size()
         );
     }
 
@@ -220,5 +224,62 @@ public class MonthlySettlementService implements MonthlySettlementUseCase {
         if (value == null || value <= 0) {
             throw new IllegalArgumentException("grossAmount must be positive.");
         }
+    }
+
+    private List<SettlementItem> claimSettlementItemsForMonthlyAggregation(List<SettlementItem> unassignedSettlementItems) {
+        List<UUID> settlementItemIds = unassignedSettlementItems.stream()
+                .map(SettlementItem::getSettlementItemId)
+                .toList();
+        int updatedCount = settlementItemRepository.updateSettlementItemStatusIn(
+                settlementItemIds,
+                com.example.settlement.domain.enumtype.SettlementItemStatus.UNASSIGNED,
+                com.example.settlement.domain.enumtype.SettlementItemStatus.PROCESSING
+        );
+        if (updatedCount == 0) {
+            return List.of();
+        }
+        return settlementItemRepository.findAllBySettlementItemIdInAndSettlementItemStatus(
+                settlementItemIds,
+                com.example.settlement.domain.enumtype.SettlementItemStatus.PROCESSING
+        );
+    }
+
+    private Map<UUID, Settlement> loadExistingMonthlySettlementsBySellerId(
+            List<UUID> sellerIds,
+            int settlementYear,
+            int settlementMonth
+    ) {
+        return settlementRepository.findAllBySellerIdInAndSettlementYearAndSettlementMonthAndSettlementType(
+                        sellerIds,
+                        settlementYear,
+                        settlementMonth,
+                        SettlementType.MONTHLY
+                ).stream()
+                .collect(Collectors.toMap(Settlement::getSellerId, settlement -> settlement, (left, right) -> left, LinkedHashMap::new));
+    }
+
+    private void assignSettlementToItems(Settlement settlement, List<SettlementItem> settlementItems) {
+        for (SettlementItem settlementItem : settlementItems) {
+            settlementItem.assignSettlement(settlement.getSettlementId());
+            settlementItemRepository.save(settlementItem);
+        }
+    }
+
+    private long sumGrossAmount(List<SettlementItem> settlementItems) {
+        return settlementItems.stream()
+                .mapToLong(SettlementItem::getGrossAmount)
+                .sum();
+    }
+
+    private long sumFeeAmount(List<SettlementItem> settlementItems) {
+        return settlementItems.stream()
+                .mapToLong(SettlementItem::getFeeAmount)
+                .sum();
+    }
+
+    private long sumNetAmount(List<SettlementItem> settlementItems) {
+        return settlementItems.stream()
+                .mapToLong(SettlementItem::getNetAmount)
+                .sum();
     }
 }

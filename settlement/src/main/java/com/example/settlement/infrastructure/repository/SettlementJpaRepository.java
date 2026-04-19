@@ -25,4 +25,11 @@ public interface SettlementJpaRepository extends JpaRepository<Settlement, UUID>
             Integer settlementMonth,
             SettlementType settlementType
     );
+
+    List<Settlement> findAllBySellerIdInAndSettlementYearAndSettlementMonthAndSettlementType(
+            List<UUID> sellerIds,
+            Integer settlementYear,
+            Integer settlementMonth,
+            SettlementType settlementType
+    );
 }

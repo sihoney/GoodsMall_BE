@@ -57,4 +57,19 @@ public class SettlementRepositoryImpl implements SettlementRepository {
                 settlementType
         );
     }
+
+    @Override
+    public List<Settlement> findAllBySellerIdInAndSettlementYearAndSettlementMonthAndSettlementType(
+            List<UUID> sellerIds,
+            Integer settlementYear,
+            Integer settlementMonth,
+            SettlementType settlementType
+    ) {
+        return settlementJpaRepository.findAllBySellerIdInAndSettlementYearAndSettlementMonthAndSettlementType(
+                sellerIds,
+                settlementYear,
+                settlementMonth,
+                settlementType
+        );
+    }
 }
