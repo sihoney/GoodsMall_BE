@@ -34,4 +34,10 @@ public interface SettlementItemRepository {
      * settlementId가 null인 항목만 반환하므로 집계 재실행 시 idempotency(멱등성)를 보장한다.
      */
     List<SettlementItem> findUnassignedByReleasedAtBetween(LocalDateTime releasedAtFrom, LocalDateTime releasedAtTo);
+
+    /**
+     * 판매자 기준 부분 정산 가능 항목을 조회한다.
+     * settlementId가 null이고 grossAmount가 0보다 큰 항목만 반환한다.
+     */
+    List<SettlementItem> findAvailableSettlementItemsForPartialSettlementBySellerId(UUID sellerId);
 }

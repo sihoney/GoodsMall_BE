@@ -34,4 +34,12 @@ public interface SettlementItemJpaRepository extends JpaRepository<SettlementIte
             LocalDateTime releasedAtFrom,
             LocalDateTime releasedAtTo
     );
+
+    /**
+     * 판매자 기준 부분 정산 가능 항목을 최신 정산일 순으로 조회한다.
+     */
+    List<SettlementItem> findBySellerIdAndSettlementIdIsNullAndGrossAmountGreaterThanOrderByReleasedAtDesc(
+            UUID sellerId,
+            Long grossAmount
+    );
 }
