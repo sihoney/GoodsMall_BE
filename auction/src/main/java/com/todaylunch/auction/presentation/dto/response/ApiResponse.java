@@ -1,4 +1,4 @@
-package com.example.payment.presentation.dto.response;
+package com.todaylunch.auction.presentation.dto.response;
 
 public record ApiResponse<T>(
         boolean success,

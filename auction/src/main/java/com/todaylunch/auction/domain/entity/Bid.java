@@ -1,5 +1,7 @@
 package com.todaylunch.auction.domain.entity;
 
+import com.todaylunch.auction.common.exception.domain.BidNotActiveException;
+import com.todaylunch.auction.common.exception.domain.InvalidBidPriceException;
 import com.todaylunch.auction.domain.enumtype.BidStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -69,7 +71,7 @@ public class Bid {
     /** 초기 상태(ACTIVE + 타임스탬프) 불변성을 팩토리로 강제. 입찰가 양수 검증 포함. */
     public static Bid place(Auction auction, UUID bidderId, BigDecimal bidPrice) {
         if (bidPrice == null || bidPrice.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("입찰가는 0보다 커야 합니다");
+            throw new InvalidBidPriceException();
         }
         LocalDateTime now = LocalDateTime.now();
         return new Bid(
@@ -88,7 +90,7 @@ public class Bid {
             return;
         }
         if (this.status != BidStatus.ACTIVE) {
-            throw new IllegalStateException("활성 상태의 입찰만 OUTBID 처리할 수 있습니다");
+            throw new BidNotActiveException();
         }
         this.status = BidStatus.OUTBID;
         this.updatedAt = LocalDateTime.now();
