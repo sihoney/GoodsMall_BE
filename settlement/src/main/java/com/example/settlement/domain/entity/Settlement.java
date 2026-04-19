@@ -235,6 +235,11 @@ public class Settlement {
         this.settlementStatus = SettlementStatus.COMPLETED;
     }
 
+    public void markPayoutRequested(LocalDateTime updatedAt) {
+        this.updatedAt = Objects.requireNonNull(updatedAt);
+        this.settlementStatus = SettlementStatus.PROCESSING;
+    }
+
     public void fail(String failureReason, LocalDateTime updatedAt) {
         this.lastFailureReason = failureReason;
         this.updatedAt = Objects.requireNonNull(updatedAt);
