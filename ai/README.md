@@ -37,14 +37,21 @@
 - 임베딩 모델은 현재 `text-embedding-3-small`을 사용합니다.
 - 비활성 상품은 하드 삭제하지 않고 `is_active=false`로 제외합니다.
 
-### 2.3 관리자 API
+### 2.3 Kafka 소비 설정 메모
+
+- AI 모듈은 Product 이벤트 payload를 `String`으로 받은 뒤 내부 `ObjectMapper`로 직접 파싱합니다.
+- 이 때문에 JSON 전용 consumer factory 대신 `StringDeserializer` 기반 기본 `kafkaListenerContainerFactory`를 명시적으로 등록합니다.
+- 현재 기본 consumer group은 `ai-product-embedding-group`이며, 기본 토픽은 `product.created`, `product.updated`, `product.deleted`입니다.
+- 이 설정이 없으면 Spring이 기본 listener factory bean을 찾지 못해 AI 서비스가 기동하지 못할 수 있습니다.
+
+### 2.4 관리자 API
 
 | Method | Path | 권한 | 설명 |
 |---|---|---|---|
 | `POST` | `/api/ai/admin/embeddings/backfill-missing` | `ADMIN` | 임베딩이 없는 활성 상품만 찾아 보정합니다. |
 | `POST` | `/api/ai/admin/embeddings/reindex-all` | `ADMIN` | 전체 상품을 다시 순회하며 임베딩을 재생성하거나 비활성 처리합니다. |
 
-### 2.4 이미지 기반 상품 등록 보조 AI
+### 2.5 이미지 기반 상품 등록 보조 AI
 
 - 엔드포인트: `POST /api/ai/assist/product-draft-from-image`
 - 요청 방식: `multipart/form-data`
@@ -121,7 +128,7 @@ http://localhost:8080
 
 | 분류 | 환경변수 |
 |---|---|
-| DB | `DB_USERNAME`, `DB_PASSWORD` |
+| DB | `DB_USER_NAME`, `DB_USER_PASSWORD` |
 | Kafka | `KAFKA_BOOTSTRAP_SERVERS`, `AI_PRODUCT_*_TOPIC`, `AI_PRODUCT_EVENT_CONSUMER_GROUP` |
 | Redis | `REDIS_HOST`, `REDIS_PORT` |
 | OpenAI | `OPENAI_API_KEY`, `PROJECT_OPENAI_BASE_URL` |

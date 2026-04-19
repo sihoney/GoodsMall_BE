@@ -132,28 +132,28 @@ VALUES
 ON CONFLICT (escrow_id) DO NOTHING;
 
 INSERT INTO settlement.settlement_item (
-    settlement_item_id, settlement_id,
+    settlement_item_id, settlement_id, settlement_item_status,
     order_id, escrow_id, seller_id,
     gross_amount, fee_amount, net_amount,
     released_at, created_at
 )
 VALUES
     ('aa100001-0000-0000-0000-000000000001',
-     NULL,
+     NULL, 'UNASSIGNED',
      'ff000001-0000-0000-0000-000000000001',
      'ee000011-0000-0000-0000-000000000011',
      '22222222-2222-2222-2222-222222222202',
      50000, 5000, 45000,
      NOW() - INTERVAL '12 hours', NOW() - INTERVAL '11 hours'),
     ('aa100002-0000-0000-0000-000000000002',
-     'aa200001-0000-0000-0000-000000000001',
+     'aa200001-0000-0000-0000-000000000001', 'ASSIGNED',
      'ff000002-0000-0000-0000-000000000002',
      'ee000012-0000-0000-0000-000000000012',
      '22222222-2222-2222-2222-222222222202',
      80000, 8000, 72000,
      NOW() - INTERVAL '5 days', NOW() - INTERVAL '5 days'),
     ('aa100003-0000-0000-0000-000000000003',
-     'aa200002-0000-0000-0000-000000000002',
+     'aa200002-0000-0000-0000-000000000002', 'ASSIGNED',
      'ff000003-0000-0000-0000-000000000003',
      'ee000013-0000-0000-0000-000000000013',
      '22222222-2222-2222-2222-222222222202',
