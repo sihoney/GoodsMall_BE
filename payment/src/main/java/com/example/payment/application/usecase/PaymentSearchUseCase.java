@@ -2,12 +2,12 @@ package com.example.payment.application.usecase;
 
 import com.example.payment.application.dto.ChargeDetailResult;
 import com.example.payment.application.dto.ChargeListItemResult;
-import com.example.payment.application.dto.ChargeRefundSummaryResult;
 import com.example.payment.application.dto.EscrowTransactionItemResult;
 import com.example.payment.application.dto.PagedResult;
 import com.example.payment.application.dto.PendingSellerIncomeItemResult;
 import com.example.payment.application.dto.WalletSummaryResult;
 import com.example.payment.application.dto.WalletTransactionItemResult;
+import com.example.payment.application.dto.WithdrawListItemResult;
 import java.util.List;
 import java.util.UUID;
 
@@ -33,11 +33,6 @@ public interface PaymentSearchUseCase {
     ChargeDetailResult findChargeDetail(UUID memberId, UUID chargeId);
 
     /**
-     * 회원의 charge refund 목록을 최신순으로 조회한다.
-     */
-    PagedResult<ChargeRefundSummaryResult> findAllRefunds(UUID memberId, int page, int size);
-
-    /**
      * 회원 wallet의 거래 내역을 최신순으로 조회한다.
      */
     PagedResult<WalletTransactionItemResult> findAllTransactions(UUID memberId, int page, int size);
@@ -46,6 +41,8 @@ public interface PaymentSearchUseCase {
      * 판매자 기준 미정산 escrow 목록을 최신순으로 조회한다.
      */
     PagedResult<PendingSellerIncomeItemResult> findAllPendingSellerIncomes(UUID memberId, int page, int size);
+
+    PagedResult<WithdrawListItemResult> findAllWithdrawRequests(UUID memberId, int page, int size);
 
     List<EscrowTransactionItemResult> findEscrowTransactionsByOrderId(UUID sellerMemberId, UUID orderId);
 }

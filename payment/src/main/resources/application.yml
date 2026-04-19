@@ -79,13 +79,15 @@ toss:
 
 # --- Payment Kafka Topic/Consumer Group 설정 (로컬 기본값) ---
 payment:
+  withdraw:
+    crypto:
+      secret-key: ${PAYMENT_WITHDRAW_CRYPTO_SECRET_KEY:local-dev-payment-withdraw-secret-key}
   kafka:
     topics:
       member-created: member-signed-up
       order-payment-result: payment.order-payment-result
       order-purchase-confirmed: order.purchase-confirmed
       settlement-candidate-created: payment.settlement-candidate-created
-      settlement-candidate-excluded: payment.settlement-candidate-excluded
       settlement-payout-requested: settlement.seller-payout-requested
       settlement-payout-result: payment.seller-payout-result
     consumer-groups:
@@ -99,8 +101,6 @@ payment:
         multiplier: 2.0
         max-interval-ms: 10000
         max-retries: 3
-  policy:
-    refund-available-days: ${REFUND_AVAILABLE_DAYS:7}
 # --- 로깅 설정 (로컬: DEBUG) ---
 logging:
   level:
