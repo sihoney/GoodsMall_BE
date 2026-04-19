@@ -233,7 +233,7 @@ class SettlementPayoutServiceTest {
     }
 
     @Test
-    @DisplayName("RETRYABLE 실패 정산건은 PENDING으로 복구 후 재지급 요청을 발행한다")
+    @DisplayName("RETRYABLE 실패 정산건은 PENDING으로 복구 후 즉시 payout 재요청되어 PROCESSING이 된다")
     void requestRetryableFailedPayouts_retryableFailure_requeuesAndPublishes() {
         UUID settlementId = UUID.randomUUID();
         Settlement failedSettlement = Settlement.create(
@@ -262,9 +262,9 @@ class SettlementPayoutServiceTest {
         int retriedCount = settlementPayoutService.requestRetryableFailedPayouts(2026, 3);
 
         assertThat(retriedCount).isEqualTo(1);
-        assertThat(failedSettlement.getSettlementStatus()).isEqualTo(SettlementStatus.PENDING);
+        assertThat(failedSettlement.getSettlementStatus()).isEqualTo(SettlementStatus.PROCESSING);
         assertThat(failedSettlement.getLastFailureReason()).isNull();
-        verify(settlementRepository).save(failedSettlement);
+        verify(settlementRepository, times(2)).save(failedSettlement);
         verify(payoutRequestedEventPublisher).publish(any());
     }
 
@@ -303,7 +303,7 @@ class SettlementPayoutServiceTest {
     }
 
     @Test
-    @DisplayName("NON_RETRYABLE 실패 정산건은 수동 재지급 요청을 허용한다")
+    @DisplayName("NON_RETRYABLE 실패 정산건은 수동 재지급 요청 후 즉시 payout 재요청되어 PROCESSING이 된다")
     void requestManualFailedPayout_nonRetryableFailure_allowsManualRetry() {
         UUID settlementId = UUID.randomUUID();
         Settlement failedSettlement = Settlement.create(
@@ -327,9 +327,9 @@ class SettlementPayoutServiceTest {
         boolean requested = settlementPayoutService.requestManualFailedPayout(settlementId);
 
         assertThat(requested).isTrue();
-        assertThat(failedSettlement.getSettlementStatus()).isEqualTo(SettlementStatus.PENDING);
+        assertThat(failedSettlement.getSettlementStatus()).isEqualTo(SettlementStatus.PROCESSING);
         assertThat(failedSettlement.getLastFailureReason()).isNull();
-        verify(settlementRepository).save(failedSettlement);
+        verify(settlementRepository, times(2)).save(failedSettlement);
         verify(payoutRequestedEventPublisher).publish(any());
     }
 
@@ -439,8 +439,8 @@ class SettlementPayoutServiceTest {
         assertThat(result.skippedCount()).isEqualTo(2);
         assertThat(result.notFoundCount()).isEqualTo(1);
 
-        assertThat(retryableFailedSettlement.getSettlementStatus()).isEqualTo(SettlementStatus.PENDING);
-        verify(settlementRepository).save(retryableFailedSettlement);
+        assertThat(retryableFailedSettlement.getSettlementStatus()).isEqualTo(SettlementStatus.PROCESSING);
+        verify(settlementRepository, times(2)).save(retryableFailedSettlement);
         verify(payoutRequestedEventPublisher).publish(any());
         verify(settlementRepository, never()).save(nonRetryableFailedSettlement);
     }

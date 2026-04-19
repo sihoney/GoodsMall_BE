@@ -14,6 +14,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.mockito.BDDMockito.given;
 
+import com.example.settlement.infrastructure.messaging.kafka.contract.SettlementPayoutType;
+
 @ExtendWith(MockitoExtension.class)
 @DisplayName("KafkaSellerSettlementPayoutRequestedEventPublisher 테스트")
 class KafkaSellerSettlementPayoutRequestedEventPublisherTest {
@@ -35,6 +37,7 @@ class KafkaSellerSettlementPayoutRequestedEventPublisherTest {
         SellerSettlementPayoutRequestedMessage message = new SellerSettlementPayoutRequestedMessage(
                 UUID.randomUUID(),
                 settlementId,
+                SettlementPayoutType.MONTHLY,
                 UUID.randomUUID(),
                 2026,
                 3,
