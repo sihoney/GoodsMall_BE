@@ -14,17 +14,11 @@ spring:
     enabled: true
     baseline-on-migrate: true
     baseline-version: 0
-    schemas:
-      - member
-      - payment
-      - settlement
-      - product
-      - cart
-      - notification
-      - order
-      - ai
     locations:
       - classpath:db/migration
+    # `schemas` is intentionally omitted in the current runner.
+    # We want schema creation to start from versioned migrations such as V1/V2,
+    # rather than having Flyway pre-create managed schemas and history tables.
 
 app:
   seed:
