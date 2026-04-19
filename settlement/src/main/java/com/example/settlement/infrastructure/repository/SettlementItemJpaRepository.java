@@ -6,7 +6,10 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 /**
  * SettlementItem JPA repository(저장소)다.
@@ -46,4 +49,22 @@ public interface SettlementItemJpaRepository extends JpaRepository<SettlementIte
     );
 
     List<SettlementItem> findBySettlementItemIdIn(List<UUID> settlementItemIds);
+
+    List<SettlementItem> findBySettlementItemIdInAndSettlementItemStatus(
+            List<UUID> settlementItemIds,
+            SettlementItemStatus settlementItemStatus
+    );
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            update SettlementItem settlementItem
+               set settlementItem.settlementItemStatus = :nextStatus
+             where settlementItem.settlementItemId in :settlementItemIds
+               and settlementItem.settlementItemStatus = :currentStatus
+            """)
+    int updateSettlementItemStatusIn(
+            @Param("settlementItemIds") List<UUID> settlementItemIds,
+            @Param("currentStatus") SettlementItemStatus currentStatus,
+            @Param("nextStatus") SettlementItemStatus nextStatus
+    );
 }

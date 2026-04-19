@@ -83,4 +83,28 @@ public class SettlementItemRepositoryImpl implements SettlementItemRepository {
     public List<SettlementItem> findAllBySettlementItemIdIn(List<UUID> settlementItemIds) {
         return settlementItemJpaRepository.findBySettlementItemIdIn(settlementItemIds);
     }
+
+    @Override
+    public List<SettlementItem> findAllBySettlementItemIdInAndSettlementItemStatus(
+            List<UUID> settlementItemIds,
+            SettlementItemStatus settlementItemStatus
+    ) {
+        return settlementItemJpaRepository.findBySettlementItemIdInAndSettlementItemStatus(
+                settlementItemIds,
+                settlementItemStatus
+        );
+    }
+
+    @Override
+    public int updateSettlementItemStatusIn(
+            List<UUID> settlementItemIds,
+            SettlementItemStatus currentStatus,
+            SettlementItemStatus nextStatus
+    ) {
+        return settlementItemJpaRepository.updateSettlementItemStatusIn(
+                settlementItemIds,
+                currentStatus,
+                nextStatus
+        );
+    }
 }

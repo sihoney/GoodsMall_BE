@@ -1,6 +1,7 @@
 package com.example.settlement.domain.repository;
 
 import com.example.settlement.domain.entity.SettlementItem;
+import com.example.settlement.domain.enumtype.SettlementItemStatus;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -44,4 +45,23 @@ public interface SettlementItemRepository {
      * settlementItemId 목록으로 정산 원천 항목을 조회한다.
      */
     List<SettlementItem> findAllBySettlementItemIdIn(List<UUID> settlementItemIds);
+
+    /**
+     * settlementItemId 목록 중 특정 상태와 일치하는 항목만 조회한다.
+     */
+    List<SettlementItem> findAllBySettlementItemIdInAndSettlementItemStatus(
+            List<UUID> settlementItemIds,
+            SettlementItemStatus settlementItemStatus
+    );
+
+    /**
+     * 현재 상태가 일치하는 항목만 다음 상태로 조건부 변경한다.
+     *
+     * @return 실제로 상태 변경에 성공한 건수
+     */
+    int updateSettlementItemStatusIn(
+            List<UUID> settlementItemIds,
+            SettlementItemStatus currentStatus,
+            SettlementItemStatus nextStatus
+    );
 }
