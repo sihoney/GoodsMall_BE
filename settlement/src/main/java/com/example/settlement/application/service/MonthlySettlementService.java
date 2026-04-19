@@ -6,6 +6,7 @@ import com.example.settlement.application.dto.SettlementItemCreateCommand;
 import com.example.settlement.application.usecase.MonthlySettlementUseCase;
 import com.example.settlement.domain.entity.Settlement;
 import com.example.settlement.domain.entity.SettlementItem;
+import com.example.settlement.domain.enumtype.SettlementType;
 import com.example.settlement.domain.repository.SettlementItemRepository;
 import com.example.settlement.domain.repository.SettlementRepository;
 import java.time.LocalDateTime;
@@ -91,10 +92,11 @@ public class MonthlySettlementService implements MonthlySettlementUseCase {
             // 년, 월 기준으로 이미 만들어진 정산서가 있는지 조회
             // todo: N+1 조회 가능성이 있으므로 향후 최적화 필요.
             //  예를 들어, 집계 대상 항목들의 판매자 ID와 연/월 기준으로 미리 정산서를 조회해 캐싱하는 방식으로 개선할 수 있다.
-            Settlement settlement = settlementRepository.findBySellerIdAndSettlementYearAndSettlementMonth(
+            Settlement settlement = settlementRepository.findBySellerIdAndSettlementYearAndSettlementMonthAndSettlementType(
                     settlementItem.getSellerId(),
                     command.settlementYear(),
-                    command.settlementMonth()
+                    command.settlementMonth(),
+                    SettlementType.MONTHLY
             ).orElse(null);
 
             // todo: 동시성 문제 해결 필요.
@@ -103,7 +105,7 @@ public class MonthlySettlementService implements MonthlySettlementUseCase {
             // 정산서가 없을 경우 새롭게 생성
             if (settlement == null) {
                 // 정산서를 Pending 상태로 생성한다. 집계가 완료된 후에야 확정 상태로 변경.
-                settlement = Settlement.createPending(
+                settlement = Settlement.createMonthlyPending(
                         UUID.randomUUID(),
                         settlementItem.getSellerId(),
                         command.settlementYear(),

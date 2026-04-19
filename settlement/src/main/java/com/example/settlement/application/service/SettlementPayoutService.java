@@ -4,12 +4,14 @@ import com.example.settlement.application.dto.FailedPayoutReplayResult;
 import com.example.settlement.application.usecase.SettlementPayoutUseCase;
 import com.example.settlement.domain.entity.Settlement;
 import com.example.settlement.domain.enumtype.SettlementStatus;
+import com.example.settlement.domain.enumtype.SettlementType;
 import com.example.settlement.domain.repository.SettlementRepository;
 import com.example.settlement.infrastructure.messaging.kafka.KafkaSellerSettlementPayoutRequestedEventPublisher;
 import com.example.settlement.infrastructure.messaging.kafka.contract.PayoutFailureReason;
 import com.example.settlement.infrastructure.messaging.kafka.contract.SellerSettlementPayoutRequestedMessage;
 import com.example.settlement.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultMessage;
 import com.example.settlement.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultStatus;
+import com.example.settlement.infrastructure.messaging.kafka.contract.SettlementPayoutType;
 import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -45,11 +47,11 @@ public class SettlementPayoutService implements SettlementPayoutUseCase {
      * 흐름:
      * 1) 입력값 검증
      * 2) 해당 연월의 PENDING 정산 목록 조회
-     * 3) 각 정산건마다 지급 요청 이벤트 발행
+     * 3) 각 정산건마다 PROCESSING 상태로 변경 후 지급 요청 이벤트 발행
      * 4) 발행 대상 건수 반환
      * <p>
      * 현재 구현상 특징:
-     * - 조회 조건이 PENDING 이므로 "아직 지급 요청 전이거나 재지급 대기 상태"인 건만 대상으로 삼는다.
+     * - 조회 조건이 PENDING 이므로 아직 지급 요청 전인 건만 대상으로 삼는다.
      * - 상태를 선반영하지 않고 이벤트만 발행하므로, 발행 성공/실패와 DB 상태 정합성은 별도 검토가 필요하다.
      */
     @Override
@@ -67,7 +69,8 @@ public class SettlementPayoutService implements SettlementPayoutUseCase {
                 .findBySettlementYearAndSettlementMonthAndSettlementStatus(
                         settlementYear,
                         settlementMonth,
-                        SettlementStatus.PENDING
+                        SettlementStatus.PENDING,
+                        SettlementType.MONTHLY
                 );
         // 동일 실행 배치에서 같은 요청 시각을 사용하기 위해 현재 시각을 한 번만 구한다.
         LocalDateTime now = LocalDateTime.now();
@@ -76,18 +79,30 @@ public class SettlementPayoutService implements SettlementPayoutUseCase {
         // 각 이벤트는 고유 requestEventId(UUID)를 가져 중복 추적이나 재처리 구분에 활용할 수 있다.
         // 또한 회원당 예치금을 지급 요청하는 방식이므로 for문으로 발행하는 방식 사용
         for (Settlement settlement : pendingSettlements) {
-            payoutRequestedEventPublisher.publish(new SellerSettlementPayoutRequestedMessage(
-                    UUID.randomUUID(),
-                    settlement.getSettlementId(),
-                    settlement.getSellerId(),
-                    settlement.getSettlementYear(),
-                    settlement.getSettlementMonth(),
-                    settlement.getFinalSettlementAmount(),
-                    now
-            ));
+            markSettlementAsProcessingAndPublishPayoutRequest(settlement, now);
         }
         // 실제 발행 시도 건수를 반환한다.
         return pendingSettlements.size();
+    }
+
+    @Override
+    public void requestPayoutForPartialSettlement(UUID settlementId) {
+        Objects.requireNonNull(settlementId, "settlementId is required.");
+
+        Settlement partialSettlement = settlementRepository.findBySettlementId(settlementId)
+                .orElseThrow(() -> new IllegalArgumentException("Settlement not found: " + settlementId));
+
+        if (partialSettlement.getSettlementType() != SettlementType.PARTIAL) {
+            throw new IllegalArgumentException("Only partial settlement payout is allowed.");
+        }
+        if (partialSettlement.getSettlementStatus() != SettlementStatus.PENDING) {
+            throw new IllegalArgumentException("Only pending partial settlement can request payout.");
+        }
+        if (partialSettlement.getFinalSettlementAmount() == null || partialSettlement.getFinalSettlementAmount() <= 0L) {
+            throw new IllegalArgumentException("partial settlement payout amount must be positive.");
+        }
+
+        markSettlementAsProcessingAndPublishPayoutRequest(partialSettlement, LocalDateTime.now());
     }
 
     /**
@@ -167,7 +182,8 @@ public class SettlementPayoutService implements SettlementPayoutUseCase {
                 .findBySettlementYearAndSettlementMonthAndSettlementStatus(
                         settlementYear,
                         settlementMonth,
-                        SettlementStatus.FAILED
+                        SettlementStatus.FAILED,
+                        SettlementType.MONTHLY
                 );
 
         LocalDateTime now = LocalDateTime.now();
@@ -180,7 +196,7 @@ public class SettlementPayoutService implements SettlementPayoutUseCase {
 
             settlement.requeueForPayout(now);
             settlementRepository.save(settlement);
-            publishPayoutRequest(settlement, now);
+            markSettlementAsProcessingAndPublishPayoutRequest(settlement, now);
             retriedCount++;
 
             log.info("[PayoutRetryRequested] settlementId={} reason={}", settlement.getSettlementId(), reason);
@@ -218,21 +234,24 @@ public class SettlementPayoutService implements SettlementPayoutUseCase {
         LocalDateTime now = LocalDateTime.now();
         settlement.requeueForPayout(now);
         settlementRepository.save(settlement);
-        publishPayoutRequest(settlement, now);
+        markSettlementAsProcessingAndPublishPayoutRequest(settlement, now);
 
         log.info("[ManualPayoutRetryRequested] settlementId={} reason={}", settlement.getSettlementId(), reason);
         return true;
     }
 
     /**
-     * settlement 지급 요청 이벤트를 공통 형식으로 발행한다.
+     * settlement를 지급 요청 중 상태로 바꾸고 지급 요청 이벤트를 공통 형식으로 발행한다.
      * <p>
      * 수동 재지급, 자동 재지급, 월 정산 지급 요청이 모두 같은 이벤트 포맷을 사용하도록 공통화한다.
      */
-    private void publishPayoutRequest(Settlement settlement, LocalDateTime requestedAt) {
+    private void markSettlementAsProcessingAndPublishPayoutRequest(Settlement settlement, LocalDateTime requestedAt) {
+        settlement.markPayoutRequested(requestedAt);
+        settlementRepository.save(settlement);
         payoutRequestedEventPublisher.publish(new SellerSettlementPayoutRequestedMessage(
                 UUID.randomUUID(),
                 settlement.getSettlementId(),
+                toSettlementPayoutType(settlement.getSettlementType()),
                 settlement.getSellerId(),
                 settlement.getSettlementYear(),
                 settlement.getSettlementMonth(),
@@ -277,6 +296,13 @@ public class SettlementPayoutService implements SettlementPayoutUseCase {
             // 알 수 없는 코드 값은 재지급 자동화 대상에서 제외한다.
             return null;
         }
+    }
+
+    private SettlementPayoutType toSettlementPayoutType(SettlementType settlementType) {
+        return switch (settlementType) {
+            case MONTHLY -> SettlementPayoutType.MONTHLY;
+            case PARTIAL -> SettlementPayoutType.PARTIAL;
+        };
     }
 
     /**
@@ -324,7 +350,7 @@ public class SettlementPayoutService implements SettlementPayoutUseCase {
             if (reason != null && reason.isRetryable()) {
                 settlement.requeueForPayout(now);
                 settlementRepository.save(settlement);
-                publishPayoutRequest(settlement, now);
+                markSettlementAsProcessingAndPublishPayoutRequest(settlement, now);
                 requestedRetryCount++;
                 log.info("[DlqReplay/RetryRequested] settlementId={} reason={}", settlement.getSettlementId(), reason);
                 continue;

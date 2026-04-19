@@ -9,6 +9,7 @@ import java.util.UUID;
 public record SellerSettlementPayoutRequestedMessage(
         UUID eventId,
         UUID settlementId,
+        SettlementPayoutType settlementType,
         UUID sellerMemberId,
         Integer settlementYear,
         Integer settlementMonth,

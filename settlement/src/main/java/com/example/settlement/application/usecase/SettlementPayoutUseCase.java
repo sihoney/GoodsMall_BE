@@ -12,6 +12,8 @@ public interface SettlementPayoutUseCase {
 
     int requestMonthlyPayouts(int settlementYear, int settlementMonth);
 
+    void requestPayoutForPartialSettlement(UUID settlementId);
+
     void applyPayoutResult(SellerSettlementPayoutResultMessage event);
 
     int requestRetryableFailedPayouts(int settlementYear, int settlementMonth);

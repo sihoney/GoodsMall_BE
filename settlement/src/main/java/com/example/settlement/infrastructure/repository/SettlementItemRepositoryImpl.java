@@ -68,4 +68,17 @@ public class SettlementItemRepositoryImpl implements SettlementItemRepository {
                         releasedAtTo
                 );
     }
+
+    @Override
+    public List<SettlementItem> findAvailableSettlementItemsForPartialSettlementBySellerId(UUID sellerId) {
+        return settlementItemJpaRepository.findBySellerIdAndSettlementIdIsNullAndGrossAmountGreaterThanOrderByReleasedAtDesc(
+                sellerId,
+                0L
+        );
+    }
+
+    @Override
+    public List<SettlementItem> findAllBySettlementItemIdIn(List<UUID> settlementItemIds) {
+        return settlementItemJpaRepository.findBySettlementItemIdIn(settlementItemIds);
+    }
 }
