@@ -1,6 +1,6 @@
 # Payment Service
 
-`payment` 모듈은 결제와 지갑을 담당하는 서비스입니다. 사용자 지갑 생성, 충전/충전 확정, 주문 결제, 에스크로 보관, 구매 확정 이후 정산 후보 발행, 주문 환불, 예치금 출금, 판매자 정산금 입금을 처리합니다.
+`payment` 모듈은 결제와 지갑을 담당하는 서비스입니다. 사용자 지갑 생성, 충전/충전 확정, 주문 결제, 에스크로 보관, 구매 확정 이후 정산 후보 발행, 주문 환불, 예치금 출금, 판매자 정산금 입금, 월 정산과 부분 정산 지급 결과 반영을 처리합니다.
 
 ## 1. 한눈에 보는 역할
 
@@ -14,6 +14,7 @@
 - 주문 취소/반품 환불 시 카드 환불, wallet 환불, 에스크로 환불 반영을 처리한다.
 - 사용자의 예치금 출금 요청을 받아 wallet 차감, 출금 기록 저장, 거래 내역 기록을 수행한다.
 - settlement 모듈의 지급 요청을 받아 판매자 지갑에 정산금을 적립한다.
+- 정산금 적립 시 월 정산과 부분 정산을 구분해 거래 원장에 남긴다.
 
 현재 정책 기준으로 `충전 환불` 전용 API와 `ChargeRefund` 원장은 제거되었고, 환불은 주문 환불 흐름(`PaymentRefund`)으로만 유지한다.
 
@@ -181,6 +182,16 @@ https://<frontend-domain>/payments/toss/fail
 | `PaymentRefund` | 주문 취소/반품 환불 원장 |
 | `PaymentRefundAllocation` | 카드 환불, wallet 환불 분해 원장 |
 
+정산 지급 관련 현재 기준:
+
+| 구분 | 설명 |
+|---|---|
+| 정산 대기 전 단계 | `Escrow`가 자금을 보관 |
+| 정산 대기 기준 데이터 | `settlement` 모듈의 `SettlementItem` |
+| payment가 받는 지급 요청 | `settlement.seller-payout-requested` |
+| 지급 구분 | `SettlementPayoutType.MONTHLY`, `SettlementPayoutType.PARTIAL` |
+| 원장 referenceType | `MONTHLY_SETTLEMENT`, `PARTIAL_SETTLEMENT` |
+
 ## 7. 모듈 간 통신 구조
 
 ### 7.1 HTTP로 받는 요청
@@ -215,7 +226,7 @@ https://<frontend-domain>/payments/toss/fail
 |---|---|---|
 | `member-signed-up` | `MemberCreatedMessage` | 회원 생성 시 wallet 생성 |
 | `order.purchase-confirmed` | `OrderPurchaseConfirmedMessage` | 수동 구매 확정 시 escrow release |
-| `settlement.seller-payout-requested` | `SellerSettlementPayoutRequestedMessage` | 정산 지급 요청 처리 |
+| `settlement.seller-payout-requested` | `SellerSettlementPayoutRequestedMessage` | 월 정산/부분 정산 지급 요청 처리 |
 
 - 결제 관련해서는 이벤트를 잘 사용하지 않는다고 하여 order와 API 통신으로 변경될 수 있습니다.
 - 구매 확정 책임을 order가 가지고 갈 예정이므로 리스너 이벤트는 변경 가능성 있습니다.
@@ -583,8 +594,18 @@ Toss 승인 결과를 반영합니다. 승인 성공 시 charge 상태를 확정
 ### 10.7 정산 지급 시
 
 1. settlement 모듈이 `settlement.seller-payout-requested` 발행
-2. payment가 판매자 wallet에 정산금 적립
-3. 결과를 `payment.seller-payout-result`로 회신
+2. payment가 이벤트의 `settlementType`을 확인한다.
+3. `MONTHLY_SETTLEMENT` 또는 `PARTIAL_SETTLEMENT` referenceType으로 wallet transaction을 기록한다.
+4. 판매자 wallet에 정산금을 적립한다.
+5. 결과를 `payment.seller-payout-result`로 회신한다.
+
+### 10.8 부분 정산 시
+
+1. settlement가 판매자 선택 기준으로 `Settlement(PARTIAL)`를 생성한다.
+2. settlement가 즉시 payout 요청 이벤트를 발행한다.
+3. payment는 `settlementType = PARTIAL`을 보고 부분 정산 지급으로 처리한다.
+4. wallet transaction은 `PARTIAL_SETTLEMENT` referenceType으로 저장된다.
+5. settlement는 지급 결과 이벤트를 받아 최종 상태를 반영한다.
 
 ## 11. Kafka 메시지 핵심 필드
 
@@ -594,7 +615,7 @@ Toss 승인 결과를 반영합니다. 승인 성공 시 charge 상태를 확정
 |---|---|
 | `MemberCreatedMessage` | `eventId`, `memberId`, `email`, `occurredAt` |
 | `OrderPurchaseConfirmedMessage` | `eventId`, `orderId`, `sellerMemberId`, `confirmedAt`, `confirmationType` |
-| `SellerSettlementPayoutRequestedMessage` | `eventId`, `settlementId`, `sellerMemberId`, `settlementYear`, `settlementMonth`, `payoutAmount`, `requestedAt` |
+| `SellerSettlementPayoutRequestedMessage` | `eventId`, `settlementId`, `settlementType`, `sellerMemberId`, `settlementYear`, `settlementMonth`, `payoutAmount`, `requestedAt` |
 
 ### payment가 발행하는 메시지
 
@@ -610,7 +631,8 @@ Toss 승인 결과를 반영합니다. 승인 성공 시 charge 상태를 확정
 - 지갑/결제/에스크로/출금 데이터는 `payment` 스키마를 사용합니다.
 - Swagger 문서는 gateway 기준 Bearer Token 입력을 전제로 구성되어 있습니다.
 - 페이지 조회 API는 모두 `size <= 100` 제한이 있습니다.
-- settlement 지급 요청은 중복 처리 방지를 위해 `referenceId = settlementId + referenceType = "SETTLEMENT"` 조합을 확인합니다.
+- settlement 지급 요청은 중복 처리 방지를 위해 `referenceId = settlementId + referenceType` 조합을 확인합니다.
+- `referenceType`은 현재 `MONTHLY_SETTLEMENT` 또는 `PARTIAL_SETTLEMENT`를 사용합니다.
 - Docker 실행 시 기본 프로필은 `prod`입니다.
 - AWS 운영에서는 `.env.aws.example` 값을 기준으로 시크릿/환경변수를 분리 주입하는 전제가 필요합니다.
 - 출금 계좌번호와 예금주는 암호화 저장하며, 응답에는 마스킹된 계좌번호만 반환합니다.
@@ -621,3 +643,5 @@ Toss 승인 결과를 반영합니다. 승인 성공 시 charge 상태를 확정
 - `bankCode`는 현재 구현에서 제외되어 있고, 실은행 연동 시 다시 검토합니다.
 - 주문 결제 API는 HTTP 응답과 별도로 Kafka 결과 이벤트도 발행합니다.
 - 구매 확정 이후 환불은 현재 정책상 허용하지 않습니다.
+- 부분 정산의 조회와 실행 진입점은 `payment`가 아니라 `settlement`입니다.
+- payment는 부분 정산 화면용 API를 만들지 않고, payout 요청 수신 후 wallet 반영 책임만 가집니다.
