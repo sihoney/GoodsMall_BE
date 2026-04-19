@@ -15,8 +15,8 @@ spring:
   datasource:
     driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://localhost:5432/goods_mall?currentSchema=ai
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
+    username: ${DB_USER_NAME:postgres}
+    password: ${DB_USER_PASSWORD:postgres}
   jpa:
     hibernate:
       ddl-auto: validate
