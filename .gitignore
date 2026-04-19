@@ -46,6 +46,8 @@ bin/
 product/.env
 
 private_docs/
+docs/
+temp_api.json
 
 ### setting ###
 **/src/main/resources/application-local.yml
