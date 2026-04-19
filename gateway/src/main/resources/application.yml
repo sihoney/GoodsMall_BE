@@ -20,6 +20,7 @@ spring:
               "[/**]":
                 allowedOrigins:
                   - http://localhost:5173
+                  - https://goodsmall.vercel.app
                 allowedMethods:
                   - GET
                   - POST
