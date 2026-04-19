@@ -5,5 +5,7 @@ import java.util.UUID;
 
 public interface AuctionRepository {
 
+    Auction save(Auction auction);
+
     Auction findById(UUID auctionId);
 }

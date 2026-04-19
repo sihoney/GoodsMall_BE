@@ -14,6 +14,11 @@ public class AuctionRepositoryImpl implements AuctionRepository {
     private final AuctionJpaRepository jpaRepository;
 
     @Override
+    public Auction save(Auction auction) {
+        return jpaRepository.save(auction);
+    }
+
+    @Override
     public Auction findById(UUID auctionId) {
         return jpaRepository.findById(auctionId)
                 .orElseThrow(AuctionNotFoundException::new);

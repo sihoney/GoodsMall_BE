@@ -1,36 +1,33 @@
 package com.todaylunch.auction.presentation.controller;
 
-import com.todaylunch.auction.application.usecase.BidPlaceUseCase;
-import com.todaylunch.auction.presentation.dto.request.BidPlaceRequest;
+import com.todaylunch.auction.application.usecase.AuctionCreateUseCase;
+import com.todaylunch.auction.presentation.dto.request.AuctionCreateRequest;
 import com.todaylunch.auction.presentation.dto.response.ApiResponse;
-import com.todaylunch.auction.presentation.dto.response.BidResponse;
+import com.todaylunch.auction.presentation.dto.response.AuctionResponse;
 import com.todaylunch.common.security.auth.annotation.CurrentMember;
 import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
 import jakarta.validation.Valid;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/auctions/{auctionId}/bids")
+@RequestMapping("/api/auctions")
 @RequiredArgsConstructor
-public class BidController {
+public class AuctionController {
 
-    private final BidPlaceUseCase bidPlaceUseCase;
+    private final AuctionCreateUseCase auctionCreateUseCase;
 
     @PostMapping
-    public ResponseEntity<ApiResponse<BidResponse>> place(
-            @PathVariable UUID auctionId,
+    public ResponseEntity<ApiResponse<AuctionResponse>> create(
             @CurrentMember AuthenticatedMember member,
-            @Valid @RequestBody BidPlaceRequest request
+            @Valid @RequestBody AuctionCreateRequest request
     ) {
-        BidResponse response = bidPlaceUseCase.place(auctionId, member.memberId(), request);
+        AuctionResponse response = auctionCreateUseCase.create(member.memberId(), request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(response));
     }
