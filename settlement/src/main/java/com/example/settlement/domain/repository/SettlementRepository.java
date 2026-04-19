@@ -26,4 +26,11 @@ public interface SettlementRepository {
             Integer settlementMonth,
             SettlementType settlementType
     );
+
+    List<Settlement> findAllBySellerIdInAndSettlementYearAndSettlementMonthAndSettlementType(
+            List<UUID> sellerIds,
+            Integer settlementYear,
+            Integer settlementMonth,
+            SettlementType settlementType
+    );
 }

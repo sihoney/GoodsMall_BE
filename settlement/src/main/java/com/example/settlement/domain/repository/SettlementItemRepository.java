@@ -1,6 +1,7 @@
 package com.example.settlement.domain.repository;
 
 import com.example.settlement.domain.entity.SettlementItem;
+import com.example.settlement.domain.enumtype.SettlementItemStatus;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -30,8 +31,7 @@ public interface SettlementItemRepository {
     List<SettlementItem> findByReleasedAtBetween(LocalDateTime releasedAtFrom, LocalDateTime releasedAtTo);
 
     /**
-     * 지정 기간 내 아직 월 집계에 포함되지 않은 미집계 항목만 조회한다.
-     * settlementId가 null인 항목만 반환하므로 집계 재실행 시 idempotency(멱등성)를 보장한다.
+     * 지정 기간 내 아직 어떤 정산에도 연결되지 않은 UNASSIGNED 항목만 조회한다.
      */
     List<SettlementItem> findUnassignedByReleasedAtBetween(LocalDateTime releasedAtFrom, LocalDateTime releasedAtTo);
 
@@ -45,4 +45,23 @@ public interface SettlementItemRepository {
      * settlementItemId 목록으로 정산 원천 항목을 조회한다.
      */
     List<SettlementItem> findAllBySettlementItemIdIn(List<UUID> settlementItemIds);
+
+    /**
+     * settlementItemId 목록 중 특정 상태와 일치하는 항목만 조회한다.
+     */
+    List<SettlementItem> findAllBySettlementItemIdInAndSettlementItemStatus(
+            List<UUID> settlementItemIds,
+            SettlementItemStatus settlementItemStatus
+    );
+
+    /**
+     * 현재 상태가 일치하는 항목만 다음 상태로 조건부 변경한다.
+     *
+     * @return 실제로 상태 변경에 성공한 건수
+     */
+    int updateSettlementItemStatusIn(
+            List<UUID> settlementItemIds,
+            SettlementItemStatus currentStatus,
+            SettlementItemStatus nextStatus
+    );
 }
