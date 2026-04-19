@@ -1,6 +1,6 @@
 # Payment Service
 
-`payment` 모듈은 결제와 지갑을 담당하는 서비스입니다. 사용자 지갑 생성, 충전/충전 확정/환불, 주문 결제, 에스크로 보관, 구매 확정 이후 정산 후보 발행, 판매자 환불, 정산금 입금을 처리합니다.
+`payment` 모듈은 결제와 지갑을 담당하는 서비스입니다. 사용자 지갑 생성, 충전/충전 확정, 주문 결제, 에스크로 보관, 구매 확정 이후 정산 후보 발행, 주문 환불, 예치금 출금, 판매자 정산금 입금을 처리합니다.
 
 ## 1. 한눈에 보는 역할
 
@@ -8,11 +8,14 @@
 
 - 회원 생성 시 `wallet`을 만든다.
 - 사용자의 충전 요청을 생성하고, Toss Payments 승인 결과를 반영한다.
-- 충전 환불 시 PG 취소와 지갑 차감을 함께 처리한다.
 - 주문 결제 시 구매자 지갑에서 금액을 차감하고 판매자별 `escrow`를 만든다.
 - 구매 확정 이벤트를 받아 `escrow release`를 수행한다.
 - `escrow`가 release 되면 settlement 모듈이 사용할 정산 후보 이벤트를 발행한다.
+- 주문 취소/반품 환불 시 카드 환불, wallet 환불, 에스크로 환불 반영을 처리한다.
+- 사용자의 예치금 출금 요청을 받아 wallet 차감, 출금 기록 저장, 거래 내역 기록을 수행한다.
 - settlement 모듈의 지급 요청을 받아 판매자 지갑에 정산금을 적립한다.
+
+현재 정책 기준으로 `충전 환불` 전용 API와 `ChargeRefund` 원장은 제거되었고, 환불은 주문 환불 흐름(`PaymentRefund`)으로만 유지한다.
 
 ## 2. 실행 정보
 
@@ -84,7 +87,10 @@ http://localhost:8080
 | Toss | `TOSS_PAYMENTS_BASE_URL`, `TOSS_PAYMENTS_CLIENT_KEY`, `TOSS_PAYMENTS_SECRET_KEY`, `TOSS_PAYMENTS_SUCCESS_URL`, `TOSS_PAYMENTS_FAIL_URL`, `TOSS_PAYMENTS_WIDGET_ENABLED` |
 | Payment Kafka | `PAYMENT_KAFKA_TOPIC_*`, `PAYMENT_KAFKA_CONSUMER_GROUP_*`, `PAYMENT_KAFKA_RETRY_*` |
 | Withdraw Crypto | `PAYMENT_WITHDRAW_CRYPTO_SECRET_KEY` |
+
 로컬 Docker Compose 예시 성격의 값은 루트 `.env.example`과 `payment/.env`에 포함되어 있습니다.
+
+출금 계좌정보 암호화 기능을 사용하는 경우 `PAYMENT_WITHDRAW_CRYPTO_SECRET_KEY` 설정이 필요합니다.
 
 ## 4. AWS 배포 고려사항
 
@@ -150,6 +156,7 @@ https://<frontend-domain>/payments/toss/fail
 - Eureka 등록 hostname/ip 설정이 현재 배포 방식과 맞는지
 - Kafka bootstrap 주소가 VPC 내부에서 실제 해석되는지
 - Config Server 장애 시 `fail-fast: true` 때문에 기동이 실패할 수 있는지
+
 ## 5. 기술 스택과 외부 의존성
 
 - Java 21
@@ -168,26 +175,30 @@ https://<frontend-domain>/payments/toss/fail
 |---|---|
 | `Wallet` | 회원별 잔액 계좌 |
 | `Charge` | 충전 요청 및 승인 상태 |
-| `ChargeRefund` | 충전 환불 이력 |
-| `WalletTransaction` | 충전/환불/주문결제/정산금 적립 내역 |
+| `WalletTransaction` | 충전/주문결제/주문환불/출금/정산금 적립 내역 |
+| `WithdrawRequest` | 예치금 출금 요청 이력 |
 | `Escrow` | 주문 결제 후 판매자별로 잠시 보관되는 금액 |
+| `PaymentRefund` | 주문 취소/반품 환불 원장 |
+| `PaymentRefundAllocation` | 카드 환불, wallet 환불 분해 원장 |
 
 ## 7. 모듈 간 통신 구조
 
 ### 7.1 HTTP로 받는 요청
 
-| Method | Path | 인증 | 목적            |
-|---|---|---|---------------|
-| `GET` | `/api/payments/wallet` | 필요 | 내 지갑 금액 조회    |
-| `GET` | `/api/payments/charges` | 필요 | 내 충전 목록 조회    |
-| `GET` | `/api/payments/charges/{chargeId}` | 필요 | 충전 상세 조회      |
-| `GET` | `/api/payments/refunds` | 필요 | 내 환불 목록 조회    |
+| Method | Path | 인증 | 목적 |
+|---|---|---|---|
+| `GET` | `/api/payments/wallet` | 필요 | 내 지갑 금액 조회 |
+| `GET` | `/api/payments/charges` | 필요 | 내 충전 목록 조회 |
+| `GET` | `/api/payments/charges/{chargeId}` | 필요 | 충전 상세 조회 |
 | `GET` | `/api/payments/transactions` | 필요 | 내 지갑 거래 내역 조회 |
 | `GET` | `/api/payments/seller/pending-incomes` | 필요 | 판매자 미정산 수입 조회 |
-| `POST` | `/api/payments/charge` | 필요 | 충전 요청 생성      |
+| `GET` | `/api/payments/withdrawals` | 필요 | 내 출금 목록 조회 |
+| `POST` | `/api/payments/charge` | 필요 | 충전 요청 생성 |
 | `POST` | `/api/payments/confirm` | 없음 | Toss 승인 결과 반영 |
-| `POST` | `/api/payments/charges/{chargeId}/refund` | 현재 없음 | 충전 환불         |
-| `POST` | `/api/payments/orders` | 없음 | 주문 결제 API     |
+| `POST` | `/api/payments/orders` | 없음 | 주문 결제 API |
+| `POST` | `/api/payments/cancellations` | 없음 | 주문 취소 환불 요청 |
+| `POST` | `/api/payments/seller/refunds/confirm` | 필요 | 판매자 반품 확인 후 환불 |
+| `POST` | `/api/payments/withdrawals` | 필요 | 예치금 출금 요청 |
 
 인증이 필요한 API는 `gateway`를 거치면서 JWT 기반으로 `@CurrentMember`가 주입됩니다.
 
@@ -195,7 +206,8 @@ https://<frontend-domain>/payments/toss/fail
 
 - `POST /api/payments/confirm`은 PG 승인 콜백 성격이라 회원 인증 없이 동작합니다.
 - `POST /api/payments/orders`는 내부 서비스 간 호출용 API입니다.
-- `POST /api/payments/charges/{chargeId}/refund`는 PG 환불 API로, 현재는 엔드 포인트만 존재하며 구현이 완료되지 않았습니다.
+- 출금은 판매자 전용이 아니라 인증된 사용자 공통 wallet 기능입니다.
+- `bankCode`는 현재 Mock 출금 구현에서 제외되어 있습니다.
 
 ### 7.2 Kafka로 받는 이벤트
 
@@ -242,7 +254,7 @@ https://<frontend-domain>/payments/toss/fail
   "data": null,
   "error": {
     "code": "INVALID_INPUT_VALUE",
-    "message": "amount must be positive."
+    "message": "입력값이 올바르지 않습니다."
   }
 }
 ```
@@ -253,11 +265,16 @@ https://<frontend-domain>/payments/toss/fail
 |---|---|---|
 | `INVALID_TOKEN` | `401` | 인증 토큰 문제 |
 | `INVALID_CHARGE_REQUEST` | `400` | 충전 요청 값 오류 |
-| `INVALID_ORDER_PAYMENT_REQUEST` | `400` | 주문 결제 요청 값 오류 |
+| `INVALID_ORDER_PAYMENT_REQUEST` | `400` | 주문 결제/환불 요청 값 오류 |
+| `INVALID_WITHDRAW_REQUEST` | `400` | 출금 요청 값 오류 |
+| `INVALID_WITHDRAW_ACCOUNT` | `400` | 출금 계좌 정보 오류 |
+| `WITHDRAW_AMOUNT_BELOW_MINIMUM` | `400` | 최소 출금 금액 미달 |
+| `WITHDRAW_AMOUNT_NOT_GREATER_THAN_FEE` | `400` | 수수료 이하 금액 출금 요청 |
 | `INVALID_INPUT_VALUE` | `400` | 페이지 번호, 크기, 필수값 등 입력 오류 |
 | `CHARGE_NOT_FOUND` | `404` | 충전 내역 없음 |
 | `WALLET_NOT_FOUND` | `404` | 지갑 없음 |
 | `ESCROW_NOT_FOUND` | `404` | 에스크로 없음 |
+| `INSUFFICIENT_WALLET_BALANCE` | `409` | 예치금 잔액 부족 |
 | `INVALID_STATE` | `409` | 현재 상태에서 처리 불가 |
 | `PAYMENT_GATEWAY_ERROR` | `502` | Toss 연동 실패 |
 
@@ -306,7 +323,7 @@ https://<frontend-domain>/payments/toss/fail
 
 #### `GET /api/payments/charges/{chargeId}`
 
-충전 상세를 조회합니다. 최신 환불 이력이 있으면 함께 내려줍니다.
+충전 상세를 조회합니다.
 
 - 인증: 필요
 - 경로 변수:
@@ -325,30 +342,10 @@ https://<frontend-domain>/payments/toss/fail
   - `approvedAt`
   - `failedAt`
   - `failureReason`
-  - `hasRefundHistory`
-  - `latestRefund`
-
-#### `GET /api/payments/refunds?page=0&size=20`
-
-내 환불 목록을 조회합니다.
-
-- 인증: 필요
-- 쿼리 파라미터:
-  - `page`: 0 이상
-  - `size`: 1 이상 100 이하
-- `items[]` 각 요소 필드:
-  - `chargeRefundId`
-  - `chargeId`
-  - `refundAmount`
-  - `refundStatus`
-  - `refundReason`
-  - `requestedAt`
-  - `refundedAt`
-  - `failedAt`
 
 #### `GET /api/payments/transactions?page=0&size=20`
 
-지갑 거래 내역을 조회합니다. 충전, 환불, 주문 결제, 정산금 지급이 모두 포함됩니다.
+지갑 거래 내역을 조회합니다. 충전, 주문 결제, 주문 환불, 출금, 정산금 적립이 모두 포함됩니다.
 
 - 인증: 필요
 - 쿼리 파라미터:
@@ -381,7 +378,25 @@ https://<frontend-domain>/payments/toss/fail
   - `createdAt`
   - `updatedAt`
 
-### 9.2 충전/환불 API
+#### `GET /api/payments/withdrawals?page=0&size=20`
+
+내 출금 목록을 최신 `requestedAt` 기준 내림차순으로 조회합니다.
+
+- 인증: 필요
+- 쿼리 파라미터:
+  - `page`: 0 이상
+  - `size`: 1 이상 100 이하
+- `items[]` 각 요소 필드:
+  - `withdrawRequestId`
+  - `amount`
+  - `fee`
+  - `actualAmount`
+  - `maskedBankAccount`
+  - `status`
+  - `requestedAt`
+  - `processedAt`
+
+### 9.2 충전/출금 API
 
 #### `POST /api/payments/charge`
 
@@ -435,30 +450,42 @@ Toss 승인 결과를 반영합니다. 승인 성공 시 charge 상태를 확정
   - `walletBalance`
   - `approvedAt`
 
-#### `POST /api/payments/charges/{chargeId}/refund`
+#### `POST /api/payments/withdrawals`
 
-승인 완료된 charge를 환불합니다. PG 취소 성공 시 wallet 잔액을 차감하고 환불 이력을 남깁니다.
+예치금 출금 요청을 생성합니다. 출금 요청 금액만큼 wallet 잔액을 차감하고, 출금 기록과 거래 이력을 함께 저장합니다.
 
-- 인증: 현재 없음
-- 경로 변수:
-  - `chargeId`
+- 인증: 필요
 - 요청 본문:
 
 ```json
 {
-  "refundReason": "단순 환불"
+  "amount": 10000,
+  "bankAccount": "123-456-7890",
+  "accountHolder": "홍길동"
 }
 ```
 
 - 필수값:
-  - `refundReason`
+  - `amount`
+  - `bankAccount`
+  - `accountHolder`
+
+- 정책:
+  - 최소 출금 금액 `5000원`
+  - 고정 수수료 `1000원`
+  - `amount > fee`
+  - `wallet balance >= amount`
 
 - 응답 데이터 필드:
-  - `chargeId`
-  - `refundStatus`
-  - `refundedAmount`
+  - `withdrawRequestId`
+  - `amount`
+  - `fee`
+  - `actualAmount`
+  - `maskedBankAccount`
+  - `status`
   - `walletBalance`
-  - `refundedAt`
+  - `requestedAt`
+  - `processedAt`
 
 ### 9.3 주문 결제 API
 
@@ -527,7 +554,6 @@ Toss 승인 결과를 반영합니다. 승인 성공 시 charge 상태를 확정
 1. order 모듈이 `POST /api/payments/orders` 호출
 2. payment가 구매자 wallet 잔액 차감
 3. seller별 `escrow` 생성
-   - 부분 취소및 부분 환불로 인하여 seller별이 아닌 order_item 별로 변경될 예정입니다.
 4. payment가 `payment.order-payment-result` 이벤트 발행
 
 ### 10.4 구매 확정 시
@@ -536,15 +562,25 @@ Toss 승인 결과를 반영합니다. 승인 성공 시 charge 상태를 확정
 2. payment가 escrow release
 3. `payment.settlement-candidate-created` 이벤트 발행
 
-### 10.5 판매자 환불 시
+### 10.5 주문 환불 시
 
-1. 판매자가 환불 요청 API를 호출
-2. payment가 `HELD escrow` 상태인지 검증
-3. 환불 금액 계산 후 환불 이력과 `escrow_transaction(REFUND)` 기록
-4. 왕복 배송비 `6000원` 차감 정책을 반영
-5. 구매 확정 이후 상태면 환불 불가 처리
+1. 주문 취소 또는 반품 환불 요청이 들어온다.
+2. payment가 카드 환불 금액과 wallet 환불 금액을 분리 계산한다.
+3. 필요한 경우 buyer wallet 환불과 `wallet_transaction` 기록을 생성한다.
+4. `escrow`와 `escrow_transaction(REFUND)`를 반영한다.
+5. 주문 환불 결과를 이벤트와 저장 원장으로 남긴다.
 
-### 10.6 정산 지급 시
+### 10.6 출금 시
+
+1. 사용자가 `POST /api/payments/withdrawals` 호출
+2. payment가 wallet을 잠금 조회하여 잔액과 정책을 검증
+3. 출금 계좌번호와 예금주를 암호화하고 마스킹 값을 만든다.
+4. `withdraw_request`를 저장한다.
+5. wallet 잔액을 차감한다.
+6. `wallet_transaction(WITHDRAWAL)`을 저장한다.
+7. Mock 기준으로 출금 상태를 `COMPLETED`로 종료한다.
+
+### 10.7 정산 지급 시
 
 1. settlement 모듈이 `settlement.seller-payout-requested` 발행
 2. payment가 판매자 wallet에 정산금 적립
@@ -570,16 +606,18 @@ Toss 승인 결과를 반영합니다. 승인 성공 시 charge 상태를 확정
 
 ## 12. 운영 시 참고사항
 
-- `payment`는 `Toss Payments` 승인/취소를 호출하므로 `TOSS_PAYMENTS_*` 환경변수가 필요합니다.
-- 지갑/결제/에스크로 데이터는 `payment` 스키마를 사용합니다.
+- `payment`는 `Toss Payments` 승인 호출을 사용하므로 `TOSS_PAYMENTS_*` 환경변수가 필요합니다.
+- 지갑/결제/에스크로/출금 데이터는 `payment` 스키마를 사용합니다.
 - Swagger 문서는 gateway 기준 Bearer Token 입력을 전제로 구성되어 있습니다.
 - 페이지 조회 API는 모두 `size <= 100` 제한이 있습니다.
-- settlement 지급 요청은 중복 처리 방지를 위해 `referenceId = settlementId + referenceType = "SETTLEMENT`을 확인합니다.
+- settlement 지급 요청은 중복 처리 방지를 위해 `referenceId = settlementId + referenceType = "SETTLEMENT"` 조합을 확인합니다.
 - Docker 실행 시 기본 프로필은 `prod`입니다.
 - AWS 운영에서는 `.env.aws.example` 값을 기준으로 시크릿/환경변수를 분리 주입하는 전제가 필요합니다.
+- 출금 계좌번호와 예금주는 암호화 저장하며, 응답에는 마스킹된 계좌번호만 반환합니다.
 
 ## 13. 현재 구현상 메모
 
-- `refund` API에는 소유자 검증 TODO가 남아 있습니다.
+- 출금은 실제 은행 연동이 아닌 Mock 완료 처리입니다.
+- `bankCode`는 현재 구현에서 제외되어 있고, 실은행 연동 시 다시 검토합니다.
 - 주문 결제 API는 HTTP 응답과 별도로 Kafka 결과 이벤트도 발행합니다.
 - 구매 확정 이후 환불은 현재 정책상 허용하지 않습니다.
