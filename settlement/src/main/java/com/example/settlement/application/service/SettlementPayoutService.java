@@ -92,6 +92,26 @@ public class SettlementPayoutService implements SettlementPayoutUseCase {
         return pendingSettlements.size();
     }
 
+    @Override
+    public void requestPayoutForPartialSettlement(UUID settlementId) {
+        Objects.requireNonNull(settlementId, "settlementId is required.");
+
+        Settlement partialSettlement = settlementRepository.findBySettlementId(settlementId)
+                .orElseThrow(() -> new IllegalArgumentException("Settlement not found: " + settlementId));
+
+        if (partialSettlement.getSettlementType() != SettlementType.PARTIAL) {
+            throw new IllegalArgumentException("Only partial settlement payout is allowed.");
+        }
+        if (partialSettlement.getSettlementStatus() != SettlementStatus.PENDING) {
+            throw new IllegalArgumentException("Only pending partial settlement can request payout.");
+        }
+        if (partialSettlement.getFinalSettlementAmount() == null || partialSettlement.getFinalSettlementAmount() <= 0L) {
+            throw new IllegalArgumentException("partial settlement payout amount must be positive.");
+        }
+
+        publishPayoutRequest(partialSettlement, LocalDateTime.now());
+    }
+
     /**
      * payment 모듈의 지급 결과 이벤트를 settlement 상태로 반영한다.
      * 흐름:
