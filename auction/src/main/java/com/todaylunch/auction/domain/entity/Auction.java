@@ -1,7 +1,7 @@
 package com.todaylunch.auction.domain.entity;
 
 import com.todaylunch.auction.common.exception.domain.AuctionNotOngoingException;
-import com.todaylunch.auction.common.exception.domain.BidPriceNotHigherException;
+import com.todaylunch.auction.common.exception.domain.BidIncrementNotMetException;
 import com.todaylunch.auction.common.exception.domain.SelfBidNotAllowedException;
 import com.todaylunch.auction.domain.enumtype.AuctionStatus;
 import jakarta.persistence.Column;
@@ -41,17 +41,20 @@ public class Auction {
     @Column(name = "start_price", nullable = false, precision = 19, scale = 2)
     private BigDecimal startPrice;
 
+    @Column(name = "bid_unit", nullable = false, precision = 19, scale = 2)
+    private BigDecimal bidUnit;
+
     @Column(name = "current_highest_price", precision = 19, scale = 2)
     private BigDecimal currentHighestPrice;
-
-    @Column(name = "duration_minutes", nullable = false)
-    private Integer durationMinutes;
 
     @Column(name = "started_at", nullable = false)
     private LocalDateTime startedAt;
 
-    @Column(name = "close_at", nullable = false)
-    private LocalDateTime closeAt;
+    @Column(name = "scheduled_close_at", nullable = false, updatable = false)
+    private LocalDateTime scheduledCloseAt;
+
+    @Column(name = "ended_at", nullable = false)
+    private LocalDateTime endedAt;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 30)
@@ -68,9 +71,10 @@ public class Auction {
             UUID productId,
             UUID sellerId,
             BigDecimal startPrice,
-            Integer durationMinutes,
+            BigDecimal bidUnit,
             LocalDateTime startedAt,
-            LocalDateTime closeAt,
+            LocalDateTime scheduledCloseAt,
+            LocalDateTime endedAt,
             AuctionStatus status,
             LocalDateTime createdAt,
             LocalDateTime updatedAt
@@ -79,9 +83,10 @@ public class Auction {
         this.productId = Objects.requireNonNull(productId);
         this.sellerId = Objects.requireNonNull(sellerId);
         this.startPrice = Objects.requireNonNull(startPrice);
-        this.durationMinutes = Objects.requireNonNull(durationMinutes);
+        this.bidUnit = Objects.requireNonNull(bidUnit);
         this.startedAt = Objects.requireNonNull(startedAt);
-        this.closeAt = Objects.requireNonNull(closeAt);
+        this.scheduledCloseAt = Objects.requireNonNull(scheduledCloseAt);
+        this.endedAt = Objects.requireNonNull(endedAt);
         this.status = Objects.requireNonNull(status);
         this.createdAt = Objects.requireNonNull(createdAt);
         this.updatedAt = Objects.requireNonNull(updatedAt);
@@ -92,11 +97,13 @@ public class Auction {
             UUID productId,
             UUID sellerId,
             BigDecimal startPrice,
-            Integer durationMinutes,
-            LocalDateTime startedAt
+            BigDecimal bidUnit,
+            LocalDateTime startedAt,
+            LocalDateTime scheduledCloseAt
     ) {
         validateStartPrice(startPrice);
-        validateDuration(durationMinutes);
+        validateBidUnit(bidUnit);
+        validateScheduledCloseAt(startedAt, scheduledCloseAt);
 
         LocalDateTime now = LocalDateTime.now();
         return new Auction(
@@ -104,9 +111,10 @@ public class Auction {
                 productId,
                 sellerId,
                 startPrice,
-                durationMinutes,
+                bidUnit,
                 startedAt,
-                startedAt.plusMinutes(durationMinutes),
+                scheduledCloseAt,
+                scheduledCloseAt,
                 AuctionStatus.WAITING,
                 now,
                 now
@@ -129,8 +137,8 @@ public class Auction {
         if (this.status != AuctionStatus.ONGOING) {
             throw new AuctionNotOngoingException();
         }
-        if (!isHigherThanCurrent(bidPrice)) {
-            throw new BidPriceNotHigherException();
+        if (!meetsMinimumIncrement(bidPrice)) {
+            throw new BidIncrementNotMetException();
         }
         this.currentHighestPrice = bidPrice;
         extendTimeIfNearEnd(now);
@@ -162,15 +170,16 @@ public class Auction {
         this.updatedAt = LocalDateTime.now();
     }
 
-    private boolean isHigherThanCurrent(BigDecimal bidPrice) {
+    private boolean meetsMinimumIncrement(BigDecimal bidPrice) {
         BigDecimal reference = this.currentHighestPrice != null ? this.currentHighestPrice : this.startPrice;
-        return bidPrice.compareTo(reference) > 0;
+        BigDecimal minAllowed = reference.add(this.bidUnit);
+        return bidPrice.compareTo(minAllowed) >= 0;
     }
 
     private void extendTimeIfNearEnd(LocalDateTime now) {
-        long remaining = Duration.between(now, this.closeAt).toSeconds();
+        long remaining = Duration.between(now, this.endedAt).toSeconds();
         if (remaining > 0 && remaining <= EXTEND_THRESHOLD_SECONDS) {
-            this.closeAt = this.closeAt.plusSeconds(EXTEND_AMOUNT_SECONDS);
+            this.endedAt = this.endedAt.plusSeconds(EXTEND_AMOUNT_SECONDS);
         }
     }
 
@@ -180,9 +189,18 @@ public class Auction {
         }
     }
 
-    private static void validateDuration(Integer durationMinutes) {
-        if (durationMinutes == null || durationMinutes <= 0) {
-            throw new IllegalArgumentException("경매 시간은 0분보다 커야 합니다");
+    private static void validateBidUnit(BigDecimal bidUnit) {
+        if (bidUnit == null || bidUnit.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("최소 입찰 단위는 0보다 커야 합니다");
+        }
+    }
+
+    private static void validateScheduledCloseAt(LocalDateTime startedAt, LocalDateTime scheduledCloseAt) {
+        if (startedAt == null || scheduledCloseAt == null) {
+            throw new IllegalArgumentException("시작/종료 시각이 필요합니다");
+        }
+        if (!scheduledCloseAt.isAfter(startedAt)) {
+            throw new IllegalArgumentException("종료 시각은 시작 시각 이후여야 합니다");
         }
     }
 }
