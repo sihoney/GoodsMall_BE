@@ -11,6 +11,7 @@ import com.example.settlement.infrastructure.messaging.kafka.contract.PayoutFail
 import com.example.settlement.infrastructure.messaging.kafka.contract.SellerSettlementPayoutRequestedMessage;
 import com.example.settlement.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultMessage;
 import com.example.settlement.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultStatus;
+import com.example.settlement.infrastructure.messaging.kafka.contract.SettlementPayoutType;
 import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -81,6 +82,7 @@ public class SettlementPayoutService implements SettlementPayoutUseCase {
             payoutRequestedEventPublisher.publish(new SellerSettlementPayoutRequestedMessage(
                     UUID.randomUUID(),
                     settlement.getSettlementId(),
+                    toSettlementPayoutType(settlement.getSettlementType()),
                     settlement.getSellerId(),
                     settlement.getSettlementYear(),
                     settlement.getSettlementMonth(),
@@ -256,6 +258,7 @@ public class SettlementPayoutService implements SettlementPayoutUseCase {
         payoutRequestedEventPublisher.publish(new SellerSettlementPayoutRequestedMessage(
                 UUID.randomUUID(),
                 settlement.getSettlementId(),
+                toSettlementPayoutType(settlement.getSettlementType()),
                 settlement.getSellerId(),
                 settlement.getSettlementYear(),
                 settlement.getSettlementMonth(),
@@ -300,6 +303,13 @@ public class SettlementPayoutService implements SettlementPayoutUseCase {
             // 알 수 없는 코드 값은 재지급 자동화 대상에서 제외한다.
             return null;
         }
+    }
+
+    private SettlementPayoutType toSettlementPayoutType(SettlementType settlementType) {
+        return switch (settlementType) {
+            case MONTHLY -> SettlementPayoutType.MONTHLY;
+            case PARTIAL -> SettlementPayoutType.PARTIAL;
+        };
     }
 
     /**
