@@ -3,6 +3,7 @@ package com.example.settlement.presentation.dto.response;
 import com.example.settlement.application.dto.PartialSettlementExecutionResult;
 import com.example.settlement.domain.enumtype.SettlementStatus;
 import com.example.settlement.domain.enumtype.SettlementType;
+import java.math.BigDecimal;
 import java.util.UUID;
 
 /**
@@ -14,9 +15,9 @@ public record PartialSettlementExecutionResponse(
         SettlementType settlementType,
         SettlementStatus settlementStatus,
         int settlementItemCount,
-        Long totalSalesAmount,
-        Long feeAmount,
-        Long finalSettlementAmount
+        BigDecimal totalSalesAmount,
+        BigDecimal feeAmount,
+        BigDecimal finalSettlementAmount
 ) {
 
     public static PartialSettlementExecutionResponse from(PartialSettlementExecutionResult result) {
