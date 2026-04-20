@@ -1,13 +1,16 @@
-﻿# Notification API Spec
+# Notification API Spec
 
-## 엔드포인트
-| Method | Endpoint | 설명 | 요청 시 필요한 데이터 | 구현 여부 |
-| --- | --- | --- | --- | --- |
-| `GET` | `/api/notifications` | 내 알림 목록 조회 | Header: 인증 정보, Query: `page`, `size` | 완료 |
-| `GET` | `/api/notifications/unread-count` | 미읽음 알림 개수 조회 | Header: 인증 정보 | 완료 |
-| `PATCH` | `/api/notifications/{notificationId}/read` | 알림 읽음 처리 | Header: 인증 정보, Path: `notificationId` | 완료 |
+## Endpoint Summary
+| Method | Endpoint | Description | Implemented |
+| --- | --- | --- | --- |
+| `GET` | `/api/notifications` | 내 알림 목록 조회 | `✓` |
+| `GET` | `/api/notifications/unread-count` | 미읽음 알림 개수 조회 | `✓` |
+| `PATCH` | `/api/notifications/{notificationId}/read` | 알림 읽음 처리 | `✓` |
+| `GET` | `/api/notifications/stream` | SSE 알림 구독 | `✓` |
 
-## 공통 응답 형식
+## Common Response Shape
+
+### REST API
 ```json
 {
   "success": true,
@@ -16,22 +19,50 @@
 }
 ```
 
-## 1. 내 알림 목록 조회
-### `GET /api/notifications?page=0&size=20`
+## NotificationResponse Fields
+| Field | Type | Description |
+| --- | --- | --- |
+| `notificationId` | UUID | 알림 식별자 |
+| `type` | `NotificationType` | 알림 종류 |
+| `title` | String | 알림 제목 |
+| `subtitle` | String \| null | 보조 설명 |
+| `content` | String | 알림 본문 |
+| `actions` | `List<NotificationAction>` | UI 액션 버튼 목록 |
+| `referenceId` | UUID \| null | 참조 대상 ID |
+| `referenceType` | `NotificationReferenceType` \| null | 참조 대상 타입 |
+| `read` | boolean | 읽음 여부 |
+| `createdAt` | LocalDateTime | 생성 시각 |
+| `elapsedTime` | String \| null | 경과 시간 텍스트 |
+| `eventId` | UUID | 원본 이벤트 ID |
+| `traceId` | String \| null | 추적용 trace ID |
 
-#### 요청 시 필요한 데이터
-| 위치 | 필드 | 타입 | 필수 |
-| --- | --- | --- | --- |
-| Header | `Authorization` | Bearer Token | Y |
-| Query | `page` | Integer | N |
-| Query | `size` | Integer | N |
+## NotificationAction Fields
+| Field | Type | Description |
+| --- | --- | --- |
+| `label` | String | 버튼 레이블 |
+| `actionType` | String | `navigate`, `callback` |
+| `routeKey` | String | 프론트 라우팅 키 |
+| `referenceId` | UUID \| null | 액션 대상 ID |
+| `variant` | String | `primary`, `secondary` |
+
+## SSE Notes
+- `/api/notifications/stream`은 서버-클라이언트 단방향 SSE 연결이다.
+- 서버는 연결 직후 `connected` 이벤트를 한 번 보낸다.
+- 알림 저장 후 `afterCommit` 시점에 실시간 push를 시도한다.
+- `PUSHED`는 서버 기준 `SseEmitter.send(...)` 성공을 의미하며, 브라우저 렌더링 완료를 보장하지는 않는다.
+- emitter 정리 시에는 `memberId`만이 아니라 emitter instance도 함께 확인해 stale callback이 새 연결을 제거하지 않도록 처리한다.
+
+## 1. Notification List
+
+### `GET /api/notifications?page=0&size=20`
 
 #### Request Example
 ```text
 GET /api/notifications?page=0&size=20
+Authorization: Bearer {accessToken}
 ```
 
-#### Response JSON
+#### Response Example
 ```json
 {
   "success": true,
@@ -39,14 +70,26 @@ GET /api/notifications?page=0&size=20
     "items": [
       {
         "notificationId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
-        "memberId": "11111111-1111-1111-1111-111111111111",
         "type": "ORDER_PAYMENT_SUCCEEDED",
         "title": "Payment completed",
-        "content": "Your payment was completed successfully. Amount: 15000",
+        "subtitle": "Order bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        "content": "Your payment was completed successfully.",
+        "actions": [
+          {
+            "label": "Order detail",
+            "actionType": "navigate",
+            "routeKey": "ORDER_DETAIL",
+            "referenceId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+            "variant": "primary"
+          }
+        ],
         "referenceId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
         "referenceType": "ORDER",
         "read": false,
-        "createdAt": "2026-04-10T12:10:00"
+        "createdAt": "2026-04-10T12:10:00",
+        "elapsedTime": "5 minutes ago",
+        "eventId": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+        "traceId": "trace-order-payment-001"
       }
     ],
     "page": 0,
@@ -59,15 +102,11 @@ GET /api/notifications?page=0&size=20
 }
 ```
 
-## 2. 미읽음 알림 개수 조회
+## 2. Unread Count
+
 ### `GET /api/notifications/unread-count`
 
-#### 요청 시 필요한 데이터
-| 위치 | 필드 | 타입 | 필수 |
-| --- | --- | --- | --- |
-| Header | `Authorization` | Bearer Token | Y |
-
-#### Response JSON
+#### Response Example
 ```json
 {
   "success": true,
@@ -78,119 +117,57 @@ GET /api/notifications?page=0&size=20
 }
 ```
 
-## 3. 알림 읽음 처리
-### `PATCH /api/notifications/{notificationId}/read`
+## 3. Mark As Read
 
-#### 요청 시 필요한 데이터
-| 위치 | 필드 | 타입 | 필수 |
-| --- | --- | --- | --- |
-| Header | `Authorization` | Bearer Token | Y |
-| Path | `notificationId` | UUID | Y |
+### `PATCH /api/notifications/{notificationId}/read`
 
 #### Request Example
 ```text
 PATCH /api/notifications/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/read
+Authorization: Bearer {accessToken}
 ```
 
-#### Response JSON
+#### Response Example
 ```json
 {
   "success": true,
   "data": {
     "notificationId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
-    "memberId": "11111111-1111-1111-1111-111111111111",
     "type": "ORDER_PAYMENT_SUCCEEDED",
     "title": "Payment completed",
-    "content": "Your payment was completed successfully. Amount: 15000",
+    "subtitle": "Order bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    "content": "Your payment was completed successfully.",
+    "actions": [],
     "referenceId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
     "referenceType": "ORDER",
     "read": true,
-    "createdAt": "2026-04-10T12:10:00"
+    "createdAt": "2026-04-10T12:10:00",
+    "elapsedTime": "5 minutes ago",
+    "eventId": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+    "traceId": "trace-order-payment-001"
   },
   "error": null
 }
 ```
 
-## 이벤트 기반 Payload 예시
-아래는 공개 REST API가 아니라 Kafka consumer가 받는 payload 예시입니다.
+## 4. SSE Stream
 
-### 자동 구매 확정 이벤트
+### `GET /api/notifications/stream`
 
-#### 요청 시 필요한 데이터
-| 위치 | 필드 | 타입 | 필수 |
-| --- | --- | --- | --- |
-| Payload | `orderId` | UUID | Y |
-| Payload | `buyerMemberId` | UUID | Y |
-| Payload | `confirmedAt` | Instant | Y |
+#### Response Behavior
+- SSE 연결이 열리면 서버는 `connected` 이벤트를 먼저 보낸다.
+- 이후 실시간 알림은 `notification` 이벤트로 push된다.
 
-```json
-{
-  "orderId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
-  "buyerMemberId": "11111111-1111-1111-1111-111111111111",
-  "confirmedAt": "2026-04-10T03:15:00Z"
-}
+#### Example Event Stream
+```text
+event: connected
+data: {"memberId":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"}
+
+event: notification
+data: {"notificationId":"bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb","type":"MEMBER_SIGNED_UP","title":"Welcome to TodayLunch"}
 ```
 
-### 주문 결제 결과 이벤트
-
-#### 요청 시 필요한 데이터
-| 위치 | 필드 | 타입 | 필수 |
-| --- | --- | --- | --- |
-| Payload | `eventId` | UUID | Y |
-| Payload | `orderId` | UUID | Y |
-| Payload | `buyerMemberId` | UUID | Y |
-| Payload | `amount` | Number | 조건부 |
-| Payload | `status` | Enum | Y |
-| Payload | `reasonCode` | Enum | 조건부 |
-| Payload | `occurredAt` | Instant | Y |
-
-```json
-{
-  "eventId": "cccccccc-cccc-cccc-cccc-cccccccccccc",
-  "orderId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
-  "buyerMemberId": "11111111-1111-1111-1111-111111111111",
-  "amount": 15000,
-  "status": "SUCCESS",
-  "reasonCode": null,
-  "occurredAt": "2026-04-10T03:20:00Z"
-}
-```
-
-### 판매자 정산 지급 결과 이벤트
-
-#### 요청 시 필요한 데이터
-| 위치 | 필드 | 타입 | 필수 |
-| --- | --- | --- | --- |
-| Payload | `eventId` | UUID | Y |
-| Payload | `requestEventId` | UUID | Y |
-| Payload | `settlementId` | UUID | Y |
-| Payload | `sellerMemberId` | UUID | Y |
-| Payload | `payoutAmount` | Long | Y |
-| Payload | `resultStatus` | Enum | Y |
-| Payload | `failureReason` | Enum | 조건부 |
-| Payload | `processedAt` | LocalDateTime | Y |
-
-```json
-{
-  "eventId": "dddddddd-dddd-dddd-dddd-dddddddddddd",
-  "requestEventId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
-  "settlementId": "ffffffff-ffff-ffff-ffff-ffffffffffff",
-  "sellerMemberId": "22222222-2222-2222-2222-222222222222",
-  "payoutAmount": 30000,
-  "resultStatus": "FAILED",
-  "failureReason": "WALLET_NOT_FOUND",
-  "processedAt": "2026-04-10T12:20:00"
-}
-```
-
-## 에러 응답 예시
-```json
-{
-  "success": false,
-  "data": null,
-  "error": {
-    "code": "NOTIFICATION_NOT_FOUND",
-    "message": "알림을 찾을 수 없습니다."
-  }
-}
-```
+## 참고 문서
+- [Architecture.md](C:/my_project/beadv5_2_TodayLunchMenu_BE/notification/docs/Architecture.md)
+- [EventDesign.md](C:/my_project/beadv5_2_TodayLunchMenu_BE/notification/docs/EventDesign.md)
+- [StateTransition.md](C:/my_project/beadv5_2_TodayLunchMenu_BE/notification/docs/StateTransition.md)

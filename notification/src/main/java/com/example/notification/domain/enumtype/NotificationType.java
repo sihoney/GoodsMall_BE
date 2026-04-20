@@ -1,6 +1,7 @@
 package com.example.notification.domain.enumtype;
 
 public enum NotificationType {
+    MEMBER_SIGNED_UP,
     AUTO_PURCHASE_CONFIRMED,
     ORDER_PAYMENT_SUCCEEDED,
     ORDER_PAYMENT_FAILED,

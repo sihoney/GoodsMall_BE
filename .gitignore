@@ -46,6 +46,7 @@ bin/
 product/.env
 
 private_docs/
+docs_private/
 docs/
 temp_api.json
 
