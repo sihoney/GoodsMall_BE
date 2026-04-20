@@ -13,6 +13,8 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class AuctionPriceRecommendationService implements AuctionPriceRecommendationUseCase {
 
+    private final AuctionPriceCalculator auctionPriceCalculator;
+
     @Override
     public AuctionPriceRecommendationResult recommend(AuctionPriceRecommendationCommand command) {
         log.info(
@@ -23,8 +25,8 @@ public class AuctionPriceRecommendationService implements AuctionPriceRecommenda
                 command.startPrice()
         );
 
-        BigDecimal recommendedPrice = calculateRecommendedBidPrice(command);
-        BigDecimal expectedFinalPrice = calculateExpectedFinalPrice(command);
+        BigDecimal recommendedPrice = auctionPriceCalculator.calculateRecommendedBidPrice(command);
+        BigDecimal expectedFinalPrice = auctionPriceCalculator.calculateExpectedFinalPrice(command);
 
         return new AuctionPriceRecommendationResult(
                 expectedFinalPrice,
@@ -34,15 +36,6 @@ public class AuctionPriceRecommendationService implements AuctionPriceRecommenda
         );
     }
 
-    private BigDecimal calculateRecommendedBidPrice(AuctionPriceRecommendationCommand command) {
-        // TODO: 커밋 3에서 실제 계산 로직으로 교체
-        return command.currentBidPrice();
-    }
-
-    private BigDecimal calculateExpectedFinalPrice(AuctionPriceRecommendationCommand command) {
-        // TODO: 커밋 3에서 실제 계산 로직으로 교체
-        return command.currentBidPrice();
-    }
 
     private String buildPriceReason(AuctionPriceRecommendationCommand command) {
         // TODO: 커밋 4에서 설명 문구 생성 로직으로 교체
