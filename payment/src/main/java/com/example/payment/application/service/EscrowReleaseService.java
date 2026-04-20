@@ -66,12 +66,12 @@ public class EscrowReleaseService implements EscrowReleaseUseCase {
         }
 
         LocalDateTime now = timeProvider.now();
-        long releasedAmount = 0L;
+        java.math.BigDecimal releasedAmount = java.math.BigDecimal.ZERO;
         boolean releasedAny = false;
 
         for (Escrow escrow : sellerEscrows) {
             if (escrow.isReleased()) {
-                releasedAmount += escrow.getAmount();
+                releasedAmount = releasedAmount.add(escrow.getAmount());
                 continue;
             }
             if (escrow.isRefunded()) {
@@ -81,12 +81,12 @@ public class EscrowReleaseService implements EscrowReleaseUseCase {
                 throw new IllegalStateException("Escrow is not releasable.");
             }
 
-            long beforeAmount = escrow.getAmount();
+            java.math.BigDecimal beforeAmount = escrow.getAmount();
             escrow.release(now, now);
             escrowRepository.save(escrow);
             recordReleaseEscrowTransaction(escrow, beforeAmount, escrow.getAmount(), now);
             releasedAny = true;
-            releasedAmount += escrow.getAmount();
+            releasedAmount = releasedAmount.add(escrow.getAmount());
 
             // settlement는 escrow 단위 원천 항목을 적재하므로, 해제된 escrow별로 후보를 발행한다.
             settlementCandidateCreatedEventPublisher.publish(new SettlementCandidateCreatedEvent(
@@ -110,7 +110,7 @@ public class EscrowReleaseService implements EscrowReleaseUseCase {
         return new EscrowReleaseResult(
                 command.orderId(),
                 releasedAmount,
-                releasedAmount > 0L ? EscrowStatus.RELEASED : EscrowStatus.REFUNDED,
+                releasedAmount.compareTo(java.math.BigDecimal.ZERO) > 0 ? EscrowStatus.RELEASED : EscrowStatus.REFUNDED,
                 now
         );
     }
@@ -118,11 +118,11 @@ public class EscrowReleaseService implements EscrowReleaseUseCase {
     /**
      * 이미 해제된 escrow의 결과를 현재 응답 형식으로 재구성한다.
      */
-    private EscrowReleaseResult existingResult(UUID orderId, Long releasedAmount) {
+    private EscrowReleaseResult existingResult(UUID orderId, java.math.BigDecimal releasedAmount) {
         return new EscrowReleaseResult(
                 orderId,
                 releasedAmount,
-                releasedAmount > 0L ? EscrowStatus.RELEASED : EscrowStatus.REFUNDED,
+                releasedAmount.compareTo(java.math.BigDecimal.ZERO) > 0 ? EscrowStatus.RELEASED : EscrowStatus.REFUNDED,
                 timeProvider.now()
         );
     }
@@ -147,8 +147,8 @@ public class EscrowReleaseService implements EscrowReleaseUseCase {
 
     private void recordReleaseEscrowTransaction(
             Escrow escrow,
-            Long beforeAmount,
-            Long afterAmount,
+            java.math.BigDecimal beforeAmount,
+            java.math.BigDecimal afterAmount,
             LocalDateTime occurredAt
     ) {
         EscrowTransaction transaction = EscrowTransaction.release(

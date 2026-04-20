@@ -16,6 +16,7 @@ import com.example.payment.domain.repository.WalletTransactionRepository;
 import com.example.payment.domain.service.IdentifierGenerator;
 import com.example.payment.domain.service.TimeProvider;
 import com.example.payment.domain.service.TossPaymentGateway;
+import java.math.BigDecimal;
 import java.util.Objects;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -102,7 +103,7 @@ public class ConfirmChargeService implements ChargeConfirmUseCase {
         );
 
         // 지갑 증가 메서드를 이용해서 값을 증가
-        Long balanceAfter = wallet.increaseBalance(confirmation.approvedAmount(), confirmation.approvedAt());
+        BigDecimal balanceAfter = wallet.increaseBalance(confirmation.approvedAmount(), confirmation.approvedAt());
         // 지갑 변경 이력을 저장
         WalletTransaction walletTransaction = WalletTransaction.charge(
                 identifierGenerator.generateUuid(),
@@ -136,7 +137,7 @@ public class ConfirmChargeService implements ChargeConfirmUseCase {
         if (command.pgOrderId() == null || command.pgOrderId().isBlank()) {
             throw new InvalidChargeRequestException("pgOrderId is required.");
         }
-        if (command.amount() == null || command.amount() <= 0) {
+        if (command.amount() == null || command.amount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
             throw new InvalidChargeRequestException("amount must be positive.");
         }
     }

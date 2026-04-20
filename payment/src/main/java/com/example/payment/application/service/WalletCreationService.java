@@ -55,7 +55,7 @@ public class WalletCreationService implements CreateWalletUseCase {
         Wallet wallet = Wallet.create(
                 identifierGenerator.generateUuid(),
                 command.memberId(),
-                0L,
+                java.math.BigDecimal.ZERO,
                 command.createdAt(),
                 command.createdAt()
         );

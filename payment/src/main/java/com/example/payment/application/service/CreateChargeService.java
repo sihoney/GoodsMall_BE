@@ -92,7 +92,7 @@ public class CreateChargeService implements ChargeCreateUseCase {
         if (command.memberId() == null) {
             throw new InvalidChargeRequestException("memberId is required.");
         }
-        if (command.amount() == null || command.amount() <= 0) {
+        if (command.amount() == null || command.amount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
             throw new InvalidChargeRequestException("amount must be positive.");
         }
     }
