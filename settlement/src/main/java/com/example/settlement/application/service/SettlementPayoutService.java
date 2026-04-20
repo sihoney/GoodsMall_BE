@@ -98,7 +98,7 @@ public class SettlementPayoutService implements SettlementPayoutUseCase {
         if (partialSettlement.getSettlementStatus() != SettlementStatus.PENDING) {
             throw new IllegalArgumentException("Only pending partial settlement can request payout.");
         }
-        if (partialSettlement.getFinalSettlementAmount() == null || partialSettlement.getFinalSettlementAmount() <= 0L) {
+        if (partialSettlement.getFinalSettlementAmount() == null || partialSettlement.getFinalSettlementAmount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("partial settlement payout amount must be positive.");
         }
 
@@ -275,7 +275,7 @@ public class SettlementPayoutService implements SettlementPayoutUseCase {
         if (event.processedAt() == null) {
             throw new IllegalArgumentException("processedAt is required.");
         }
-        if (event.payoutAmount() == null || event.payoutAmount() <= 0) {
+        if (event.payoutAmount() == null || event.payoutAmount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("payoutAmount must be positive.");
         }
     }

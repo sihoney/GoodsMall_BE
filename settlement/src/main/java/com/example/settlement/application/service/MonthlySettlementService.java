@@ -9,6 +9,7 @@ import com.example.settlement.domain.entity.SettlementItem;
 import com.example.settlement.domain.enumtype.SettlementType;
 import com.example.settlement.domain.repository.SettlementItemRepository;
 import com.example.settlement.domain.repository.SettlementRepository;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.LinkedHashMap;
@@ -55,8 +56,8 @@ public class MonthlySettlementService implements MonthlySettlementUseCase {
         }
 
         // 수수료 계산
-        long feeAmount = calculateFeeAmount(command.grossAmount());
-        long netAmount = command.grossAmount() - feeAmount;
+        BigDecimal feeAmount = calculateFeeAmount(command.grossAmount());
+        BigDecimal netAmount = command.grossAmount().subtract(feeAmount);
 
         return settlementItemRepository.save(SettlementItem.create(
                 UUID.randomUUID(),
@@ -122,9 +123,9 @@ public class MonthlySettlementService implements MonthlySettlementUseCase {
             List<SettlementItem> sellerSettlementItems = entry.getValue();
             Settlement settlement = monthlySettlementBySellerId.get(sellerId);
 
-            long totalGrossAmount = sumGrossAmount(sellerSettlementItems);
-            long totalFeeAmount = sumFeeAmount(sellerSettlementItems);
-            long totalNetAmount = sumNetAmount(sellerSettlementItems);
+            BigDecimal totalGrossAmount = sumGrossAmount(sellerSettlementItems);
+            BigDecimal totalFeeAmount = sumFeeAmount(sellerSettlementItems);
+            BigDecimal totalNetAmount = sumNetAmount(sellerSettlementItems);
 
             if (settlement == null) {
                 settlement = settlementRepository.save(Settlement.createMonthlyPending(
@@ -207,11 +208,11 @@ public class MonthlySettlementService implements MonthlySettlementUseCase {
     /**
      * MVP 수수료 정책으로 feeAmount를 계산한다.
      * <p>
-     * 정책: feeAmount = grossAmount * 10% 이며 Long 정수 나눗셈으로
-     * 소수점 이하는 floor(버림) 처리한다.
+     * 정책: feeAmount = grossAmount * 10% 이며 소수점 이하는 FLOOR(버림) 처리한다.
      */
-    private long calculateFeeAmount(long grossAmount) {
-        return Math.floorDiv(grossAmount * FEE_RATE_PERCENT, HUNDRED_PERCENT);
+    private BigDecimal calculateFeeAmount(BigDecimal grossAmount) {
+        return grossAmount.multiply(BigDecimal.valueOf(FEE_RATE_PERCENT))
+                .divideToIntegralValue(BigDecimal.valueOf(HUNDRED_PERCENT));
     }
 
     private void requireUuid(UUID value, String fieldName) {
@@ -220,8 +221,8 @@ public class MonthlySettlementService implements MonthlySettlementUseCase {
         }
     }
 
-    private void requirePositive(Long value) {
-        if (value == null || value <= 0) {
+    private void requirePositive(BigDecimal value) {
+        if (value == null || value.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("grossAmount must be positive.");
         }
     }
@@ -265,21 +266,21 @@ public class MonthlySettlementService implements MonthlySettlementUseCase {
         }
     }
 
-    private long sumGrossAmount(List<SettlementItem> settlementItems) {
+    private BigDecimal sumGrossAmount(List<SettlementItem> settlementItems) {
         return settlementItems.stream()
-                .mapToLong(SettlementItem::getGrossAmount)
-                .sum();
+                .map(SettlementItem::getGrossAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    private long sumFeeAmount(List<SettlementItem> settlementItems) {
+    private BigDecimal sumFeeAmount(List<SettlementItem> settlementItems) {
         return settlementItems.stream()
-                .mapToLong(SettlementItem::getFeeAmount)
-                .sum();
+                .map(SettlementItem::getFeeAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    private long sumNetAmount(List<SettlementItem> settlementItems) {
+    private BigDecimal sumNetAmount(List<SettlementItem> settlementItems) {
         return settlementItems.stream()
-                .mapToLong(SettlementItem::getNetAmount)
-                .sum();
+                .map(SettlementItem::getNetAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }

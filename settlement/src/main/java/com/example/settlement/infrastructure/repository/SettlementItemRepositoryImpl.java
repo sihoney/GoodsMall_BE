@@ -3,6 +3,7 @@ package com.example.settlement.infrastructure.repository;
 import com.example.settlement.domain.entity.SettlementItem;
 import com.example.settlement.domain.enumtype.SettlementItemStatus;
 import com.example.settlement.domain.repository.SettlementItemRepository;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -75,7 +76,7 @@ public class SettlementItemRepositoryImpl implements SettlementItemRepository {
         return settlementItemJpaRepository.findBySellerIdAndSettlementItemStatusAndGrossAmountGreaterThanOrderByReleasedAtDesc(
                 sellerId,
                 SettlementItemStatus.UNASSIGNED,
-                0L
+                BigDecimal.ZERO
         );
     }
 
