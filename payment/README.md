@@ -1,4 +1,4 @@
-# Payment Service
+음과# Payment Service
 
 `payment` 모듈은 결제와 지갑을 담당하는 서비스입니다. 사용자 지갑 생성, 충전/충전 확정, 주문 결제, 에스크로 보관, 구매 확정 이후 정산 후보 발행, 주문 환불, 예치금 출금, 판매자 정산금 입금, 월 정산과 부분 정산 지급 결과 반영을 처리합니다.
 
@@ -418,7 +418,7 @@ https://<frontend-domain>/payments/toss/fail
 
 ```json
 {
-  "amount": 10000
+  "amount": 10000.00
 }
 ```
 
@@ -444,7 +444,7 @@ Toss 승인 결과를 반영합니다. 승인 성공 시 charge 상태를 확정
   "chargeId": "UUID",
   "paymentKey": "toss payment key",
   "orderId": "CHARGE-...",
-  "amount": 10000
+  "amount": 10000.00
 }
 ```
 
@@ -470,7 +470,7 @@ Toss 승인 결과를 반영합니다. 승인 성공 시 charge 상태를 확정
 
 ```json
 {
-  "amount": 10000,
+  "amount": 10000.00,
   "bankAccount": "123-456-7890",
   "accountHolder": "홍길동"
 }
@@ -511,15 +511,15 @@ Toss 승인 결과를 반영합니다. 승인 성공 시 charge 상태를 확정
 {
   "orderId": "UUID",
   "buyerId": "UUID",
-  "totalPrice": 12000,
+  "totalPrice": 12000.00,
   "requestedAt": "2026-04-10T09:00:00Z",
   "orderLines": [
     {
       "orderItemId": "UUID",
       "sellerId": "UUID",
-      "unitPriceSnapshot": 6000,
+      "unitPriceSnapshot": 6000.00,
       "quantity": 2,
-      "lineTotalPrice": 12000
+      "lineTotalPrice": 12000.00
     }
   ]
 }
@@ -645,3 +645,10 @@ Toss 승인 결과를 반영합니다. 승인 성공 시 charge 상태를 확정
 - 구매 확정 이후 환불은 현재 정책상 허용하지 않습니다.
 - 부분 정산의 조회와 실행 진입점은 `payment`가 아니라 `settlement`입니다.
 - payment는 부분 정산 화면용 API를 만들지 않고, payout 요청 수신 후 wallet 반영 책임만 가집니다.
+
+## 14. 변경 메모 (2026-04-20)
+
+- payment 모듈의 금액 필드/DTO/서비스 연산 기준을 `Long`에서 `BigDecimal`로 통일했습니다.
+- 금액 비교/연산은 `compareTo`, `add`, `subtract`, `negate` 기준으로 동작합니다.
+- Toss 연동 경계에서는 API 제약에 따라 요청/응답 직렬화 시 `longValueExact`/`BigDecimal.valueOf` 변환을 사용합니다.
+

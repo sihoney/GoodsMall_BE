@@ -83,14 +83,14 @@
 - 주요 입력:
   - `auctionId`
   - `productId`
-  - `currentBidPrice`
-  - `startPrice`
+  - `currentBidPrice` (`BigDecimal`)
+  - `startPrice` (`BigDecimal`)
   - `productName` (선택)
   - `bidCount` (선택)
   - `remainingSeconds` (선택)
 - 주요 응답:
-  - `expectedFinalPrice`
-  - `recommendedBidPrice`
+  - `expectedFinalPrice` (`BigDecimal`)
+  - `recommendedBidPrice` (`BigDecimal`)
   - `priceReason`
   - `notes`
 - 처리 방식:
@@ -186,3 +186,9 @@ ai
 - 경매 추천 가격 AI 내부 API는 현재 구현 및 인계 준비 상태입니다.
 - 생성 경로는 `OpenAI 우선 -> 실패 시 규칙 기반 fallback`입니다.
 - auction 공개 API 연결은 auction 담당 범위이며, 상세 연결 규칙은 인계 가이드를 따릅니다.
+
+## 9. 변경 메모 (2026-04-20)
+
+- 경매 가격추천 API의 금액 필드 타입을 문서에 `BigDecimal`로 명시했습니다.
+- `remainingSeconds`는 시간(초) 데이터이므로 `long` 유지가 맞다는 점을 문서 기준으로 재확인했습니다.
+

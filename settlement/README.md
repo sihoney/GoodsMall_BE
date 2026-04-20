@@ -416,11 +416,10 @@ Docker/AWS 환경에서는 기본적으로 `prod` 프로필로 실행됩니다.
 1. 판매자가 부분 정산 가능 항목 조회 API를 호출한다.
 2. settlement가 seller 기준 `UNASSIGNED SettlementItem`을 내려준다.
 3. 판매자가 일부 `settlementItemId`를 선택한다.
-4. 선택한 item을 `UNASSIGNED -> PROCESSING` 선점한다.
-5. settlement가 `Settlement(PARTIAL)`를 `PENDING` 상태로 생성한다.
-6. 선택한 `SettlementItem`에 `settlementId`를 연결하고 `ASSIGNED` 상태로 변경한다.
-7. 즉시 payout 요청 이벤트를 발행한다.
-8. `Settlement` 상태를 `PROCESSING`으로 변경한다.
+4. settlement가 `Settlement(PARTIAL)`를 `PENDING` 상태로 생성한다.
+5. 선택한 `SettlementItem`에 `settlementId`를 연결하고 `ASSIGNED` 상태로 변경한다.
+6. 즉시 payout 요청 이벤트를 발행한다.
+7. `Settlement` 상태를 `PROCESSING`으로 변경한다.
 
 ### 9.4 지급 요청
 
@@ -521,4 +520,10 @@ Docker/AWS 환경에서는 기본적으로 `prod` 프로필로 실행됩니다.
 - 월 정산 헤더는 `MONTHLY` 기준 seller/year/month 유니크 인덱스로 중복 생성을 막는 방향입니다.
 - 상태 선점 이후 실패 복구나 stuck `PROCESSING` 대응은 후속 보완 범위입니다.
 - 실패 재시도 스케줄러는 현재 월 기준만 대상으로 합니다.
-- OpenAPI 설명상 운영 검증은 `ADMIN` 만 사용 가능한 것을 전제로 합니다.
+- OpenAPI 설명상 운영 검증은 `ADMIN` 만 사용 가능한 것을 전제로 합니다
+## 13. 변경 메모 (2026-04-20)
+
+- settlement 모듈의 금액 필드(`grossAmount`, `feeAmount`, `netAmount`, `payoutAmount` 등) 문서 기준을 코드와 동일하게 `BigDecimal`로 정렬했습니다.
+- 월 정산/부분 정산 집계 합계는 `BigDecimal` 누적 기준으로 해석합니다.
+- 시간 필드(예: `remainingSeconds`)와 금액 필드를 명확히 분리해 타입 혼동을 방지합니다.
+
