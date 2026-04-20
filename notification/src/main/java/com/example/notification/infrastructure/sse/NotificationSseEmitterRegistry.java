@@ -26,4 +26,10 @@ public class NotificationSseEmitterRegistry {
     public void remove(UUID memberId) {
         emitters.remove(memberId);
     }
+
+    public void remove(UUID memberId, SseEmitter emitter) {
+        emitters.computeIfPresent(memberId, (key, currentEmitter) ->
+                currentEmitter == emitter ? null : currentEmitter
+        );
+    }
 }

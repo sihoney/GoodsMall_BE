@@ -33,16 +33,16 @@ public class NotificationSseController {
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
         emitterRegistry.register(memberId, emitter);
 
-        emitter.onCompletion(() -> emitterRegistry.remove(memberId));
-        emitter.onTimeout(() -> emitterRegistry.remove(memberId));
-        emitter.onError((throwable) -> emitterRegistry.remove(memberId));
+        emitter.onCompletion(() -> emitterRegistry.remove(memberId, emitter));
+        emitter.onTimeout(() -> emitterRegistry.remove(memberId, emitter));
+        emitter.onError((throwable) -> emitterRegistry.remove(memberId, emitter));
 
         try {
             emitter.send(SseEmitter.event()
                     .name(CONNECTED_EVENT_NAME)
                     .data(Map.of("memberId", memberId.toString())));
         } catch (IOException e) {
-            emitterRegistry.remove(memberId);
+            emitterRegistry.remove(memberId, emitter);
             emitter.completeWithError(e);
         }
 
