@@ -7,6 +7,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
@@ -31,13 +32,13 @@ public class WithdrawRequest {
     private UUID walletId;
 
     @Column(name = "amount", nullable = false)
-    private Long amount;
+    private BigDecimal amount;
 
     @Column(name = "fee", nullable = false)
-    private Long fee;
+    private BigDecimal fee;
 
     @Column(name = "actual_amount", nullable = false)
-    private Long actualAmount;
+    private BigDecimal actualAmount;
 
     @Column(name = "encrypted_bank_account", nullable = false)
     private String encryptedBankAccount;
@@ -74,9 +75,9 @@ public class WithdrawRequest {
             UUID withdrawRequestId,
             UUID memberId,
             UUID walletId,
-            Long amount,
-            Long fee,
-            Long actualAmount,
+            BigDecimal amount,
+            BigDecimal fee,
+            BigDecimal actualAmount,
             String encryptedBankAccount,
             String encryptedAccountHolder,
             String maskedBankAccount,
@@ -110,9 +111,9 @@ public class WithdrawRequest {
             UUID withdrawRequestId,
             UUID memberId,
             UUID walletId,
-            Long amount,
-            Long fee,
-            Long actualAmount,
+            BigDecimal amount,
+            BigDecimal fee,
+            BigDecimal actualAmount,
             String encryptedBankAccount,
             String encryptedAccountHolder,
             String maskedBankAccount,
@@ -120,7 +121,7 @@ public class WithdrawRequest {
     ) {
         validatePositiveAmount(amount, "withdraw amount must be positive.");
         validateNonNegativeFee(fee);
-        if (actualAmount == null || actualAmount <= 0) {
+        if (actualAmount == null || actualAmount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("actualAmount must be positive.");
         }
 
@@ -163,14 +164,14 @@ public class WithdrawRequest {
         this.updatedAt = processedAt;
     }
 
-    private static void validatePositiveAmount(Long amount, String message) {
-        if (Objects.requireNonNull(amount) <= 0) {
+    private static void validatePositiveAmount(BigDecimal amount, String message) {
+        if (Objects.requireNonNull(amount).compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException(message);
         }
     }
 
-    private static void validateNonNegativeFee(Long fee) {
-        if (Objects.requireNonNull(fee) < 0) {
+    private static void validateNonNegativeFee(BigDecimal fee) {
+        if (Objects.requireNonNull(fee).compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("fee must be zero or positive.");
         }
     }
