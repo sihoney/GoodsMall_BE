@@ -229,6 +229,7 @@ services:
       db-migration:
         condition: service_completed_successfully
     environment:
+      SPRING_PROFILES_ACTIVE: local
       DB_URL: ${DB_URL}
       DB_USER_NAME: ${DB_USER_NAME}
       DB_USER_PASSWORD: ${DB_USER_PASSWORD}
@@ -245,13 +246,13 @@ services:
       API_GATEWAY_HOST: http://gateway:8080
       CONFIG_SERVER_URL: http://config:8888
       # 이메일 발송을 위한 설정
-      EMAIL_PROVIDER: smtp
-      SMTP_HOST: sandbox.smtp.mailtrap.io
-      SMTP_PORT: 2525
-      SMTP_USERNAME: dd921089fca6f5
-      SMTP_PASSWORD: b6654b327c814b
-      SMTP_AUTH: true
-      SMTP_STARTTLS_ENABLE: true
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USERNAME: ${SMTP_USERNAME}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_AUTH: ${SMTP_AUTH}
+      SMTP_STARTTLS_ENABLE: ${SMTP_STARTTLS_ENABLE}
       MAIL_FROM: no-reply@todaylunch.local
       MAIL_FROM_NAME: TodayLunch
       EMAIL_VERIFICATION_FRONTEND_URL: ${EMAIL_VERIFICATION_FRONTEND_URL}
