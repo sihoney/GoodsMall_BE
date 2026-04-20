@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 public enum ErrorCode {
 
     INVALID_CHARGE_REQUEST(HttpStatus.BAD_REQUEST, "충전 요청이 올바르지 않습니다."),
+    INVALID_AUCTION_BID_FEE_REQUEST(HttpStatus.BAD_REQUEST, "경매 입찰 수수료 요청이 올바르지 않습니다."),
     INVALID_CARD_PAYMENT_REQUEST(HttpStatus.BAD_REQUEST, "카드 결제 요청이 올바르지 않습니다."),
     INVALID_ORDER_PAYMENT_REQUEST(HttpStatus.BAD_REQUEST, "주문 결제 요청이 올바르지 않습니다."),
     INVALID_WITHDRAW_REQUEST(HttpStatus.BAD_REQUEST, "출금 요청이 올바르지 않습니다."),

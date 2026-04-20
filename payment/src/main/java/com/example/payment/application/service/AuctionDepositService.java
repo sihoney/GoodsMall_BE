@@ -5,6 +5,7 @@ import com.example.payment.application.dto.AuctionDepositResult;
 import com.example.payment.application.usecase.AuctionDepositUseCase;
 import com.example.payment.common.exception.AuctionDepositNotFoundException;
 import com.example.payment.common.exception.InsufficientWalletBalanceException;
+import com.example.payment.common.exception.InvalidAuctionBidFeeRequestException;
 import com.example.payment.common.exception.WalletNotFoundException;
 import com.example.payment.domain.entity.AuctionDeposit;
 import com.example.payment.domain.entity.Wallet;
@@ -134,16 +135,16 @@ public class AuctionDepositService implements AuctionDepositUseCase {
 
     private void validateCommand(AuctionDepositCommand command) {
         if (command == null) {
-            throw new IllegalArgumentException("경매 예치금 처리 요청이 비어 있습니다.");
+            throw new InvalidAuctionBidFeeRequestException("경매 입찰 수수료 요청이 비어 있습니다.");
         }
         if (command.auctionId() == null) {
-            throw new IllegalArgumentException("경매 ID가 없어 예치금 처리를 진행할 수 없습니다.");
+            throw new InvalidAuctionBidFeeRequestException("경매 ID가 없어 예치금 처리를 진행할 수 없습니다.");
         }
         if (command.highestBidderId() == null) {
-            throw new IllegalArgumentException("최고 입찰자 ID가 없어 예치금 처리를 진행할 수 없습니다.");
+            throw new InvalidAuctionBidFeeRequestException("최고 입찰자 ID가 없어 예치금 처리를 진행할 수 없습니다.");
         }
         if (command.highestBidderFee() == null || command.highestBidderFee().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("최고 입찰자 예치금은 0보다 커야 합니다.");
+            throw new InvalidAuctionBidFeeRequestException("최고 입찰자 예치금은 0보다 커야 합니다.");
         }
 
         boolean hasPreviousBidContext = command.previousBidderId() != null
@@ -153,10 +154,10 @@ public class AuctionDepositService implements AuctionDepositUseCase {
         }
 
         if (command.previousBidderId() == null) {
-            throw new IllegalArgumentException("이전 최고 입찰자 ID가 누락되었습니다.");
+            throw new InvalidAuctionBidFeeRequestException("이전 최고 입찰자 ID가 누락되었습니다.");
         }
         if (command.previousBidderPaidFee() == null || command.previousBidderPaidFee().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("이전 최고 입찰자 예치금은 0보다 커야 합니다.");
+            throw new InvalidAuctionBidFeeRequestException("이전 최고 입찰자 예치금은 0보다 커야 합니다.");
         }
     }
 
@@ -174,7 +175,7 @@ public class AuctionDepositService implements AuctionDepositUseCase {
         boolean hasPreviousBidContext = command.previousBidderId() != null || command.previousBidderPaidFee() != null;
         if (!hasPreviousBidContext) {
             if (previousHeldAuctionDeposit != null) {
-                throw new IllegalStateException("이전 최고 입찰 예치금 정보가 존재하는데 요청값이 누락되었습니다.");
+                throw new InvalidAuctionBidFeeRequestException("이전 최고 입찰 예치금 정보가 존재하는데 요청값이 누락되었습니다.");
             }
             return;
         }

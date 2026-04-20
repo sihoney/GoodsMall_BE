@@ -5,16 +5,12 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 public record AuctionFeeVerificationResponse(
-        boolean success,
-        UUID auctionId,
-        String message
+        UUID auctionId
 ) {
 
     public static AuctionFeeVerificationResponse success(AuctionDepositResult result) {
         return new AuctionFeeVerificationResponse(
-                true,
-                result.auctionId(),
-                "경매 예치금 차감 및 환불 처리가 완료되었습니다."
+                result.auctionId()
         );
     }
 }
