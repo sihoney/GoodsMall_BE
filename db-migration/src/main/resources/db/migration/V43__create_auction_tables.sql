@@ -31,7 +31,7 @@ CREATE INDEX idx_auction_started_at ON auction.auction (started_at);
 CREATE INDEX idx_auction_ended_at   ON auction.auction (ended_at);
 
 -- 입찰 테이블
-CREATE TABLE auction.bid
+CREATE TABLE IF NOT EXISTS auction.bid
 (
     bid_id     UUID PRIMARY KEY,
     auction_id UUID           NOT NULL,
