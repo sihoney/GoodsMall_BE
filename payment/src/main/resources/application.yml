@@ -21,9 +21,9 @@ spring:
   # --- 데이터베이스 설정 (로컬 기본값) ---
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/goods_mall?currentSchema=payment
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
+    url: "${DB_URL:jdbc:postgresql://localhost:5432/goods_mall}?currentSchema=payment"
+    username: ${DB_USER_NAME:postgres}
+    password: ${DB_USER_PASSWORD:postgres}
 
   jpa:
     hibernate:
