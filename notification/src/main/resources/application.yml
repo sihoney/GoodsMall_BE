@@ -63,8 +63,10 @@ notification:
   kafka:
     consumer-groups:
       member-signed-up: notification-service
+      order-payment-result: notification-service
     topics:
       member-signed-up: member-signed-up
+      order-payment-result: payment.order-payment-result
 
 logging:
   level:
