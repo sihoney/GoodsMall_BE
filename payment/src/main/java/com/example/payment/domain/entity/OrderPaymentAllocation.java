@@ -8,6 +8,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.Objects;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -32,7 +33,7 @@ public class OrderPaymentAllocation {
     private OrderPaymentMethod method;
 
     @Column(name = "amount", nullable = false, updatable = false)
-    private Long amount;
+    private BigDecimal amount;
 
     @Column(name = "card_transaction_group_id", updatable = false)
     private UUID cardTransactionGroupId;
@@ -47,7 +48,7 @@ public class OrderPaymentAllocation {
             UUID allocationId,
             UUID orderPaymentId,
             OrderPaymentMethod method,
-            Long amount,
+            BigDecimal amount,
             UUID cardTransactionGroupId,
             UUID walletTransactionId,
             LocalDateTime createdAt
@@ -64,7 +65,7 @@ public class OrderPaymentAllocation {
     public static OrderPaymentAllocation walletAllocation(
             UUID allocationId,
             UUID orderPaymentId,
-            Long amount,
+            BigDecimal amount,
             UUID walletTransactionId,
             LocalDateTime createdAt
     ) {
@@ -82,7 +83,7 @@ public class OrderPaymentAllocation {
     public static OrderPaymentAllocation cardAllocation(
             UUID allocationId,
             UUID orderPaymentId,
-            Long amount,
+            BigDecimal amount,
             UUID cardTransactionGroupId,
             LocalDateTime createdAt
     ) {
@@ -97,10 +98,11 @@ public class OrderPaymentAllocation {
         );
     }
 
-    private static Long validatePositiveAmount(Long amount) {
-        if (Objects.requireNonNull(amount) <= 0L) {
+    private static BigDecimal validatePositiveAmount(BigDecimal amount) {
+        if (Objects.requireNonNull(amount).compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("allocation amount must be positive.");
         }
         return amount;
     }
 }
+

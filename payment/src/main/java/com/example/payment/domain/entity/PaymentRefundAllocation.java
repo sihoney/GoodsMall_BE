@@ -8,6 +8,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.Objects;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -32,7 +33,7 @@ public class PaymentRefundAllocation {
     private PaymentAllocationMethod method;
 
     @Column(name = "amount", nullable = false, updatable = false)
-    private Long amount;
+    private BigDecimal amount;
 
     @Column(name = "card_cancel_transaction_group_id", updatable = false)
     private UUID cardCancelTransactionGroupId;
@@ -47,7 +48,7 @@ public class PaymentRefundAllocation {
             UUID refundAllocationId,
             UUID refundId,
             PaymentAllocationMethod method,
-            Long amount,
+            BigDecimal amount,
             UUID cardCancelTransactionGroupId,
             UUID walletRefundTransactionId,
             LocalDateTime createdAt
@@ -64,7 +65,7 @@ public class PaymentRefundAllocation {
     public static PaymentRefundAllocation walletAllocation(
             UUID refundAllocationId,
             UUID refundId,
-            Long amount,
+            BigDecimal amount,
             UUID walletRefundTransactionId,
             LocalDateTime createdAt
     ) {
@@ -82,7 +83,7 @@ public class PaymentRefundAllocation {
     public static PaymentRefundAllocation cardAllocation(
             UUID refundAllocationId,
             UUID refundId,
-            Long amount,
+            BigDecimal amount,
             UUID cardCancelTransactionGroupId,
             LocalDateTime createdAt
     ) {
@@ -97,10 +98,11 @@ public class PaymentRefundAllocation {
         );
     }
 
-    private static Long validatePositiveAmount(Long amount) {
-        if (Objects.requireNonNull(amount) <= 0L) {
+    private static BigDecimal validatePositiveAmount(BigDecimal amount) {
+        if (Objects.requireNonNull(amount).compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("refund allocation amount must be positive.");
         }
         return amount;
     }
 }
+

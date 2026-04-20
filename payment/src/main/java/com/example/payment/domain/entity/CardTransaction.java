@@ -10,6 +10,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
@@ -62,13 +63,13 @@ public class CardTransaction {
     private CardTransactionCancelScope cancelScope;
 
     @Column(name = "requested_amount", nullable = false)
-    private Long requestedAmount;
+    private BigDecimal requestedAmount;
 
     @Column(name = "approved_amount")
-    private Long approvedAmount;
+    private BigDecimal approvedAmount;
 
     @Column(name = "remaining_amount")
-    private Long remainingAmount;
+    private BigDecimal remainingAmount;
 
     @Column(name = "reason", length = 255)
     private String reason;
@@ -103,9 +104,9 @@ public class CardTransaction {
             CardTransactionType transactionType,
             CardTransactionStatus transactionStatus,
             CardTransactionCancelScope cancelScope,
-            Long requestedAmount,
-            Long approvedAmount,
-            Long remainingAmount,
+            BigDecimal requestedAmount,
+            BigDecimal approvedAmount,
+            BigDecimal remainingAmount,
             String reason,
             String failureCode,
             String failureReason,
@@ -143,7 +144,7 @@ public class CardTransaction {
             UUID referenceId,
             UUID buyerMemberId,
             String pgOrderId,
-            Long requestedAmount,
+            BigDecimal requestedAmount,
             LocalDateTime requestedAt
     ) {
         return new CardTransaction(
@@ -180,7 +181,7 @@ public class CardTransaction {
             String pgOrderId,
             String pgPaymentKey,
             CardTransactionCancelScope cancelScope,
-            Long cancelAmount,
+            BigDecimal cancelAmount,
             String reason,
             LocalDateTime requestedAt
     ) {
@@ -208,8 +209,7 @@ public class CardTransaction {
                 requestedAt
         );
     }
-
-    public void approve(String pgPaymentKey, Long approvedAmount, Long remainingAmount, LocalDateTime approvedAt) {
+    public void approve(String pgPaymentKey, BigDecimal approvedAmount, BigDecimal remainingAmount, LocalDateTime approvedAt) {
         validatePending();
         this.pgPaymentKey = Objects.requireNonNull(pgPaymentKey);
         this.approvedAmount = Objects.requireNonNull(approvedAmount);

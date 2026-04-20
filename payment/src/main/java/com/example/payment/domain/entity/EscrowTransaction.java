@@ -7,6 +7,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
@@ -44,13 +45,13 @@ public class EscrowTransaction {
     private EscrowTransactionType transactionType;
 
     @Column(name = "amount", nullable = false, updatable = false)
-    private Long amount;
+    private BigDecimal amount;
 
     @Column(name = "before_amount", nullable = false, updatable = false)
-    private Long beforeAmount;
+    private BigDecimal beforeAmount;
 
     @Column(name = "after_amount", nullable = false, updatable = false)
-    private Long afterAmount;
+    private BigDecimal afterAmount;
 
     @Column(name = "reference_id", updatable = false)
     private UUID referenceId;
@@ -75,9 +76,9 @@ public class EscrowTransaction {
             UUID sellerMemberId,
             UUID buyerMemberId,
             EscrowTransactionType transactionType,
-            Long amount,
-            Long beforeAmount,
-            Long afterAmount,
+            BigDecimal amount,
+            BigDecimal beforeAmount,
+            BigDecimal afterAmount,
             UUID referenceId,
             String referenceType,
             String description,
@@ -109,9 +110,9 @@ public class EscrowTransaction {
             UUID sellerMemberId,
             UUID buyerMemberId,
             EscrowTransactionType transactionType,
-            Long amount,
-            Long beforeAmount,
-            Long afterAmount,
+            BigDecimal amount,
+            BigDecimal beforeAmount,
+            BigDecimal afterAmount,
             UUID referenceId,
             String referenceType,
             String description,
@@ -144,9 +145,9 @@ public class EscrowTransaction {
             UUID orderItemId,
             UUID sellerMemberId,
             UUID buyerMemberId,
-            Long amount,
-            Long beforeAmount,
-            Long afterAmount,
+            BigDecimal amount,
+            BigDecimal beforeAmount,
+            BigDecimal afterAmount,
             UUID referenceId,
             String referenceType,
             String description,
@@ -179,9 +180,9 @@ public class EscrowTransaction {
             UUID orderItemId,
             UUID sellerMemberId,
             UUID buyerMemberId,
-            Long amount,
-            Long beforeAmount,
-            Long afterAmount,
+            BigDecimal amount,
+            BigDecimal beforeAmount,
+            BigDecimal afterAmount,
             UUID referenceId,
             String referenceType,
             String description,
@@ -214,9 +215,9 @@ public class EscrowTransaction {
             UUID orderItemId,
             UUID sellerMemberId,
             UUID buyerMemberId,
-            Long amount,
-            Long beforeAmount,
-            Long afterAmount,
+            BigDecimal amount,
+            BigDecimal beforeAmount,
+            BigDecimal afterAmount,
             UUID referenceId,
             String referenceType,
             String description,
@@ -242,18 +243,17 @@ public class EscrowTransaction {
         );
     }
 
-    private static long validatePositiveAmount(Long amount) {
-        if (Objects.requireNonNull(amount) <= 0L) {
+    private static BigDecimal validatePositiveAmount(BigDecimal amount) {
+        if (Objects.requireNonNull(amount).compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Escrow transaction amount must be positive.");
         }
         return amount;
     }
 
-    private static long validateNonNegativeAmount(Long amount) {
-        if (Objects.requireNonNull(amount) < 0L) {
+    private static BigDecimal validateNonNegativeAmount(BigDecimal amount) {
+        if (Objects.requireNonNull(amount).compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("Escrow transaction amount must not be negative.");
         }
         return amount;
     }
 }
-
