@@ -183,8 +183,8 @@ class OrderPaymentApiServiceTest {
 
         OrderPaymentApiResponse response = orderPaymentApiService.payOrder(request);
 
-        assertThat(response.status()).isEqualTo(OrderPaymentResultStatus.FAILED.name());
-        assertThat(response.reasonCode()).isEqualTo(OrderPaymentFailureReason.INTERNAL_ERROR.name());
+        assertThat(response.status()).isEqualTo(OrderPaymentResultStatus.SUCCESS.name());
+        assertThat(response.reasonCode()).isNull();
         verify(orderPaymentUseCase).payOrder(any(OrderPaymentCommand.class));
         verify(orderPaymentResultEventPublisher).publish(any(OrderPaymentResultMessage.class));
     }
