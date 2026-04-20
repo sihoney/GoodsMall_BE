@@ -73,7 +73,9 @@ public class ConfirmChargeService implements ChargeConfirmUseCase {
             throw new InvalidChargeRequestException("pgOrderId does not match charge.");
         }
         // 금액 검증은 pg 요청에서 온 금액과 기록된 금액을 모두 비교
-        if (!Objects.equals(charge.getRequestedAmount(), command.amount())) {
+        if (charge.getRequestedAmount() == null
+                || command.amount() == null
+                || charge.getRequestedAmount().compareTo(command.amount()) != 0) {
             throw new InvalidChargeRequestException("amount does not match charge.");
         }
 
