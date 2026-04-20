@@ -153,6 +153,11 @@ spring:
               filters:
                 - SetPath=/v3/api-docs
 
+            - id: auction-service
+              uri: lb://auction-service
+              predicates:
+                - Path=/api/auctions/**
+
             - id: notification-service
               uri: lb://notification-service
               predicates:
@@ -197,6 +202,7 @@ gateway:
       - /api/auth/email-verifications
       - /api/auth/email-verifications/confirm
       - /api/auth/profile-images/presign
+      - /api/auctions/ws
       - /swagger/**
       - /swagger-ui.html
     public-rules:
@@ -208,6 +214,8 @@ gateway:
         pattern: /api/products/**
       - methods: [GET]
         pattern: /api/ai/**
+      - methods: [GET]
+        pattern: /api/auctions/**
     role-rules:
       - methods: [GET, PUT]
         pattern: /api/members/me
@@ -236,6 +244,12 @@ gateway:
       - methods: [GET, POST]
         pattern: /api/payments/**
         allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [POST]
+        pattern: /api/auctions/*/bids
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [POST]
+        pattern: /api/auctions
+        allowed-roles: [SELLER, ADMIN]
       - methods: [POST, GET, PUT]
         pattern: /api/sellers/**
         allowed-roles: [SELLER, ADMIN]
