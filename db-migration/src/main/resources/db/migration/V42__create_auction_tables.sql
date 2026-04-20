@@ -1,0 +1,60 @@
+-- 경매 테이블
+CREATE TABLE auction.auction
+(
+    auction_id            UUID PRIMARY KEY,
+    product_id            UUID           NOT NULL,
+    seller_id             UUID           NOT NULL,
+    start_price           DECIMAL(19, 2) NOT NULL,
+    bid_unit              DECIMAL(19, 2) NOT NULL,
+    current_highest_price DECIMAL(19, 2),
+    started_at            TIMESTAMP      NOT NULL,
+    scheduled_close_at    TIMESTAMP      NOT NULL,
+    ended_at              TIMESTAMP      NOT NULL,
+    status                VARCHAR(30)    NOT NULL DEFAULT 'WAITING',
+    created_at            TIMESTAMP      NOT NULL,
+    updated_at            TIMESTAMP      NOT NULL,
+
+    CONSTRAINT chk_auction_status
+        CHECK (status IN (
+            'WAITING',
+            'ONGOING',
+            'PENDING_PAYMENT',
+            'COMPLETED',
+            'FAILED'
+        ))
+);
+
+CREATE INDEX idx_auction_product_id ON auction.auction (product_id);
+CREATE INDEX idx_auction_seller_id  ON auction.auction (seller_id);
+CREATE INDEX idx_auction_status     ON auction.auction (status);
+CREATE INDEX idx_auction_started_at ON auction.auction (started_at);
+CREATE INDEX idx_auction_ended_at   ON auction.auction (ended_at);
+
+-- 입찰 테이블
+CREATE TABLE auction.bid
+(
+    bid_id     UUID PRIMARY KEY,
+    auction_id UUID           NOT NULL,
+    bidder_id  UUID           NOT NULL,
+    bid_price  DECIMAL(19, 2) NOT NULL,
+    status     VARCHAR(30)    NOT NULL,
+    created_at TIMESTAMP      NOT NULL,
+    updated_at TIMESTAMP      NOT NULL,
+
+    CONSTRAINT fk_bid_auction
+        FOREIGN KEY (auction_id) REFERENCES auction.auction (auction_id),
+
+    CONSTRAINT chk_bid_status
+        CHECK (status IN (
+            'ACTIVE',
+            'OUTBID',
+            'WINNING',
+            'CANCELED',
+            'PAYMENT_COMPLETED'
+        ))
+);
+
+CREATE INDEX idx_bid_auction_id         ON auction.bid (auction_id);
+CREATE INDEX idx_bid_auction_price_desc ON auction.bid (auction_id, bid_price DESC);
+CREATE INDEX idx_bid_bidder_id          ON auction.bid (bidder_id);
+CREATE INDEX idx_bid_status             ON auction.bid (auction_id, status);
