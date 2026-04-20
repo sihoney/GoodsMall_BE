@@ -1,6 +1,7 @@
 package com.example.order.presentation.controller;
 
 import com.example.order.application.usecase.DeliveryTrackingUseCase;
+import com.example.order.presentation.dto.response.ApiResponse;
 import com.example.order.presentation.dto.response.DeliveryTrackingResponse;
 import com.todaylunch.common.security.auth.annotation.CurrentMember;
 import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
@@ -21,11 +22,11 @@ public class DeliveryController {
     private final DeliveryTrackingUseCase deliveryTrackingUseCase;
 
     @GetMapping("/{deliveryId}/tracking")
-    public ResponseEntity<DeliveryTrackingResponse> getTrackingInfo(
+    public ResponseEntity<ApiResponse<DeliveryTrackingResponse>> getTrackingInfo(
             @CurrentMember AuthenticatedMember authenticatedMember,
             @PathVariable UUID deliveryId
     ) {
         UUID memberId = authenticatedMember.memberId();
-        return ResponseEntity.ok(deliveryTrackingUseCase.getTrackingInfo(deliveryId, memberId));
+        return ResponseEntity.ok(ApiResponse.success(deliveryTrackingUseCase.getTrackingInfo(deliveryId, memberId)));
     }
 }
