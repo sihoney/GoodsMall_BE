@@ -1,13 +1,15 @@
 package com.example.payment.presentation.dto.request;
 
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
+import java.math.BigDecimal;
 import java.util.UUID;
 
 /**
- * 충전 승인 API의 입력 DTO다.
- * PG 승인 결과와 charge 식별 정보를 함께 전달한다.
+ * 충전 확인 API의 입력 DTO다.
+ * PG 확인 결과와 charge 요청 정보를 함께 담는다.
  */
 public record ChargeConfirmRequest(
         @NotNull(message = "chargeId is required.")
@@ -17,7 +19,8 @@ public record ChargeConfirmRequest(
         @NotBlank(message = "orderId is required.")
         String orderId,
         @NotNull(message = "amount is required.")
-        @Positive(message = "amount must be positive.")
-        Long amount
+        @DecimalMin(value = "0.01", message = "amount must be positive.")
+        @Digits(integer = 19, fraction = 2)
+        BigDecimal amount
 ) {
 }

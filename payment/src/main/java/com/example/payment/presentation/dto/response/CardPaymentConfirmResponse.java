@@ -2,6 +2,7 @@ package com.example.payment.presentation.dto.response;
 
 import com.example.payment.application.dto.CardPaymentConfirmResult;
 import com.example.payment.domain.enumtype.CardTransactionStatus;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -9,7 +10,7 @@ public record CardPaymentConfirmResponse(
         UUID transactionGroupId,
         UUID orderId,
         UUID buyerId,
-        Long amount,
+        BigDecimal amount,
         CardTransactionStatus status,
         LocalDateTime approvedAt
 ) {
