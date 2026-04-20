@@ -4,15 +4,17 @@ import com.example.order.infrastructure.client.dto.request.ExternalPaymentRefund
 import com.example.order.infrastructure.client.dto.request.ExternalPaymentRequest;
 import com.example.order.infrastructure.client.dto.response.PaymentRefundResultResponse;
 import com.example.order.infrastructure.client.dto.response.PaymentResultResponse;
+import com.example.order.presentation.dto.response.ApiResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 @FeignClient(name = "payment-service", path = "/api/payments")
 public interface PaymentClient {
 
     @PostMapping("/orders")
-    PaymentResultResponse requestPayment(ExternalPaymentRequest paymentInfo);
+    ApiResponse<PaymentResultResponse> requestPayment(@RequestBody ExternalPaymentRequest paymentInfo);
 
     @PostMapping("/cancellations")
-    PaymentRefundResultResponse requestRefund(ExternalPaymentRefundRequest request);
+    ApiResponse<PaymentRefundResultResponse> requestRefund(@RequestBody ExternalPaymentRefundRequest request);
 }
