@@ -1,5 +1,6 @@
 package com.example.payment.domain.service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -9,9 +10,9 @@ import java.time.LocalDateTime;
 // todo: 인터페이스를 구현할 필요가 있는지 확인하기
 public interface TossPaymentGateway {
 
-    TossPaymentConfirmation confirm(String paymentKey, String orderId, Long amount);
+    TossPaymentConfirmation confirm(String paymentKey, String orderId, BigDecimal amount);
 
-    TossPaymentCancellation cancel(String paymentKey, String cancelReason, Long cancelAmount);
+    TossPaymentCancellation cancel(String paymentKey, String cancelReason, BigDecimal cancelAmount);
 
     /**
      * 승인 API 응답에서 application이 사용하는 최소 필드만 담는 결과 타입이다.
@@ -19,7 +20,7 @@ public interface TossPaymentGateway {
     record TossPaymentConfirmation(
             String paymentKey,
             String orderId,
-            Long approvedAmount,
+            BigDecimal approvedAmount,
             LocalDateTime approvedAt,
             String method,
             String transferBankCode,
@@ -32,7 +33,7 @@ public interface TossPaymentGateway {
      */
     record TossPaymentCancellation(
             String paymentKey,
-            Long canceledAmount,
+            BigDecimal canceledAmount,
             LocalDateTime canceledAt
     ) {
     }

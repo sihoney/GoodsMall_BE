@@ -21,7 +21,7 @@ public class OrderPaymentValidationGatewayImpl implements OrderPaymentValidation
     }
 
     @Override
-    public OrderPaymentValidationData validate(UUID orderId, UUID buyerId, Long amount) {
+    public OrderPaymentValidationData validate(UUID orderId, UUID buyerId, java.math.BigDecimal amount) {
         try {
             OrderPaymentValidationResponse response = orderClient.validatePayment(
                     new OrderPaymentValidationRequest(orderId, buyerId, amount)
