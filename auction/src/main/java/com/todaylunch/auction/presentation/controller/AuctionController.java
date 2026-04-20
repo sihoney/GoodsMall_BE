@@ -40,7 +40,7 @@ public class AuctionController {
                 .body(ApiResponse.success(response));
     }
 
-    @GetMapping("/{auctionId}")
+    @GetMapping("/{auctionId:[0-9a-fA-F-]{36}}")
     public ResponseEntity<ApiResponse<AuctionResponse>> findById(@PathVariable UUID auctionId) {
         AuctionResponse response = auctionSearchUseCase.findById(auctionId);
         return ResponseEntity.ok(ApiResponse.success(response));
