@@ -1,6 +1,7 @@
 package com.example.payment.application.event;
 
 import com.example.payment.domain.enumtype.ConfirmationType;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -9,7 +10,7 @@ public record SettlementCandidateCreatedEvent(
         UUID orderId,
         UUID escrowId,
         UUID sellerMemberId,
-        Long grossAmount,
+        BigDecimal grossAmount,
         LocalDateTime releasedAt,
         ConfirmationType confirmationType,
         LocalDateTime occurredAt
