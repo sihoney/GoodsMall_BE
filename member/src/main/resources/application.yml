@@ -32,7 +32,7 @@
 
   data:
     redis:
-      host: localhost
+      host: ${REDIS_HOST:localhost}
       port: 6379
   mail:
     host: ${SMTP_HOST:localhost}
@@ -105,13 +105,15 @@ aws:
     get-presign-expiration-seconds: 600
 
 member:
+  signup:
+    require-email-verification: ${MEMBER_SIGNUP_REQUIRE_EMAIL_VERIFICATION:true}
   email:
     provider: ${EMAIL_PROVIDER:logging}
     from-address: ${MAIL_FROM:no-reply@todaylunch.local}
     from-name: TodayLunch
   email-verification:
     expiration: 24h
-    frontend-confirm-url: ${EMAIL_VERIFICATION_FRONTEND_URL:http://localhost:3000/email-verification}
+    frontend-confirm-url: ${EMAIL_VERIFICATION_FRONTEND_URL}
   account-verification:
     expiration: 5m
     max-attempts: 5

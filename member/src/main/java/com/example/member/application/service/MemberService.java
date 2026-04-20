@@ -6,6 +6,7 @@ import com.example.member.application.support.ProfileImageUrlResolver;
 import com.example.member.application.usecase.MemberUsecase;
 import com.example.member.common.exception.DuplicateMemberEmailException;
 import com.example.member.common.exception.MemberNotFoundException;
+import com.example.member.config.MemberSignupProperties;
 import com.example.member.domain.entity.Member;
 import com.example.member.domain.enumtype.MemberStatus;
 import com.example.member.infrastructure.repository.MemberRepository;
@@ -31,6 +32,7 @@ public class MemberService implements MemberUsecase {
     private final MemberEventPublisher memberEventPublisher;
     private final ProfileImageUrlResolver profileImageUrlResolver;
     private final EmailVerificationService emailVerificationService;
+    private final MemberSignupProperties memberSignupProperties;
 
     @Transactional
     @Override
@@ -39,12 +41,15 @@ public class MemberService implements MemberUsecase {
         MemberCreateCommand command = MemberCreateCommand.from(request);
 
         String email = normalizeRequired(command.email(), "email");
-        // TODO: 이메일 인증 구현 후 회원 생성 전에 인증 완료 여부를 검증한다.
         if (memberRepository.existsByEmail(email)) {
             throw new DuplicateMemberEmailException();
         }
 
         LocalDateTime now = LocalDateTime.now();
+        MemberStatus initialStatus = memberSignupProperties.requireEmailVerification()
+                ? MemberStatus.PENDING_VERIFICATION
+                : MemberStatus.ACTIVE;
+
         Member member = Member.create(
                 UUID.randomUUID(),
                 email,
@@ -54,15 +59,17 @@ public class MemberService implements MemberUsecase {
                 normalizeNullable(command.address()),
                 normalizeProfileImageKey(command.profileImageKey()),
                 command.role() == null ? MemberRole.USER : command.role(),
-                MemberStatus.PENDING_VERIFICATION,
+                initialStatus,
                 now,
                 now
         );
 
         Member savedMember = memberRepository.save(member);
-        emailVerificationService.createSignupVerification(savedMember);     // 회원 가입 이메일 인증 생성 및 발송
-        memberEventPublisher.publishMemberSignedUp(savedMember);            // 회원 가입 이벤트 발행
-        
+        if (memberSignupProperties.requireEmailVerification()) {
+            emailVerificationService.createSignupVerification(savedMember);
+        }
+        memberEventPublisher.publishMemberSignedUp(savedMember);
+
         return CreateMemberResponse.from(savedMember, resolveProfileImageUrl(savedMember));
     }
 
@@ -95,7 +102,7 @@ public class MemberService implements MemberUsecase {
                 normalizeRequired(request.nickname(), "nickname"),
                 normalizeNullable(request.phone()),
                 normalizeNullable(request.address()),
-                request.profileImageKey() == null // 프로필 이미지 키가 요청에 명시적으로 포함되지 않은 경우 기존 키 유지 / 명시적으로 null인 경우 키 제거 / 유효한 키인 경우 정규화된 키 사용
+                request.profileImageKey() == null
                         ? member.getProfileImageKey()
                         : normalizeProfileImageKey(request.profileImageKey()),
                 LocalDateTime.now()
@@ -143,7 +150,6 @@ public class MemberService implements MemberUsecase {
         return normalized.isEmpty() ? null : normalized;
     }
 
-    // 프로필 이미지 키를 검증하고 정규화하는 메서드
     private String normalizeProfileImageKey(String profileImageKey) {
         String normalized = normalizeNullable(profileImageKey);
         if (normalized == null) {
@@ -155,7 +161,6 @@ public class MemberService implements MemberUsecase {
         return normalized;
     }
 
-    // S3에 저장된 회원 프로필 이미지의 URL을 생성하는 메서드
     private String resolveProfileImageUrl(Member member) {
         return profileImageUrlResolver.resolve(member.getProfileImageKey());
     }
