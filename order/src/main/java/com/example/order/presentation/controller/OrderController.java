@@ -6,6 +6,7 @@ import com.example.order.application.usecase.OrderSearchUseCase;
 import com.example.order.presentation.dto.request.OrderCancelRequest;
 import com.example.order.presentation.dto.request.OrderCreateRequest;
 import com.example.order.presentation.dto.request.PaymentValidationRequest;
+import com.example.order.presentation.dto.response.ApiResponse;
 import com.example.order.presentation.dto.response.OrderCancelResponse;
 import com.example.order.presentation.dto.response.OrderCreateResponse;
 import com.example.order.presentation.dto.response.OrderDetailResponse;
@@ -39,56 +40,56 @@ public class OrderController {
     private final OrderCancelUseCase orderCancelUseCase;
 
     @PostMapping("/deposit")
-    public ResponseEntity<OrderCreateResponse> createByDeposit(
+    public ResponseEntity<ApiResponse<OrderCreateResponse>> createByDeposit(
             @CurrentMember AuthenticatedMember authenticatedMember,
             @Valid @RequestBody OrderCreateRequest request
     ) {
         UUID memberId = authenticatedMember.memberId();
-        return ResponseEntity.status(HttpStatus.CREATED).body(orderCreateUseCase.createByDeposit(memberId, request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(orderCreateUseCase.createByDeposit(memberId, request)));
     }
 
     @PostMapping("/pg")
-    public ResponseEntity<OrderCreateResponse> createByPg(
+    public ResponseEntity<ApiResponse<OrderCreateResponse>> createByPg(
             @CurrentMember AuthenticatedMember authenticatedMember,
             @Valid @RequestBody OrderCreateRequest request
     ) {
         UUID memberId = authenticatedMember.memberId();
-        return ResponseEntity.ok(orderCreateUseCase.createByPg(memberId, request));
+        return ResponseEntity.ok(ApiResponse.success(orderCreateUseCase.createByPg(memberId, request)));
     }
 
     @GetMapping
-    public ResponseEntity<Page<OrderSummaryResponse>> findOrders(
+    public ResponseEntity<ApiResponse<Page<OrderSummaryResponse>>> findOrders(
             @CurrentMember AuthenticatedMember authenticatedMember,
             @ParameterObject Pageable pageable
     ) {
         UUID memberId = authenticatedMember.memberId();
-        return ResponseEntity.ok(orderSearchUseCase.findByMemberId(memberId, pageable));
+        return ResponseEntity.ok(ApiResponse.success(orderSearchUseCase.findByMemberId(memberId, pageable)));
     }
 
     @GetMapping("{orderId}")
-    public ResponseEntity<OrderDetailResponse> getOrder(
+    public ResponseEntity<ApiResponse<OrderDetailResponse>> getOrder(
             @CurrentMember AuthenticatedMember authenticatedMember,
             @PathVariable UUID orderId
     ) {
         UUID memberId = authenticatedMember.memberId();
-        return ResponseEntity.ok(orderSearchUseCase.getOrderDetail(orderId, memberId));
+        return ResponseEntity.ok(ApiResponse.success(orderSearchUseCase.getOrderDetail(orderId, memberId)));
     }
 
     @PostMapping("/{orderId}/payment-validation")
-    public ResponseEntity<PaymentValidationResponse> getPaymentValidation(
+    public ResponseEntity<ApiResponse<PaymentValidationResponse>> getPaymentValidation(
             @PathVariable UUID orderId,
             @Valid @RequestBody PaymentValidationRequest request
     ) {
-        return ResponseEntity.ok(orderSearchUseCase.getPaymentValidation(orderId, request));
+        return ResponseEntity.ok(ApiResponse.success(orderSearchUseCase.getPaymentValidation(orderId, request)));
     }
 
     @PostMapping("/{orderId}/cancel")
-    public ResponseEntity<OrderCancelResponse> cancelOrder(
+    public ResponseEntity<ApiResponse<OrderCancelResponse>> cancelOrder(
             @CurrentMember AuthenticatedMember authenticatedMember,
             @PathVariable UUID orderId,
             @Valid @RequestBody OrderCancelRequest request
     ) {
         UUID memberId = authenticatedMember.memberId();
-        return ResponseEntity.ok(orderCancelUseCase.cancelOrder(orderId, memberId, request));
+        return ResponseEntity.ok(ApiResponse.success(orderCancelUseCase.cancelOrder(orderId, memberId, request)));
     }
 }

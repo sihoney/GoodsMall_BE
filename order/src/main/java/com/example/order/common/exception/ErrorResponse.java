@@ -15,7 +15,7 @@ public class ErrorResponse {
         return ErrorResponse.builder()
                 .status(errorCode.getStatus().value())
                 .code(errorCode.getCode())
-                .message(errorCode.getCode())
+                .message(errorCode.getMessage())
                 .build();
     }
 }
