@@ -13,6 +13,7 @@
 - `escrow`가 release 되면 settlement 모듈이 사용할 정산 후보 이벤트를 발행한다.
 - 주문 취소/반품 환불 시 카드 환불, wallet 환불, 에스크로 환불 반영을 처리한다.
 - 사용자의 예치금 출금 요청을 받아 wallet 차감, 출금 기록 저장, 거래 내역 기록을 수행한다.
+- 경매 입찰 시 새 최고 입찰자 예치금을 차감하고 이전 최고 입찰자 예치금을 환불한다.
 - settlement 모듈의 지급 요청을 받아 판매자 지갑에 정산금을 적립한다.
 - 정산금 적립 시 월 정산과 부분 정산을 구분해 거래 원장에 남긴다.
 
@@ -177,6 +178,7 @@ https://<frontend-domain>/payments/toss/fail
 | `Wallet` | 회원별 잔액 계좌 |
 | `Charge` | 충전 요청 및 승인 상태 |
 | `WalletTransaction` | 충전/주문결제/주문환불/출금/정산금 적립 내역 |
+| `AuctionDeposit` | 경매 입찰 예치금 상태 원장 |
 | `WithdrawRequest` | 예치금 출금 요청 이력 |
 | `Escrow` | 주문 결제 후 판매자별로 잠시 보관되는 금액 |
 | `PaymentRefund` | 주문 취소/반품 환불 원장 |
@@ -204,6 +206,7 @@ https://<frontend-domain>/payments/toss/fail
 | `GET` | `/api/payments/transactions` | 필요 | 내 지갑 거래 내역 조회 |
 | `GET` | `/api/payments/seller/pending-incomes` | 필요 | 판매자 미정산 수입 조회 |
 | `GET` | `/api/payments/withdrawals` | 필요 | 내 출금 목록 조회 |
+| `POST` | `/api/payments/auctions/bid-fees` | 없음 | 경매 입찰 수수료 차감 및 환불 처리 |
 | `POST` | `/api/payments/charge` | 필요 | 충전 요청 생성 |
 | `POST` | `/api/payments/confirm` | 없음 | Toss 승인 결과 반영 |
 | `POST` | `/api/payments/orders` | 없음 | 주문 결제 API |
@@ -276,6 +279,7 @@ https://<frontend-domain>/payments/toss/fail
 |---|---|---|
 | `INVALID_TOKEN` | `401` | 인증 토큰 문제 |
 | `INVALID_CHARGE_REQUEST` | `400` | 충전 요청 값 오류 |
+| `INVALID_AUCTION_BID_FEE_REQUEST` | `400` | 경매 입찰 수수료 요청 값 오류 |
 | `INVALID_ORDER_PAYMENT_REQUEST` | `400` | 주문 결제/환불 요청 값 오류 |
 | `INVALID_WITHDRAW_REQUEST` | `400` | 출금 요청 값 오류 |
 | `INVALID_WITHDRAW_ACCOUNT` | `400` | 출금 계좌 정보 오류 |
@@ -283,6 +287,7 @@ https://<frontend-domain>/payments/toss/fail
 | `WITHDRAW_AMOUNT_NOT_GREATER_THAN_FEE` | `400` | 수수료 이하 금액 출금 요청 |
 | `INVALID_INPUT_VALUE` | `400` | 페이지 번호, 크기, 필수값 등 입력 오류 |
 | `CHARGE_NOT_FOUND` | `404` | 충전 내역 없음 |
+| `AUCTION_DEPOSIT_NOT_FOUND` | `404` | 경매 예치금 원장 없음 |
 | `WALLET_NOT_FOUND` | `404` | 지갑 없음 |
 | `ESCROW_NOT_FOUND` | `404` | 에스크로 없음 |
 | `INSUFFICIENT_WALLET_BALANCE` | `409` | 예치금 잔액 부족 |
@@ -498,7 +503,40 @@ Toss 승인 결과를 반영합니다. 승인 성공 시 charge 상태를 확정
   - `requestedAt`
   - `processedAt`
 
-### 9.3 주문 결제 API
+### 9.3 경매 입찰 수수료 API
+
+#### `POST /api/payments/auctions/bid-fees`
+
+경매 모듈이 호출하는 내부 API입니다. 새 최고 입찰자의 예치금을 차감하고, 이전 최고 입찰자의 예치금을 환불합니다.
+
+- 인증: 없음
+- 요청 본문:
+
+```json
+{
+  "auctionId": "UUID",
+  "previousBidderId": "UUID",
+  "previousBidderPaidFee": 5000.00,
+  "highestBidderId": "UUID",
+  "highestBidderFee": 5500.00
+}
+```
+
+- 필수값:
+  - `auctionId`
+  - `highestBidderId`
+  - `highestBidderFee`
+- 조건부 필드:
+  - `previousBidderId`
+  - `previousBidderPaidFee`
+
+- 처리 규칙:
+  - 이전 최고 입찰자가 없으면 이전 입찰자 관련 값은 비어 있을 수 있다.
+  - 이전 최고 입찰자가 있으면 두 값은 함께 와야 한다.
+  - 성공 시 `auctionId`만 반환한다.
+  - 실패 시 공통 오류 응답의 `error.code`, `error.message`를 사용한다.
+
+### 9.4 주문 결제 API
 
 #### `POST /api/payments/orders`
 
@@ -560,20 +598,32 @@ Toss 승인 결과를 반영합니다. 승인 성공 시 charge 상태를 확정
 3. 클라이언트가 Toss 결제 완료 후 `POST /api/payments/confirm` 호출
 4. payment가 Toss 승인 확인 후 wallet 잔액 증가
 
-### 10.3 주문 결제 시
+### 10.3 경매 입찰 수수료 처리 시
+
+1. 경매 모듈이 `POST /api/payments/auctions/bid-fees` 호출
+2. payment가 현재 경매의 활성 예치금을 잠금 조회
+3. 새 최고 입찰자의 wallet을 잠금 조회한다.
+4. 새 최고 입찰자 예치금을 차감한다.
+5. `wallet_transaction(AUCTION_DEPOSIT_HOLD)`를 저장한다.
+6. `auction_deposit(HELD)`를 저장한다.
+7. 이전 최고 입찰자가 있으면 예치금을 환불한다.
+8. `wallet_transaction(AUCTION_DEPOSIT_REFUND)`를 저장한다.
+9. 기존 `auction_deposit`를 `REFUNDED`로 변경한다.
+
+### 10.4 주문 결제 시
 
 1. order 모듈이 `POST /api/payments/orders` 호출
 2. payment가 구매자 wallet 잔액 차감
 3. seller별 `escrow` 생성
 4. payment가 `payment.order-payment-result` 이벤트 발행
 
-### 10.4 구매 확정 시
+### 10.5 구매 확정 시
 
 1. order 모듈이 `order.purchase-confirmed` 발행
 2. payment가 escrow release
 3. `payment.settlement-candidate-created` 이벤트 발행
 
-### 10.5 주문 환불 시
+### 10.6 주문 환불 시
 
 1. 주문 취소 또는 반품 환불 요청이 들어온다.
 2. payment가 카드 환불 금액과 wallet 환불 금액을 분리 계산한다.
@@ -581,7 +631,7 @@ Toss 승인 결과를 반영합니다. 승인 성공 시 charge 상태를 확정
 4. `escrow`와 `escrow_transaction(REFUND)`를 반영한다.
 5. 주문 환불 결과를 이벤트와 저장 원장으로 남긴다.
 
-### 10.6 출금 시
+### 10.7 출금 시
 
 1. 사용자가 `POST /api/payments/withdrawals` 호출
 2. payment가 wallet을 잠금 조회하여 잔액과 정책을 검증
@@ -591,7 +641,7 @@ Toss 승인 결과를 반영합니다. 승인 성공 시 charge 상태를 확정
 6. `wallet_transaction(WITHDRAWAL)`을 저장한다.
 7. Mock 기준으로 출금 상태를 `COMPLETED`로 종료한다.
 
-### 10.7 정산 지급 시
+### 10.8 정산 지급 시
 
 1. settlement 모듈이 `settlement.seller-payout-requested` 발행
 2. payment가 이벤트의 `settlementType`을 확인한다.
@@ -599,7 +649,7 @@ Toss 승인 결과를 반영합니다. 승인 성공 시 charge 상태를 확정
 4. 판매자 wallet에 정산금을 적립한다.
 5. 결과를 `payment.seller-payout-result`로 회신한다.
 
-### 10.8 부분 정산 시
+### 10.9 부분 정산 시
 
 1. settlement가 판매자 선택 기준으로 `Settlement(PARTIAL)`를 생성한다.
 2. settlement가 즉시 payout 요청 이벤트를 발행한다.
@@ -636,10 +686,13 @@ Toss 승인 결과를 반영합니다. 승인 성공 시 charge 상태를 확정
 - Docker 실행 시 기본 프로필은 `prod`입니다.
 - AWS 운영에서는 `.env.aws.example` 값을 기준으로 시크릿/환경변수를 분리 주입하는 전제가 필요합니다.
 - 출금 계좌번호와 예금주는 암호화 저장하며, 응답에는 마스킹된 계좌번호만 반환합니다.
+- 경매 입찰 수수료는 `auction_deposit` 원장과 `wallet_transaction`에 함께 기록합니다.
+- 경매 입찰 수수료 실패는 별도 실패 DTO 없이 공통 오류 응답으로 반환합니다.
 
 ## 13. 현재 구현상 메모
 
 - 출금은 실제 은행 연동이 아닌 Mock 완료 처리입니다.
+- 경매 입찰 수수료는 현재 payment 내부 구현까지 완료된 상태이며, auction 연동은 별도 작업입니다.
 - `bankCode`는 현재 구현에서 제외되어 있고, 실은행 연동 시 다시 검토합니다.
 - 주문 결제 API는 HTTP 응답과 별도로 Kafka 결과 이벤트도 발행합니다.
 - 구매 확정 이후 환불은 현재 정책상 허용하지 않습니다.
