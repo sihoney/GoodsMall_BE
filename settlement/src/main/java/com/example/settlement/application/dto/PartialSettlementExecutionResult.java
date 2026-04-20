@@ -2,6 +2,7 @@ package com.example.settlement.application.dto;
 
 import com.example.settlement.domain.enumtype.SettlementStatus;
 import com.example.settlement.domain.enumtype.SettlementType;
+import java.math.BigDecimal;
 import java.util.UUID;
 
 /**
@@ -13,8 +14,8 @@ public record PartialSettlementExecutionResult(
         SettlementType settlementType,
         SettlementStatus settlementStatus,
         int settlementItemCount,
-        Long totalSalesAmount,
-        Long feeAmount,
-        Long finalSettlementAmount
+        BigDecimal totalSalesAmount,
+        BigDecimal feeAmount,
+        BigDecimal finalSettlementAmount
 ) {
 }
