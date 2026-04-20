@@ -1,15 +1,15 @@
 package com.example.payment.domain.entity;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-
-import java.time.LocalDateTime;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("Wallet 도메인 테스트")
 class WalletTest {
@@ -25,8 +25,12 @@ class WalletTest {
         now = LocalDateTime.of(2024, 1, 1, 12, 0, 0);
     }
 
-    private Wallet createWallet(Long initialBalance) {
-        return Wallet.create(walletId, memberId, initialBalance, now, now);
+    private BigDecimal amount(long value) {
+        return BigDecimal.valueOf(value);
+    }
+
+    private Wallet createWallet(long initialBalance) {
+        return Wallet.create(walletId, memberId, amount(initialBalance), now, now);
     }
 
     @Nested
@@ -38,7 +42,7 @@ class WalletTest {
         void create_setsInitialBalance() {
             Wallet wallet = createWallet(5_000L);
 
-            assertThat(wallet.getBalance()).isEqualTo(5_000L);
+            assertThat(wallet.getBalance()).isEqualTo(amount(5_000L));
         }
 
         @Test
@@ -61,10 +65,10 @@ class WalletTest {
             Wallet wallet = createWallet(10_000L);
             LocalDateTime updatedAt = now.plusMinutes(5);
 
-            Long newBalance = wallet.increaseBalance(5_000L, updatedAt);
+            BigDecimal newBalance = wallet.increaseBalance(amount(5_000L), updatedAt);
 
-            assertThat(newBalance).isEqualTo(15_000L);
-            assertThat(wallet.getBalance()).isEqualTo(15_000L);
+            assertThat(newBalance).isEqualTo(amount(15_000L));
+            assertThat(wallet.getBalance()).isEqualTo(amount(15_000L));
         }
 
         @Test
@@ -73,7 +77,7 @@ class WalletTest {
             Wallet wallet = createWallet(0L);
             LocalDateTime updatedAt = now.plusMinutes(10);
 
-            wallet.increaseBalance(1_000L, updatedAt);
+            wallet.increaseBalance(amount(1_000L), updatedAt);
 
             assertThat(wallet.getUpdatedAt()).isEqualTo(updatedAt);
         }
@@ -83,7 +87,7 @@ class WalletTest {
         void increaseBalance_zeroAmount_throwsException() {
             Wallet wallet = createWallet(10_000L);
 
-            assertThatThrownBy(() -> wallet.increaseBalance(0L, now))
+            assertThatThrownBy(() -> wallet.increaseBalance(amount(0L), now))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("Amount must be positive.");
         }
@@ -93,7 +97,7 @@ class WalletTest {
         void increaseBalance_negativeAmount_throwsException() {
             Wallet wallet = createWallet(10_000L);
 
-            assertThatThrownBy(() -> wallet.increaseBalance(-1_000L, now))
+            assertThatThrownBy(() -> wallet.increaseBalance(amount(-1_000L), now))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("Amount must be positive.");
         }
@@ -103,10 +107,10 @@ class WalletTest {
         void increaseBalance_multipleTimes_accumulates() {
             Wallet wallet = createWallet(0L);
 
-            wallet.increaseBalance(10_000L, now.plusMinutes(1));
-            wallet.increaseBalance(5_000L, now.plusMinutes(2));
+            wallet.increaseBalance(amount(10_000L), now.plusMinutes(1));
+            wallet.increaseBalance(amount(5_000L), now.plusMinutes(2));
 
-            assertThat(wallet.getBalance()).isEqualTo(15_000L);
+            assertThat(wallet.getBalance()).isEqualTo(amount(15_000L));
         }
     }
 
@@ -120,9 +124,9 @@ class WalletTest {
             Wallet wallet = createWallet(10_000L);
             LocalDateTime updatedAt = now.plusMinutes(5);
 
-            wallet.applyTransaction(20_000L, updatedAt);
+            wallet.applyTransaction(amount(20_000L), updatedAt);
 
-            assertThat(wallet.getBalance()).isEqualTo(20_000L);
+            assertThat(wallet.getBalance()).isEqualTo(amount(20_000L));
             assertThat(wallet.getUpdatedAt()).isEqualTo(updatedAt);
         }
     }
@@ -137,10 +141,10 @@ class WalletTest {
             Wallet wallet = createWallet(10_000L);
             LocalDateTime updatedAt = now.plusMinutes(5);
 
-            Long newBalance = wallet.decreaseBalance(4_000L, updatedAt);
+            BigDecimal newBalance = wallet.decreaseBalance(amount(4_000L), updatedAt);
 
-            assertThat(newBalance).isEqualTo(6_000L);
-            assertThat(wallet.getBalance()).isEqualTo(6_000L);
+            assertThat(newBalance).isEqualTo(amount(6_000L));
+            assertThat(wallet.getBalance()).isEqualTo(amount(6_000L));
             assertThat(wallet.getUpdatedAt()).isEqualTo(updatedAt);
         }
 
@@ -149,7 +153,7 @@ class WalletTest {
         void decreaseBalance_insufficientBalance_throwsException() {
             Wallet wallet = createWallet(3_000L);
 
-            assertThatThrownBy(() -> wallet.decreaseBalance(4_000L, now))
+            assertThatThrownBy(() -> wallet.decreaseBalance(amount(4_000L), now))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("Balance is insufficient.");
         }

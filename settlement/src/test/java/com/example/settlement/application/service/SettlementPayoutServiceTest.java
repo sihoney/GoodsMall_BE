@@ -15,6 +15,7 @@ import com.example.settlement.infrastructure.messaging.kafka.KafkaSellerSettleme
 import com.example.settlement.infrastructure.messaging.kafka.contract.PayoutFailureReason;
 import com.example.settlement.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultMessage;
 import com.example.settlement.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultStatus;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -43,6 +44,10 @@ class SettlementPayoutServiceTest {
         settlementPayoutService = new SettlementPayoutService(settlementRepository, payoutRequestedEventPublisher);
     }
 
+    private BigDecimal amount(long value) {
+        return BigDecimal.valueOf(value);
+    }
+
     @Test
     @DisplayName("월별 PENDING 정산건 수만큼 지급 요청 이벤트를 발행한다")
     void requestMonthlyPayouts_publishesEventsForPendingSettlements() {
@@ -51,9 +56,9 @@ class SettlementPayoutServiceTest {
                 UUID.randomUUID(),
                 2026,
                 3,
-                10_000L,
-                1_000L,
-                9_000L,
+                amount(10_000L),
+                amount(1_000L),
+                amount(9_000L),
                 LocalDateTime.of(2026, 4, 1, 3, 5)
         );
         when(settlementRepository.findBySettlementYearAndSettlementMonthAndSettlementStatus(
@@ -78,9 +83,9 @@ class SettlementPayoutServiceTest {
                 UUID.randomUUID(),
                 2026,
                 3,
-                10_000L,
-                1_000L,
-                9_000L,
+                amount(10_000L),
+                amount(1_000L),
+                amount(9_000L),
                 LocalDateTime.of(2026, 4, 1, 3, 5)
         );
         when(settlementRepository.findBySettlementId(settlementId)).thenReturn(Optional.of(settlement));
@@ -90,7 +95,7 @@ class SettlementPayoutServiceTest {
                 UUID.randomUUID(),
                 settlementId,
                 settlement.getSellerId(),
-                9_000L,
+                amount(9_000L),
                 SellerSettlementPayoutResultStatus.SUCCESS,
                 null,
                 LocalDateTime.of(2026, 4, 1, 3, 10)
@@ -110,10 +115,10 @@ class SettlementPayoutServiceTest {
                 SettlementType.MONTHLY,
                 2026,
                 3,
-                10_000L,
-                1_000L,
-                9_000L,
-                9_000L,
+                amount(10_000L),
+                amount(1_000L),
+                amount(9_000L),
+                amount(9_000L),
                 SettlementStatus.COMPLETED,
                 LocalDateTime.of(2026, 4, 1, 3, 10),
                 null,
@@ -127,7 +132,7 @@ class SettlementPayoutServiceTest {
                 UUID.randomUUID(),
                 settlementId,
                 settlement.getSellerId(),
-                9_000L,
+                amount(9_000L),
                 SellerSettlementPayoutResultStatus.SUCCESS,
                 null,
                 LocalDateTime.of(2026, 4, 1, 3, 11)
@@ -145,9 +150,9 @@ class SettlementPayoutServiceTest {
                 UUID.randomUUID(),
                 2026,
                 3,
-                10_000L,
-                1_000L,
-                9_000L,
+                amount(10_000L),
+                amount(1_000L),
+                amount(9_000L),
                 LocalDateTime.of(2026, 4, 1, 3, 5)
         );
         when(settlementRepository.findBySettlementId(settlementId)).thenReturn(Optional.of(settlement));
@@ -157,7 +162,7 @@ class SettlementPayoutServiceTest {
                 UUID.randomUUID(),
                 settlementId,
                 settlement.getSellerId(),
-                9_000L,
+                amount(9_000L),
                 SellerSettlementPayoutResultStatus.FAILED,
                 PayoutFailureReason.WALLET_NOT_FOUND,
                 LocalDateTime.of(2026, 4, 1, 3, 10)
@@ -177,9 +182,9 @@ class SettlementPayoutServiceTest {
                 UUID.randomUUID(),
                 2026,
                 3,
-                10_000L,
-                1_000L,
-                9_000L,
+                amount(10_000L),
+                amount(1_000L),
+                amount(9_000L),
                 LocalDateTime.of(2026, 4, 1, 3, 5)
         );
         when(settlementRepository.findBySettlementId(settlementId)).thenReturn(Optional.of(settlement));
@@ -189,7 +194,7 @@ class SettlementPayoutServiceTest {
                 UUID.randomUUID(),
                 settlementId,
                 settlement.getSellerId(),
-                9_000L,
+                amount(9_000L),
                 SellerSettlementPayoutResultStatus.FAILED,
                 PayoutFailureReason.INTERNAL_ERROR,
                 LocalDateTime.of(2026, 4, 1, 3, 10)
@@ -209,9 +214,9 @@ class SettlementPayoutServiceTest {
                 UUID.randomUUID(),
                 2026,
                 3,
-                10_000L,
-                1_000L,
-                9_000L,
+                amount(10_000L),
+                amount(1_000L),
+                amount(9_000L),
                 LocalDateTime.of(2026, 4, 1, 3, 5)
         );
         when(settlementRepository.findBySettlementId(settlementId)).thenReturn(Optional.of(settlement));
@@ -221,7 +226,7 @@ class SettlementPayoutServiceTest {
                 UUID.randomUUID(),
                 settlementId,
                 settlement.getSellerId(),
-                9_000L,
+                amount(9_000L),
                 SellerSettlementPayoutResultStatus.FAILED,
                 null,
                 LocalDateTime.of(2026, 4, 1, 3, 10)
@@ -242,10 +247,10 @@ class SettlementPayoutServiceTest {
                 SettlementType.MONTHLY,
                 2026,
                 3,
-                10_000L,
-                1_000L,
-                9_000L,
-                0L,
+                amount(10_000L),
+                amount(1_000L),
+                amount(9_000L),
+                amount(0L),
                 SettlementStatus.FAILED,
                 null,
                 PayoutFailureReason.INTERNAL_ERROR.name(),
@@ -277,10 +282,10 @@ class SettlementPayoutServiceTest {
                 SettlementType.MONTHLY,
                 2026,
                 3,
-                10_000L,
-                1_000L,
-                9_000L,
-                0L,
+                amount(10_000L),
+                amount(1_000L),
+                amount(9_000L),
+                amount(0L),
                 SettlementStatus.FAILED,
                 null,
                 PayoutFailureReason.WALLET_NOT_FOUND.name(),
@@ -312,10 +317,10 @@ class SettlementPayoutServiceTest {
                 SettlementType.MONTHLY,
                 2026,
                 3,
-                10_000L,
-                1_000L,
-                9_000L,
-                0L,
+                amount(10_000L),
+                amount(1_000L),
+                amount(9_000L),
+                amount(0L),
                 SettlementStatus.FAILED,
                 null,
                 PayoutFailureReason.WALLET_NOT_FOUND.name(),
@@ -343,10 +348,10 @@ class SettlementPayoutServiceTest {
                 SettlementType.MONTHLY,
                 2026,
                 3,
-                10_000L,
-                1_000L,
-                9_000L,
-                0L,
+                amount(10_000L),
+                amount(1_000L),
+                amount(9_000L),
+                amount(0L),
                 SettlementStatus.FAILED,
                 null,
                 PayoutFailureReason.INTERNAL_ERROR.name(),
@@ -377,10 +382,10 @@ class SettlementPayoutServiceTest {
                 SettlementType.MONTHLY,
                 2026,
                 3,
-                10_000L,
-                1_000L,
-                9_000L,
-                0L,
+                amount(10_000L),
+                amount(1_000L),
+                amount(9_000L),
+                amount(0L),
                 SettlementStatus.FAILED,
                 null,
                 PayoutFailureReason.INTERNAL_ERROR.name(),
@@ -393,10 +398,10 @@ class SettlementPayoutServiceTest {
                 SettlementType.MONTHLY,
                 2026,
                 3,
-                10_000L,
-                1_000L,
-                9_000L,
-                0L,
+                amount(10_000L),
+                amount(1_000L),
+                amount(9_000L),
+                amount(0L),
                 SettlementStatus.FAILED,
                 null,
                 PayoutFailureReason.WALLET_NOT_FOUND.name(),
@@ -409,10 +414,10 @@ class SettlementPayoutServiceTest {
                 SettlementType.MONTHLY,
                 2026,
                 3,
-                10_000L,
-                1_000L,
-                9_000L,
-                9_000L,
+                amount(10_000L),
+                amount(1_000L),
+                amount(9_000L),
+                amount(9_000L),
                 SettlementStatus.COMPLETED,
                 LocalDateTime.of(2026, 4, 1, 3, 10),
                 null,
@@ -464,10 +469,10 @@ class SettlementPayoutServiceTest {
                 SettlementType.MONTHLY,
                 2026,
                 3,
-                10_000L,
-                1_000L,
-                9_000L,
-                0L,
+                amount(10_000L),
+                amount(1_000L),
+                amount(9_000L),
+                amount(0L),
                 SettlementStatus.FAILED,
                 null,
                 PayoutFailureReason.INTERNAL_ERROR.name(),

@@ -6,6 +6,7 @@ import com.example.settlement.application.usecase.SettlementPayoutUseCase;
 import com.example.settlement.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultMessage;
 import com.example.settlement.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -38,7 +39,7 @@ class SellerSettlementPayoutResultEventConsumerTest {
                 UUID.randomUUID(),
                 UUID.randomUUID(),
                 UUID.randomUUID(),
-                9_000L,
+                BigDecimal.valueOf(9_000L),
                 SellerSettlementPayoutResultStatus.SUCCESS,
                 null,
                 LocalDateTime.of(2026, 4, 1, 3, 11)

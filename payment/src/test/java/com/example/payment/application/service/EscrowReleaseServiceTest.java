@@ -18,6 +18,7 @@ import com.example.payment.domain.repository.EscrowTransactionRepository;
 import com.example.payment.domain.service.IdentifierGenerator;
 import com.example.payment.domain.service.SettlementCandidateCreatedEventPublisher;
 import com.example.payment.domain.service.TimeProvider;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -67,6 +68,10 @@ class EscrowReleaseServiceTest {
         now = LocalDateTime.of(2024, 1, 2, 10, 0, 0);
     }
 
+    private BigDecimal amount(long value) {
+        return BigDecimal.valueOf(value);
+    }
+
     @Nested
     @DisplayName("releaseEscrow()")
     class ReleaseEscrow {
@@ -76,7 +81,7 @@ class EscrowReleaseServiceTest {
         void releaseEscrow_success_releasesEscrowAndPublishesSettlementCandidate() {
             EscrowReleaseCommand command = new EscrowReleaseCommand(orderId, sellerMemberId, ConfirmationType.MANUAL);
             Escrow escrow = Escrow.createHeld(
-                    escrowId, orderId, buyerMemberId, sellerMemberId, 10_000L, now.minusDays(1)
+                    escrowId, orderId, buyerMemberId, sellerMemberId, amount(10_000L), now.minusDays(1)
             );
 
             given(escrowRepository.findAllByOrderIdAndSellerMemberId(orderId, sellerMemberId)).willReturn(List.of(escrow));
@@ -87,7 +92,7 @@ class EscrowReleaseServiceTest {
             EscrowReleaseResult result = escrowReleaseService.releaseEscrow(command);
 
             assertThat(result.orderId()).isEqualTo(orderId);
-            assertThat(result.releasedAmount()).isEqualTo(10_000L);
+            assertThat(result.releasedAmount()).isEqualTo(amount(10_000L));
             assertThat(result.escrowStatus()).isEqualTo(EscrowStatus.RELEASED);
             verify(escrowRepository).save(any(Escrow.class));
             verify(settlementCandidateCreatedEventPublisher).publish(any());
@@ -109,7 +114,7 @@ class EscrowReleaseServiceTest {
         void releaseEscrow_alreadyReleased_returnsExistingResult() {
             EscrowReleaseCommand command = new EscrowReleaseCommand(orderId, sellerMemberId, ConfirmationType.MANUAL);
             Escrow escrow = Escrow.createHeld(
-                    escrowId, orderId, buyerMemberId, sellerMemberId, 10_000L, now.minusDays(1)
+                    escrowId, orderId, buyerMemberId, sellerMemberId, amount(10_000L), now.minusDays(1)
             );
             escrow.release(now.minusHours(1), now.minusHours(1));
 
@@ -119,7 +124,7 @@ class EscrowReleaseServiceTest {
             EscrowReleaseResult result = escrowReleaseService.releaseEscrow(command);
 
             assertThat(result.orderId()).isEqualTo(orderId);
-            assertThat(result.releasedAmount()).isEqualTo(10_000L);
+            assertThat(result.releasedAmount()).isEqualTo(amount(10_000L));
             assertThat(result.escrowStatus()).isEqualTo(EscrowStatus.RELEASED);
             verify(settlementCandidateCreatedEventPublisher, never()).publish(any());
         }
@@ -129,9 +134,9 @@ class EscrowReleaseServiceTest {
         void releaseEscrow_refunded_returnsExistingResult() {
             EscrowReleaseCommand command = new EscrowReleaseCommand(orderId, sellerMemberId, ConfirmationType.MANUAL);
             Escrow escrow = Escrow.createHeld(
-                    escrowId, orderId, buyerMemberId, sellerMemberId, 10_000L, now.minusDays(1)
+                    escrowId, orderId, buyerMemberId, sellerMemberId, amount(10_000L), now.minusDays(1)
             );
-            escrow.applyRefundAmount(10_000L, now.minusHours(1), now.minusHours(1));
+            escrow.applyRefundAmount(amount(10_000L), now.minusHours(1), now.minusHours(1));
 
             given(escrowRepository.findAllByOrderIdAndSellerMemberId(orderId, sellerMemberId)).willReturn(List.of(escrow));
             given(timeProvider.now()).willReturn(now);

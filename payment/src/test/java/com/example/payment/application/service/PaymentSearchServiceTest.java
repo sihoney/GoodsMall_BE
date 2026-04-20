@@ -25,6 +25,7 @@ import com.example.payment.domain.repository.EscrowRepository;
 import com.example.payment.domain.repository.EscrowTransactionRepository;
 import com.example.payment.domain.repository.WalletRepository;
 import com.example.payment.domain.repository.WalletTransactionRepository;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -81,6 +82,10 @@ class PaymentSearchServiceTest {
         now = LocalDateTime.of(2024, 1, 1, 12, 0, 0);
     }
 
+    private BigDecimal amount(long value) {
+        return BigDecimal.valueOf(value);
+    }
+
     @Nested
     @DisplayName("findWalletSummary() 테스트")
     class FindWalletSummary {
@@ -88,14 +93,14 @@ class PaymentSearchServiceTest {
         @Test
         @DisplayName("회원 지갑을 조회하면 요약 정보를 반환한다")
         void findWalletSummary_success_returnsWalletSummary() {
-            Wallet wallet = Wallet.create(walletId, memberId, 30_000L, now, now);
+            Wallet wallet = Wallet.create(walletId, memberId, amount(30_000L), now, now);
             given(walletRepository.findByMemberId(memberId)).willReturn(Optional.of(wallet));
 
             WalletSummaryResult result = paymentSearchService.findWalletSummary(memberId);
 
             assertThat(result.walletId()).isEqualTo(walletId);
             assertThat(result.memberId()).isEqualTo(memberId);
-            assertThat(result.balance()).isEqualTo(30_000L);
+            assertThat(result.balance()).isEqualTo(amount(30_000L));
         }
 
         @Test
@@ -111,8 +116,8 @@ class PaymentSearchServiceTest {
     @Test
     @DisplayName("충전 목록은 최신순 페이지 결과를 반환한다")
     void findAllCharges_success_returnsPagedCharges() {
-        Charge charge = Charge.create(chargeId, memberId, walletId, 10_000L, "CHARGE-1", now);
-        charge.approve(10_000L, "payment-key", now.plusMinutes(1), "92");
+        Charge charge = Charge.create(chargeId, memberId, walletId, amount(10_000L), "CHARGE-1", now);
+        charge.approve(amount(10_000L), "payment-key", now.plusMinutes(1), "92");
         given(chargeRepository.findByMemberId(any(), any())).willReturn(
                 new PageImpl<>(List.of(charge), PageRequest.of(0, 20), 1)
         );
@@ -128,8 +133,8 @@ class PaymentSearchServiceTest {
     @Test
     @DisplayName("충전 상세는 본인 charge만 조회한다")
     void findChargeDetail_success_returnsChargeDetail() {
-        Charge charge = Charge.create(chargeId, memberId, walletId, 10_000L, "CHARGE-1", now);
-        charge.approve(10_000L, "payment-key", now.plusMinutes(1), "92");
+        Charge charge = Charge.create(chargeId, memberId, walletId, amount(10_000L), "CHARGE-1", now);
+        charge.approve(amount(10_000L), "payment-key", now.plusMinutes(1), "92");
         given(chargeRepository.findByChargeIdAndMemberId(chargeId, memberId)).willReturn(Optional.of(charge));
 
         ChargeDetailResult result = paymentSearchService.findChargeDetail(memberId, chargeId);
@@ -151,12 +156,12 @@ class PaymentSearchServiceTest {
     @Test
     @DisplayName("거래 내역은 회원 지갑 기준으로 조회한다")
     void findAllTransactions_success_returnsWalletTransactions() {
-        Wallet wallet = Wallet.create(walletId, memberId, 20_000L, now, now);
+        Wallet wallet = Wallet.create(walletId, memberId, amount(20_000L), now, now);
         WalletTransaction transaction = WalletTransaction.create(
                 transactionId,
                 walletId,
-                10_000L,
-                20_000L,
+                amount(10_000L),
+                amount(20_000L),
                 WalletTransactionType.CHARGE,
                 chargeId,
                 "CHARGE",
@@ -183,7 +188,7 @@ class PaymentSearchServiceTest {
                 orderId,
                 UUID.randomUUID(),
                 memberId,
-                8_000L,
+                amount(8_000L),
                 EscrowStatus.HELD,
                 null,
                 null,

@@ -69,8 +69,8 @@ class OrderPaymentApiServiceTest {
                         orderId,
                         UUID.randomUUID(),
                         List.of(UUID.randomUUID()),
-                        12000L,
-                        3000L
+                        BigDecimal.valueOf(12000L),
+                        BigDecimal.valueOf(3000L)
                 ));
 
         OrderPaymentApiResponse response = orderPaymentApiService.payOrder(request);
@@ -87,7 +87,7 @@ class OrderPaymentApiServiceTest {
                 .containsExactly(new OrderPaymentLineCommand(
                         request.orderLines().get(0).orderItemId(),
                         sellerId,
-                        12000L
+                        BigDecimal.valueOf(12000L)
                 ));
 
         ArgumentCaptor<OrderPaymentResultMessage> eventCaptor = ArgumentCaptor.forClass(OrderPaymentResultMessage.class);

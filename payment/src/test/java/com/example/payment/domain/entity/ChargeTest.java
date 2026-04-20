@@ -1,6 +1,7 @@
 package com.example.payment.domain.entity;
 
 import com.example.payment.domain.enumtype.ChargeStatus;
+import java.math.BigDecimal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -28,12 +29,16 @@ class ChargeTest {
         requestedAt = LocalDateTime.of(2024, 1, 1, 12, 0, 0);
     }
 
+    private BigDecimal amount(long value) {
+        return BigDecimal.valueOf(value);
+    }
+
     private Charge createPendingCharge() {
         return Charge.create(
                 chargeId,
                 memberId,
                 walletId,
-                10_000L,
+                amount(10_000L),
                 "CHARGE-" + chargeId,
                 requestedAt
         );
@@ -56,7 +61,7 @@ class ChargeTest {
         void createCharge_requestedAmountIsSet() {
             Charge charge = createPendingCharge();
 
-            assertThat(charge.getRequestedAmount()).isEqualTo(10_000L);
+            assertThat(charge.getRequestedAmount()).isEqualTo(amount(10_000L));
         }
 
         @Test
@@ -87,7 +92,7 @@ class ChargeTest {
             Charge charge = createPendingCharge();
             LocalDateTime approvedAt = LocalDateTime.of(2024, 1, 1, 12, 5, 0);
 
-            charge.approve(10_000L, "paymentKey-abc", approvedAt, null);
+            charge.approve(amount(10_000L), "paymentKey-abc", approvedAt, null);
 
             assertThat(charge.getChargeStatus()).isEqualTo(ChargeStatus.CONFIRM_SUCCESS);
         }
@@ -98,9 +103,9 @@ class ChargeTest {
             Charge charge = createPendingCharge();
             LocalDateTime approvedAt = LocalDateTime.of(2024, 1, 1, 12, 5, 0);
 
-            charge.approve(10_000L, "paymentKey-abc", approvedAt, null);
+            charge.approve(amount(10_000L), "paymentKey-abc", approvedAt, null);
 
-            assertThat(charge.getApprovedAmount()).isEqualTo(10_000L);
+            assertThat(charge.getApprovedAmount()).isEqualTo(amount(10_000L));
             assertThat(charge.getPgPaymentKey()).isEqualTo("paymentKey-abc");
             assertThat(charge.getApprovedAt()).isEqualTo(approvedAt);
         }
@@ -110,7 +115,7 @@ class ChargeTest {
         void approve_isPendingIsFalse() {
             Charge charge = createPendingCharge();
 
-            charge.approve(10_000L, "paymentKey-abc", LocalDateTime.now(), null);
+            charge.approve(amount(10_000L), "paymentKey-abc", LocalDateTime.now(), null);
 
             assertThat(charge.isPending()).isFalse();
         }
@@ -119,9 +124,9 @@ class ChargeTest {
         @DisplayName("이미 SUCCESS인 Charge에 approve()를 호출하면 예외가 발생한다")
         void approve_alreadySuccess_throwsException() {
             Charge charge = createPendingCharge();
-            charge.approve(10_000L, "paymentKey-abc", LocalDateTime.now(), null);
+            charge.approve(amount(10_000L), "paymentKey-abc", LocalDateTime.now(), null);
 
-            assertThatThrownBy(() -> charge.approve(10_000L, "paymentKey-abc2", LocalDateTime.now(), null))
+            assertThatThrownBy(() -> charge.approve(amount(10_000L), "paymentKey-abc2", LocalDateTime.now(), null))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("Only pending charges can be changed.");
         }
@@ -132,7 +137,7 @@ class ChargeTest {
             Charge charge = createPendingCharge();
             charge.fail("reason", LocalDateTime.now());
 
-            assertThatThrownBy(() -> charge.approve(10_000L, "paymentKey-abc", LocalDateTime.now(), null))
+            assertThatThrownBy(() -> charge.approve(amount(10_000L), "paymentKey-abc", LocalDateTime.now(), null))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("Only pending charges can be changed.");
         }
@@ -169,7 +174,7 @@ class ChargeTest {
         @DisplayName("이미 SUCCESS인 Charge에 fail()을 호출하면 예외가 발생한다")
         void fail_alreadySuccess_throwsException() {
             Charge charge = createPendingCharge();
-            charge.approve(10_000L, "paymentKey-abc", LocalDateTime.now(), null);
+            charge.approve(amount(10_000L), "paymentKey-abc", LocalDateTime.now(), null);
 
             assertThatThrownBy(() -> charge.fail("reason", LocalDateTime.now()))
                     .isInstanceOf(IllegalStateException.class)
