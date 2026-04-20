@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.example.payment.domain.enumtype.EscrowStatus;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -19,6 +20,10 @@ class EscrowTest {
     private final UUID sellerMemberId = UUID.randomUUID();
     private final LocalDateTime createdAt = LocalDateTime.of(2026, 4, 1, 10, 0);
 
+    private BigDecimal amount(long value) {
+        return BigDecimal.valueOf(value);
+    }
+
     @Nested
     @DisplayName("createHeld()")
     class CreateHeld {
@@ -31,13 +36,13 @@ class EscrowTest {
                     orderId,
                     buyerMemberId,
                     sellerMemberId,
-                    12_000L,
+                    amount(12_000L),
                     createdAt
             );
 
             assertThat(escrow.getEscrowStatus()).isEqualTo(EscrowStatus.HELD);
-            assertThat(escrow.getAmount()).isEqualTo(12_000L);
-            assertThat(escrow.getOriginalAmount()).isEqualTo(12_000L);
+            assertThat(escrow.getAmount()).isEqualTo(amount(12_000L));
+            assertThat(escrow.getOriginalAmount()).isEqualTo(amount(12_000L));
             assertThat(escrow.getRefundedAmount()).isZero();
         }
 
@@ -49,7 +54,7 @@ class EscrowTest {
                     orderId,
                     buyerMemberId,
                     sellerMemberId,
-                    0L,
+                    amount(0L),
                     createdAt
             )).isInstanceOf(IllegalArgumentException.class);
         }
@@ -67,7 +72,7 @@ class EscrowTest {
                     orderId,
                     buyerMemberId,
                     sellerMemberId,
-                    12_000L,
+                    amount(12_000L),
                     createdAt
             );
             LocalDateTime now = createdAt.plusDays(1);
@@ -91,16 +96,16 @@ class EscrowTest {
                     orderId,
                     buyerMemberId,
                     sellerMemberId,
-                    12_000L,
+                    amount(12_000L),
                     createdAt
             );
             LocalDateTime now = createdAt.plusDays(1);
 
-            escrow.applyRefundAmount(5_000L, now, now);
+            escrow.applyRefundAmount(amount(5_000L), now, now);
 
             assertThat(escrow.getEscrowStatus()).isEqualTo(EscrowStatus.HELD);
-            assertThat(escrow.getAmount()).isEqualTo(7_000L);
-            assertThat(escrow.getRefundedAmount()).isEqualTo(5_000L);
+            assertThat(escrow.getAmount()).isEqualTo(amount(7_000L));
+            assertThat(escrow.getRefundedAmount()).isEqualTo(amount(5_000L));
         }
 
         @Test
@@ -111,16 +116,16 @@ class EscrowTest {
                     orderId,
                     buyerMemberId,
                     sellerMemberId,
-                    12_000L,
+                    amount(12_000L),
                     createdAt
             );
             LocalDateTime now = createdAt.plusDays(1);
 
-            escrow.applyRefundAmount(12_000L, now, now);
+            escrow.applyRefundAmount(amount(12_000L), now, now);
 
             assertThat(escrow.getEscrowStatus()).isEqualTo(EscrowStatus.REFUNDED);
             assertThat(escrow.getAmount()).isZero();
-            assertThat(escrow.getRefundedAmount()).isEqualTo(12_000L);
+            assertThat(escrow.getRefundedAmount()).isEqualTo(amount(12_000L));
             assertThat(escrow.getRefundedAt()).isEqualTo(now);
         }
     }

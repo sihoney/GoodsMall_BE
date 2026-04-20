@@ -8,6 +8,7 @@ import com.example.payment.infrastructure.messaging.kafka.contract.SettlementCan
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -43,7 +44,7 @@ class KafkaSettlementCandidateCreatedEventPublisherTest {
                 orderId,
                 escrowId,
                 UUID.randomUUID(),
-                10_000L,
+                BigDecimal.valueOf(10_000L),
                 LocalDateTime.of(2024, 1, 1, 12, 0, 0),
                 ConfirmationType.AUTO,
                 LocalDateTime.of(2024, 1, 1, 12, 0, 1)

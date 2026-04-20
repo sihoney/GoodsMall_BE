@@ -1,6 +1,7 @@
 package com.example.payment.application.dto;
 
 import com.example.payment.domain.enumtype.ChargeStatus;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -9,8 +10,8 @@ import java.util.UUID;
  */
 public record ChargeListItemResult(
         UUID chargeId,
-        Long requestedAmount,
-        Long approvedAmount,
+        BigDecimal requestedAmount,
+        BigDecimal approvedAmount,
         ChargeStatus chargeStatus,
         String tossBankCode,
         LocalDateTime requestedAt,

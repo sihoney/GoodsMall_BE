@@ -1,6 +1,7 @@
 package com.example.payment.presentation.dto.response;
 
 import com.example.payment.application.dto.WalletSummaryResult;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -10,7 +11,7 @@ import java.util.UUID;
 public record WalletSummaryResponse(
         UUID walletId,
         UUID memberId,
-        Long balance,
+        BigDecimal balance,
         LocalDateTime updatedAt
 ) {
 

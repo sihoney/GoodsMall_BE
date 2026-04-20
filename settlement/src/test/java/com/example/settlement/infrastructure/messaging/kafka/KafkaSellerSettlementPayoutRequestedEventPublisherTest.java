@@ -4,6 +4,7 @@ import static org.mockito.Mockito.verify;
 
 import com.example.settlement.infrastructure.messaging.kafka.contract.SellerSettlementPayoutRequestedMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -41,7 +42,7 @@ class KafkaSellerSettlementPayoutRequestedEventPublisherTest {
                 UUID.randomUUID(),
                 2026,
                 3,
-                9_000L,
+                BigDecimal.valueOf(9_000L),
                 LocalDateTime.of(2026, 4, 1, 3, 5)
         );
         given(objectMapper.writeValueAsString(message)).willReturn("serialized-message");

@@ -7,6 +7,7 @@ import com.example.settlement.domain.entity.Settlement;
 import com.example.settlement.domain.entity.SettlementItem;
 import com.example.settlement.domain.repository.SettlementItemRepository;
 import com.example.settlement.domain.repository.SettlementRepository;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -44,15 +45,15 @@ public class PartialSettlementCreationService implements PartialSettlementCreati
         validateSettlementItemCount(uniqueSettlementItemIds, settlementItems);
         validateSettlementItemsForPartialSettlement(command.sellerId(), settlementItems);
 
-        long totalSalesAmount = settlementItems.stream()
-                .mapToLong(SettlementItem::getGrossAmount)
-                .sum();
-        long feeAmount = settlementItems.stream()
-                .mapToLong(SettlementItem::getFeeAmount)
-                .sum();
-        long finalSettlementAmount = settlementItems.stream()
-                .mapToLong(SettlementItem::getNetAmount)
-                .sum();
+        BigDecimal totalSalesAmount = settlementItems.stream()
+                .map(SettlementItem::getGrossAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal feeAmount = settlementItems.stream()
+                .map(SettlementItem::getFeeAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal finalSettlementAmount = settlementItems.stream()
+                .map(SettlementItem::getNetAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         LocalDateTime requestedAt = LocalDateTime.now();
         Settlement partialSettlement = settlementRepository.save(Settlement.createPartialPending(
@@ -118,7 +119,7 @@ public class PartialSettlementCreationService implements PartialSettlementCreati
             if (settlementItem.isAlreadyAggregated()) {
                 throw new IllegalArgumentException("Already assigned settlement item is not allowed.");
             }
-            if (settlementItem.getGrossAmount() <= 0L) {
+            if (settlementItem.getGrossAmount().compareTo(BigDecimal.ZERO) <= 0) {
                 throw new IllegalArgumentException("Only positive grossAmount settlement items are allowed.");
             }
         }

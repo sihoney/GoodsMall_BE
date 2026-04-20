@@ -2,16 +2,17 @@ package com.example.payment.presentation.dto.response;
 
 import com.example.payment.application.dto.PendingSellerIncomeItemResult;
 import com.example.payment.domain.enumtype.EscrowStatus;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * 판매자 미정산 escrow 단건 응답 DTO다.
+ * 판매자 정산 대기 escrow 단건 응답 DTO다.
  */
 public record PendingSellerIncomeItemResponse(
         UUID escrowId,
         UUID orderId,
-        Long amount,
+        BigDecimal amount,
         EscrowStatus escrowStatus,
         LocalDateTime createdAt,
         LocalDateTime updatedAt

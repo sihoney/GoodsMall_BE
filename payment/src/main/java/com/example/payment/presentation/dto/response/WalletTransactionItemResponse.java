@@ -2,17 +2,18 @@ package com.example.payment.presentation.dto.response;
 
 import com.example.payment.application.dto.WalletTransactionItemResult;
 import com.example.payment.domain.enumtype.WalletTransactionType;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * wallet 거래 내역 단건 응답 DTO다.
+ * wallet 거래 단건 응답 DTO다.
  */
 public record WalletTransactionItemResponse(
         UUID transactionId,
         WalletTransactionType transactionType,
-        Long amount,
-        Long balanceAfter,
+        BigDecimal amount,
+        BigDecimal balanceAfter,
         String referenceType,
         UUID referenceId,
         String description,

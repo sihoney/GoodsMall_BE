@@ -9,6 +9,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.Objects;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -32,7 +33,7 @@ public class OrderPayment {
     private UUID buyerMemberId;
 
     @Column(name = "total_amount", nullable = false, updatable = false)
-    private Long totalAmount;
+    private BigDecimal totalAmount;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_method", nullable = false, length = 20)
@@ -55,7 +56,7 @@ public class OrderPayment {
             UUID orderPaymentId,
             UUID orderId,
             UUID buyerMemberId,
-            Long totalAmount,
+            BigDecimal totalAmount,
             OrderPaymentMethod paymentMethod,
             OrderPaymentStatus paymentStatus,
             LocalDateTime paidAt,
@@ -77,7 +78,7 @@ public class OrderPayment {
             UUID orderPaymentId,
             UUID orderId,
             UUID buyerMemberId,
-            Long totalAmount,
+            BigDecimal totalAmount,
             OrderPaymentMethod paymentMethod,
             LocalDateTime paidAt
     ) {
@@ -95,15 +96,15 @@ public class OrderPayment {
         );
     }
 
-    public void markRefundStatusByTotalRefundedAmount(Long totalRefundedAmount, LocalDateTime updatedAt) {
-        long validatedRefundedAmount = validateNonNegativeAmount(totalRefundedAmount);
-        if (validatedRefundedAmount > totalAmount) {
+    public void markRefundStatusByTotalRefundedAmount(BigDecimal totalRefundedAmount, LocalDateTime updatedAt) {
+        BigDecimal validatedRefundedAmount = validateNonNegativeAmount(totalRefundedAmount);
+        if (validatedRefundedAmount.compareTo(totalAmount) > 0) {
             throw new IllegalArgumentException("total refunded amount exceeds total payment amount.");
         }
 
-        if (validatedRefundedAmount == 0L) {
+        if (validatedRefundedAmount.compareTo(BigDecimal.ZERO) == 0) {
             this.paymentStatus = OrderPaymentStatus.SUCCEEDED;
-        } else if (validatedRefundedAmount < totalAmount) {
+        } else if (validatedRefundedAmount.compareTo(totalAmount) < 0) {
             this.paymentStatus = OrderPaymentStatus.PARTIAL_REFUNDED;
         } else {
             this.paymentStatus = OrderPaymentStatus.REFUNDED;
@@ -111,17 +112,18 @@ public class OrderPayment {
         this.updatedAt = Objects.requireNonNull(updatedAt);
     }
 
-    private static Long validatePositiveAmount(Long amount) {
-        if (Objects.requireNonNull(amount) <= 0L) {
+    private static BigDecimal validatePositiveAmount(BigDecimal amount) {
+        if (Objects.requireNonNull(amount).compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("totalAmount must be positive.");
         }
         return amount;
     }
 
-    private static long validateNonNegativeAmount(Long amount) {
-        if (Objects.requireNonNull(amount) < 0L) {
+    private static BigDecimal validateNonNegativeAmount(BigDecimal amount) {
+        if (Objects.requireNonNull(amount).compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("total refunded amount must not be negative.");
         }
         return amount;
     }
 }
+

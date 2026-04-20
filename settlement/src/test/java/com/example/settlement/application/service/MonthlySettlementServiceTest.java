@@ -17,6 +17,7 @@ import com.example.settlement.domain.enumtype.SettlementStatus;
 import com.example.settlement.domain.enumtype.SettlementType;
 import com.example.settlement.domain.repository.SettlementItemRepository;
 import com.example.settlement.domain.repository.SettlementRepository;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -48,6 +49,10 @@ class MonthlySettlementServiceTest {
         );
     }
 
+    private BigDecimal amount(long value) {
+        return BigDecimal.valueOf(value);
+    }
+
     @Test
     void registerSettlementItemReturnsExistingItemWhenEscrowAlreadyRegistered() {
         UUID escrowId = UUID.randomUUID();
@@ -57,9 +62,9 @@ class MonthlySettlementServiceTest {
                 UUID.randomUUID(),
                 escrowId,
                 UUID.randomUUID(),
-                10_000L,
-                1_000L,
-                9_000L,
+                amount(10_000L),
+                amount(1_000L),
+                amount(9_000L),
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );
@@ -69,7 +74,7 @@ class MonthlySettlementServiceTest {
                 UUID.randomUUID(),
                 escrowId,
                 UUID.randomUUID(),
-                10_000L,
+                amount(10_000L),
                 LocalDateTime.now()
         ));
 
@@ -86,13 +91,13 @@ class MonthlySettlementServiceTest {
                 UUID.randomUUID(),
                 escrowId,
                 UUID.randomUUID(),
-                10_000L,
+                amount(10_000L),
                 LocalDateTime.now()
         ));
 
-        assertThat(result.getGrossAmount()).isEqualTo(10_000L);
-        assertThat(result.getFeeAmount()).isEqualTo(1_000L);
-        assertThat(result.getNetAmount()).isEqualTo(9_000L);
+        assertThat(result.getGrossAmount()).isEqualTo(amount(10_000L));
+        assertThat(result.getFeeAmount()).isEqualTo(amount(1_000L));
+        assertThat(result.getNetAmount()).isEqualTo(amount(9_000L));
     }
 
     @ParameterizedTest
@@ -113,13 +118,13 @@ class MonthlySettlementServiceTest {
                 UUID.randomUUID(),
                 escrowId,
                 UUID.randomUUID(),
-                grossAmount,
+                amount(grossAmount),
                 LocalDateTime.now()
         ));
 
-        assertThat(result.getFeeAmount()).isEqualTo(expectedFeeAmount);
-        assertThat(result.getNetAmount()).isEqualTo(expectedNetAmount);
-        assertThat(result.getGrossAmount() - result.getFeeAmount()).isEqualTo(result.getNetAmount());
+        assertThat(result.getFeeAmount()).isEqualTo(amount(expectedFeeAmount));
+        assertThat(result.getNetAmount()).isEqualTo(amount(expectedNetAmount));
+        assertThat(result.getGrossAmount().subtract(result.getFeeAmount())).isEqualTo(result.getNetAmount());
     }
 
     @Test
@@ -131,9 +136,9 @@ class MonthlySettlementServiceTest {
                 UUID.randomUUID(),
                 UUID.randomUUID(),
                 sellerId,
-                10_000L,
-                1_000L,
-                9_000L,
+                amount(10_000L),
+                amount(1_000L),
+                amount(9_000L),
                 LocalDateTime.of(2026, 3, 15, 10, 0),
                 LocalDateTime.now()
         );
@@ -143,10 +148,10 @@ class MonthlySettlementServiceTest {
                 SettlementType.MONTHLY,
                 2026,
                 3,
-                10_000L,
-                1_000L,
-                9_000L,
-                0L,
+                amount(10_000L),
+                amount(1_000L),
+                amount(9_000L),
+                amount(0L),
                 SettlementStatus.PENDING,
                 null,
                 null,
@@ -196,9 +201,9 @@ class MonthlySettlementServiceTest {
                 UUID.randomUUID(),
                 UUID.randomUUID(),
                 sellerId,
-                20_000L,
-                2_000L,
-                18_000L,
+                amount(20_000L),
+                amount(2_000L),
+                amount(18_000L),
                 LocalDateTime.of(2026, 3, 20, 10, 0),
                 LocalDateTime.now()
         );
@@ -207,9 +212,9 @@ class MonthlySettlementServiceTest {
                 sellerId,
                 2026,
                 3,
-                10_000L,
-                1_000L,
-                9_000L,
+                amount(10_000L),
+                amount(1_000L),
+                amount(9_000L),
                 LocalDateTime.now()
         );
         when(settlementItemRepository.findUnassignedByReleasedAtBetween(any(), any())).thenReturn(List.of(settlementItem));
@@ -241,9 +246,9 @@ class MonthlySettlementServiceTest {
                 )
         );
 
-        assertThat(existingSettlement.getTotalSalesAmount()).isEqualTo(30_000L);
-        assertThat(existingSettlement.getFeeAmount()).isEqualTo(3_000L);
-        assertThat(existingSettlement.getFinalSettlementAmount()).isEqualTo(27_000L);
+        assertThat(existingSettlement.getTotalSalesAmount()).isEqualTo(amount(30_000L));
+        assertThat(existingSettlement.getFeeAmount()).isEqualTo(amount(3_000L));
+        assertThat(existingSettlement.getFinalSettlementAmount()).isEqualTo(amount(27_000L));
         assertThat(result.createdSettlementCount()).isZero();
         assertThat(result.updatedSettlementCount()).isEqualTo(1);
         verify(settlementRepository, times(1)).save(existingSettlement);
@@ -300,9 +305,9 @@ class MonthlySettlementServiceTest {
                 UUID.randomUUID(),
                 UUID.randomUUID(),
                 UUID.randomUUID(),
-                10_000L,
-                1_000L,
-                9_000L,
+                amount(10_000L),
+                amount(1_000L),
+                amount(9_000L),
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );

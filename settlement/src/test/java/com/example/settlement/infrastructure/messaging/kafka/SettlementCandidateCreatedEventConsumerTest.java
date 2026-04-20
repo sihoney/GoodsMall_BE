@@ -10,6 +10,7 @@ import com.example.settlement.infrastructure.messaging.kafka.contract.Settlement
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -42,7 +43,7 @@ class SettlementCandidateCreatedEventConsumerTest {
                 UUID.randomUUID(),
                 UUID.randomUUID(),
                 UUID.randomUUID(),
-                10_000L,
+                BigDecimal.valueOf(10_000L),
                 Instant.parse("2024-01-01T12:00:00Z"),
                 "MANUAL",
                 Instant.parse("2024-01-01T12:00:01Z")
@@ -69,7 +70,7 @@ class SettlementCandidateCreatedEventConsumerTest {
                 UUID.randomUUID(),
                 null,
                 UUID.randomUUID(),
-                10_000L,
+                BigDecimal.valueOf(10_000L),
                 Instant.parse("2024-01-01T12:00:00Z"),
                 "MANUAL",
                 Instant.parse("2024-01-01T12:00:01Z")

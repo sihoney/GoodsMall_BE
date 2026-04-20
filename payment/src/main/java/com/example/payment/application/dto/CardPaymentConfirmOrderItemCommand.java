@@ -1,9 +1,10 @@
 package com.example.payment.application.dto;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 public record CardPaymentConfirmOrderItemCommand(
         UUID orderItemId,
-        Long amount
+        BigDecimal amount
 ) {
 }

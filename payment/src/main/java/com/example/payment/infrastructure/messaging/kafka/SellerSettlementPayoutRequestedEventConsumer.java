@@ -81,7 +81,7 @@ public class SellerSettlementPayoutRequestedEventConsumer {
                     .orElseThrow(WalletNotFoundException::new);
 
             // 증가 후 잔액(balanceAfter)을 반환해 거래 이력에 스냅샷처럼 남긴다.
-            Long balanceAfter = wallet.increaseBalance(event.payoutAmount(), now);
+            java.math.BigDecimal balanceAfter = wallet.increaseBalance(event.payoutAmount(), now);
             walletRepository.save(wallet);
 
             // 예치금이 변경되어 기록을 남긴다.
@@ -164,7 +164,7 @@ public class SellerSettlementPayoutRequestedEventConsumer {
         if (event.settlementType() == null) {
             throw new IllegalArgumentException("settlementType is required.");
         }
-        if (event.payoutAmount() == null || event.payoutAmount() <= 0) {
+        if (event.payoutAmount() == null || event.payoutAmount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("payoutAmount must be positive.");
         }
         if (event.requestedAt() == null) {

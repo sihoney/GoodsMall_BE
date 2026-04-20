@@ -1,5 +1,6 @@
 package com.example.payment.application.dto;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -11,7 +12,7 @@ public record OrderPaymentResult(
         UUID orderId,
         UUID buyerWalletId,
         List<UUID> escrowIds,
-        Long paidAmount,
-        Long buyerWalletBalance
+        BigDecimal paidAmount,
+        BigDecimal buyerWalletBalance
 ) {
 }

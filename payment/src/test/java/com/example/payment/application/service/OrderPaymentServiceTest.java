@@ -23,6 +23,7 @@ import com.example.payment.domain.repository.WalletRepository;
 import com.example.payment.domain.repository.WalletTransactionRepository;
 import com.example.payment.domain.service.IdentifierGenerator;
 import com.example.payment.domain.service.TimeProvider;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -83,6 +84,10 @@ class OrderPaymentServiceTest {
         now = LocalDateTime.of(2024, 1, 1, 12, 0, 0);
     }
 
+    private BigDecimal amount(long value) {
+        return BigDecimal.valueOf(value);
+    }
+
     @Nested
     @DisplayName("payOrder() 테스트")
     class PayOrder {
@@ -93,10 +98,10 @@ class OrderPaymentServiceTest {
             OrderPaymentCommand command = new OrderPaymentCommand(
                     orderId,
                     buyerMemberId,
-                    12_000L,
-                    List.of(new OrderPaymentLineCommand(UUID.randomUUID(), sellerMemberId, 12_000L))
+                    amount(12_000L),
+                    List.of(new OrderPaymentLineCommand(UUID.randomUUID(), sellerMemberId, amount(12_000L)))
             );
-            Wallet buyerWallet = Wallet.create(buyerWalletId, buyerMemberId, 20_000L, now, now);
+            Wallet buyerWallet = Wallet.create(buyerWalletId, buyerMemberId, amount(20_000L), now, now);
 
             given(escrowRepository.findAllByOrderId(orderId)).willReturn(List.of());
             given(walletRepository.findByMemberId(buyerMemberId)).willReturn(java.util.Optional.of(buyerWallet));
@@ -113,8 +118,8 @@ class OrderPaymentServiceTest {
             assertThat(result.orderId()).isEqualTo(orderId);
             assertThat(result.buyerWalletId()).isEqualTo(buyerWalletId);
             assertThat(result.escrowIds()).containsExactly(escrowId);
-            assertThat(result.paidAmount()).isEqualTo(12_000L);
-            assertThat(result.buyerWalletBalance()).isEqualTo(8_000L);
+            assertThat(result.paidAmount()).isEqualTo(amount(12_000L));
+            assertThat(result.buyerWalletBalance()).isEqualTo(amount(8_000L));
             verify(walletRepository).save(any(Wallet.class));
             verify(walletTransactionRepository).save(any());
             verify(escrowRepository).saveAll(any());
@@ -128,13 +133,13 @@ class OrderPaymentServiceTest {
             OrderPaymentCommand command = new OrderPaymentCommand(
                     orderId,
                     buyerMemberId,
-                    12_000L,
+                    amount(12_000L),
                     List.of(
-                            new OrderPaymentLineCommand(UUID.randomUUID(), sellerMemberId, 7_000L),
-                            new OrderPaymentLineCommand(UUID.randomUUID(), secondSellerId, 5_000L)
+                            new OrderPaymentLineCommand(UUID.randomUUID(), sellerMemberId, amount(7_000L)),
+                            new OrderPaymentLineCommand(UUID.randomUUID(), secondSellerId, amount(5_000L))
                     )
             );
-            Wallet buyerWallet = Wallet.create(buyerWalletId, buyerMemberId, 20_000L, now, now);
+            Wallet buyerWallet = Wallet.create(buyerWalletId, buyerMemberId, amount(20_000L), now, now);
 
             given(escrowRepository.findAllByOrderId(orderId)).willReturn(List.of());
             given(walletRepository.findByMemberId(buyerMemberId)).willReturn(java.util.Optional.of(buyerWallet));
@@ -150,7 +155,7 @@ class OrderPaymentServiceTest {
             OrderPaymentResult result = orderPaymentService.payOrder(command);
 
             assertThat(result.escrowIds()).containsExactly(escrowId, secondEscrowId);
-            assertThat(result.buyerWalletBalance()).isEqualTo(8_000L);
+            assertThat(result.buyerWalletBalance()).isEqualTo(amount(8_000L));
             verify(walletTransactionRepository).save(any());
             verify(escrowRepository).saveAll(any());
         }
@@ -161,18 +166,18 @@ class OrderPaymentServiceTest {
             OrderPaymentCommand command = new OrderPaymentCommand(
                     orderId,
                     buyerMemberId,
-                    12_000L,
-                    List.of(new OrderPaymentLineCommand(UUID.randomUUID(), sellerMemberId, 12_000L))
+                    amount(12_000L),
+                    List.of(new OrderPaymentLineCommand(UUID.randomUUID(), sellerMemberId, amount(12_000L)))
             );
             Escrow existingEscrow = Escrow.createHeld(
                     escrowId,
                     orderId,
                     buyerMemberId,
                     sellerMemberId,
-                    12_000L,
+                    amount(12_000L),
                     now
             );
-            Wallet buyerWallet = Wallet.create(buyerWalletId, buyerMemberId, 20_000L, now, now);
+            Wallet buyerWallet = Wallet.create(buyerWalletId, buyerMemberId, amount(20_000L), now, now);
 
             given(escrowRepository.findAllByOrderId(orderId)).willReturn(List.of(existingEscrow));
             given(walletRepository.findByMemberId(buyerMemberId)).willReturn(java.util.Optional.of(buyerWallet));
@@ -180,7 +185,7 @@ class OrderPaymentServiceTest {
             OrderPaymentResult result = orderPaymentService.payOrder(command);
 
             assertThat(result.escrowIds()).containsExactly(escrowId);
-            assertThat(result.buyerWalletBalance()).isEqualTo(20_000L);
+            assertThat(result.buyerWalletBalance()).isEqualTo(amount(20_000L));
             verify(walletRepository, never()).save(any());
             verify(walletTransactionRepository, never()).save(any());
             verify(escrowRepository, never()).saveAll(any());
@@ -192,8 +197,8 @@ class OrderPaymentServiceTest {
             OrderPaymentCommand command = new OrderPaymentCommand(
                     orderId,
                     buyerMemberId,
-                    12_000L,
-                    List.of(new OrderPaymentLineCommand(UUID.randomUUID(), sellerMemberId, 12_000L))
+                    amount(12_000L),
+                    List.of(new OrderPaymentLineCommand(UUID.randomUUID(), sellerMemberId, amount(12_000L)))
             );
 
             given(escrowRepository.findAllByOrderId(orderId)).willReturn(List.of());
@@ -209,8 +214,8 @@ class OrderPaymentServiceTest {
             OrderPaymentCommand command = new OrderPaymentCommand(
                     orderId,
                     buyerMemberId,
-                    10_000L,
-                    List.of(new OrderPaymentLineCommand(UUID.randomUUID(), sellerMemberId, 12_000L))
+                    amount(10_000L),
+                    List.of(new OrderPaymentLineCommand(UUID.randomUUID(), sellerMemberId, amount(12_000L)))
             );
 
             assertThatThrownBy(() -> orderPaymentService.payOrder(command))
@@ -224,10 +229,10 @@ class OrderPaymentServiceTest {
             OrderPaymentCommand command = new OrderPaymentCommand(
                     orderId,
                     buyerMemberId,
-                    12_000L,
-                    List.of(new OrderPaymentLineCommand(UUID.randomUUID(), sellerMemberId, 12_000L))
+                    amount(12_000L),
+                    List.of(new OrderPaymentLineCommand(UUID.randomUUID(), sellerMemberId, amount(12_000L)))
             );
-            Wallet buyerWallet = Wallet.create(buyerWalletId, buyerMemberId, 5_000L, now, now);
+            Wallet buyerWallet = Wallet.create(buyerWalletId, buyerMemberId, amount(5_000L), now, now);
 
             given(escrowRepository.findAllByOrderId(orderId)).willReturn(List.of());
             given(walletRepository.findByMemberId(buyerMemberId)).willReturn(java.util.Optional.of(buyerWallet));

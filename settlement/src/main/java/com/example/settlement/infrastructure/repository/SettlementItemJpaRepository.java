@@ -2,6 +2,7 @@ package com.example.settlement.infrastructure.repository;
 
 import com.example.settlement.domain.entity.SettlementItem;
 import com.example.settlement.domain.enumtype.SettlementItemStatus;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -45,7 +46,7 @@ public interface SettlementItemJpaRepository extends JpaRepository<SettlementIte
     List<SettlementItem> findBySellerIdAndSettlementItemStatusAndGrossAmountGreaterThanOrderByReleasedAtDesc(
             UUID sellerId,
             SettlementItemStatus settlementItemStatus,
-            Long grossAmount
+            BigDecimal grossAmount
     );
 
     List<SettlementItem> findBySettlementItemIdIn(List<UUID> settlementItemIds);

@@ -10,6 +10,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.Objects;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -44,7 +45,7 @@ public class PaymentRefund {
     private PaymentRefundMethod paymentMethod;
 
     @Column(name = "total_refund_amount", nullable = false, updatable = false)
-    private Long totalRefundAmount;
+    private BigDecimal totalRefundAmount;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "refund_status", nullable = false, length = 30)
@@ -72,7 +73,7 @@ public class PaymentRefund {
             UUID buyerMemberId,
             PaymentRefundType refundType,
             PaymentRefundMethod paymentMethod,
-            Long totalRefundAmount,
+            BigDecimal totalRefundAmount,
             PaymentRefundStatus refundStatus,
             String refundReason,
             LocalDateTime createdAt,
@@ -102,7 +103,7 @@ public class PaymentRefund {
             UUID buyerMemberId,
             PaymentRefundType refundType,
             PaymentRefundMethod paymentMethod,
-            Long totalRefundAmount,
+            BigDecimal totalRefundAmount,
             String refundReason,
             LocalDateTime requestedAt
     ) {
@@ -152,11 +153,12 @@ public class PaymentRefund {
         this.updatedAt = Objects.requireNonNull(updatedAt);
     }
 
-    private Long validateNonNegativeAmount(Long amount) {
+    private BigDecimal validateNonNegativeAmount(BigDecimal amount) {
         Objects.requireNonNull(amount);
-        if (amount < 0) {
+        if (amount.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("Refund amount must not be negative.");
         }
         return amount;
     }
 }
+

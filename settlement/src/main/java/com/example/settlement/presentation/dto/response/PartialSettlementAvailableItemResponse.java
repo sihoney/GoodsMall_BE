@@ -1,6 +1,7 @@
 package com.example.settlement.presentation.dto.response;
 
 import com.example.settlement.application.dto.PartialSettlementAvailableItemResult;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -11,9 +12,9 @@ public record PartialSettlementAvailableItemResponse(
         UUID settlementItemId,
         UUID escrowId,
         UUID orderId,
-        Long grossAmount,
-        Long feeAmount,
-        Long netAmount,
+        BigDecimal grossAmount,
+        BigDecimal feeAmount,
+        BigDecimal netAmount,
         LocalDateTime releasedAt
 ) {
 

@@ -7,6 +7,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
@@ -55,13 +56,13 @@ public class SettlementItem {
     private UUID sellerId;
 
     @Column(name = "gross_amount", nullable = false)
-    private Long grossAmount;
+    private BigDecimal grossAmount;
 
     @Column(name = "fee_amount", nullable = false)
-    private Long feeAmount;
+    private BigDecimal feeAmount;
 
     @Column(name = "net_amount", nullable = false)
-    private Long netAmount;
+    private BigDecimal netAmount;
 
     @Column(name = "released_at", nullable = false)
     private LocalDateTime releasedAt;
@@ -76,9 +77,9 @@ public class SettlementItem {
             UUID orderId,
             UUID escrowId,
             UUID sellerId,
-            Long grossAmount,
-            Long feeAmount,
-            Long netAmount,
+            BigDecimal grossAmount,
+            BigDecimal feeAmount,
+            BigDecimal netAmount,
             LocalDateTime releasedAt,
             LocalDateTime createdAt
     ) {
@@ -105,9 +106,9 @@ public class SettlementItem {
             UUID orderId,
             UUID escrowId,
             UUID sellerId,
-            Long grossAmount,
-            Long feeAmount,
-            Long netAmount,
+            BigDecimal grossAmount,
+            BigDecimal feeAmount,
+            BigDecimal netAmount,
             LocalDateTime releasedAt,
             LocalDateTime createdAt
     ) {
@@ -156,38 +157,40 @@ public class SettlementItem {
         return this.settlementItemStatus == SettlementItemStatus.UNASSIGNED;
     }
 
-    public void applyRefund(Long grossReduction, Long feeReduction, Long netReduction) {
-        long validatedGrossReduction = requireNonNegative(grossReduction, "grossReduction");
-        long validatedFeeReduction = requireNonNegative(feeReduction, "feeReduction");
-        long validatedNetReduction = requireNonNegative(netReduction, "netReduction");
+    public void applyRefund(BigDecimal grossReduction, BigDecimal feeReduction, BigDecimal netReduction) {
+        BigDecimal validatedGrossReduction = requireNonNegative(grossReduction, "grossReduction");
+        BigDecimal validatedFeeReduction = requireNonNegative(feeReduction, "feeReduction");
+        BigDecimal validatedNetReduction = requireNonNegative(netReduction, "netReduction");
 
-        if (validatedGrossReduction > grossAmount) {
+        if (validatedGrossReduction.compareTo(grossAmount) > 0) {
             throw new IllegalArgumentException("grossReduction exceeds grossAmount.");
         }
-        if (validatedFeeReduction > feeAmount) {
+        if (validatedFeeReduction.compareTo(feeAmount) > 0) {
             throw new IllegalArgumentException("feeReduction exceeds feeAmount.");
         }
-        if (validatedNetReduction > netAmount) {
+        if (validatedNetReduction.compareTo(netAmount) > 0) {
             throw new IllegalArgumentException("netReduction exceeds netAmount.");
         }
-        if (validatedGrossReduction != validatedFeeReduction + validatedNetReduction) {
+        if (validatedGrossReduction.compareTo(validatedFeeReduction.add(validatedNetReduction)) != 0) {
             throw new IllegalArgumentException("grossReduction must equal feeReduction + netReduction.");
         }
 
-        this.grossAmount -= validatedGrossReduction;
-        this.feeAmount -= validatedFeeReduction;
-        this.netAmount -= validatedNetReduction;
+        this.grossAmount = this.grossAmount.subtract(validatedGrossReduction);
+        this.feeAmount = this.feeAmount.subtract(validatedFeeReduction);
+        this.netAmount = this.netAmount.subtract(validatedNetReduction);
     }
 
     public boolean isDepleted() {
-        return this.grossAmount == 0L && this.feeAmount == 0L && this.netAmount == 0L;
+        return this.grossAmount.compareTo(BigDecimal.ZERO) == 0
+                && this.feeAmount.compareTo(BigDecimal.ZERO) == 0
+                && this.netAmount.compareTo(BigDecimal.ZERO) == 0;
     }
 
-    private long requireNonNegative(Long amount, String fieldName) {
-        long value = Objects.requireNonNull(amount, fieldName + " must not be null.");
-        if (value < 0L) {
+    private BigDecimal requireNonNegative(BigDecimal amount, String fieldName) {
+        Objects.requireNonNull(amount, fieldName + " must not be null.");
+        if (amount.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException(fieldName + " must not be negative.");
         }
-        return value;
+        return amount;
     }
 }

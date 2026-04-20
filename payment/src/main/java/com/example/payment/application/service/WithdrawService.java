@@ -20,6 +20,7 @@ import com.example.payment.domain.service.IdentifierGenerator;
 import com.example.payment.domain.service.TimeProvider;
 import com.example.payment.infrastructure.crypto.WithdrawAccountEncryptionService;
 import com.example.payment.infrastructure.crypto.WithdrawAccountMaskingService;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -29,8 +30,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class WithdrawService implements WithdrawUseCase {
 
-    private static final long MINIMUM_WITHDRAW_AMOUNT = 5_000L;
-    private static final long WITHDRAW_FEE = 1_000L;
+    private static final BigDecimal MINIMUM_WITHDRAW_AMOUNT = BigDecimal.valueOf(5_000L);
+    private static final BigDecimal WITHDRAW_FEE = BigDecimal.valueOf(1_000L);
     private static final String WITHDRAW_REFERENCE_TYPE = "WITHDRAW_REQUEST";
 
     private final WalletRepository walletRepository;
@@ -68,8 +69,8 @@ public class WithdrawService implements WithdrawUseCase {
         validateWithdrawalPolicy(wallet, command.amount());
 
         LocalDateTime now = timeProvider.now();
-        Long fee = calculateFee();
-        Long actualAmount = command.amount() - fee;
+        BigDecimal fee = calculateFee();
+        BigDecimal actualAmount = command.amount().subtract(fee);
         String normalizedBankAccount = normalizeBankAccount(command.bankAccount());
         String normalizedAccountHolder = normalizeAccountHolder(command.accountHolder());
 
@@ -84,7 +85,7 @@ public class WithdrawService implements WithdrawUseCase {
         );
         withdrawRequestRepository.save(withdrawRequest);
 
-        Long balanceAfter = wallet.decreaseBalance(command.amount(), now);
+        BigDecimal balanceAfter = wallet.decreaseBalance(command.amount(), now);
         walletRepository.save(wallet);
 
         WalletTransaction walletTransaction = createWithdrawalTransaction(
@@ -117,7 +118,7 @@ public class WithdrawService implements WithdrawUseCase {
         if (command.memberId() == null) {
             throw new InvalidWithdrawRequestException("회원 정보가 없어 출금 요청을 처리할 수 없습니다.");
         }
-        if (command.amount() == null || command.amount() <= 0) {
+        if (command.amount() == null || command.amount().compareTo(BigDecimal.ZERO) <= 0) {
             throw new InvalidWithdrawRequestException("출금 금액은 0보다 커야 합니다.");
         }
         if (command.bankAccount() == null || command.bankAccount().isBlank()) {
@@ -128,27 +129,27 @@ public class WithdrawService implements WithdrawUseCase {
         }
     }
 
-    private void validateWithdrawalPolicy(Wallet wallet, Long amount) {
-        if (amount < MINIMUM_WITHDRAW_AMOUNT) {
+    private void validateWithdrawalPolicy(Wallet wallet, BigDecimal amount) {
+        if (amount.compareTo(MINIMUM_WITHDRAW_AMOUNT) < 0) {
             throw new WithdrawAmountBelowMinimumException();
         }
-        if (amount <= WITHDRAW_FEE) {
+        if (amount.compareTo(WITHDRAW_FEE) <= 0) {
             throw new WithdrawAmountNotGreaterThanFeeException();
         }
-        if (wallet.getBalance() < amount) {
+        if (wallet.getBalance().compareTo(amount) < 0) {
             throw new InsufficientWalletBalanceException();
         }
     }
 
-    private Long calculateFee() {
+    private BigDecimal calculateFee() {
         return WITHDRAW_FEE;
     }
 
     private WithdrawRequest createWithdrawRequest(
             WithdrawCommand command,
             Wallet wallet,
-            Long fee,
-            Long actualAmount,
+            BigDecimal fee,
+            BigDecimal actualAmount,
             String normalizedBankAccount,
             String normalizedAccountHolder,
             LocalDateTime requestedAt
@@ -169,15 +170,15 @@ public class WithdrawService implements WithdrawUseCase {
 
     private WalletTransaction createWithdrawalTransaction(
             UUID walletId,
-            Long amount,
-            Long balanceAfter,
+            BigDecimal amount,
+            BigDecimal balanceAfter,
             UUID withdrawRequestId,
             LocalDateTime createdAt
     ) {
         return WalletTransaction.create(
                 identifierGenerator.generateUuid(),
                 walletId,
-                -amount,
+                amount.negate(),
                 balanceAfter,
                 WalletTransactionType.WITHDRAWAL,
                 withdrawRequestId,

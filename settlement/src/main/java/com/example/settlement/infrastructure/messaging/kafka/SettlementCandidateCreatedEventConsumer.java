@@ -63,7 +63,7 @@ public class SettlementCandidateCreatedEventConsumer {
         if (event.sellerMemberId() == null) {
             throw new IllegalArgumentException("sellerMemberId is required.");
         }
-        if (event.grossAmount() == null || event.grossAmount() <= 0) {
+        if (event.grossAmount() == null || event.grossAmount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("grossAmount must be positive.");
         }
         if (event.releasedAt() == null) {

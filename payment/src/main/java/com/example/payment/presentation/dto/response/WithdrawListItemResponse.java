@@ -2,14 +2,15 @@ package com.example.payment.presentation.dto.response;
 
 import com.example.payment.application.dto.WithdrawListItemResult;
 import com.example.payment.domain.enumtype.WithdrawStatus;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 public record WithdrawListItemResponse(
         UUID withdrawRequestId,
-        Long amount,
-        Long fee,
-        Long actualAmount,
+        BigDecimal amount,
+        BigDecimal fee,
+        BigDecimal actualAmount,
         String maskedBankAccount,
         WithdrawStatus status,
         LocalDateTime requestedAt,

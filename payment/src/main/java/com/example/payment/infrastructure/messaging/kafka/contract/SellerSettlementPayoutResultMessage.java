@@ -1,5 +1,6 @@
 package com.example.payment.infrastructure.messaging.kafka.contract;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -16,7 +17,7 @@ public record SellerSettlementPayoutResultMessage(
         UUID requestEventId,
         UUID settlementId,
         UUID sellerMemberId,
-        Long payoutAmount,
+        BigDecimal payoutAmount,
         SellerSettlementPayoutResultStatus resultStatus,
         PayoutFailureReason failureReason,
         LocalDateTime processedAt

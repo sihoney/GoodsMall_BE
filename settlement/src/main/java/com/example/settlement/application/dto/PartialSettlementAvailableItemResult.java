@@ -1,5 +1,6 @@
 package com.example.settlement.application.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -10,9 +11,9 @@ public record PartialSettlementAvailableItemResult(
         UUID settlementItemId,
         UUID escrowId,
         UUID orderId,
-        Long grossAmount,
-        Long feeAmount,
-        Long netAmount,
+        BigDecimal grossAmount,
+        BigDecimal feeAmount,
+        BigDecimal netAmount,
         LocalDateTime releasedAt
 ) {
 }

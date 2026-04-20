@@ -7,6 +7,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
@@ -19,7 +20,7 @@ import lombok.NoArgsConstructor;
 @Table(name = "charge", schema = "payment")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 /**
- * 충전 요청과 승인 결과를 표현하는 charge aggregate다.
+ * 충전 요청과 확인 결과를 표현하는 charge aggregate다.
  * 요청 생성 이후 PENDING, SUCCESS, FAILED, CANCELLED 상태 전이를 스스로 보장한다.
  */
 public class Charge {
@@ -35,10 +36,10 @@ public class Charge {
     private UUID walletId;
 
     @Column(name = "requested_amount", nullable = false)
-    private Long requestedAmount;
+    private BigDecimal requestedAmount;
 
     @Column(name = "approved_amount")
-    private Long approvedAmount;
+    private BigDecimal approvedAmount;
 
     @Column(name = "toss_bank_code", length = 30)
     private String tossBankCode;
@@ -66,15 +67,14 @@ public class Charge {
     private String failureReason;
 
     /**
-     * 전체 필드 생성자 (테스트 또는 특수 상황용)
+     * 전체 필드 생성자 (테스트나 필수 상황에서 사용)
      */
-    // todo : 필요 없는 필드는 제거 예정
     private Charge(
             UUID chargeId,
             UUID memberId,
             UUID walletId,
-            Long requestedAmount,
-            Long approvedAmount,
+            BigDecimal requestedAmount,
+            BigDecimal approvedAmount,
             String tossBankCode,
             String pgOrderId,
             String pgPaymentKey,
@@ -103,7 +103,7 @@ public class Charge {
             UUID chargeId,
             UUID memberId,
             UUID walletId,
-            Long requestedAmount,
+            BigDecimal requestedAmount,
             String pgOrderId,
             LocalDateTime requestedAt
     ) {
@@ -125,9 +125,9 @@ public class Charge {
     }
 
     /**
-     * PG 승인 완료 정보를 반영하고 charge를 SUCCESS 상태로 전이한다.
+     * PG 확인 완료 정보를 반영하고 charge를 SUCCESS 상태로 이행한다.
      */
-    public void approve(Long approvedAmount, String pgPaymentKey, LocalDateTime approvedAt, String tossBankCode) {
+    public void approve(BigDecimal approvedAmount, String pgPaymentKey, LocalDateTime approvedAt, String tossBankCode) {
         validatePendingStatus();
         this.approvedAmount = Objects.requireNonNull(approvedAmount);
         this.pgPaymentKey = Objects.requireNonNull(pgPaymentKey);
@@ -138,7 +138,7 @@ public class Charge {
         this.chargeStatus = ChargeStatus.CONFIRM_SUCCESS;
     }
 
-    // 충전 실패 리다이렉트 사유를 기록하고 charge를 REDIRECT_FAILED 상태로 전이한다.
+    // 충전 실패 리다이렉트 이유를 기록하고 charge를 REDIRECT_FAILED 상태로 이행한다.
     public void failAtRedirect(String failureReason, LocalDateTime failedAt) {
         validatePendingStatus();
         this.failedAt = Objects.requireNonNull(failedAt);
@@ -147,7 +147,7 @@ public class Charge {
     }
 
     /**
-     * 충전 승인 실패 사유를 기록하고 charge를 FAILED 상태로 전이한다.
+     * 충전 확인 실패 이유를 기록하고 charge를 FAILED 상태로 이행한다.
      */
     public void fail(String failureReason, LocalDateTime failedAt) {
         validatePendingStatus();
@@ -157,14 +157,14 @@ public class Charge {
     }
 
     /**
-     * 아직 승인되지 않은 charge를 취소 상태로 전이한다.
+     * 아직 확인하지 않은 charge를 취소 상태로 이행한다.
      */
     public void cancel() {
         validatePendingStatus();
         this.chargeStatus = ChargeStatus.CANCELLED;
     }
 
-    // 현재 충전 상태가 대기 중인지 확인한다.
+    // 현재 충전 상태가 대기중인지 확인한다.
     public boolean isPending() {
         return chargeStatus == ChargeStatus.PENDING;
     }
@@ -176,17 +176,17 @@ public class Charge {
     }
 
 
-    // 충전 상태가 승인 대기 또는 리다이렉트 실패인지 확인한다.
-    // 현재 충전 상태가 승인 완료인지 확인한다.
+    // 충전 상태가 확인 완료거나 리다이렉트 실패인지 확인한다.
+    // 현재 충전 상태가 확인 완료인지 확인한다.
     public boolean isSuccess() {
         return chargeStatus == ChargeStatus.CONFIRM_SUCCESS;
     }
 
     /**
-     * charge 상태 변경은 PENDING에서만 허용한다.
+     * charge 상태 변경은 PENDING에서만 허용된다.
      * <p>
-     * 도메인 규칙을 엔티티 내부에 둬서
-     * 서비스 계층이 실수로 잘못된 상태 전이를 만들지 않도록 방지한다.
+     * 도메인 규칙은 엔티티 내부에서
+     * 서비스 계층이 만들 수 없는 상태 이행만을 방지한다.
      */
     private void validatePendingStatus() {
         if (!isPending()) {
