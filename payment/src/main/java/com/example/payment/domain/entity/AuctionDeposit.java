@@ -28,9 +28,6 @@ public class AuctionDeposit {
     @Column(name = "auction_id", nullable = false, updatable = false)
     private UUID auctionId;
 
-    @Column(name = "bid_id", nullable = false, updatable = false, unique = true)
-    private UUID bidId;
-
     @Column(name = "bidder_id", nullable = false, updatable = false)
     private UUID bidderId;
 
@@ -56,7 +53,6 @@ public class AuctionDeposit {
     private AuctionDeposit(
             UUID auctionDepositId,
             UUID auctionId,
-            UUID bidId,
             UUID bidderId,
             BigDecimal depositAmount,
             AuctionDepositStatus status,
@@ -67,7 +63,6 @@ public class AuctionDeposit {
     ) {
         this.auctionDepositId = Objects.requireNonNull(auctionDepositId);
         this.auctionId = Objects.requireNonNull(auctionId);
-        this.bidId = Objects.requireNonNull(bidId);
         this.bidderId = Objects.requireNonNull(bidderId);
         this.depositAmount = validatePositiveAmount(depositAmount);
         this.status = Objects.requireNonNull(status);
@@ -80,7 +75,6 @@ public class AuctionDeposit {
     public static AuctionDeposit hold(
             UUID auctionDepositId,
             UUID auctionId,
-            UUID bidId,
             UUID bidderId,
             BigDecimal depositAmount,
             UUID holdWalletTransactionId,
@@ -90,7 +84,6 @@ public class AuctionDeposit {
         return new AuctionDeposit(
                 auctionDepositId,
                 auctionId,
-                bidId,
                 bidderId,
                 depositAmount,
                 AuctionDepositStatus.HELD,

@@ -27,12 +27,12 @@ public class AuctionDepositRepositoryImpl implements AuctionDepositRepository {
     }
 
     @Override
-    public Optional<AuctionDeposit> findByBidId(UUID bidId) {
-        return auctionDepositJpaRepository.findByBidId(bidId);
+    public Optional<AuctionDeposit> findHeldByAuctionId(UUID auctionId) {
+        return auctionDepositJpaRepository.findByAuctionIdAndStatus(auctionId, AuctionDepositStatus.HELD);
     }
 
     @Override
-    public Optional<AuctionDeposit> findHeldByAuctionId(UUID auctionId) {
-        return auctionDepositJpaRepository.findByAuctionIdAndStatus(auctionId, AuctionDepositStatus.HELD);
+    public Optional<AuctionDeposit> findHeldByAuctionIdForUpdate(UUID auctionId) {
+        return auctionDepositJpaRepository.findWithLockByAuctionIdAndStatus(auctionId, AuctionDepositStatus.HELD);
     }
 }
