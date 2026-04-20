@@ -5,6 +5,7 @@ import com.example.ai.application.dto.AuctionPriceRecommendationResult;
 import com.example.ai.application.usecase.AuctionPriceRecommendationUseCase;
 import com.example.ai.common.exception.AuctionPriceRecommendationProcessingException;
 import com.example.ai.common.exception.AuctionPriceRecommendationRequestInvalidException;
+import com.example.ai.infrastructure.client.OpenAiAuctionPriceRecommendationGenerator;
 import java.math.BigDecimal;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,8 +18,10 @@ public class AuctionPriceRecommendationService implements AuctionPriceRecommenda
 
     private final AuctionPriceCalculator auctionPriceCalculator;
     private final AuctionPriceReasonGenerator auctionPriceReasonGenerator;
+    private final OpenAiAuctionPriceRecommendationGenerator openAiAuctionPriceRecommendationGenerator;
 
     private static final String DEFAULT_NOTES = "참고용 추천 가격이며 실제 낙찰가는 달라질 수 있습니다.";
+    private static final String FALLBACK_NOTES = "OpenAI 응답 실패로 규칙 기반 추천 결과를 반환했습니다.";
 
     @Override
     public AuctionPriceRecommendationResult recommend(AuctionPriceRecommendationCommand command) {
@@ -33,20 +36,48 @@ public class AuctionPriceRecommendationService implements AuctionPriceRecommenda
         );
 
         try {
-            BigDecimal recommendedPrice = auctionPriceCalculator.calculateRecommendedBidPrice(command);
-            BigDecimal expectedFinalPrice = auctionPriceCalculator.calculateExpectedFinalPrice(command);
+            AuctionPriceRecommendationResult ruleBasedResult = buildRuleBasedResult(command, DEFAULT_NOTES);
 
-            return new AuctionPriceRecommendationResult(
-                    expectedFinalPrice,
-                    recommendedPrice,
-                    auctionPriceReasonGenerator.generate(command),
-                    DEFAULT_NOTES
-            );
+            try {
+                AuctionPriceRecommendationResult openAiResult = openAiAuctionPriceRecommendationGenerator.generate(
+                        command,
+                        ruleBasedResult
+                );
+                return new AuctionPriceRecommendationResult(
+                        openAiResult.expectedFinalPrice(),
+                        openAiResult.recommendedBidPrice(),
+                        openAiResult.priceReason(),
+                        DEFAULT_NOTES
+                );
+            } catch (RuntimeException exception) {
+                log.warn(
+                        "OpenAI 경매 추천 실패로 규칙 기반 결과를 사용합니다. auctionId={}, reason={}",
+                        command.auctionId(),
+                        exception.getMessage(),
+                        exception
+                );
+                return buildRuleBasedResult(command, FALLBACK_NOTES);
+            }
         } catch (AuctionPriceRecommendationRequestInvalidException exception) {
             throw exception;
         } catch (RuntimeException exception) {
             throw new AuctionPriceRecommendationProcessingException("경매 가격 추천 계산 중 오류가 발생했습니다.", exception);
         }
+    }
+
+    private AuctionPriceRecommendationResult buildRuleBasedResult(
+            AuctionPriceRecommendationCommand command,
+            String notes
+    ) {
+        BigDecimal recommendedPrice = auctionPriceCalculator.calculateRecommendedBidPrice(command);
+        BigDecimal expectedFinalPrice = auctionPriceCalculator.calculateExpectedFinalPrice(command);
+
+        return new AuctionPriceRecommendationResult(
+                expectedFinalPrice,
+                recommendedPrice,
+                auctionPriceReasonGenerator.generate(command),
+                notes
+        );
     }
 
     private void validateCommand(AuctionPriceRecommendationCommand command) {
