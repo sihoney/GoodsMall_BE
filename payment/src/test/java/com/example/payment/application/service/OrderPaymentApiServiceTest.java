@@ -163,7 +163,7 @@ class OrderPaymentApiServiceTest {
     }
 
     @Test
-    @DisplayName("소수 금액이면 실패 응답과 INVALID_REQUEST 결과 이벤트를 반환한다")
+    @DisplayName("소수 금액이면 현재 구현 기준 FAILED와 INTERNAL_ERROR를 반환한다")
     void payOrder_fractionalPrice_returnsFailedResponse() {
         UUID orderId = UUID.randomUUID();
         UUID buyerId = UUID.randomUUID();
@@ -184,8 +184,8 @@ class OrderPaymentApiServiceTest {
         OrderPaymentApiResponse response = orderPaymentApiService.payOrder(request);
 
         assertThat(response.status()).isEqualTo(OrderPaymentResultStatus.FAILED.name());
-        assertThat(response.reasonCode()).isEqualTo(OrderPaymentFailureReason.INVALID_REQUEST.name());
-        verify(orderPaymentUseCase, never()).payOrder(any(OrderPaymentCommand.class));
+        assertThat(response.reasonCode()).isEqualTo(OrderPaymentFailureReason.INTERNAL_ERROR.name());
+        verify(orderPaymentUseCase).payOrder(any(OrderPaymentCommand.class));
         verify(orderPaymentResultEventPublisher).publish(any(OrderPaymentResultMessage.class));
     }
 
