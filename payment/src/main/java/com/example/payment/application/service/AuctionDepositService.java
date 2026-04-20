@@ -19,9 +19,11 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @Transactional
 public class AuctionDepositService implements AuctionDepositUseCase {
@@ -54,6 +56,7 @@ public class AuctionDepositService implements AuctionDepositUseCase {
         AuctionDeposit previousHeldAuctionDeposit = lockPreviousHeldAuctionDeposit(command.auctionId());
 
         validatePreviousBidderContext(command, previousHeldAuctionDeposit);
+        validatePreviousHeldDeposit(command, previousHeldAuctionDeposit);
 
         Wallet highestBidderWallet = walletRepository.findByMemberIdForUpdate(command.highestBidderId())
                 .orElseThrow(WalletNotFoundException::new);
@@ -87,6 +90,15 @@ public class AuctionDepositService implements AuctionDepositUseCase {
         if (previousHeldAuctionDeposit != null) {
             refundedAmount = refundPreviousBidDeposit(command, previousHeldAuctionDeposit, now);
         }
+
+        log.info(
+                "경매 입찰 수수료 처리 완료 auctionId={} highestBidderId={} heldAmount={} previousBidderId={} refundedAmount={}",
+                command.auctionId(),
+                command.highestBidderId(),
+                command.highestBidderFee(),
+                command.previousBidderId(),
+                refundedAmount
+        );
 
         return new AuctionDepositResult(
                 command.auctionId(),
@@ -182,6 +194,22 @@ public class AuctionDepositService implements AuctionDepositUseCase {
 
         if (previousHeldAuctionDeposit == null) {
             throw new AuctionDepositNotFoundException("이전 최고 입찰의 예치금 원장을 찾을 수 없습니다.");
+        }
+    }
+
+    private void validatePreviousHeldDeposit(AuctionDepositCommand command, AuctionDeposit previousHeldAuctionDeposit) {
+        if (previousHeldAuctionDeposit == null) {
+            return;
+        }
+
+        if (Objects.equals(previousHeldAuctionDeposit.getBidderId(), command.highestBidderId())) {
+            throw new InvalidAuctionBidFeeRequestException("현재 최고 입찰자와 동일한 회원의 재입찰 요청은 처리할 수 없습니다.");
+        }
+        if (!Objects.equals(previousHeldAuctionDeposit.getBidderId(), command.previousBidderId())) {
+            throw new InvalidAuctionBidFeeRequestException("이전 최고 입찰자 정보가 현재 활성 예치금과 일치하지 않습니다.");
+        }
+        if (previousHeldAuctionDeposit.getDepositAmount().compareTo(command.previousBidderPaidFee()) != 0) {
+            throw new InvalidAuctionBidFeeRequestException("이전 최고 입찰자 예치금 금액이 현재 활성 예치금과 일치하지 않습니다.");
         }
     }
 }
