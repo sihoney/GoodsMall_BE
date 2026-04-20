@@ -1,0 +1,16 @@
+package com.todaylunch.auction.domain.repository;
+
+import com.todaylunch.auction.domain.entity.Bid;
+import java.util.Optional;
+import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+public interface BidRepository {
+
+    Bid save(Bid bid);
+
+    Optional<Bid> findActiveByAuctionId(UUID auctionId);
+
+    Page<Bid> findAllByAuctionId(UUID auctionId, Pageable pageable);
+}

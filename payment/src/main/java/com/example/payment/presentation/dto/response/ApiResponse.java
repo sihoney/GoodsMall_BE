@@ -1,8 +1,5 @@
 package com.example.payment.presentation.dto.response;
 
-/**
- * payment API 공통 성공/실패 응답 래퍼다.
- */
 public record ApiResponse<T>(
         boolean success,
         T data,

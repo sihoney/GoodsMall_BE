@@ -29,7 +29,7 @@ public class PaymentClientAdapter implements PaymentPort {
     public PaymentResult requestPayment(PaymentRequest request) {
         try {
             ExternalPaymentRequest externalRequest = toExternalRequest(request);
-            PaymentResultResponse response = paymentClient.requestPayment(externalRequest);
+            PaymentResultResponse response = paymentClient.requestPayment(externalRequest).data();
 
             return toPaymentResult(response);
         } catch (Exception e) {
@@ -41,7 +41,7 @@ public class PaymentClientAdapter implements PaymentPort {
     public PaymentRefundResult requestRefund(PaymentRefundRequest request) {
         try {
             ExternalPaymentRefundRequest externalRequest = toExternalRefundRequest(request);
-            PaymentRefundResultResponse response = paymentClient.requestRefund(externalRequest);
+            PaymentRefundResultResponse response = paymentClient.requestRefund(externalRequest).data();
             return toPaymentRefundResult(response);
         } catch (Exception e) {
             throw new CustomException(ErrorCode.PAYMENT_FAILED);

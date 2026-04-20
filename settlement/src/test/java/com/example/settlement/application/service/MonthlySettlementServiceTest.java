@@ -12,9 +12,10 @@ import com.example.settlement.application.dto.MonthlySettlementAggregateResult;
 import com.example.settlement.application.dto.SettlementItemCreateCommand;
 import com.example.settlement.domain.entity.Settlement;
 import com.example.settlement.domain.entity.SettlementItem;
+import com.example.settlement.domain.enumtype.SettlementItemStatus;
 import com.example.settlement.domain.enumtype.SettlementStatus;
+import com.example.settlement.domain.enumtype.SettlementType;
 import com.example.settlement.domain.repository.SettlementItemRepository;
-import com.example.settlement.domain.repository.SettlementRefundManualActionRepository;
 import com.example.settlement.domain.repository.SettlementRepository;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -37,17 +38,13 @@ class MonthlySettlementServiceTest {
     @Mock
     private SettlementItemRepository settlementItemRepository;
 
-    @Mock
-    private SettlementRefundManualActionRepository settlementRefundManualActionRepository;
-
     private MonthlySettlementService monthlySettlementService;
 
     @BeforeEach
     void setUp() {
         monthlySettlementService = new MonthlySettlementService(
                 settlementRepository,
-                settlementItemRepository,
-                settlementRefundManualActionRepository
+                settlementItemRepository
         );
     }
 
@@ -143,6 +140,7 @@ class MonthlySettlementServiceTest {
         Settlement createdSettlement = Settlement.create(
                 UUID.randomUUID(),
                 sellerId,
+                SettlementType.MONTHLY,
                 2026,
                 3,
                 10_000L,
@@ -156,8 +154,22 @@ class MonthlySettlementServiceTest {
                 LocalDateTime.now()
         );
         when(settlementItemRepository.findUnassignedByReleasedAtBetween(any(), any())).thenReturn(List.of(settlementItem));
-        when(settlementRepository.findBySellerIdAndSettlementYearAndSettlementMonth(sellerId, 2026, 3))
-                .thenReturn(Optional.empty());
+        when(settlementItemRepository.updateSettlementItemStatusIn(
+                List.of(settlementItem.getSettlementItemId()),
+                SettlementItemStatus.UNASSIGNED,
+                SettlementItemStatus.PROCESSING
+        )).thenReturn(1);
+        settlementItem.markProcessing();
+        when(settlementItemRepository.findAllBySettlementItemIdInAndSettlementItemStatus(
+                List.of(settlementItem.getSettlementItemId()),
+                SettlementItemStatus.PROCESSING
+        )).thenReturn(List.of(settlementItem));
+        when(settlementRepository.findAllBySellerIdInAndSettlementYearAndSettlementMonthAndSettlementType(
+                List.of(sellerId),
+                2026,
+                3,
+                SettlementType.MONTHLY
+        )).thenReturn(List.of());
         when(settlementRepository.save(any(Settlement.class))).thenReturn(createdSettlement);
         when(settlementItemRepository.save(any(SettlementItem.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -190,7 +202,7 @@ class MonthlySettlementServiceTest {
                 LocalDateTime.of(2026, 3, 20, 10, 0),
                 LocalDateTime.now()
         );
-        Settlement existingSettlement = Settlement.createPending(
+        Settlement existingSettlement = Settlement.createMonthlyPending(
                 UUID.randomUUID(),
                 sellerId,
                 2026,
@@ -201,8 +213,22 @@ class MonthlySettlementServiceTest {
                 LocalDateTime.now()
         );
         when(settlementItemRepository.findUnassignedByReleasedAtBetween(any(), any())).thenReturn(List.of(settlementItem));
-        when(settlementRepository.findBySellerIdAndSettlementYearAndSettlementMonth(sellerId, 2026, 3))
-                .thenReturn(Optional.of(existingSettlement));
+        when(settlementItemRepository.updateSettlementItemStatusIn(
+                List.of(settlementItem.getSettlementItemId()),
+                SettlementItemStatus.UNASSIGNED,
+                SettlementItemStatus.PROCESSING
+        )).thenReturn(1);
+        settlementItem.markProcessing();
+        when(settlementItemRepository.findAllBySettlementItemIdInAndSettlementItemStatus(
+                List.of(settlementItem.getSettlementItemId()),
+                SettlementItemStatus.PROCESSING
+        )).thenReturn(List.of(settlementItem));
+        when(settlementRepository.findAllBySellerIdInAndSettlementYearAndSettlementMonthAndSettlementType(
+                List.of(sellerId),
+                2026,
+                3,
+                SettlementType.MONTHLY
+        )).thenReturn(List.of(existingSettlement));
         when(settlementRepository.save(any(Settlement.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(settlementItemRepository.save(any(SettlementItem.class))).thenAnswer(invocation -> invocation.getArgument(0));
 

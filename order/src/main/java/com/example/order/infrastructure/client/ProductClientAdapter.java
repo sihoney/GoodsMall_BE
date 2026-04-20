@@ -25,7 +25,7 @@ public class ProductClientAdapter implements ProductPort {
             List<ExternalProductRequest> externalRequests = requests.stream()
                     .map(ExternalProductRequest::from)
                     .toList();
-            List<ProductAvailabilityResponse> responses = productClient.deductStock(externalRequests);
+            List<ProductAvailabilityResponse> responses = productClient.deductStock(externalRequests).data();
             return responses.stream()
                     .map(this::toProductInfo)
                     .toList();

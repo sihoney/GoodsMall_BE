@@ -1,6 +1,7 @@
 package com.example.settlement.infrastructure.repository;
 
 import com.example.settlement.domain.entity.SettlementItem;
+import com.example.settlement.domain.enumtype.SettlementItemStatus;
 import com.example.settlement.domain.repository.SettlementItemRepository;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -54,8 +55,7 @@ public class SettlementItemRepositoryImpl implements SettlementItemRepository {
     }
 
     /**
-     * 지정 기간 내 미집계 항목만 조회한다.
-     * settlementId가 null인 항목만 반환하므로 집계 재실행 시 idempotency(멱등성)를 보장한다.
+     * 지정 기간 내 UNASSIGNED 항목만 조회한다.
      */
     @Override
     public List<SettlementItem> findUnassignedByReleasedAtBetween(
@@ -63,9 +63,48 @@ public class SettlementItemRepositoryImpl implements SettlementItemRepository {
             LocalDateTime releasedAtTo
     ) {
         return settlementItemJpaRepository
-                .findBySettlementIdIsNullAndReleasedAtGreaterThanEqualAndReleasedAtLessThan(
+                .findBySettlementItemStatusAndReleasedAtGreaterThanEqualAndReleasedAtLessThan(
+                        SettlementItemStatus.UNASSIGNED,
                         releasedAtFrom,
                         releasedAtTo
                 );
+    }
+
+    @Override
+    public List<SettlementItem> findAvailableSettlementItemsForPartialSettlementBySellerId(UUID sellerId) {
+        return settlementItemJpaRepository.findBySellerIdAndSettlementItemStatusAndGrossAmountGreaterThanOrderByReleasedAtDesc(
+                sellerId,
+                SettlementItemStatus.UNASSIGNED,
+                0L
+        );
+    }
+
+    @Override
+    public List<SettlementItem> findAllBySettlementItemIdIn(List<UUID> settlementItemIds) {
+        return settlementItemJpaRepository.findBySettlementItemIdIn(settlementItemIds);
+    }
+
+    @Override
+    public List<SettlementItem> findAllBySettlementItemIdInAndSettlementItemStatus(
+            List<UUID> settlementItemIds,
+            SettlementItemStatus settlementItemStatus
+    ) {
+        return settlementItemJpaRepository.findBySettlementItemIdInAndSettlementItemStatus(
+                settlementItemIds,
+                settlementItemStatus
+        );
+    }
+
+    @Override
+    public int updateSettlementItemStatusIn(
+            List<UUID> settlementItemIds,
+            SettlementItemStatus currentStatus,
+            SettlementItemStatus nextStatus
+    ) {
+        return settlementItemJpaRepository.updateSettlementItemStatusIn(
+                settlementItemIds,
+                currentStatus,
+                nextStatus
+        );
     }
 }

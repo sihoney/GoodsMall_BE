@@ -7,7 +7,6 @@ import com.example.payment.application.dto.ChargeCreateResult;
 import com.example.payment.application.dto.WalletSummaryResult;
 import com.example.payment.application.usecase.ChargeConfirmUseCase;
 import com.example.payment.application.usecase.ChargeCreateUseCase;
-import com.example.payment.application.usecase.ChargeRefundUseCase;
 import com.example.payment.application.usecase.OrderPaymentApiUseCase;
 import com.example.payment.application.usecase.PaymentSearchUseCase;
 import com.example.payment.domain.enumtype.ChargeStatus;
@@ -42,9 +41,6 @@ class PaymentControllerTest {
 
     @Mock
     private ChargeConfirmUseCase chargeConfirmUseCase;
-
-    @Mock
-    private ChargeRefundUseCase chargeRefundUseCase;
 
     @Mock
     private PaymentSearchUseCase paymentSearchUseCase;

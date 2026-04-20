@@ -2,10 +2,7 @@ package com.todaylunch.auction.presentation.exception.handler;
 
 import com.todaylunch.auction.common.exception.CustomException;
 import com.todaylunch.auction.common.exception.ErrorCode;
-import com.todaylunch.auction.presentation.exception.dto.ErrorResponse;
-import com.todaylunch.auction.presentation.exception.dto.ValidationError;
-import jakarta.servlet.http.HttpServletRequest;
-import java.util.List;
+import com.todaylunch.auction.presentation.dto.response.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -17,89 +14,37 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(CustomException.class)
-    public ResponseEntity<ErrorResponse> handleCustomException(
-        CustomException ex,
-        HttpServletRequest request
-    ) {
+    public ResponseEntity<ApiResponse<Object>> handleCustomException(CustomException ex) {
         log.warn("CustomException: {}", ex.getMessage());
         ErrorCode errorCode = ex.getErrorCode();
-        ErrorResponse response = ErrorResponse.of(errorCode, request.getRequestURI());
-
-        return ResponseEntity
-            .status(errorCode.getHttpStatus())
-            .body(response);
+        return ResponseEntity.status(errorCode.getHttpStatus())
+                .body(ApiResponse.fail(errorCode.name(), ex.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleMethodArgumentNotValid(
-        MethodArgumentNotValidException ex,
-        HttpServletRequest request
-    ) {
+    public ResponseEntity<ApiResponse<Object>> handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
         log.warn("Validation failed: {}", ex.getMessage());
-
-        List<ValidationError> errors = makeValidationErrors(ex);
-
-        ErrorResponse response = ErrorResponse.of(
-            ErrorCode.INVALID_INPUT_VALUE,
-            request.getRequestURI(),
-            errors
-        );
-
-        return ResponseEntity
-            .status(ErrorCode.INVALID_INPUT_VALUE.getHttpStatus())
-            .body(response);
+        String message = ex.getBindingResult().getFieldErrors().stream()
+                .findFirst()
+                .map(error -> error.getDefaultMessage() == null ? "Invalid request." : error.getDefaultMessage())
+                .orElse("Invalid request.");
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.fail(ErrorCode.INVALID_INPUT_VALUE.name(), message));
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ErrorResponse> handleIllegalArgument(
-        IllegalArgumentException ex,
-        HttpServletRequest request
-    ) {
-        log.warn("IllegalArgumentException: {}", ex.getMessage());
-        ErrorResponse response = ErrorResponse.of(
-            ErrorCode.INVALID_INPUT_VALUE,
-            request.getRequestURI()
-        );
-        return ResponseEntity
-            .status(ErrorCode.INVALID_INPUT_VALUE.getHttpStatus())
-            .body(response);
-    }
-
-    @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<ErrorResponse> handleIllegalState(
-        IllegalStateException ex,
-        HttpServletRequest request
-    ) {
-        log.warn("IllegalStateException: {}", ex.getMessage());
-        ErrorResponse response = ErrorResponse.of(
-            ErrorCode.INVALID_INPUT_VALUE,
-            request.getRequestURI()
-        );
-        return ResponseEntity
-            .status(ErrorCode.INVALID_INPUT_VALUE.getHttpStatus())
-            .body(response);
+    @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})
+    public ResponseEntity<ApiResponse<Object>> handleIllegalRuntime(RuntimeException ex) {
+        log.warn("{}: {}", ex.getClass().getSimpleName(), ex.getMessage());
+        ErrorCode errorCode = ErrorCode.INVALID_INPUT_VALUE;
+        return ResponseEntity.status(errorCode.getHttpStatus())
+                .body(ApiResponse.fail(errorCode.name(), ex.getMessage()));
     }
 
     @ExceptionHandler(NullPointerException.class)
-    public ResponseEntity<ErrorResponse> handleNullPointer(
-        NullPointerException ex,
-        HttpServletRequest request
-    ) {
+    public ResponseEntity<ApiResponse<Object>> handleNullPointer(NullPointerException ex) {
         log.warn("NullPointerException: {}", ex.getMessage());
-        ErrorResponse response = ErrorResponse.of(
-            ErrorCode.INVALID_INPUT_VALUE,
-            request.getRequestURI()
-        );
-        return ResponseEntity
-            .status(ErrorCode.INVALID_INPUT_VALUE.getHttpStatus())
-            .body(response);
-    }
-
-    private static List<ValidationError> makeValidationErrors(MethodArgumentNotValidException ex) {
-        return ex.getBindingResult()
-            .getFieldErrors()
-            .stream()
-            .map(ValidationError::from)
-            .toList();
+        ErrorCode errorCode = ErrorCode.INVALID_INPUT_VALUE;
+        return ResponseEntity.status(errorCode.getHttpStatus())
+                .body(ApiResponse.fail(errorCode.name(), errorCode.getMessage()));
     }
 }

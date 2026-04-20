@@ -21,9 +21,7 @@ public record ChargeDetailResponse(
         LocalDateTime requestedAt,
         LocalDateTime approvedAt,
         LocalDateTime failedAt,
-        String failureReason,
-        boolean hasRefundHistory,
-        ChargeRefundSummaryResponse latestRefund
+        String failureReason
 ) {
 
     /**
@@ -43,9 +41,7 @@ public record ChargeDetailResponse(
                 result.requestedAt(),
                 result.approvedAt(),
                 result.failedAt(),
-                result.failureReason(),
-                result.hasRefundHistory(),
-                result.latestRefund() == null ? null : ChargeRefundSummaryResponse.from(result.latestRefund())
+                result.failureReason()
         );
     }
 }

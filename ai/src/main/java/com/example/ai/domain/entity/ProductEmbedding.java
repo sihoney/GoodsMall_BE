@@ -11,7 +11,9 @@ import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.ColumnTransformer;
+import org.hibernate.annotations.Array;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Getter
 @Entity
@@ -26,9 +28,10 @@ public class ProductEmbedding {
     @Column(name = "product_id", nullable = false, unique = true)
     private UUID productId;
 
+    @Array(length = 1536)
+    @JdbcTypeCode(SqlTypes.VECTOR)
     @Column(name = "embedding", nullable = false, columnDefinition = "vector(1536)")
-    @ColumnTransformer(write = "?::vector", read = "embedding::text")
-    private String embedding;
+    private float[] embedding;
 
     @Column(name = "source_updated_at", nullable = false)
     private LocalDateTime sourceUpdatedAt;
@@ -45,7 +48,7 @@ public class ProductEmbedding {
     private ProductEmbedding(UUID productId, List<Float> embeddingVector, LocalDateTime sourceUpdatedAt) {
         this.embeddingId = UUID.randomUUID();
         this.productId = productId;
-        this.embedding = toVectorLiteral(embeddingVector);
+        this.embedding = toFloatArray(embeddingVector);
         this.sourceUpdatedAt = sourceUpdatedAt;
         this.active = true;
         this.createdAt = LocalDateTime.now();
@@ -72,7 +75,7 @@ public class ProductEmbedding {
         if (sourceUpdatedAt == null) {
             throw new AiEmbeddingException("sourceUpdatedAt은 필수입니다.");
         }
-        this.embedding = toVectorLiteral(embeddingVector);
+        this.embedding = toFloatArray(embeddingVector);
         this.sourceUpdatedAt = sourceUpdatedAt;
         this.active = true;
         this.updatedAt = LocalDateTime.now();
@@ -87,16 +90,24 @@ public class ProductEmbedding {
         this.updatedAt = LocalDateTime.now();
     }
 
-    private static String toVectorLiteral(List<Float> vector) {
+    public String getEmbeddingLiteral() {
         StringBuilder builder = new StringBuilder();
         builder.append('[');
-        for (int i = 0; i < vector.size(); i++) {
+        for (int i = 0; i < embedding.length; i++) {
             if (i > 0) {
                 builder.append(',');
             }
-            builder.append(vector.get(i));
+            builder.append(embedding[i]);
         }
         builder.append(']');
         return builder.toString();
+    }
+
+    private static float[] toFloatArray(List<Float> vector) {
+        float[] values = new float[vector.size()];
+        for (int i = 0; i < vector.size(); i++) {
+            values[i] = vector.get(i);
+        }
+        return values;
     }
 }

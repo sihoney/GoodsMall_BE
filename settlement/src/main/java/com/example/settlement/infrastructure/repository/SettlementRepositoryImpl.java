@@ -2,6 +2,7 @@ package com.example.settlement.infrastructure.repository;
 
 import com.example.settlement.domain.entity.Settlement;
 import com.example.settlement.domain.enumtype.SettlementStatus;
+import com.example.settlement.domain.enumtype.SettlementType;
 import com.example.settlement.domain.repository.SettlementRepository;
 import java.util.List;
 import java.util.Optional;
@@ -31,25 +32,44 @@ public class SettlementRepositoryImpl implements SettlementRepository {
     public List<Settlement> findBySettlementYearAndSettlementMonthAndSettlementStatus(
             Integer settlementYear,
             Integer settlementMonth,
-            SettlementStatus settlementStatus
+            SettlementStatus settlementStatus,
+            SettlementType settlementType
     ) {
         return settlementJpaRepository.findBySettlementYearAndSettlementMonthAndSettlementStatus(
                 settlementYear,
                 settlementMonth,
-                settlementStatus
+                settlementStatus,
+                settlementType
         );
     }
 
     @Override
-    public Optional<Settlement> findBySellerIdAndSettlementYearAndSettlementMonth(
+    public Optional<Settlement> findBySellerIdAndSettlementYearAndSettlementMonthAndSettlementType(
             UUID sellerId,
             Integer settlementYear,
-            Integer settlementMonth
+            Integer settlementMonth,
+            SettlementType settlementType
     ) {
-        return settlementJpaRepository.findBySellerIdAndSettlementYearAndSettlementMonth(
+        return settlementJpaRepository.findBySellerIdAndSettlementYearAndSettlementMonthAndSettlementType(
                 sellerId,
                 settlementYear,
-                settlementMonth
+                settlementMonth,
+                settlementType
+        );
+    }
+
+    @Override
+    public List<Settlement> findAllBySellerIdInAndSettlementYearAndSettlementMonthAndSettlementType(
+            List<UUID> sellerIds,
+            Integer settlementYear,
+            Integer settlementMonth,
+            SettlementType settlementType
+    ) {
+        return settlementJpaRepository.findAllBySellerIdInAndSettlementYearAndSettlementMonthAndSettlementType(
+                sellerIds,
+                settlementYear,
+                settlementMonth,
+                settlementType
         );
     }
 }

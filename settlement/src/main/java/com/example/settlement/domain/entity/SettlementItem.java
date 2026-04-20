@@ -1,5 +1,8 @@
 package com.example.settlement.domain.entity;
 
+import com.example.settlement.domain.enumtype.SettlementItemStatus;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -16,7 +19,7 @@ import lombok.NoArgsConstructor;
  *
  * <p>payment 모듈에서 escrow(에스크로)가 release(해제)될 때 생성된다.
  * escrowId에 unique constraint(유니크 제약)를 적용해 DB 레벨에서 중복 적재를 방지한다.
- * settlementId가 null이면 아직 월 집계에 포함되지 않은 미집계 항목이다.
+ * settlementItemStatus가 UNASSIGNED이면 아직 어떤 정산에도 연결되지 않은 항목이다.
  */
 @Getter
 @Entity
@@ -33,6 +36,10 @@ public class SettlementItem {
      */
     @Column(name = "settlement_id")
     private UUID settlementId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "settlement_item_status", nullable = false)
+    private SettlementItemStatus settlementItemStatus;
 
     @Column(name = "order_id", nullable = false)
     private UUID orderId;
@@ -65,6 +72,7 @@ public class SettlementItem {
     private SettlementItem(
             UUID settlementItemId,
             UUID settlementId,
+            SettlementItemStatus settlementItemStatus,
             UUID orderId,
             UUID escrowId,
             UUID sellerId,
@@ -76,6 +84,7 @@ public class SettlementItem {
     ) {
         this.settlementItemId = Objects.requireNonNull(settlementItemId);
         this.settlementId = settlementId;
+        this.settlementItemStatus = Objects.requireNonNull(settlementItemStatus);
         this.orderId = Objects.requireNonNull(orderId);
         this.escrowId = Objects.requireNonNull(escrowId);
         this.sellerId = Objects.requireNonNull(sellerId);
@@ -105,6 +114,7 @@ public class SettlementItem {
         return new SettlementItem(
                 settlementItemId,
                 settlementId,
+                settlementId == null ? SettlementItemStatus.UNASSIGNED : SettlementItemStatus.ASSIGNED,
                 orderId,
                 escrowId,
                 sellerId,
@@ -117,19 +127,33 @@ public class SettlementItem {
     }
 
     /**
-     * 월 집계 시 정산서 ID를 연결한다.
-     * 한번 연결된 항목은 이미 집계 완료 상태로 간주한다.
+     * 정산 연결이 완료되면 settlementId를 기록하고 ASSIGNED 상태로 변경한다.
      */
     public void assignSettlement(UUID settlementId) {
         this.settlementId = Objects.requireNonNull(settlementId);
+        this.settlementItemStatus = SettlementItemStatus.ASSIGNED;
+    }
+
+    public void markProcessing() {
+        if (settlementItemStatus != SettlementItemStatus.UNASSIGNED) {
+            throw new IllegalArgumentException("Only unassigned settlement item can move to processing.");
+        }
+        this.settlementItemStatus = SettlementItemStatus.PROCESSING;
+    }
+
+    public void markUnassigned() {
+        this.settlementItemStatus = SettlementItemStatus.UNASSIGNED;
     }
 
     /**
-     * 이미 월 집계에 포함된 항목인지 확인한다.
-     * settlementId가 존재하면 집계 완료(aggregated) 항목이다.
+     * 이미 어떤 정산에 연결된 항목인지 확인한다.
      */
     public boolean isAlreadyAggregated() {
-        return this.settlementId != null;
+        return this.settlementItemStatus == SettlementItemStatus.ASSIGNED;
+    }
+
+    public boolean isUnassigned() {
+        return this.settlementItemStatus == SettlementItemStatus.UNASSIGNED;
     }
 
     public void applyRefund(Long grossReduction, Long feeReduction, Long netReduction) {

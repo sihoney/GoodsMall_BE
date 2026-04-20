@@ -1,11 +1,11 @@
 package com.example.settlement.infrastructure.scheduler;
 
+import com.example.settlement.application.dto.MonthlySettlementAggregateResult;
 import com.example.settlement.application.usecase.MonthlySettlementUseCase;
 import com.example.settlement.application.usecase.SettlementPayoutUseCase;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -13,9 +13,8 @@ import org.springframework.stereotype.Component;
  * 매월 직전월 정산 집계를 트리거하는 스케줄러다.
  */
 @Component
+@Slf4j
 public class MonthlySettlementAggregationScheduler {
-
-    private static final Logger log = LoggerFactory.getLogger(MonthlySettlementAggregationScheduler.class);
     private static final ZoneId KOREA_ZONE_ID = ZoneId.of("Asia/Seoul");
 
     private final MonthlySettlementUseCase monthlySettlementService;
@@ -44,19 +43,33 @@ public class MonthlySettlementAggregationScheduler {
     )
     public void aggregatePreviousMonth() {
         LocalDateTime nowInKorea = LocalDateTime.now(KOREA_ZONE_ID);
-        var result = monthlySettlementService.aggregatePreviousMonth(nowInKorea);
-        int requestedPayoutCount = settlementPayoutService.requestMonthlyPayouts(
-                result.settlementYear(),
-                result.settlementMonth()
+        MonthlySettlementAggregateResult aggregateResult = aggregateMonthlySettlements(nowInKorea);
+        int requestedPayoutCount = requestMonthlyPayouts(aggregateResult);
+        logMonthlyAggregationResult(aggregateResult, requestedPayoutCount);
+    }
+
+    private MonthlySettlementAggregateResult aggregateMonthlySettlements(LocalDateTime nowInKorea) {
+        return monthlySettlementService.aggregatePreviousMonth(nowInKorea);
+    }
+
+    private int requestMonthlyPayouts(MonthlySettlementAggregateResult aggregateResult) {
+        return settlementPayoutService.requestMonthlyPayouts(
+                aggregateResult.settlementYear(),
+                aggregateResult.settlementMonth()
         );
-        //todo : @Slf4j로 변경 고려
+    }
+
+    private void logMonthlyAggregationResult(
+            MonthlySettlementAggregateResult aggregateResult,
+            int requestedPayoutCount
+    ) {
         log.info(
                 "Monthly settlement aggregation finished. targetYear={}, targetMonth={}, created={}, updated={}, items={}, payoutRequested={}",
-                result.settlementYear(),
-                result.settlementMonth(),
-                result.createdSettlementCount(),
-                result.updatedSettlementCount(),
-                result.aggregatedItemCount(),
+                aggregateResult.settlementYear(),
+                aggregateResult.settlementMonth(),
+                aggregateResult.createdSettlementCount(),
+                aggregateResult.updatedSettlementCount(),
+                aggregateResult.aggregatedItemCount(),
                 requestedPayoutCount
         );
     }

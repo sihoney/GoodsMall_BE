@@ -229,7 +229,7 @@ sequenceDiagram
 
 | 항목 | 값 |
 |---|---|
-| 서비스 포트 | `8091` |
+| 서비스 포트 | `8088` |
 | 기본 스키마 | `ai` |
 | Swagger UI | `/swagger-ui.html` |
 | API Docs | `/v3/api-docs` |
