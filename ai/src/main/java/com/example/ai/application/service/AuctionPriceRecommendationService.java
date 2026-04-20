@@ -20,8 +20,9 @@ public class AuctionPriceRecommendationService implements AuctionPriceRecommenda
     private final AuctionPriceReasonGenerator auctionPriceReasonGenerator;
     private final OpenAiAuctionPriceRecommendationGenerator openAiAuctionPriceRecommendationGenerator;
 
-    private static final String DEFAULT_NOTES = "참고용 추천 가격이며 실제 낙찰가는 달라질 수 있습니다.";
-    private static final String FALLBACK_NOTES = "OpenAI 응답 실패로 규칙 기반 추천 결과를 반환했습니다.";
+    private static final String DEFAULT_NOTES = "AI 추천 가격은 참고용이며 실제 낙찰가는 달라질 수 있습니다.";
+    private static final String FALLBACK_NOTES =
+            "AI 추천 가격은 참고용이며 실제 낙찰가는 달라질 수 있습니다. OpenAI 응답 실패로 규칙 기반 결과를 사용했습니다.";
 
     @Override
     public AuctionPriceRecommendationResult recommend(AuctionPriceRecommendationCommand command) {
@@ -47,7 +48,7 @@ public class AuctionPriceRecommendationService implements AuctionPriceRecommenda
                         openAiResult.expectedFinalPrice(),
                         openAiResult.recommendedBidPrice(),
                         openAiResult.priceReason(),
-                        DEFAULT_NOTES
+                        resolveNotes(false)
                 );
             } catch (RuntimeException exception) {
                 log.warn(
@@ -56,7 +57,7 @@ public class AuctionPriceRecommendationService implements AuctionPriceRecommenda
                         exception.getMessage(),
                         exception
                 );
-                return buildRuleBasedResult(command, FALLBACK_NOTES);
+                return buildRuleBasedResult(command, resolveNotes(true));
             }
         } catch (AuctionPriceRecommendationRequestInvalidException exception) {
             throw exception;
@@ -78,6 +79,10 @@ public class AuctionPriceRecommendationService implements AuctionPriceRecommenda
                 auctionPriceReasonGenerator.generate(command),
                 notes
         );
+    }
+
+    private String resolveNotes(boolean fallbackApplied) {
+        return fallbackApplied ? FALLBACK_NOTES : DEFAULT_NOTES;
     }
 
     private void validateCommand(AuctionPriceRecommendationCommand command) {

@@ -65,8 +65,8 @@ public class AuctionPriceRecommendationController {
                                       "success": false,
                                       "data": null,
                                       "error": {
-                                        "code": "INVALID_INPUT_VALUE",
-                                        "message": "입력값이 올바르지 않습니다."
+                                        "code": "AI_AUCTION_PRICE_RECOMMENDATION_REQUEST_INVALID",
+                                        "message": "currentBidPrice: 0보다 커야 합니다."
                                       }
                                     }
                                     """)

@@ -28,6 +28,9 @@ public class OpenAiAuctionPriceRecommendationGenerator {
 
     private static final String DEFAULT_OPENAI_BASE_URL = "https://api.openai.com";
     private static final String DEFAULT_MODEL = "gpt-5.4-nano";
+    private static final String GUARANTEE_WORD = "반드시";
+    private static final String ABSOLUTE_WORD = "무조건";
+    private static final String PRESSURE_WORD = "지금 바로";
 
     private final RestClient restClient;
     private final AuctionPriceRecommendationProperties properties;
@@ -157,6 +160,9 @@ public class OpenAiAuctionPriceRecommendationGenerator {
         if (response.recommendedBidPrice() == null || response.recommendedBidPrice().compareTo(BigDecimal.ZERO) <= 0) {
             throw new AuctionPriceRecommendationResponseInvalidException("recommendedBidPrice가 올바르지 않습니다.");
         }
+        if (response.expectedFinalPrice().compareTo(response.recommendedBidPrice()) < 0) {
+            throw new AuctionPriceRecommendationResponseInvalidException("expectedFinalPrice는 recommendedBidPrice보다 작을 수 없습니다.");
+        }
         if (isBlank(response.priceReason())) {
             throw new AuctionPriceRecommendationResponseInvalidException("priceReason이 비어 있습니다.");
         }
@@ -166,7 +172,7 @@ public class OpenAiAuctionPriceRecommendationGenerator {
             AuctionPriceRecommendationAiResponse aiResponse,
             AuctionPriceRecommendationResult fallbackResult
     ) {
-        String reason = normalize(aiResponse.priceReason());
+        String reason = sanitizeReason(aiResponse.priceReason(), fallbackResult.priceReason());
         return new AuctionPriceRecommendationResult(
                 aiResponse.expectedFinalPrice(),
                 aiResponse.recommendedBidPrice(),
@@ -185,7 +191,8 @@ public class OpenAiAuctionPriceRecommendationGenerator {
                 규칙:
                 1) 응답은 JSON 객체 하나만 반환한다.
                 2) 숫자는 0보다 큰 값으로 반환한다.
-                3) 과장/확정 표현(반드시, 무조건)은 사용하지 않는다.
+                3) expectedFinalPrice >= recommendedBidPrice 조건을 반드시 만족한다.
+                4) 과장/확정/압박 표현(반드시, 무조건, 지금 바로)은 사용하지 않는다.
                 """;
     }
 
@@ -251,6 +258,21 @@ public class OpenAiAuctionPriceRecommendationGenerator {
 
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
+    }
+
+    private String sanitizeReason(String aiReason, String fallbackReason) {
+        String normalizedReason = normalize(aiReason);
+        if (normalizedReason.isEmpty()) {
+            return fallbackReason;
+        }
+
+        if (normalizedReason.contains(GUARANTEE_WORD)
+                || normalizedReason.contains(ABSOLUTE_WORD)
+                || normalizedReason.contains(PRESSURE_WORD)) {
+            return fallbackReason;
+        }
+
+        return normalizedReason;
     }
 
     private String nullable(Object value) {
