@@ -3,7 +3,7 @@
 > 이 문서는 `ai` 모듈의 **2차 임시 README**입니다.  
 > 현재 구현된 기능과 이미 정리된 초안 문서를 기준으로 작성했으며, 이후 기능 추가와 운영 정책 변경에 따라 수정될 수 있습니다.
 
-`ai` 모듈은 Today Lunch Mall에서 사용하는 AI 기능을 한곳에 모아두는 서비스입니다. 현재는 `pgvector` 기반 연관 상품 추천, 상품 임베딩 관리, 이미지 기반 상품 등록 보조 AI가 구현되어 있으며, 다음 단계로는 경매 진행 중 가격 판단을 돕는 AI 기능을 확장 대상으로 보고 있습니다.
+`ai` 모듈은 Today Lunch Mall에서 사용하는 AI 기능을 한곳에 모아두는 서비스입니다. 현재는 `pgvector` 기반 연관 상품 추천, 상품 임베딩 관리, 이미지 기반 상품 등록 보조 AI, 경매 가격 추천 AI 내부 API가 구현되어 있습니다.
 
 ## 1. 한눈에 보는 역할
 
@@ -15,7 +15,7 @@
 | 관리자 재색인 | 운영 대상 | 누락 임베딩 보정과 전체 재색인을 관리자 API로 수행합니다. |
 | 이벤트 중복 방지 | 운영 대상 | Redis 기반 idempotency 키로 중복 소비를 방지합니다. |
 | 이미지 기반 상품 등록 보조 AI | 구현 완료 | 판매자가 이미지와 현재 입력값을 보내면 제목/설명/가격 초안을 추천하고, 실패 시 fallback 초안을 반환합니다. |
-| 경매 추천 가격 AI | 작업 예정 | 경매 진행 중 예상 최종가 또는 추천 입찰가를 참고 정보로 제공하는 기능을 다음 확장 후보로 보고 있습니다. |
+| 경매 추천 가격 AI | 구현/인계 준비 | auction 서비스가 호출하는 내부 API를 통해 OpenAI 기반 가격 추천을 생성하고, 실패 시 규칙 기반 fallback 결과를 반환합니다. |
 
 ## 2. 현재 제공 기능
 
@@ -77,6 +77,27 @@
   - 실패 시 fallback 초안 반환
   - Redis 기반 중복 요청 억제 및 결과 재사용
 
+### 2.6 경매 가격 추천 AI (내부 API)
+
+- 엔드포인트: `POST /internal/ai/auction-price-recommendation`
+- 주요 입력:
+  - `auctionId`
+  - `productId`
+  - `currentBidPrice`
+  - `startPrice`
+  - `productName` (선택)
+  - `bidCount` (선택)
+  - `remainingSeconds` (선택)
+- 주요 응답:
+  - `expectedFinalPrice`
+  - `recommendedBidPrice`
+  - `priceReason`
+  - `notes`
+- 처리 방식:
+  - OpenAI 기반 생성 우선
+  - OpenAI 실패 시 규칙 기반 fallback
+  - 요청 검증 실패/설정 오류/외부 호출 오류/응답 파싱 오류를 전용 코드로 구분
+
 ## 3. 모듈 흐름 요약
 
 ```mermaid
@@ -135,6 +156,7 @@ http://localhost:8080
 | 추천 옵션 | `AI_RECOMMENDATION_RERANK_ENABLED`, `AI_RECOMMENDATION_RERANK_MODEL`, `AI_RECOMMENDATION_CACHE_TTL_SECONDS` |
 | 이벤트 중복 방지 | `AI_EVENT_IDEMPOTENCY_TTL_SECONDS` |
 | 상품 등록 보조 AI | `AI_PRODUCT_DRAFT_ASSIST_ENABLED`, `AI_PRODUCT_DRAFT_ASSIST_MODEL`, `AI_PRODUCT_DRAFT_ASSIST_TEMPERATURE`, `AI_PRODUCT_DRAFT_ASSIST_LOCK_TTL_SECONDS`, `AI_PRODUCT_DRAFT_ASSIST_RESULT_TTL_SECONDS`, `AI_PRODUCT_DRAFT_ASSIST_WAIT_TIMEOUT_MS`, `AI_PRODUCT_DRAFT_ASSIST_POLL_INTERVAL_MS` |
+| 경매 가격 추천 AI | `AI_AUCTION_PRICE_RECOMMENDATION_ENABLED`, `AI_AUCTION_PRICE_RECOMMENDATION_MODEL`, `AI_AUCTION_PRICE_RECOMMENDATION_TEMPERATURE`, `AI_AUCTION_PRICE_RECOMMENDATION_CONNECT_TIMEOUT_MS`, `AI_AUCTION_PRICE_RECOMMENDATION_READ_TIMEOUT_MS` |
 
 ## 6. 패키지 구조
 
@@ -157,14 +179,10 @@ ai
 |---|---|
 | [pgvector 기반 AI 연관 상품 추천 기능 문서](./docs/pgvector_기반_AI_연관상품_추천_기능.md) | 현재 구현된 추천 기능의 구조, 데이터 흐름, 운영 포인트를 상세히 설명합니다. |
 | [이미지 기반 상품 등록 보조 AI 기능 문서](./docs/이미지_기반_상품등록보조AI_기능.md) | 상품 등록 보조 AI의 요청 계약, fallback, Redis 전략, 예외 구조, 프론트 연동 포인트를 상세히 설명합니다. |
+| [경매 가격 추천 AI 인계 가이드](./docs/경매_가격추천AI_인계가이드.md) | auction 담당자가 내부 API를 연결할 때 필요한 계약, 예외 코드, fallback 동작, mock 예시를 정리합니다. |
 
-## 8. 다음 작업 메모
+## 8. 경매 가격 추천 AI 메모
 
-- 다음 확장 후보는 **경매 추천 가격 AI**입니다.
-- 방향은 "입찰 유도" 자체보다, 사용자가 현재 경매 물품의 예상 최종가 또는 추천 입찰가를 참고할 수 있게 돕는 기능으로 보는 편이 맞습니다.
-- 초기 버전은 아래 구조를 권장합니다.
-  - 경매 상태 데이터 수집
-  - 규칙 기반 1차 가격 계산
-  - AI 보정 또는 설명 생성
-  - 예상 최종가 / 추천 입찰가 반환
-- 이 기능은 상품 등록 보조 AI와 목적이 다르므로 별도 문맥으로 설계하는 것이 좋습니다.
+- 경매 추천 가격 AI 내부 API는 현재 구현 및 인계 준비 상태입니다.
+- 생성 경로는 `OpenAI 우선 -> 실패 시 규칙 기반 fallback`입니다.
+- auction 공개 API 연결은 auction 담당 범위이며, 상세 연결 규칙은 인계 가이드를 따릅니다.
