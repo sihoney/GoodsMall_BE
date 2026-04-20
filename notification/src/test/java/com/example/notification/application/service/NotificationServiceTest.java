@@ -3,9 +3,11 @@ package com.example.notification.application.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.example.notification.application.monitoring.NotificationMetricsRecorder;
 import com.example.notification.domain.entity.Notification;
 import com.example.notification.domain.enumtype.NotificationReferenceType;
 import com.example.notification.domain.enumtype.NotificationStatus;
@@ -31,11 +33,18 @@ class NotificationServiceTest {
     @Mock
     private NotificationPushService notificationPushService;
 
+    @Mock
+    private NotificationMetricsRecorder notificationMetricsRecorder;
+
     private NotificationService notificationService;
 
     @BeforeEach
     void setUp() {
-        notificationService = new NotificationService(notificationJpaRepository, notificationPushService);
+        notificationService = new NotificationService(
+                notificationJpaRepository,
+                notificationPushService,
+                notificationMetricsRecorder
+        );
     }
 
     @Test
@@ -64,7 +73,26 @@ class NotificationServiceTest {
         assertThat(saved.getContent()).isNotBlank();
         assertThat(saved.getCreatedAt()).isEqualTo(confirmedAt);
         assertThat(saved.isRead()).isFalse();
+        verify(notificationMetricsRecorder).recordEventReceived(NotificationType.AUTO_PURCHASE_CONFIRMED);
+        verify(notificationMetricsRecorder).recordSaved(NotificationType.AUTO_PURCHASE_CONFIRMED);
         verify(notificationPushService).push(any());
+    }
+
+    @Test
+    void createAutoPurchaseConfirmedNotification_recordsDuplicateMetricWhenEventAlreadyExists() {
+        UUID eventId = UUID.randomUUID();
+        UUID orderId = UUID.randomUUID();
+        UUID buyerMemberId = UUID.randomUUID();
+        LocalDateTime confirmedAt = LocalDateTime.of(2026, 3, 29, 9, 49, 58);
+
+        when(notificationJpaRepository.existsByEventId(eventId)).thenReturn(true);
+
+        notificationService.createAutoPurchaseConfirmedNotification(eventId, null, orderId, buyerMemberId, confirmedAt);
+
+        verify(notificationMetricsRecorder).recordEventReceived(NotificationType.AUTO_PURCHASE_CONFIRMED);
+        verify(notificationMetricsRecorder).recordDuplicateEvent(NotificationType.AUTO_PURCHASE_CONFIRMED);
+        verify(notificationJpaRepository, never()).save(any(Notification.class));
+        verify(notificationPushService, never()).push(any());
     }
 
     @Test
@@ -104,6 +132,8 @@ class NotificationServiceTest {
         assertThat(saved.getTitle()).isNotBlank();
         assertThat(saved.getContent()).isNotBlank();
         assertThat(saved.getCreatedAt()).isEqualTo(occurredAt);
+        verify(notificationMetricsRecorder).recordEventReceived(NotificationType.ORDER_PAYMENT_SUCCEEDED);
+        verify(notificationMetricsRecorder).recordSaved(NotificationType.ORDER_PAYMENT_SUCCEEDED);
         verify(notificationPushService).push(any());
     }
 
@@ -135,6 +165,8 @@ class NotificationServiceTest {
         assertThat(saved.getType()).isEqualTo(NotificationType.ORDER_PAYMENT_FAILED);
         assertThat(saved.getTitle()).isNotBlank();
         assertThat(saved.getContent()).isNotBlank();
+        verify(notificationMetricsRecorder).recordEventReceived(NotificationType.ORDER_PAYMENT_FAILED);
+        verify(notificationMetricsRecorder).recordSaved(NotificationType.ORDER_PAYMENT_FAILED);
         verify(notificationPushService).push(any());
     }
 
@@ -170,6 +202,8 @@ class NotificationServiceTest {
         assertThat(saved.getTitle()).isNotBlank();
         assertThat(saved.getContent()).isNotBlank();
         assertThat(saved.getCreatedAt()).isEqualTo(processedAt);
+        verify(notificationMetricsRecorder).recordEventReceived(NotificationType.SELLER_SETTLEMENT_PAYOUT_SUCCEEDED);
+        verify(notificationMetricsRecorder).recordSaved(NotificationType.SELLER_SETTLEMENT_PAYOUT_SUCCEEDED);
         verify(notificationPushService).push(any());
     }
 
@@ -201,6 +235,8 @@ class NotificationServiceTest {
         assertThat(saved.getType()).isEqualTo(NotificationType.SELLER_SETTLEMENT_PAYOUT_FAILED);
         assertThat(saved.getTitle()).isNotBlank();
         assertThat(saved.getContent()).isNotBlank();
+        verify(notificationMetricsRecorder).recordEventReceived(NotificationType.SELLER_SETTLEMENT_PAYOUT_FAILED);
+        verify(notificationMetricsRecorder).recordSaved(NotificationType.SELLER_SETTLEMENT_PAYOUT_FAILED);
         verify(notificationPushService).push(any());
     }
 }

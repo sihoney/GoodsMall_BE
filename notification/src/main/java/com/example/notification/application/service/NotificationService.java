@@ -1,17 +1,23 @@
 package com.example.notification.application.service;
 
 import com.example.notification.application.dto.NotificationCommand;
+import com.example.notification.application.monitoring.NotificationMetricsRecorder;
 import com.example.notification.application.usecase.NotificationUsecase;
 import com.example.notification.common.exception.NotificationNotFoundException;
 import com.example.notification.domain.entity.Notification;
+import com.example.notification.domain.enumtype.NotificationMetricReason;
 import com.example.notification.domain.enumtype.NotificationReferenceType;
 import com.example.notification.domain.enumtype.NotificationStatus;
 import com.example.notification.domain.enumtype.NotificationType;
 import com.example.notification.infrastructure.messaging.kafka.contract.OrderPaymentFailureReason;
 import com.example.notification.infrastructure.messaging.kafka.contract.PayoutFailureReason;
 import com.example.notification.infrastructure.repository.NotificationJpaRepository;
+import com.example.notification.presentation.dto.NotificationResponse;
+import com.example.notification.presentation.dto.NotificationUnreadCountResponse;
+import com.example.notification.presentation.dto.PagedResponse;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -19,25 +25,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
-import com.example.notification.presentation.dto.NotificationResponse;
-import com.example.notification.presentation.dto.NotificationUnreadCountResponse;
-import com.example.notification.presentation.dto.PagedResponse;
 
 @Slf4j
 @Service
 @Transactional(readOnly = true)
+@RequiredArgsConstructor
 public class NotificationService implements NotificationUsecase {
 
     private final NotificationJpaRepository notificationJpaRepository;
     private final NotificationPushService notificationPushService;
-
-    public NotificationService(
-            NotificationJpaRepository notificationJpaRepository,
-            NotificationPushService notificationPushService
-    ) {
-        this.notificationJpaRepository = notificationJpaRepository;
-        this.notificationPushService = notificationPushService;
-    }
+    private final NotificationMetricsRecorder notificationMetricsRecorder;
 
     @Override
     public PagedResponse<NotificationResponse> getMyNotifications(UUID memberId, int page, int size) {
@@ -72,7 +69,9 @@ public class NotificationService implements NotificationUsecase {
             throw new NotificationNotFoundException(notificationId);
         }
 
+        boolean alreadyRead = notification.isRead();
         notification.markAsRead();
+        notificationMetricsRecorder.recordMarkRead(alreadyRead); // 이미 읽은 알림인지 여부 기록
         return NotificationResponse.from(notification);
     }
 
@@ -124,8 +123,8 @@ public class NotificationService implements NotificationUsecase {
                 traceId,
                 buyerMemberId,
                 NotificationType.AUTO_PURCHASE_CONFIRMED,
-                "자동 구매확정 완료",
-                "주문이 자동으로 구매확정 처리되었습니다.",
+                "Auto purchase confirmed",
+                "Your order was automatically confirmed.",
                 orderId,
                 NotificationReferenceType.ORDER,
                 confirmedAt
@@ -262,27 +261,36 @@ public class NotificationService implements NotificationUsecase {
             NotificationReferenceType referenceType,
             LocalDateTime occurredAt
     ) {
+        notificationMetricsRecorder.recordEventReceived(type); // 알림 이벤트 수신 카운트 기록
+
         if (notificationJpaRepository.existsByEventId(eventId)) {
+            notificationMetricsRecorder.recordDuplicateEvent(type); // 중복 이벤트 카운트 기록
             log.info("Duplicate notification ignored. eventId={} memberId={} type={}", eventId, memberId, type);
             return;
         }
 
-        Notification notification = Notification.create(
-                UUID.randomUUID(),
-                eventId,
-                traceId,
-                memberId,
-                type,
-                title,
-                content,
-                referenceId,
-                referenceType,
-                NotificationStatus.STORED,
-                occurredAt
-        );
+        try {
+            Notification notification = Notification.create(
+                    UUID.randomUUID(),
+                    eventId,
+                    traceId,
+                    memberId,
+                    type,
+                    title,
+                    content,
+                    referenceId,
+                    referenceType,
+                    NotificationStatus.STORED,
+                    occurredAt
+            );
 
-        Notification savedNotification = notificationJpaRepository.save(notification);
-        pushAfterCommit(NotificationResponse.from(savedNotification));
+            Notification savedNotification = notificationJpaRepository.save(notification);
+            notificationMetricsRecorder.recordSaved(type); // 저장된 알림 수 기록
+            pushAfterCommit(NotificationResponse.from(savedNotification));
+        } catch (RuntimeException e) {
+            notificationMetricsRecorder.recordSaveFailed(type, NotificationMetricReason.DB_ERROR.name()); // 저장 실패 카운트 기록
+            throw e;
+        }
     }
 
     private void pushAfterCommit(NotificationResponse notificationResponse) {

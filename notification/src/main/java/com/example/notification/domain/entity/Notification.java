@@ -152,11 +152,47 @@ public class Notification {
     }
 
     public void markAsRead() {
+        if (this.read) {
+            return;
+        }
         this.read = true;
     }
 
     public void changeStatus(NotificationStatus status, LocalDateTime changedAt) {
-        this.status = Objects.requireNonNull(status);
-        this.statusChangedAt = Objects.requireNonNull(changedAt);
+        NotificationStatus nextStatus = Objects.requireNonNull(status);
+        LocalDateTime nextChangedAt = Objects.requireNonNull(changedAt);
+
+        if (this.status == nextStatus) {
+            return;
+        }
+
+        if (!canTransitionTo(nextStatus)) {
+            throw new IllegalStateException(
+                    "Invalid notification status transition. currentStatus=" + this.status + ", nextStatus=" + nextStatus
+            );
+        }
+
+        this.status = nextStatus;
+        this.statusChangedAt = nextChangedAt;
+    }
+
+    public boolean hasStatus(NotificationStatus status) {
+        return this.status == status;
+    }
+
+    private boolean canTransitionTo(NotificationStatus nextStatus) {
+        return switch (this.status) {
+            case RECEIVED -> nextStatus == NotificationStatus.STORED
+                    || nextStatus == NotificationStatus.RETRYING
+                    || nextStatus == NotificationStatus.FAILED;
+            case STORED -> nextStatus == NotificationStatus.PUSHED
+                    || nextStatus == NotificationStatus.RETRYING
+                    || nextStatus == NotificationStatus.FAILED;
+            case RETRYING -> nextStatus == NotificationStatus.RETRYING
+                    || nextStatus == NotificationStatus.PUSHED
+                    || nextStatus == NotificationStatus.FAILED;
+            case FAILED -> nextStatus == NotificationStatus.RETRYING;
+            case PUSHED -> false;
+        };
     }
 }
