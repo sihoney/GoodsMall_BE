@@ -1,5 +1,5 @@
 -- 카테고리 테이블
-CREATE TABLE product.category
+CREATE TABLE IF NOT EXISTS product.category
 (
     category_id UUID PRIMARY KEY,
     parent_id   UUID                 DEFAULT NULL,

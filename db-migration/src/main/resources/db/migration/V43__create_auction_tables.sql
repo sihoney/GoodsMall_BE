@@ -1,5 +1,5 @@
 -- 경매 테이블
-CREATE TABLE auction.auction
+CREATE TABLE IF NOT EXISTS auction.auction
 (
     auction_id            UUID PRIMARY KEY,
     product_id            UUID           NOT NULL,
