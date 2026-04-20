@@ -12,5 +12,7 @@ public interface AuctionRepository {
 
     Auction findById(UUID auctionId);
 
+    Auction findByIdWithLock(UUID auctionId);
+
     Page<Auction> findAllByStatus(AuctionStatus status, Pageable pageable);
 }

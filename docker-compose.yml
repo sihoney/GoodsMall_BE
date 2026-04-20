@@ -90,7 +90,9 @@ services:
       - "9200:9200"
 
   discovery:
-    image: ghcr.io/prgrms-be-adv-devcourse/beadv5_2_todaylunchmenu_be/discovery:latest
+    build:
+      context: .
+      dockerfile: discovery/Dockerfile
     container_name: goods-mall-discovery
     env_file:
       - .env
@@ -98,7 +100,9 @@ services:
       - "8761:8761"
 
   config:
-    image: ghcr.io/prgrms-be-adv-devcourse/beadv5_2_todaylunchmenu_be/config:latest
+    build:
+      context: .
+      dockerfile: config/Dockerfile
     container_name: goods-mall-config
     env_file:
       - .env
@@ -112,7 +116,9 @@ services:
       - "8888:8888"
 
   db-migration:
-    image: ghcr.io/prgrms-be-adv-devcourse/beadv5_2_todaylunchmenu_be/db-migration:latest
+    build:
+      context: .
+      dockerfile: db-migration/Dockerfile
     container_name: goods-mall-db-migration
     env_file:
       - .env
@@ -129,7 +135,9 @@ services:
     restart: "no"
 
   payment:
-    image: ghcr.io/prgrms-be-adv-devcourse/beadv5_2_todaylunchmenu_be/payment:latest
+    build:
+      context: .
+      dockerfile: payment/Dockerfile
     container_name: goods-mall-payment
     env_file:
       - .env
@@ -163,7 +171,9 @@ services:
       - "8082:8082"
 
   settlement:
-    image: ghcr.io/prgrms-be-adv-devcourse/beadv5_2_todaylunchmenu_be/settlement:latest
+    build:
+      context: .
+      dockerfile: settlement/Dockerfile
     container_name: goods-mall-settlement
     env_file:
       - .env
@@ -191,7 +201,9 @@ services:
       - "8085:8085"
 
   gateway:
-    image: ghcr.io/prgrms-be-adv-devcourse/beadv5_2_todaylunchmenu_be/gateway:latest
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
     container_name: goods-mall-gateway
     env_file:
       - .env
@@ -211,7 +223,9 @@ services:
   # Use `docker compose --profile future up --build` after each module is ready.
 
   member:
-    image: ghcr.io/prgrms-be-adv-devcourse/beadv5_2_todaylunchmenu_be/member:latest
+    build:
+      context: .
+      dockerfile: member/Dockerfile
     container_name: goods-mall-member
     env_file:
       - .env
@@ -259,7 +273,9 @@ services:
       - "8083:8083"
 
   product:
-    image: ghcr.io/prgrms-be-adv-devcourse/beadv5_2_todaylunchmenu_be/product:latest
+    build:
+      context: .
+      dockerfile: product/Dockerfile
     container_name: goods-mall-product
     env_file:
       - .env
@@ -289,7 +305,9 @@ services:
       - "8081:8081"
 
   cart:
-    image: ghcr.io/prgrms-be-adv-devcourse/beadv5_2_todaylunchmenu_be/cart:latest
+    build:
+      context: .
+      dockerfile: cart/Dockerfile
     container_name: goods-mall-cart
     env_file:
       - .env
@@ -314,7 +332,9 @@ services:
       - "8086:8086"
 
   order:
-    image: ghcr.io/prgrms-be-adv-devcourse/beadv5_2_todaylunchmenu_be/order:latest
+    build:
+      context: .
+      dockerfile: order/Dockerfile
     container_name: goods-mall-order
     env_file:
       - .env
@@ -346,7 +366,9 @@ services:
       - "8084:8084"
 
   notification:
-    image: ghcr.io/prgrms-be-adv-devcourse/beadv5_2_todaylunchmenu_be/notification:latest
+    build:
+      context: .
+      dockerfile: notification/Dockerfile
     container_name: goods-mall-notification
     env_file:
       - .env
@@ -372,6 +394,36 @@ services:
       CONFIG_SERVER_URL: http://config:8888
     ports:
       - "8087:8087"
+
+  auction:
+    build:
+      context: .
+      dockerfile: auction/Dockerfile
+    container_name: goods-mall-auction
+    env_file:
+      - .env
+    depends_on:
+      discovery:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      config:
+        condition: service_started
+      db-migration:
+        condition: service_completed_successfully
+    environment:
+      DB_URL: ${DB_URL}
+      DB_USER_NAME: ${DB_USER_NAME}
+      DB_USER_PASSWORD: ${DB_USER_PASSWORD}
+      KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
+      EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "false"
+      EUREKA_INSTANCE_HOSTNAME: auction
+      CONFIG_SERVER_URL: http://config:8888
+    ports:
+      - "8090:8090"
 
   ai:
     build:

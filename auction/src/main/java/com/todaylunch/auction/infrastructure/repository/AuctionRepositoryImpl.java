@@ -28,6 +28,12 @@ public class AuctionRepositoryImpl implements AuctionRepository {
     }
 
     @Override
+    public Auction findByIdWithLock(UUID auctionId) {
+        return jpaRepository.findWithLock(auctionId)
+                .orElseThrow(AuctionNotFoundException::new);
+    }
+
+    @Override
     public Page<Auction> findAllByStatus(AuctionStatus status, Pageable pageable) {
         return jpaRepository.findAllByStatus(status, pageable);
     }

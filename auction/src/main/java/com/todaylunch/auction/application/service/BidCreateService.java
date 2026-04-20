@@ -1,6 +1,6 @@
 package com.todaylunch.auction.application.service;
 
-import com.todaylunch.auction.application.usecase.BidPlaceUseCase;
+import com.todaylunch.auction.application.usecase.BidCreateUseCase;
 import com.todaylunch.auction.domain.entity.Auction;
 import com.todaylunch.auction.domain.entity.Bid;
 import com.todaylunch.auction.domain.repository.AuctionRepository;
@@ -18,14 +18,14 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional
-public class BidPlaceService implements BidPlaceUseCase {
+public class BidCreateService implements BidCreateUseCase {
 
     private final AuctionRepository auctionRepository;
     private final BidRepository bidRepository;
 
     @Override
     public BidResponse place(UUID auctionId, UUID bidderId, BidPlaceRequest request) {
-        Auction auction = auctionRepository.findById(auctionId);
+        Auction auction = auctionRepository.findByIdWithLock(auctionId);
 
         auction.applyConfirmedBid(bidderId, request.bidPrice(), LocalDateTime.now());
 
@@ -40,4 +40,5 @@ public class BidPlaceService implements BidPlaceUseCase {
 
         return BidResponse.from(saved);
     }
+
 }

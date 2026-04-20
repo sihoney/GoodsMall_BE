@@ -1,6 +1,6 @@
 package com.todaylunch.auction.presentation.controller;
 
-import com.todaylunch.auction.application.usecase.BidPlaceUseCase;
+import com.todaylunch.auction.application.usecase.BidCreateUseCase;
 import com.todaylunch.auction.application.usecase.BidSearchUseCase;
 import com.todaylunch.auction.presentation.dto.request.BidPlaceRequest;
 import com.todaylunch.auction.presentation.dto.response.ApiResponse;
@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class BidController {
 
-    private final BidPlaceUseCase bidPlaceUseCase;
+    private final BidCreateUseCase bidCreateUseCase;
     private final BidSearchUseCase bidSearchUseCase;
 
     @PostMapping
@@ -35,7 +35,7 @@ public class BidController {
             @CurrentMember AuthenticatedMember member,
             @Valid @RequestBody BidPlaceRequest request
     ) {
-        BidResponse response = bidPlaceUseCase.place(auctionId, member.memberId(), request);
+        BidResponse response = bidCreateUseCase.place(auctionId, member.memberId(), request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(response));
     }
