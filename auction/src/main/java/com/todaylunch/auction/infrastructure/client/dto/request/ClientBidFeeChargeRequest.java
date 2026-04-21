@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 public record ClientBidFeeChargeRequest(
+        UUID bidId,
         UUID auctionId,
         boolean isFirst,
         UUID previousBidderId,

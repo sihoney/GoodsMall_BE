@@ -10,6 +10,8 @@ public interface BidRepository {
 
     Bid save(Bid bid);
 
+    Optional<Bid> findById(UUID bidId);
+
     Optional<Bid> findActiveByAuctionId(UUID auctionId);
 
     Page<Bid> findAllByAuctionId(UUID auctionId, Pageable pageable);

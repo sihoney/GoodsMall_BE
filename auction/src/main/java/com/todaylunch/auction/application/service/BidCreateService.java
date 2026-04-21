@@ -1,9 +1,7 @@
 package com.todaylunch.auction.application.service;
 
-import com.todaylunch.auction.application.event.BidPlacedEvent;
-import com.todaylunch.auction.application.port.BidFeeChargePort;
+import com.todaylunch.auction.application.port.BidFeeChargeEventPublisher;
 import com.todaylunch.auction.application.port.dto.request.BidFeeChargeRequest;
-import com.todaylunch.auction.application.port.dto.response.BidFeeChargeResponse;
 import com.todaylunch.auction.application.usecase.BidCreateUseCase;
 import com.todaylunch.auction.domain.entity.Auction;
 import com.todaylunch.auction.domain.entity.Bid;
@@ -18,7 +16,6 @@ import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,8 +27,7 @@ public class BidCreateService implements BidCreateUseCase {
 
     private final AuctionRepository auctionRepository;
     private final BidRepository bidRepository;
-    private final BidFeeChargePort bidFeeChargePort;
-    private final ApplicationEventPublisher applicationEventPublisher;
+    private final BidFeeChargeEventPublisher bidFeeChargeEventPublisher;
 
     @Override
     public BidResponse place(UUID auctionId, UUID bidderId, BidPlaceRequest request) {
@@ -40,16 +36,17 @@ public class BidCreateService implements BidCreateUseCase {
         Auction auction = auctionRepository.findByIdWithLock(auctionId);
         auction.applyConfirmedBid(bidderId, request.bidPrice(), LocalDateTime.now());
 
-        // 2. 최초 입찰인지 조회
+        // 2. 이전 최고 입찰 조회
         Optional<Bid> previousBid = bidRepository.findActiveByAuctionId(auctionId);
 
-        // 3. Pending 상태로 입찰 생성
+        // 3. PENDING 상태로 입찰 저장
         Bid bid = Bid.placePending(auction, bidderId, request.bidPrice());
         Bid saved = bidRepository.save(bid);
 
-        // 4. 수수료 계산 및 payment 요청 구성
-        BigDecimal currentBidFee = BidPolicy.calculateBidFee(bid.getBidPrice());
-        BidFeeChargeRequest clientRequest = new BidFeeChargeRequest(
+        // 4. 수수료 계산 및 이벤트 페이로드 구성
+        BigDecimal currentBidFee = BidPolicy.calculateBidFee(saved.getBidPrice());
+        BidFeeChargeRequest event = new BidFeeChargeRequest(
+                saved.getBidId(),
                 auction.getAuctionId(),
                 previousBid.isEmpty(),
                 previousBid.map(Bid::getBidderId).orElse(null),
@@ -58,24 +55,13 @@ public class BidCreateService implements BidCreateUseCase {
                 currentBidFee
         );
 
-        // 5. 예치금 차감 호출
-        BidFeeChargeResponse chargeResponse = bidFeeChargePort.chargeBidFee(clientRequest);
+        // 5. Kafka로 수수료 차감 요청 이벤트 발행 (결과는 Consumer에서 처리)
+        bidFeeChargeEventPublisher.publish(event);
 
-        // 6. 결제 확정 이후 상태 전이
-        saved.confirm();
-        previousBid.ifPresent(Bid::outbid);
-
-        // 7. 실시간 브로드캐스트
-        applicationEventPublisher.publishEvent(new BidPlacedEvent(
-                auction.getAuctionId(),
-                bid.getBidderId(),
-                bid.getBidPrice(),
-                auction.getEndedAt()
-        ));
-
-        log.info("Bid placed: bidId={}, auctionId={}, bidderId={}, bidPrice={}",
+        log.info("Bid pending: bidId={}, auctionId={}, bidderId={}, bidPrice={}",
                 saved.getBidId(), auctionId, bidderId, saved.getBidPrice());
 
+        // confirm/outbid/브로드캐스트는 charge-completed Consumer에서 수행
         return BidResponse.from(saved);
     }
 
