@@ -14,6 +14,10 @@ public enum ErrorCode {
 
     INVALID_CHARGE_REQUEST(HttpStatus.BAD_REQUEST, "충전 요청이 올바르지 않습니다."),
     INVALID_AUCTION_BID_FEE_REQUEST(HttpStatus.BAD_REQUEST, "경매 입찰 수수료 요청이 올바르지 않습니다."),
+    AUCTION_BID_FEE_EVENT_REQUIRED(HttpStatus.BAD_REQUEST, "경매 입찰 수수료 요청 이벤트가 비어 있습니다."),
+    AUCTION_BID_FEE_AUCTION_ID_REQUIRED(HttpStatus.BAD_REQUEST, "경매 입찰 수수료 요청에 경매 ID가 필요합니다."),
+    AUCTION_BID_FEE_HIGHEST_BIDDER_REQUIRED(HttpStatus.BAD_REQUEST, "경매 입찰 수수료 요청에 최고 입찰자 ID가 필요합니다."),
+    AUCTION_BID_FEE_HIGHEST_FEE_INVALID(HttpStatus.BAD_REQUEST, "경매 입찰 수수료 요청의 최고 입찰자 보증금이 올바르지 않습니다."),
     INVALID_CARD_PAYMENT_REQUEST(HttpStatus.BAD_REQUEST, "카드 결제 요청이 올바르지 않습니다."),
     INVALID_ORDER_PAYMENT_REQUEST(HttpStatus.BAD_REQUEST, "주문 결제 요청이 올바르지 않습니다."),
     INVALID_WITHDRAW_REQUEST(HttpStatus.BAD_REQUEST, "출금 요청이 올바르지 않습니다."),
@@ -29,6 +33,7 @@ public enum ErrorCode {
 
     INSUFFICIENT_WALLET_BALANCE(HttpStatus.CONFLICT, "예치금 잔액이 부족합니다."),
     INVALID_STATE(HttpStatus.CONFLICT, "현재 상태에서는 처리할 수 없습니다."),
+    AUCTION_DEPOSIT_PROCESSING_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "경매 입찰 수수료 처리 중 오류가 발생했습니다."),
     PAYMENT_GATEWAY_ERROR(HttpStatus.BAD_GATEWAY, "결제 게이트웨이 처리 중 오류가 발생했습니다.");
 
     private final HttpStatus httpStatus;
