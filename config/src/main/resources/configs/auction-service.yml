@@ -25,6 +25,11 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      group-id: auction-service
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      auto-offset-reset: earliest
 
 # --- 서버 포트 ---
 server:
@@ -63,6 +68,9 @@ auction:
   kafka:
     topic:
       auction-changed: ${AUCTION_CHANGED_TOPIC:auction.changed}
+      bid-fee-charge-requested: ${BID_FEE_CHARGE_REQUESTED_TOPIC:auction.bid-fee.charge-requested}
+      bid-fee-charge-completed: ${BID_FEE_CHARGE_COMPLETED_TOPIC:auction.bid-fee.charge-completed}
+      bid-fee-charge-failed: ${BID_FEE_CHARGE_FAILED_TOPIC:auction.bid-fee.charge-failed}
 
 # --- 로깅 설정 ---
 # Docker 환경에서는 INFO/WARN 레벨 (로컬은 DEBUG)
