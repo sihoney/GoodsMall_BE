@@ -79,7 +79,7 @@
 
 ### 2.6 경매 가격 추천 AI (내부 API)
 
-- 엔드포인트: `POST /internal/ai/auction-price-recommendation`
+- 엔드포인트: `POST /api/ai/auction-price-recommendation`
 - 주요 입력:
   - `auctionId`
   - `productId`

@@ -11,8 +11,8 @@ public record PaymentRefundItemRequest(
         UUID orderItemId,
 
         @NotNull(message = "refundAmount is required.")
-        @DecimalMin(value = "0.01", message = "refundAmount must be positive.")
-        @Digits(integer = 19, fraction = 2)
+        @DecimalMin(value = "1", message = "refundAmount must be at least 1 KRW.")
+        @Digits(integer = 19, fraction = 0, message = "refundAmount must be integer KRW.")
         BigDecimal refundAmount
 ) {
 }

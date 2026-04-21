@@ -3,15 +3,15 @@ services:
     image: pgvector/pgvector:pg18
     container_name: goods-mall-postgres
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER_NAME}
+      POSTGRES_PASSWORD: ${DB_USER_PASSWORD}
       POSTGRES_HOST_AUTH_METHOD: scram-sha-256
       TZ: Asia/Seoul
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER_NAME} -d ${DB_NAME}"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -131,7 +131,7 @@ services:
       DB_USER_NAME: ${DB_USER_NAME}
       DB_USER_PASSWORD: ${DB_USER_PASSWORD}
       DB_SEED_ENABLED: "true"
-      DB_SEED_LOCATIONS: classpath:db/seed/dev_seed_member.sql,classpath:db/seed/dev_seed_category.sql,classpath:db/seed/dev_seed_product.sql,classpath:db/seed/dev_seed_cart.sql,classpath:db/seed/dev_seed_wallet.sql,classpath:db/seed/dev_seed_payment_settlement.sql,classpath:db/seed/dev_seed_auction.sql
+      DB_SEED_LOCATIONS: classpath:db/seed/dev_seed_member.sql,classpath:db/seed/dev_seed_category.sql,classpath:db/seed/dev_seed_product.sql,classpath:db/seed/dev_seed_cart.sql,classpath:db/seed/dev_seed_wallet.sql,classpath:db/seed/dev_seed_payment_settlement.sql
     restart: "no"
 
   payment:
@@ -270,6 +270,8 @@ services:
       MAIL_FROM: no-reply@todaylunch.local
       MAIL_FROM_NAME: TodayLunch
       EMAIL_VERIFICATION_FRONTEND_URL: ${EMAIL_VERIFICATION_FRONTEND_URL}
+      KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID}
+      KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET}
     ports:
       - "8083:8083"
 
@@ -453,6 +455,8 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
       REDIS_HOST: ${REDIS_HOST}
       REDIS_PORT: ${REDIS_PORT}
+      AI_PRODUCT_API_BASE_URL: ${AI_PRODUCT_API_BASE_URL:-http://product:8081}
+      AI_PRODUCT_API_PAGE_SIZE: ${AI_PRODUCT_API_PAGE_SIZE:-200}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       AI_EMBEDDING_MODEL: ${AI_EMBEDDING_MODEL:-text-embedding-3-small}
       AI_RECOMMENDATION_CACHE_TTL_SECONDS: ${AI_RECOMMENDATION_CACHE_TTL_SECONDS:-600}

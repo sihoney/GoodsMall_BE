@@ -1,11 +1,11 @@
 package com.example.member.infrastructure.messaging;
 
 import com.example.member.application.event.MemberSignedUpEvent;
+import com.example.member.infrastructure.messaging.kafka.KafkaTopics;
 import com.example.member.infrastructure.messaging.kafka.contract.MemberSignedUpPayload;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 import com.todaylunch.common.event.contract.EventEnvelope;
@@ -19,9 +19,6 @@ public class MemberEventKafkaProducer {
 
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
-
-    @Value("${member.kafka.topic.signed-up}")
-    private String memberSignedUpTopic;
 
     public void sendMemberSignedUp(MemberSignedUpEvent event) {
         try {
@@ -41,14 +38,14 @@ public class MemberEventKafkaProducer {
 
             String eventJson = objectMapper.writeValueAsString(message);
             kafkaTemplate.send(
-                    memberSignedUpTopic,
+                    KafkaTopics.MEMBER_SIGNED_UP,
                     event.memberId().toString(),
                     eventJson
             ).whenComplete((result, exception) -> {
                 if (exception != null) {
                     log.error(
                     "Failed to publish EventEnvelope. topic={} memberId={}",
-                            memberSignedUpTopic,
+                            KafkaTopics.MEMBER_SIGNED_UP,
                             event.memberId(),
                             exception
                     );
@@ -57,7 +54,7 @@ public class MemberEventKafkaProducer {
 
                 log.info(
                         "Published EventEnvelope. topic={} partition={} offset={} memberId={}",
-                        memberSignedUpTopic,
+                        KafkaTopics.MEMBER_SIGNED_UP,
                         result.getRecordMetadata().partition(),
                         result.getRecordMetadata().offset(),
                         event.memberId()
