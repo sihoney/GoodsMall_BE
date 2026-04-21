@@ -102,7 +102,7 @@ public class TossPaymentGatewayImpl implements TossPaymentGateway {
                     .uri("/v1/payments/{paymentKey}/cancel", paymentKey)
                     // 멱등성 키
                     .header("Idempotency-Key", paymentKey + "-cancel")
-                    .body(new TossCancelRequest(cancelReason, cancelAmount != null ? cancelAmount.longValueExact() : null)) // 일부 취소하지 않을 경우 cancelAmount을 null로 보낼 수 있다.
+                    .body(new TossCancelRequest(cancelReason, toTossCancelAmount(cancelAmount))) // 일부 취소하지 않을 경우 cancelAmount을 null로 보낼 수 있다.
                     .retrieve()
                     .body(TossCancelResponse.class);
 
@@ -156,6 +156,20 @@ public class TossPaymentGatewayImpl implements TossPaymentGateway {
             return amount.longValueExact();
         } catch (ArithmeticException e) {
             throw new PaymentGatewayAmountConversionException("Toss 승인 요청 금액은 원 단위 정수여야 합니다. amount=" + amount, e);
+        }
+    }
+
+    private Long toTossCancelAmount(BigDecimal cancelAmount) {
+        if (cancelAmount == null) {
+            return null;
+        }
+        try {
+            return cancelAmount.longValueExact();
+        } catch (ArithmeticException e) {
+            throw new PaymentGatewayAmountConversionException(
+                    "Toss 취소 요청 금액은 원 단위 정수여야 합니다. cancelAmount=" + cancelAmount,
+                    e
+            );
         }
     }
 
