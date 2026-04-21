@@ -6,7 +6,7 @@
 --   - seller_id  '22222222-2222-2222-2222-222222222202' (이판매)
 --   - bidder_id  '11111111-1111-1111-1111-111111111101' (김구매)
 -- 테스트 상태:
---   001 : ONGOING        - 시작 1시간 전, 1일 뒤 종료, 활성 입찰 2건
+--   001 : ONGOING        - 시작 1시간 전, 1일 뒤 종료, 활성 입찰 2건 + 예치금 대기 PENDING 1건
 --   002 : WAITING        - 2시간 후 시작 예정
 --   003 : COMPLETED      - 과거에 종료, 낙찰+결제 완료
 -- ============================================
@@ -79,6 +79,15 @@ VALUES
         52000.00, 'ACTIVE',
         NOW() - INTERVAL '30 minute',
         NOW() - INTERVAL '30 minute'
+    ),
+    -- ONGOING 경매 예치금 처리 대기 입찰 (PENDING, confirm 시 ACTIVE 전이 예정)
+    (
+        'ffffffff-ffff-ffff-ffff-fffffffff006',
+        'eeeeeeee-eeee-eeee-eeee-eeeeeeeee001',
+        '11111111-1111-1111-1111-111111111101',
+        53000.00, 'PENDING',
+        NOW() - INTERVAL '1 minute',
+        NOW() - INTERVAL '1 minute'
     ),
     -- COMPLETED 경매 입찰 (최종 낙찰가 53000, 결제 완료)
     (

@@ -36,7 +36,7 @@ CREATE TABLE bid
     auction_id UUID           NOT NULL,
     bidder_id  UUID           NOT NULL,
     bid_price  DECIMAL(19, 2) NOT NULL,
-    status     VARCHAR(30)    NOT NULL,
+    status     VARCHAR(30)    NOT NULL DEFAULT 'PENDING',
     created_at TIMESTAMP      NOT NULL,
     updated_at TIMESTAMP      NOT NULL,
 
@@ -45,6 +45,7 @@ CREATE TABLE bid
 
     CONSTRAINT chk_bid_status
         CHECK (status IN (
+            'PENDING',
             'ACTIVE',
             'OUTBID',
             'WINNING',
