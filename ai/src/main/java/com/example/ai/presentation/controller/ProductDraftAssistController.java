@@ -5,6 +5,7 @@ import com.example.ai.presentation.dto.request.ProductDraftAssistRequest;
 import com.example.ai.presentation.dto.response.ApiResponse;
 import com.example.ai.presentation.dto.response.ProductDraftAssistResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -101,7 +102,47 @@ public class ProductDraftAssistController {
             )
     })
     public ResponseEntity<ApiResponse<ProductDraftAssistResponse>> createProductDraft(
+            @Parameter(
+                    description = "상품 이미지 파일 목록. Swagger에서 JPG, PNG, WEBP, GIF 중 1개 이상 업로드합니다."
+            )
             @RequestPart("images") List<MultipartFile> images,
+
+            @Parameter(
+                    description = "상품 초안 추천 요청 JSON",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(name = "상품 초안 추천 요청", value = """
+                                    {
+                                      "inputFields": [
+                                        {
+                                          "fieldKey": "TITLE",
+                                          "fieldLabel": "상품명",
+                                          "maxLength": 60,
+                                          "currentValue": "곰돌이 반팔 티셔츠"
+                                        },
+                                        {
+                                          "fieldKey": "DESCRIPTION",
+                                          "fieldLabel": "상품 설명",
+                                          "maxLength": 1000,
+                                          "currentValue": "화이트 색상의 귀여운 캐릭터 반팔 티셔츠입니다."
+                                        },
+                                        {
+                                          "fieldKey": "PRICE",
+                                          "fieldLabel": "판매가",
+                                          "maxLength": 10,
+                                          "currentValue": "25000"
+                                        }
+                                      ],
+                                      "titleDraft": "곰돌이 반팔 티셔츠",
+                                      "descriptionDraft": "화이트 색상의 귀여운 캐릭터 반팔 티셔츠입니다.",
+                                      "priceDraft": "25000",
+                                      "categoryName": "의류",
+                                      "categoryPathText": "패션 > 의류 > 상의",
+                                      "thumbnailIndex": 0
+                                    }
+                                    """)
+                    )
+            )
             @RequestPart("request") ProductDraftAssistRequest request
     ) {
         ProductDraftAssistResponse response = ProductDraftAssistResponse.from(

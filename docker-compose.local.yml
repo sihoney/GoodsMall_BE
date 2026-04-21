@@ -130,7 +130,7 @@ services:
       DB_USER_NAME: ${DB_USER_NAME}
       DB_USER_PASSWORD: ${DB_USER_PASSWORD}
       DB_SEED_ENABLED: "true"
-      DB_SEED_LOCATIONS: classpath:db/seed/dev_seed_member.sql,classpath:db/seed/dev_seed_category.sql,classpath:db/seed/dev_seed_product.sql,classpath:db/seed/dev_seed_cart.sql,classpath:db/seed/dev_seed_wallet.sql,classpath:db/seed/dev_seed_payment_settlement.sql
+      DB_SEED_LOCATIONS: classpath:db/seed/dev_seed_member.sql,classpath:db/seed/dev_seed_category.sql,classpath:db/seed/dev_seed_product.sql,classpath:db/seed/dev_seed_cart.sql,classpath:db/seed/dev_seed_wallet.sql,classpath:db/seed/dev_seed_payment_settlement.sql,classpath:db/seed/dev_seed_ai_product_embedding.sql
     restart: "no"
 
   payment:

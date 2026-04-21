@@ -91,6 +91,24 @@ public class AuctionPriceRecommendationController {
             )
     })
     public ResponseEntity<ApiResponse<AuctionPriceRecommendationResponse>> recommendAuctionPrice(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "경매 가격 추천 요청 예시",
+                    required = true,
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(name = "경매 가격 추천 요청", value = """
+                                    {
+                                      "auctionId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa010",
+                                      "productId": "dddddddd-dddd-dddd-dddd-ddddddddd010",
+                                      "currentBidPrice": 72000,
+                                      "startPrice": 50000,
+                                      "productName": "한정판 콜라보 후드 (경매)",
+                                      "bidCount": 8,
+                                      "remainingSeconds": 3600
+                                    }
+                                    """)
+                    )
+            )
             @Valid @RequestBody AuctionPriceRecommendationRequest request
     ) {
         AuctionPriceRecommendationResponse response = AuctionPriceRecommendationResponse.from(
