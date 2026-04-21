@@ -2,6 +2,7 @@ package com.todaylunch.auction.domain.entity;
 
 import com.todaylunch.auction.common.exception.domain.AuctionNotOngoingException;
 import com.todaylunch.auction.common.exception.domain.BidIncrementNotMetException;
+import com.todaylunch.auction.common.exception.domain.BidPriceUnitNotMetException;
 import com.todaylunch.auction.common.exception.domain.SelfBidNotAllowedException;
 import com.todaylunch.auction.domain.enumtype.AuctionStatus;
 import jakarta.persistence.Column;
@@ -27,6 +28,7 @@ public class Auction {
 
     private static final long EXTEND_THRESHOLD_SECONDS = 30L;
     private static final long EXTEND_AMOUNT_SECONDS = 5L;
+    private static final BigDecimal BID_PRICE_UNIT = new BigDecimal("100");
 
     @Id
     @Column(name = "auction_id", nullable = false, updatable = false)
@@ -136,6 +138,9 @@ public class Auction {
         }
         if (this.status != AuctionStatus.ONGOING) {
             throw new AuctionNotOngoingException();
+        }
+        if (bidPrice.remainder(BID_PRICE_UNIT).signum() != 0) {
+            throw new BidPriceUnitNotMetException();
         }
         if (!meetsMinimumIncrement(bidPrice)) {
             throw new BidIncrementNotMetException();
