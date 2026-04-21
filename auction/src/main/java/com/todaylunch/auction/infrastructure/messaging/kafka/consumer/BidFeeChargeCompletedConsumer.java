@@ -31,7 +31,8 @@ public class BidFeeChargeCompletedConsumer {
     @KafkaListener(topics = KafkaTopics.BID_FEE_CHARGE_COMPLETED)
     @Transactional
     public void handle(String payload) throws Exception {
-        BidFeeChargeCompletedMessage message = objectMapper.readValue(payload, BidFeeChargeCompletedMessage.class);
+        BidFeeChargeCompletedMessage message
+                = objectMapper.readValue(payload, BidFeeChargeCompletedMessage.class);
 
         Bid bid = bidRepository.findById(message.bidId())
                 .orElseThrow(BidNotFoundException::new);

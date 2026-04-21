@@ -32,14 +32,11 @@ public class BidCreateService implements BidCreateUseCase {
     @Override
     public BidResponse place(UUID auctionId, UUID bidderId, BidPlaceRequest request) {
 
-        // 1. 검증
         Auction auction = auctionRepository.findByIdWithLock(auctionId);
         auction.applyConfirmedBid(bidderId, request.bidPrice(), LocalDateTime.now());
 
-        // 2. 이전 최고 입찰 조회
         Optional<Bid> previousBid = bidRepository.findActiveByAuctionId(auctionId);
 
-        // 3. PENDING 상태로 입찰 저장
         Bid bid = Bid.placePending(auction, bidderId, request.bidPrice());
         Bid saved = bidRepository.save(bid);
 
@@ -55,13 +52,12 @@ public class BidCreateService implements BidCreateUseCase {
                 currentBidFee
         );
 
-        // 5. Kafka로 수수료 차감 요청 이벤트 발행 (결과는 Consumer에서 처리)
+        // 5. Kafka로 수수료 차감 요청 이벤트 발행
         bidFeeChargeEventPublisher.publish(event);
 
         log.info("Bid pending: bidId={}, auctionId={}, bidderId={}, bidPrice={}",
                 saved.getBidId(), auctionId, bidderId, saved.getBidPrice());
 
-        // confirm/outbid/브로드캐스트는 charge-completed Consumer에서 수행
         return BidResponse.from(saved);
     }
 

@@ -30,12 +30,15 @@ public class BidFeeChargeFailedConsumer {
     public void handle(String payload) throws Exception {
         BidFeeChargeFailedMessage message = objectMapper.readValue(payload, BidFeeChargeFailedMessage.class);
 
-        Bid bid = bidRepository.findById(message.bidId())
-                .orElseThrow(BidNotFoundException::new);
+        Bid bid = bidRepository.findById(message.bidId()).orElseThrow(BidNotFoundException::new);
 
         if (bid.getStatus() != BidStatus.PENDING) {
-            log.warn("중복 이벤트 또는 잘못된 상태 — 무시: bidId={}, status={}",
-                    bid.getBidId(), bid.getStatus());
+            if (bid.getStatus() == BidStatus.ACTIVE) {
+                // payment 버그로 Completed/Failed 둘 다 발행된 경우 — 환불 처리 필요
+                log.error("수수료 차감 실패 이벤트 수신했으나 이미 활성 상태 — 환불 필요: bidId={}", bid.getBidId());
+            } else {
+                log.debug("중복 이벤트 — 무시: bidId={}, status={}", bid.getBidId(), bid.getStatus());
+            }
             return;
         }
 
