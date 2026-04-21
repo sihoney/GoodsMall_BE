@@ -27,6 +27,12 @@ spring:
     init:
       mode: never
 
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
 server:
   port: 0
 
@@ -42,6 +48,11 @@ cloud:
       bucket: test-bucket
     stack:
       auto: false
+
+auction:
+  kafka:
+    topic:
+      auction-changed: auction.changed
 
 logging:
   level:
