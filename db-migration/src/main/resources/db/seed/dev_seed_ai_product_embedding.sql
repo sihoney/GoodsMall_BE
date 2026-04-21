@@ -80,6 +80,38 @@ SET title = EXCLUDED.title,
     type = EXCLUDED.type,
     updated_at = NOW();
 
+-- EmbeddingAdminController backfill-missing 성공 케이스 확인용 상품입니다.
+-- 의도적으로 ai.product_embedding에는 넣지 않습니다.
+INSERT INTO product.product (
+    product_id,
+    seller_id,
+    category_id,
+    title,
+    description,
+    price,
+    stock_quantity,
+    status,
+    type,
+    view_count,
+    created_at,
+    updated_at
+)
+VALUES
+    ('dddddddd-dddd-dddd-dddd-ddddddddd901', '22222222-2222-2222-2222-222222222202', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa001',
+     '백필 테스트 반팔 티셔츠', 'EmbeddingAdmin backfill-missing으로 임베딩을 생성할 테스트 상품', 23000.00, 30, 'ACTIVE', 'GENERAL', 0, NOW(), NOW()),
+    ('dddddddd-dddd-dddd-dddd-ddddddddd902', '22222222-2222-2222-2222-222222222202', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa002',
+     '백필 테스트 노트 세트', 'EmbeddingAdmin backfill-missing으로 임베딩을 생성할 문구 테스트 상품', 9900.00, 40, 'ACTIVE', 'GENERAL', 0, NOW(), NOW()),
+    ('dddddddd-dddd-dddd-dddd-ddddddddd903', '22222222-2222-2222-2222-222222222202', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa003',
+     '비활성 임베딩 테스트 키링', 'EmbeddingAdmin reindex-all에서 비활성 임베딩 처리를 확인할 테스트 상품', 7200.00, 0, 'INACTIVE', 'GENERAL', 0, NOW(), NOW())
+ON CONFLICT (product_id) DO UPDATE
+SET title = EXCLUDED.title,
+    description = EXCLUDED.description,
+    price = EXCLUDED.price,
+    stock_quantity = EXCLUDED.stock_quantity,
+    status = EXCLUDED.status,
+    type = EXCLUDED.type,
+    updated_at = NOW();
+
 WITH seed_embeddings(embedding_id, product_id, clothing_score, stationery_score, accessory_score) AS (
     VALUES
         ('eeeeeeee-eeee-eeee-eeee-eeeeeeeee001'::uuid, 'dddddddd-dddd-dddd-dddd-ddddddddd001'::uuid, 0.900, 0.100, 0.050),
@@ -118,7 +150,9 @@ WITH seed_embeddings(embedding_id, product_id, clothing_score, stationery_score,
         ('eeeeeeee-eeee-eeee-eeee-eeeeeeeee305'::uuid, 'dddddddd-dddd-dddd-dddd-ddddddddd305'::uuid, 0.260, 0.150, 0.680),
         ('eeeeeeee-eeee-eeee-eeee-eeeeeeeee306'::uuid, 'dddddddd-dddd-dddd-dddd-ddddddddd306'::uuid, 0.110, 0.090, 0.860),
         ('eeeeeeee-eeee-eeee-eeee-eeeeeeeee307'::uuid, 'dddddddd-dddd-dddd-dddd-ddddddddd307'::uuid, 0.090, 0.160, 0.760),
-        ('eeeeeeee-eeee-eeee-eeee-eeeeeeeee308'::uuid, 'dddddddd-dddd-dddd-dddd-ddddddddd308'::uuid, 0.120, 0.090, 0.880)
+        ('eeeeeeee-eeee-eeee-eeee-eeeeeeeee308'::uuid, 'dddddddd-dddd-dddd-dddd-ddddddddd308'::uuid, 0.120, 0.090, 0.880),
+
+        ('eeeeeeee-eeee-eeee-eeee-eeeeeeeee903'::uuid, 'dddddddd-dddd-dddd-dddd-ddddddddd903'::uuid, 0.090, 0.070, 0.910)
 )
 INSERT INTO ai.product_embedding (
     embedding_id,
