@@ -7,10 +7,12 @@ import com.example.payment.application.dto.CardPaymentConfirmCommand;
 import com.example.payment.application.dto.ChargeConfirmCommand;
 import com.example.payment.application.dto.ChargeConfirmFailureCommand;
 import com.example.payment.application.dto.ChargeCreateCommand;
+import com.example.payment.application.dto.AuctionDepositCommand;
 import com.example.payment.application.dto.PaymentRefundCommand;
 import com.example.payment.application.dto.PaymentRefundItemCommand;
 import com.example.payment.application.dto.SellerRefundCommand;
 import com.example.payment.application.dto.WithdrawCommand;
+import com.example.payment.application.usecase.AuctionDepositUseCase;
 import com.example.payment.application.usecase.CardPaymentConfirmUseCase;
 import com.example.payment.application.usecase.ChargeConfirmFailureUseCase;
 import com.example.payment.application.usecase.ChargeConfirmUseCase;
@@ -24,11 +26,13 @@ import com.example.payment.presentation.dto.request.CardPaymentConfirmRequest;
 import com.example.payment.presentation.dto.request.ChargeConfirmFailureRequest;
 import com.example.payment.presentation.dto.request.ChargeConfirmRequest;
 import com.example.payment.presentation.dto.request.ChargeCreateRequest;
+import com.example.payment.presentation.dto.request.AuctionFeeVerificationRequest;
 import com.example.payment.presentation.dto.request.OrderPaymentApiRequest;
 import com.example.payment.presentation.dto.request.PaymentCancellationRequest;
 import com.example.payment.presentation.dto.request.SellerRefundConfirmRequest;
 import com.example.payment.presentation.dto.request.WithdrawCreateRequest;
 import com.example.payment.presentation.dto.response.ApiResponse;
+import com.example.payment.presentation.dto.response.AuctionFeeVerificationResponse;
 import com.example.payment.presentation.dto.response.CardPaymentConfirmResponse;
 import com.example.payment.presentation.dto.response.ChargeConfirmFailureResponse;
 import com.example.payment.presentation.dto.response.ChargeConfirmResponse;
@@ -65,6 +69,7 @@ import org.springframework.web.server.ResponseStatusException;
 @Tag(name = "Payment", description = "충전/지갑/환불 API")
 public class PaymentController {
 
+    private final AuctionDepositUseCase auctionDepositUseCase;
     private final ChargeCreateUseCase chargeCreateUseCase;
     private final ChargeConfirmUseCase chargeConfirmUseCase;
     private final CardPaymentConfirmUseCase cardPaymentConfirmUseCase;
@@ -76,6 +81,7 @@ public class PaymentController {
     private final WithdrawUseCase withdrawUseCase;
 
     public PaymentController(
+            AuctionDepositUseCase auctionDepositUseCase,
             ChargeCreateUseCase chargeCreateUseCase,
             ChargeConfirmUseCase chargeConfirmUseCase,
             CardPaymentConfirmUseCase cardPaymentConfirmUseCase,
@@ -86,6 +92,7 @@ public class PaymentController {
             OrderPaymentApiUseCase orderPaymentApiUseCase,
             WithdrawUseCase withdrawUseCase
     ) {
+        this.auctionDepositUseCase = auctionDepositUseCase;
         this.chargeCreateUseCase = chargeCreateUseCase;
         this.chargeConfirmUseCase = chargeConfirmUseCase;
         this.cardPaymentConfirmUseCase = cardPaymentConfirmUseCase;
@@ -95,6 +102,23 @@ public class PaymentController {
         this.paymentSearchUseCase = paymentSearchUseCase;
         this.orderPaymentApiUseCase = orderPaymentApiUseCase;
         this.withdrawUseCase = withdrawUseCase;
+    }
+
+    @PostMapping("/auctions/bid-fees")
+    @Operation(summary = "경매 예치금 차감 및 환불 처리")
+    public ResponseEntity<ApiResponse<AuctionFeeVerificationResponse>> verifyAuctionDeposit(
+            @Valid @RequestBody AuctionFeeVerificationRequest request
+    ) {
+        AuctionFeeVerificationResponse response = AuctionFeeVerificationResponse.success(
+                auctionDepositUseCase.processAuctionDeposit(new AuctionDepositCommand(
+                        request.auctionId(),
+                        request.previousBidderId(),
+                        request.previousBidderPaidFee(),
+                        request.highestBidderId(),
+                        request.highestBidderFee()
+                ))
+        );
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @GetMapping("/wallet")

@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 public enum ErrorCode {
 
     INVALID_CHARGE_REQUEST(HttpStatus.BAD_REQUEST, "충전 요청이 올바르지 않습니다."),
+    INVALID_AUCTION_BID_FEE_REQUEST(HttpStatus.BAD_REQUEST, "경매 입찰 수수료 요청이 올바르지 않습니다."),
     INVALID_CARD_PAYMENT_REQUEST(HttpStatus.BAD_REQUEST, "카드 결제 요청이 올바르지 않습니다."),
     INVALID_ORDER_PAYMENT_REQUEST(HttpStatus.BAD_REQUEST, "주문 결제 요청이 올바르지 않습니다."),
     INVALID_WITHDRAW_REQUEST(HttpStatus.BAD_REQUEST, "출금 요청이 올바르지 않습니다."),
@@ -22,6 +23,7 @@ public enum ErrorCode {
     INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, "입력값이 올바르지 않습니다."),
 
     CHARGE_NOT_FOUND(HttpStatus.NOT_FOUND, "충전 내역을 찾을 수 없습니다."),
+    AUCTION_DEPOSIT_NOT_FOUND(HttpStatus.NOT_FOUND, "경매 예치금 정보를 찾을 수 없습니다."),
     ESCROW_NOT_FOUND(HttpStatus.NOT_FOUND, "에스크로 정보를 찾을 수 없습니다."),
     WALLET_NOT_FOUND(HttpStatus.NOT_FOUND, "지갑 정보를 찾을 수 없습니다."),
 

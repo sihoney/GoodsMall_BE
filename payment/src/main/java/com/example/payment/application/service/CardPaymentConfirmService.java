@@ -227,7 +227,9 @@ public class CardPaymentConfirmService implements CardPaymentConfirmUseCase {
         if (!Objects.equals(confirmation.orderId(), command.orderId().toString())) {
             throw new InvalidCardPaymentRequestException("confirmed orderId does not match request.");
         }
-        if (!Objects.equals(confirmation.approvedAmount(), command.amount())) {
+        if (confirmation.approvedAmount() == null
+                || command.amount() == null
+                || confirmation.approvedAmount().compareTo(command.amount()) != 0) {
             throw new InvalidCardPaymentRequestException("confirmed amount does not match request.");
         }
         if (!CARD_METHOD.equals(confirmation.method())) {

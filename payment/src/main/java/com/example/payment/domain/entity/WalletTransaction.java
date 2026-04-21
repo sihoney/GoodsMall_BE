@@ -165,6 +165,52 @@ public class WalletTransaction {
         );
     }
 
+    public static WalletTransaction auctionDepositHold(
+            UUID transactionId,
+            UUID walletId,
+            BigDecimal amount,
+            BigDecimal balanceAfter,
+            UUID bidId,
+            LocalDateTime createdAt
+    ) {
+        validatePositiveAmount(amount, "Auction deposit hold amount must be positive.");
+
+        return create(
+                transactionId,
+                walletId,
+                amount.negate(),
+                balanceAfter,
+                WalletTransactionType.AUCTION_DEPOSIT_HOLD,
+                bidId,
+                "AUCTION_BID",
+                "auction deposit hold",
+                createdAt
+        );
+    }
+
+    public static WalletTransaction auctionDepositRefund(
+            UUID transactionId,
+            UUID walletId,
+            BigDecimal amount,
+            BigDecimal balanceAfter,
+            UUID bidId,
+            LocalDateTime createdAt
+    ) {
+        validatePositiveAmount(amount, "Auction deposit refund amount must be positive.");
+
+        return create(
+                transactionId,
+                walletId,
+                amount,
+                balanceAfter,
+                WalletTransactionType.AUCTION_DEPOSIT_REFUND,
+                bidId,
+                "AUCTION_BID",
+                "auction deposit refund",
+                createdAt
+        );
+    }
+
     private static void validatePositiveAmount(BigDecimal amount, String message) {
         if (Objects.requireNonNull(amount).compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException(message);
