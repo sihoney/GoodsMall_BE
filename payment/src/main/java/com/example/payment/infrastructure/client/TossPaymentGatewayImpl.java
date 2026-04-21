@@ -1,6 +1,7 @@
 package com.example.payment.infrastructure.client;
 
 import com.example.payment.common.exception.PaymentGatewayException;
+import com.example.payment.common.exception.PaymentGatewayAmountConversionException;
 import com.example.payment.domain.service.TossPaymentGateway;
 import com.example.payment.infrastructure.config.TossPaymentsProperties;
 import java.math.BigDecimal;
@@ -51,7 +52,7 @@ public class TossPaymentGatewayImpl implements TossPaymentGateway {
                     .uri("/v1/payments/confirm")
                     // 넣어 외부 시스켐이 중복처리하지 않도록 멱등성 키를 헤더로 보낸다.
                     .header("Idempotency-Key", orderId)
-                    .body(new TossConfirmRequest(paymentKey, orderId, amount.longValueExact()))
+                    .body(new TossConfirmRequest(paymentKey, orderId, toTossAmount(amount)))
                     .retrieve()// 응답을 가져옴
                     .body(TossConfirmResponse.class); //JSON 응답을 Java 객체로 역직렬화
 
@@ -101,7 +102,7 @@ public class TossPaymentGatewayImpl implements TossPaymentGateway {
                     .uri("/v1/payments/{paymentKey}/cancel", paymentKey)
                     // 멱등성 키
                     .header("Idempotency-Key", paymentKey + "-cancel")
-                    .body(new TossCancelRequest(cancelReason, cancelAmount != null ? cancelAmount.longValueExact() : null)) // 일부 취소하지 않을 경우 cancelAmount을 null로 보낼 수 있다.
+                    .body(new TossCancelRequest(cancelReason, toTossCancelAmount(cancelAmount))) // 일부 취소하지 않을 경우 cancelAmount을 null로 보낼 수 있다.
                     .retrieve()
                     .body(TossCancelResponse.class);
 
@@ -144,6 +145,31 @@ public class TossPaymentGatewayImpl implements TossPaymentGateway {
         }
         if (isBlank(properties.secretKey())) {
             throw new PaymentGatewayException("toss.payments.secret-key is required.");
+        }
+    }
+
+    private Long toTossAmount(BigDecimal amount) {
+        if (amount == null) {
+            throw new PaymentGatewayException("Toss confirm amount is required.");
+        }
+        try {
+            return amount.longValueExact();
+        } catch (ArithmeticException e) {
+            throw new PaymentGatewayAmountConversionException("Toss 승인 요청 금액은 원 단위 정수여야 합니다. amount=" + amount, e);
+        }
+    }
+
+    private Long toTossCancelAmount(BigDecimal cancelAmount) {
+        if (cancelAmount == null) {
+            return null;
+        }
+        try {
+            return cancelAmount.longValueExact();
+        } catch (ArithmeticException e) {
+            throw new PaymentGatewayAmountConversionException(
+                    "Toss 취소 요청 금액은 원 단위 정수여야 합니다. cancelAmount=" + cancelAmount,
+                    e
+            );
         }
     }
 
