@@ -22,6 +22,11 @@ public class BidRepositoryImpl implements BidRepository {
     }
 
     @Override
+    public Optional<Bid> findById(UUID bidId) {
+        return jpaRepository.findById(bidId);
+    }
+
+    @Override
     public Optional<Bid> findActiveByAuctionId(UUID auctionId) {
         return jpaRepository.findTopByAuctionIdAndStatus(auctionId, BidStatus.ACTIVE);
     }

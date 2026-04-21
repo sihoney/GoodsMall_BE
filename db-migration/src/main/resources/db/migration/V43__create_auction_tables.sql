@@ -1,4 +1,5 @@
-CREATE TABLE auction
+-- 경매 테이블
+CREATE TABLE IF NOT EXISTS auction.auction
 (
     auction_id            UUID PRIMARY KEY,
     product_id            UUID           NOT NULL,
@@ -23,29 +24,28 @@ CREATE TABLE auction
         ))
 );
 
-CREATE INDEX idx_auction_product_id ON auction (product_id);
-CREATE INDEX idx_auction_seller_id  ON auction (seller_id);
-CREATE INDEX idx_auction_status     ON auction (status);
-CREATE INDEX idx_auction_started_at ON auction (started_at);
-CREATE INDEX idx_auction_ended_at   ON auction (ended_at);
+CREATE INDEX idx_auction_product_id ON auction.auction (product_id);
+CREATE INDEX idx_auction_seller_id  ON auction.auction (seller_id);
+CREATE INDEX idx_auction_status     ON auction.auction (status);
+CREATE INDEX idx_auction_started_at ON auction.auction (started_at);
+CREATE INDEX idx_auction_ended_at   ON auction.auction (ended_at);
 
--- Bid
-CREATE TABLE bid
+-- 입찰 테이블
+CREATE TABLE IF NOT EXISTS auction.bid
 (
     bid_id     UUID PRIMARY KEY,
     auction_id UUID           NOT NULL,
     bidder_id  UUID           NOT NULL,
     bid_price  DECIMAL(19, 2) NOT NULL,
-    status     VARCHAR(30)    NOT NULL DEFAULT 'PENDING',
+    status     VARCHAR(30)    NOT NULL,
     created_at TIMESTAMP      NOT NULL,
     updated_at TIMESTAMP      NOT NULL,
 
     CONSTRAINT fk_bid_auction
-        FOREIGN KEY (auction_id) REFERENCES auction (auction_id),
+        FOREIGN KEY (auction_id) REFERENCES auction.auction (auction_id),
 
     CONSTRAINT chk_bid_status
         CHECK (status IN (
-            'PENDING',
             'ACTIVE',
             'OUTBID',
             'WINNING',
@@ -54,7 +54,7 @@ CREATE TABLE bid
         ))
 );
 
-CREATE INDEX idx_bid_auction_id         ON bid (auction_id);
-CREATE INDEX idx_bid_auction_price_desc ON bid (auction_id, bid_price DESC);
-CREATE INDEX idx_bid_bidder_id          ON bid (bidder_id);
-CREATE INDEX idx_bid_status             ON bid (auction_id, status);
+CREATE INDEX idx_bid_auction_id         ON auction.bid (auction_id);
+CREATE INDEX idx_bid_auction_price_desc ON auction.bid (auction_id, bid_price DESC);
+CREATE INDEX idx_bid_bidder_id          ON auction.bid (bidder_id);
+CREATE INDEX idx_bid_status             ON auction.bid (auction_id, status);

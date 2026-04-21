@@ -1,5 +1,5 @@
 -- 카테고리 테이블
-CREATE TABLE product.category
+CREATE TABLE IF NOT EXISTS product.category
 (
     category_id UUID PRIMARY KEY,
     parent_id   UUID                 DEFAULT NULL,
@@ -21,7 +21,7 @@ CREATE INDEX idx_category_deleted_at ON product.category (deleted_at);
 CREATE INDEX idx_category_depth ON product.category (depth);
 
 -- 상품 테이블
-CREATE TABLE product.product
+CREATE TABLE IF NOT EXISTS product.product
 (
     product_id     UUID PRIMARY KEY,
     seller_id      UUID                                                             NOT NULL,
@@ -44,7 +44,7 @@ CREATE INDEX idx_product_status ON product.product (status);
 CREATE INDEX idx_product_created_at ON product.product (created_at DESC);
 
 -- 상품 이미지 테이블
-CREATE TABLE product.product_image
+CREATE TABLE IF NOT EXISTS product.product_image
 (
     image_id     UUID PRIMARY KEY,
     product_id   UUID         NOT NULL,
