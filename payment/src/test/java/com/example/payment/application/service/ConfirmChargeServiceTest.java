@@ -76,6 +76,10 @@ class ConfirmChargeServiceTest {
         return BigDecimal.valueOf(value);
     }
 
+    private BigDecimal decimal(String value) {
+        return new BigDecimal(value);
+    }
+
     @Nested
     @DisplayName("confirmCharge")
     class ConfirmCharge {
@@ -274,6 +278,37 @@ class ConfirmChargeServiceTest {
             assertThatThrownBy(() -> confirmChargeService.confirmCharge(command))
                     .isInstanceOf(InvalidChargeRequestException.class)
                     .hasMessageContaining("paymentKey is required.");
+        }
+
+        @Test
+        @DisplayName("amount scale 이 달라도 같은 금액이면 승인된다")
+        void confirmCharge_sameAmountDifferentScale_success() {
+            ChargeConfirmCommand command = new ChargeConfirmCommand(chargeId, "payKey-001", pgOrderId, decimal("10000.00"));
+            LocalDateTime approvedAt = now.plusMinutes(5);
+            TossPaymentGateway.TossPaymentConfirmation confirmation =
+                    new TossPaymentGateway.TossPaymentConfirmation(
+                            "payKey-001",
+                            pgOrderId,
+                            decimal("10000.00"),
+                            approvedAt,
+                            "계좌이체",
+                            "92",
+                            null
+                    );
+
+            given(chargeRepository.findByChargeId(chargeId)).willReturn(Optional.of(pendingCharge));
+            given(tossPaymentGateway.confirm(any(), any(), any())).willReturn(confirmation);
+            given(walletRepository.findByWalletId(walletId)).willReturn(Optional.of(wallet));
+            given(identifierGenerator.generateUuid()).willReturn(UUID.randomUUID());
+            given(chargeRepository.save(any(Charge.class))).willAnswer(invocation -> invocation.getArgument(0));
+            given(walletRepository.save(any(Wallet.class))).willAnswer(invocation -> invocation.getArgument(0));
+            given(walletTransactionRepository.save(any())).willAnswer(invocation -> invocation.getArgument(0));
+
+            ChargeConfirmResult result = confirmChargeService.confirmCharge(command);
+
+            assertThat(result.chargeStatus()).isEqualTo(ChargeStatus.CONFIRM_SUCCESS);
+            assertThat(result.approvedAmount()).isEqualByComparingTo(decimal("10000.00"));
+            assertThat(result.walletBalance()).isEqualByComparingTo(decimal("15000.00"));
         }
     }
 }
