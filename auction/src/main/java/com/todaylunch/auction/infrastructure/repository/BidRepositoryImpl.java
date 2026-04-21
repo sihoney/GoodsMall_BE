@@ -30,9 +30,4 @@ public class BidRepositoryImpl implements BidRepository {
     public Page<Bid> findAllByAuctionId(UUID auctionId, Pageable pageable) {
         return jpaRepository.findAllByAuctionId(auctionId, pageable);
     }
-
-    @Override
-    public Boolean isFirstBid(UUID auctionId) {
-        return jpaRepository.findById(auctionId).isPresent();
-    }
 }

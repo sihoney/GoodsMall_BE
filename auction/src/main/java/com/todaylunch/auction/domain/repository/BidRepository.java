@@ -12,7 +12,5 @@ public interface BidRepository {
 
     Optional<Bid> findActiveByAuctionId(UUID auctionId);
 
-    Boolean isFirstBid(UUID auctionId);
-
     Page<Bid> findAllByAuctionId(UUID auctionId, Pageable pageable);
 }

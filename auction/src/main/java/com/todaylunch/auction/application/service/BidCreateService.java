@@ -2,6 +2,7 @@ package com.todaylunch.auction.application.service;
 
 import com.todaylunch.auction.application.event.BidPlacedEvent;
 import com.todaylunch.auction.application.port.BidFeeChargePort;
+import com.todaylunch.auction.application.port.dto.request.BidFeeChargeRequest;
 import com.todaylunch.auction.application.port.dto.response.BidFeeChargeResponse;
 import com.todaylunch.auction.application.usecase.BidCreateUseCase;
 import com.todaylunch.auction.domain.entity.Auction;
@@ -10,7 +11,6 @@ import com.todaylunch.auction.domain.entity.BidPolicy;
 import com.todaylunch.auction.domain.repository.AuctionRepository;
 import com.todaylunch.auction.domain.repository.BidRepository;
 import com.todaylunch.auction.presentation.dto.request.BidPlaceRequest;
-import com.todaylunch.auction.presentation.dto.response.ApiResponse;
 import com.todaylunch.auction.presentation.dto.response.BidResponse;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -47,10 +47,25 @@ public class BidCreateService implements BidCreateUseCase {
         Bid bid = Bid.placePending(auction, bidderId, request.bidPrice());
         Bid saved = bidRepository.save(bid);
 
-        // 4. 수수료 계산 및 이전 입찰자
+        // 4. 수수료 계산 및 payment 요청 구성
         BigDecimal currentBidFee = BidPolicy.calculateBidFee(bid.getBidPrice());
+        BidFeeChargeRequest clientRequest = new BidFeeChargeRequest(
+                auction.getAuctionId(),
+                previousBid.isEmpty(),
+                previousBid.map(Bid::getBidderId).orElse(null),
+                previousBid.map(b -> BidPolicy.calculateBidFee(b.getBidPrice())).orElse(null),
+                bidderId,
+                currentBidFee
+        );
 
+        // 5. 예치금 차감 호출
+        BidFeeChargeResponse chargeResponse = bidFeeChargePort.chargeBidFee(clientRequest);
 
+        // 6. 결제 확정 이후 상태 전이
+        saved.confirm();
+        previousBid.ifPresent(Bid::outbid);
+
+        // 7. 실시간 브로드캐스트
         applicationEventPublisher.publishEvent(new BidPlacedEvent(
                 auction.getAuctionId(),
                 bid.getBidderId(),
@@ -60,8 +75,6 @@ public class BidCreateService implements BidCreateUseCase {
 
         log.info("Bid placed: bidId={}, auctionId={}, bidderId={}, bidPrice={}",
                 saved.getBidId(), auctionId, bidderId, saved.getBidPrice());
-
-        bidRepository.findActiveByAuctionId(auctionId).ifPresent(Bid::outbid);
 
         return BidResponse.from(saved);
     }
