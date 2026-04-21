@@ -259,7 +259,6 @@ services:
       EUREKA_INSTANCE_HOSTNAME: member
       API_GATEWAY_HOST: http://gateway:8080
       CONFIG_SERVER_URL: http://config:8888
-      # 이메일 발송을 위한 설정
       EMAIL_PROVIDER: ${EMAIL_PROVIDER}
       SMTP_HOST: ${SMTP_HOST}
       SMTP_PORT: ${SMTP_PORT}
@@ -270,6 +269,8 @@ services:
       MAIL_FROM: no-reply@todaylunch.local
       MAIL_FROM_NAME: TodayLunch
       EMAIL_VERIFICATION_FRONTEND_URL: ${EMAIL_VERIFICATION_FRONTEND_URL}
+      KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID}
+      KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET}
     ports:
       - "8083:8083"
 

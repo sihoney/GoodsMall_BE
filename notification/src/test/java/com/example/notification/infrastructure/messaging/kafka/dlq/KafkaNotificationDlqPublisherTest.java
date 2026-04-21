@@ -4,8 +4,8 @@ import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 
+import com.example.notification.infrastructure.messaging.kafka.KafkaTopics;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.lang.reflect.Field;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,12 +22,8 @@ class KafkaNotificationDlqPublisherTest {
     private KafkaNotificationDlqPublisher publisher;
 
     @BeforeEach
-    void setUp() throws Exception {
+    void setUp() {
         publisher = new KafkaNotificationDlqPublisher(kafkaTemplate, new ObjectMapper().findAndRegisterModules());
-
-        Field topicField = KafkaNotificationDlqPublisher.class.getDeclaredField("dlqTopic");
-        topicField.setAccessible(true);
-        topicField.set(publisher, "notification.dlq");
     }
 
     @Test
@@ -39,6 +35,6 @@ class KafkaNotificationDlqPublisherTest {
                 NotificationConsumerFailureDecision.dlq(NotificationDlqReason.INVALID_EVENT_PAYLOAD)
         );
 
-        verify(kafkaTemplate).send(eq("notification.dlq"), contains("\"reason\":\"INVALID_EVENT_PAYLOAD\""));
+        verify(kafkaTemplate).send(eq(KafkaTopics.NOTIFICATION_DLQ), contains("\"reason\":\"INVALID_EVENT_PAYLOAD\""));
     }
 }

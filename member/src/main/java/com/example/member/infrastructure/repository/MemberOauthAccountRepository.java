@@ -2,6 +2,7 @@ package com.example.member.infrastructure.repository;
 
 import com.example.member.domain.entity.MemberOauthAccount;
 import com.example.member.domain.enumtype.OAuthProvider;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -25,11 +26,19 @@ public class MemberOauthAccountRepository {
         return memberOauthAccountJpaRepository.findByMemberIdAndProvider(memberId, provider);
     }
 
+    public List<MemberOauthAccount> findAllByMemberId(UUID memberId) {
+        return memberOauthAccountJpaRepository.findAllByMemberIdOrderByCreatedAtDesc(memberId);
+    }
+
     public boolean existsByProviderAndProviderUserId(OAuthProvider provider, String providerUserId) {
         return memberOauthAccountJpaRepository.existsByProviderAndProviderUserId(provider, providerUserId);
     }
 
     public boolean existsByMemberIdAndProvider(UUID memberId, OAuthProvider provider) {
         return memberOauthAccountJpaRepository.existsByMemberIdAndProvider(memberId, provider);
+    }
+
+    public void delete(MemberOauthAccount memberOauthAccount) {
+        memberOauthAccountJpaRepository.delete(memberOauthAccount);
     }
 }
