@@ -109,9 +109,11 @@ public class PaymentController {
     public ResponseEntity<ApiResponse<AuctionFeeVerificationResponse>> verifyAuctionDeposit(
             @Valid @RequestBody AuctionFeeVerificationRequest request
     ) {
+        boolean isFirst = request.previousBidderId() == null && request.previousBidderPaidFee() == null;
         AuctionFeeVerificationResponse response = AuctionFeeVerificationResponse.success(
                 auctionDepositUseCase.processAuctionDeposit(new AuctionDepositCommand(
                         request.auctionId(),
+                        isFirst,
                         request.previousBidderId(),
                         request.previousBidderPaidFee(),
                         request.highestBidderId(),

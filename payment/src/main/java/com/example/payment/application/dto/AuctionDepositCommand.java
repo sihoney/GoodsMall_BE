@@ -5,6 +5,7 @@ import java.util.UUID;
 
 public record AuctionDepositCommand(
         UUID auctionId,
+        boolean isFirst,
         UUID previousBidderId,
         BigDecimal previousBidderPaidFee,
         UUID highestBidderId,
