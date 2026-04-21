@@ -1,6 +1,7 @@
 package com.example.payment.infrastructure.config;
 
 import com.example.payment.common.exception.WalletNotFoundException;
+import com.example.payment.infrastructure.messaging.kafka.KafkaConsumerGroups;
 import com.example.payment.infrastructure.messaging.kafka.contract.MemberCreatedMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPurchaseConfirmedMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.SellerSettlementPayoutRequestedMessage;
@@ -95,6 +96,30 @@ public class KafkaConsumerConfig {
         ConcurrentKafkaListenerContainerFactory<String, OrderPurchaseConfirmedMessage> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(orderPurchaseConfirmedConsumerFactory);
+        return factory;
+    }
+
+    /**
+     * 경매 입찰 보증금 처리 요청 이벤트용 ConsumerFactory
+     */
+    @Bean
+    public ConsumerFactory<String, String> auctionBidFeeChargeRequestedConsumerFactory(
+            @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers
+    ) {
+        return createConsumerFactory(bootstrapServers, KafkaConsumerGroups.PAYMENT_SERVICE, String.class);
+    }
+
+    /**
+     * 경매 입찰 보증금 처리 요청 이벤트를 처리할 ListenerContainerFactory
+     */
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, String>
+        auctionBidFeeChargeRequestedKafkaListenerContainerFactory(
+            ConsumerFactory<String, String> auctionBidFeeChargeRequestedConsumerFactory
+    ) {
+        ConcurrentKafkaListenerContainerFactory<String, String> factory =
+                new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(auctionBidFeeChargeRequestedConsumerFactory);
         return factory;
     }
 
