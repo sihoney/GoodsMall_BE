@@ -1,11 +1,12 @@
-package com.todaylunch.auction.infrastructure.messaging.kafka;
+package com.todaylunch.auction.infrastructure.messaging.kafka.publisher;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.todaylunch.auction.application.port.BidFeeChargeEventPublisher;
 import com.todaylunch.auction.application.port.dto.request.BidFeeChargeRequest;
+import com.todaylunch.auction.infrastructure.messaging.kafka.KafkaTopics;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
@@ -15,26 +16,16 @@ import org.springframework.stereotype.Component;
  */
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class KafkaBidFeeChargeEventPublisher implements BidFeeChargeEventPublisher {
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
-    private final String topic;
-
-    public KafkaBidFeeChargeEventPublisher(
-            KafkaTemplate<String, String> kafkaTemplate,
-            ObjectMapper objectMapper,
-            @Value("${auction.kafka.topic.bid-fee-charge-requested:auction.bid-fee.charge-requested}") String topic
-    ) {
-        this.kafkaTemplate = kafkaTemplate;
-        this.objectMapper = objectMapper;
-        this.topic = topic;
-    }
 
     @Override
     public void publish(BidFeeChargeRequest request) {
         try {
             String payload = objectMapper.writeValueAsString(request);
-            kafkaTemplate.send(topic, String.valueOf(request.auctionId()), payload);
+            kafkaTemplate.send(KafkaTopics.BID_FEE_CHARGE_REQUESTED, String.valueOf(request.auctionId()), payload);
             log.debug("bid-fee-charge-requested published: auctionId={}, highestBidderId={}",
                     request.auctionId(), request.highestBidderId());
         } catch (JsonProcessingException e) {

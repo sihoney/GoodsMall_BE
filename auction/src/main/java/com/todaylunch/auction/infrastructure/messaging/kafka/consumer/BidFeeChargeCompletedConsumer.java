@@ -1,4 +1,4 @@
-package com.todaylunch.auction.infrastructure.messaging.kafka;
+package com.todaylunch.auction.infrastructure.messaging.kafka.consumer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.todaylunch.auction.application.event.BidPlacedEvent;
@@ -6,6 +6,7 @@ import com.todaylunch.auction.common.exception.application.BidNotFoundException;
 import com.todaylunch.auction.domain.entity.Bid;
 import com.todaylunch.auction.domain.enumtype.BidStatus;
 import com.todaylunch.auction.domain.repository.BidRepository;
+import com.todaylunch.auction.infrastructure.messaging.kafka.KafkaTopics;
 import com.todaylunch.auction.infrastructure.messaging.kafka.message.BidFeeChargeCompletedMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,7 +28,7 @@ public class BidFeeChargeCompletedConsumer {
     private final ApplicationEventPublisher applicationEventPublisher;
     private final ObjectMapper objectMapper;
 
-    @KafkaListener(topics = "${auction.kafka.topic.bid-fee-charge-completed:auction.bid-fee.charge-completed}")
+    @KafkaListener(topics = KafkaTopics.BID_FEE_CHARGE_COMPLETED)
     @Transactional
     public void handle(String payload) throws Exception {
         BidFeeChargeCompletedMessage message = objectMapper.readValue(payload, BidFeeChargeCompletedMessage.class);
