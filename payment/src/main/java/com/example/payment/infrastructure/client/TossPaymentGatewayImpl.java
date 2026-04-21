@@ -1,6 +1,7 @@
 package com.example.payment.infrastructure.client;
 
 import com.example.payment.common.exception.PaymentGatewayException;
+import com.example.payment.common.exception.PaymentGatewayAmountConversionException;
 import com.example.payment.domain.service.TossPaymentGateway;
 import com.example.payment.infrastructure.config.TossPaymentsProperties;
 import java.math.BigDecimal;
@@ -154,7 +155,7 @@ public class TossPaymentGatewayImpl implements TossPaymentGateway {
         try {
             return amount.longValueExact();
         } catch (ArithmeticException e) {
-            throw new PaymentGatewayException("Toss confirm amount must be integer KRW. amount=" + amount, e);
+            throw new PaymentGatewayAmountConversionException("Toss 승인 요청 금액은 원 단위 정수여야 합니다. amount=" + amount, e);
         }
     }
 
