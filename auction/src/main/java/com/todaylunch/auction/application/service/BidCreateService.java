@@ -28,15 +28,20 @@ public class BidCreateService implements BidCreateUseCase {
 
     @Override
     public BidResponse place(UUID auctionId, UUID bidderId, BidPlaceRequest request) {
-        Auction auction = auctionRepository.findByIdWithLock(auctionId);
 
+        Auction auction = auctionRepository.findByIdWithLock(auctionId);
         auction.applyConfirmedBid(bidderId, request.bidPrice(), LocalDateTime.now());
 
-        bidRepository.findActiveByAuctionId(auctionId)
-                .ifPresent(Bid::outbid);
+
+
+
+
+
+        bidRepository.findActiveByAuctionId(auctionId).ifPresent(Bid::outbid);
 
         Bid bid = Bid.place(auction, bidderId, request.bidPrice());
         Bid saved = bidRepository.save(bid);
+
         applicationEventPublisher.publishEvent(new BidPlacedEvent(
                 auction.getAuctionId(),
                 bid.getBidderId(),
@@ -46,6 +51,8 @@ public class BidCreateService implements BidCreateUseCase {
 
         log.info("Bid placed: bidId={}, auctionId={}, bidderId={}, bidPrice={}",
                 saved.getBidId(), auctionId, bidderId, saved.getBidPrice());
+
+
 
         return BidResponse.from(saved);
     }
