@@ -12,6 +12,13 @@ public enum ErrorCode {
 
     // Application
     AUCTION_NOT_FOUND(HttpStatus.NOT_FOUND, "경매를 찾을 수 없습니다"),
+    BID_NOT_FOUND(HttpStatus.NOT_FOUND, "입찰을 찾을 수 없습니다"),
+    INSUFFICIENT_DEPOSIT(HttpStatus.CONFLICT, "예치금 잔액이 부족합니다"),
+    BIDDER_WALLET_NOT_FOUND(HttpStatus.NOT_FOUND, "입찰자 지갑을 찾을 수 없습니다"),
+    PREVIOUS_DEPOSIT_NOT_FOUND(HttpStatus.NOT_FOUND, "이전 입찰 예치금 원장을 찾을 수 없습니다"),
+    DEPOSIT_STATE_CONFLICT(HttpStatus.CONFLICT, "경매 예치금 상태가 일치하지 않습니다"),
+    BID_FEE_CHARGE_REQUEST_INVALID(HttpStatus.INTERNAL_SERVER_ERROR, "입찰 수수료 요청 생성에 실패했습니다"),
+    BID_FEE_CHARGE_FAILED(HttpStatus.BAD_GATEWAY, "입찰 수수료 차감에 실패했습니다"),
 
     // Domain
     AUCTION_NOT_ONGOING(HttpStatus.CONFLICT, "진행 중인 경매가 아닙니다"),

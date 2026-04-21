@@ -66,3 +66,6 @@ AGENTS.md
 node_modules/
 # Claude Code
 .claude/
+
+.package.json
+.package-lock.json
