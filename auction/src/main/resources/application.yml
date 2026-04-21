@@ -28,6 +28,18 @@ spring:
       hibernate:
         format_sql: true
 
+  # --- Kafka 설정 (로컬 기본값) ---
+  kafka:
+    bootstrap-servers: localhost:29092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      group-id: auction-service
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      auto-offset-reset: earliest
+
 server:
   port: 8090
 
@@ -54,13 +66,6 @@ cloud:
   # --- Elasticsearch 설정 (로컬 기본값) ---
   elasticsearch:
     uris: http://localhost:9200
-
-  # --- Kafka 설정 (로컬 기본값) ---
-  kafka:
-    bootstrap-servers: localhost:29092
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
 
 logging:
   level:
