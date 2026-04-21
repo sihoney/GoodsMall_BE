@@ -1,5 +1,6 @@
 package com.example.notification.infrastructure.messaging.kafka.consumer;
 
+import com.example.notification.infrastructure.messaging.kafka.KafkaTopics;
 import com.example.notification.infrastructure.messaging.kafka.dlq.NotificationConsumerExceptionClassifier;
 import com.example.notification.infrastructure.messaging.kafka.dlq.NotificationConsumerFailureAction;
 import com.example.notification.infrastructure.messaging.kafka.dlq.NotificationConsumerFailureDecision;
@@ -33,8 +34,8 @@ public class NotificationEventConsumer {
 
     @KafkaListener(
             topics = {
-                    "${notification.kafka.topics.member-signed-up:member-signed-up}",
-                    "${notification.kafka.topics.order-payment-result:payment.order-payment-result}"
+                    KafkaTopics.MEMBER_SIGNED_UP,
+                    KafkaTopics.ORDER_PAYMENT_RESULT
             },
             groupId = "${notification.kafka.consumer-groups.member-signed-up:notification-service}",
             containerFactory = "memberSignedUpKafkaListenerContainerFactory"

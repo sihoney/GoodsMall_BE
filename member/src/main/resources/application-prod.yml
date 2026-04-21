@@ -75,9 +75,6 @@ aws:
     get-presign-expiration-seconds: ${AWS_S3_GET_PRESIGN_EXPIRATION_SECONDS:600}
 
 member:
-  kafka:
-    topic:
-      signed-up: ${MEMBER_SIGNED_UP_TOPIC:member-signed-up}
   account-verification:
     expiration: ${ACCOUNT_VERIFICATION_EXPIRATION:5m}
     max-attempts: ${ACCOUNT_VERIFICATION_MAX_ATTEMPTS:5}

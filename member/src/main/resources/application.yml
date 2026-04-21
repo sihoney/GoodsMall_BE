@@ -123,10 +123,6 @@ member:
     resend-cooldown: 30s
     crypto:
       secret-key: ${ACCOUNT_VERIFICATION_SECRET_KEY:local-dev-account-verification-secret-key}
-  kafka:
-    topic:
-      signed-up: member-signed-up
-
 logging:
   level:
     com.example.member: DEBUG
