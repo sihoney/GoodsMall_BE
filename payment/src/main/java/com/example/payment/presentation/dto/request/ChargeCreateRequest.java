@@ -10,8 +10,8 @@ import java.math.BigDecimal;
  */
 public record ChargeCreateRequest(
         @NotNull(message = "amount is required.")
-        @DecimalMin(value = "0.01", message = "amount must be positive.")
-        @Digits(integer = 19, fraction = 2)
+        @DecimalMin(value = "1", message = "amount must be at least 1 KRW.")
+        @Digits(integer = 19, fraction = 0, message = "amount must be integer KRW.")
         BigDecimal amount
 ) {
 }
