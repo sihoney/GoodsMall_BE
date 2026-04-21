@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/internal/ai")
+@RequestMapping("/api/ai")
 @Tag(name = "AI Auction Price Recommendation", description = "경매 가격 추천 AI 내부 API (auction 서비스 전용)")
 public class AuctionPriceRecommendationController {
 

@@ -41,6 +41,9 @@ springdoc:
     path: /v3/api-docs
 
 ai:
+  product-api:
+    base-url: ${AI_PRODUCT_API_BASE_URL:http://product:8081}
+    page-size: ${AI_PRODUCT_API_PAGE_SIZE:200}
   embedding:
     model: ${AI_EMBEDDING_MODEL:text-embedding-3-small}
     openai-api-key: ${OPENAI_API_KEY:}
