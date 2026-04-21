@@ -3,7 +3,9 @@ package com.example.payment.infrastructure.messaging.kafka;
 import com.example.payment.application.dto.AuctionDepositCommand;
 import com.example.payment.application.dto.AuctionDepositResult;
 import com.example.payment.application.usecase.AuctionDepositUseCase;
+import com.example.payment.common.exception.AuctionBidFeeEventValidationException;
 import com.example.payment.common.exception.CustomException;
+import com.example.payment.common.exception.ErrorCode;
 import com.example.payment.domain.service.IdentifierGenerator;
 import com.example.payment.domain.service.TimeProvider;
 import com.example.payment.infrastructure.messaging.kafka.contract.BidFeeChargeFailedMessage;
@@ -13,7 +15,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
@@ -25,7 +26,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class AuctionBidFeeChargeRequestedEventConsumer {
 
-    private static final String UNKNOWN_FAILURE_CODE = "AUCTION_DEPOSIT_PROCESSING_FAILED";
     private static final ZoneId KOREA_ZONE_ID = ZoneId.of("Asia/Seoul");
 
     private final AuctionDepositUseCase auctionDepositUseCase;
@@ -62,15 +62,15 @@ public class AuctionBidFeeChargeRequestedEventConsumer {
             publishSuccess(result);
         } catch (CustomException e) {
             log.warn("경매 입찰 보증금 처리 비즈니스 실패 auctionId={} errorCode={}",
-                    event.auctionId(), e.getErrorCode().name(), e);
+                    event == null ? null : event.auctionId(), e.getErrorCode().name(), e);
+            if (!canPublishFailure(event)) {
+                throw new RuntimeException("경매 입찰 보증금 실패 이벤트를 발행할 경매 ID가 없습니다.", e);
+            }
             publishFailure(event, e.getErrorCode().name(), e.getMessage());
-        } catch (IllegalArgumentException e) {
-            log.warn("경매 입찰 보증금 처리 요청값 검증 실패 auctionId={} message={}",
-                    event.auctionId(), e.getMessage(), e);
-            publishFailure(event, "INVALID_AUCTION_BID_FEE_REQUEST", e.getMessage());
         } catch (RuntimeException e) {
             log.error("경매 입찰 보증금 처리 실패 auctionId={}", event.auctionId(), e);
-            publishFailure(event, UNKNOWN_FAILURE_CODE, "경매 입찰 보증금 처리 중 오류가 발생했습니다.");
+            publishFailure(event, ErrorCode.AUCTION_DEPOSIT_PROCESSING_FAILED.name(),
+                    ErrorCode.AUCTION_DEPOSIT_PROCESSING_FAILED.getMessage());
         }
     }
 
@@ -84,11 +84,17 @@ public class AuctionBidFeeChargeRequestedEventConsumer {
     }
 
     private void validateEvent(BidFeeChargeRequestMessage event) {
-        Objects.requireNonNull(event, "경매 입찰 보증금 처리 요청 이벤트가 비어 있습니다.");
-        Objects.requireNonNull(event.auctionId(), "경매 ID가 필요합니다.");
-        Objects.requireNonNull(event.highestBidderId(), "최고 입찰자 ID가 필요합니다.");
+        if (event == null) {
+            throw new AuctionBidFeeEventValidationException(ErrorCode.AUCTION_BID_FEE_EVENT_REQUIRED);
+        }
+        if (event.auctionId() == null) {
+            throw new AuctionBidFeeEventValidationException(ErrorCode.AUCTION_BID_FEE_AUCTION_ID_REQUIRED);
+        }
+        if (event.highestBidderId() == null) {
+            throw new AuctionBidFeeEventValidationException(ErrorCode.AUCTION_BID_FEE_HIGHEST_BIDDER_REQUIRED);
+        }
         if (event.highestBidderFee() == null || event.highestBidderFee().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("최고 입찰자 보증금은 0보다 커야 합니다.");
+            throw new AuctionBidFeeEventValidationException(ErrorCode.AUCTION_BID_FEE_HIGHEST_FEE_INVALID);
         }
     }
 
@@ -119,6 +125,10 @@ public class AuctionBidFeeChargeRequestedEventConsumer {
                 errorMessage,
                 nowAsInstant()
         ));
+    }
+
+    private boolean canPublishFailure(BidFeeChargeRequestMessage event) {
+        return event != null && event.auctionId() != null;
     }
 
     private Instant nowAsInstant() {
