@@ -24,7 +24,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.support.SendResult;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class MemberEventKafkaProducerTest {
@@ -45,7 +44,6 @@ class MemberEventKafkaProducerTest {
         Instant occurredAt = Instant.parse("2026-04-16T10:00:00Z");
         MemberSignedUpEvent event = new MemberSignedUpEvent(eventId, memberId, "member@test.com", occurredAt);
 
-        ReflectionTestUtils.setField(memberEventKafkaProducer, "memberSignedUpTopic", "member-signed-up");
         when(objectMapper.writeValueAsString(any())).thenReturn("{\"ok\":true}");
 
         ProducerRecord<String, String> record = new ProducerRecord<>("member-signed-up", memberId.toString(), "{\"ok\":true}");
