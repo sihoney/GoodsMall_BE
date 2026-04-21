@@ -93,6 +93,7 @@ public class ConfirmChargeService implements ChargeConfirmUseCase {
             failCharge(charge, e.getMessage());
             throw e;
         }
+        validateConfirmation(command, confirmation);
         // 지갑을 조회
         Wallet wallet = walletRepository.findByWalletId(charge.getWalletId())
                 .orElseThrow(WalletNotFoundException::new);
@@ -141,6 +142,22 @@ public class ConfirmChargeService implements ChargeConfirmUseCase {
         }
         if (command.amount() == null || command.amount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
             throw new InvalidChargeRequestException("amount must be positive.");
+        }
+    }
+
+    private void validateConfirmation(
+            ChargeConfirmCommand command,
+            TossPaymentGateway.TossPaymentConfirmation confirmation
+    ) {
+        if (!Objects.equals(confirmation.paymentKey(), command.paymentKey())) {
+            throw new InvalidChargeRequestException("confirmed paymentKey does not match request.");
+        }
+        if (!Objects.equals(confirmation.orderId(), command.pgOrderId())) {
+            throw new InvalidChargeRequestException("confirmed orderId does not match charge.");
+        }
+        if (confirmation.approvedAmount() == null
+                || confirmation.approvedAmount().compareTo(command.amount()) != 0) {
+            throw new InvalidChargeRequestException("confirmed amount does not match charge.");
         }
     }
 

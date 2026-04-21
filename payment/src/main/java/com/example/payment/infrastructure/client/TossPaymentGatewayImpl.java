@@ -51,7 +51,7 @@ public class TossPaymentGatewayImpl implements TossPaymentGateway {
                     .uri("/v1/payments/confirm")
                     // 넣어 외부 시스켐이 중복처리하지 않도록 멱등성 키를 헤더로 보낸다.
                     .header("Idempotency-Key", orderId)
-                    .body(new TossConfirmRequest(paymentKey, orderId, amount.longValueExact()))
+                    .body(new TossConfirmRequest(paymentKey, orderId, toTossAmount(amount)))
                     .retrieve()// 응답을 가져옴
                     .body(TossConfirmResponse.class); //JSON 응답을 Java 객체로 역직렬화
 
@@ -144,6 +144,17 @@ public class TossPaymentGatewayImpl implements TossPaymentGateway {
         }
         if (isBlank(properties.secretKey())) {
             throw new PaymentGatewayException("toss.payments.secret-key is required.");
+        }
+    }
+
+    private Long toTossAmount(BigDecimal amount) {
+        if (amount == null) {
+            throw new PaymentGatewayException("Toss confirm amount is required.");
+        }
+        try {
+            return amount.longValueExact();
+        } catch (ArithmeticException e) {
+            throw new PaymentGatewayException("Toss confirm amount must be integer KRW. amount=" + amount, e);
         }
     }
 
