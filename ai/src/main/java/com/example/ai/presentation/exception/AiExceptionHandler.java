@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -58,7 +59,11 @@ public class AiExceptionHandler {
                 .body(ApiResponse.fail(ErrorCode.AI_AUCTION_PRICE_RECOMMENDATION_REQUEST_INVALID.name(), message));
     }
 
-    @ExceptionHandler({HttpMessageNotReadableException.class, ConstraintViolationException.class})
+    @ExceptionHandler({
+            HttpMessageNotReadableException.class,
+            ConstraintViolationException.class,
+            HttpMediaTypeNotSupportedException.class
+    })
     public ResponseEntity<ApiResponse<Object>> handleRequestBindingException(
             Exception exception,
             HttpServletRequest request

@@ -1,12 +1,17 @@
 package com.example.ai.presentation.controller;
 
 import com.example.ai.application.usecase.ProductDraftAssistUseCase;
+import com.example.ai.common.exception.ProductDraftAssistInputFieldInvalidException;
 import com.example.ai.presentation.dto.request.ProductDraftAssistRequest;
 import com.example.ai.presentation.dto.response.ApiResponse;
 import com.example.ai.presentation.dto.response.ProductDraftAssistResponse;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
@@ -26,6 +31,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class ProductDraftAssistController {
 
     private final ProductDraftAssistUseCase productDraftAssistUseCase;
+    private final ObjectMapper objectMapper;
 
     @PostMapping(
             value = "/product-draft-from-image",
@@ -101,12 +107,62 @@ public class ProductDraftAssistController {
             )
     })
     public ResponseEntity<ApiResponse<ProductDraftAssistResponse>> createProductDraft(
+            @Parameter(
+                    description = "상품 이미지 파일 목록. Swagger에서 JPG, PNG, WEBP, GIF 중 1개 이상 업로드합니다."
+            )
             @RequestPart("images") List<MultipartFile> images,
-            @RequestPart("request") ProductDraftAssistRequest request
+
+            @Parameter(
+                    description = "상품 초안 추천 요청 JSON",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ProductDraftAssistRequest.class),
+                            examples = @ExampleObject(name = "상품 초안 추천 요청", value = """
+                                    {
+                                      "inputFields": [
+                                        {
+                                          "fieldKey": "TITLE",
+                                          "fieldLabel": "상품명",
+                                          "maxLength": 60,
+                                          "currentValue": "곰돌이 반팔 티셔츠"
+                                        },
+                                        {
+                                          "fieldKey": "DESCRIPTION",
+                                          "fieldLabel": "상품 설명",
+                                          "maxLength": 1000,
+                                          "currentValue": "화이트 색상의 귀여운 캐릭터 반팔 티셔츠입니다."
+                                        },
+                                        {
+                                          "fieldKey": "PRICE",
+                                          "fieldLabel": "판매가",
+                                          "maxLength": 10,
+                                          "currentValue": "25000"
+                                        }
+                                      ],
+                                      "titleDraft": "곰돌이 반팔 티셔츠",
+                                      "descriptionDraft": "화이트 색상의 귀여운 캐릭터 반팔 티셔츠입니다.",
+                                      "priceDraft": "25000",
+                                      "categoryName": "의류",
+                                      "categoryPathText": "패션 > 의류 > 상의",
+                                      "thumbnailIndex": 0
+                                    }
+                                    """)
+                    )
+            )
+            @RequestPart("request") String requestJson
     ) {
+        ProductDraftAssistRequest request = parseRequest(requestJson);
         ProductDraftAssistResponse response = ProductDraftAssistResponse.from(
                 productDraftAssistUseCase.createProductDraft(request.toCommand(images))
         );
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    private ProductDraftAssistRequest parseRequest(String requestJson) {
+        try {
+            return objectMapper.readValue(requestJson, ProductDraftAssistRequest.class);
+        } catch (JsonProcessingException e) {
+            throw new ProductDraftAssistInputFieldInvalidException();
+        }
     }
 }
