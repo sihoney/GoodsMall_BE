@@ -2,6 +2,7 @@ package com.todaylunch.auction.application.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.todaylunch.auction.application.event.OutboxEventPendingTrigger;
 import com.todaylunch.auction.application.port.dto.request.BidFeeChargeRequest;
 import com.todaylunch.auction.application.usecase.BidCreateUseCase;
 import com.todaylunch.auction.domain.entity.Auction;
@@ -20,6 +21,7 @@ import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +35,7 @@ public class BidCreateService implements BidCreateUseCase {
     private final BidRepository bidRepository;
     private final OutboxEventRepository outboxEventRepository;
     private final ObjectMapper objectMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     public BidResponse place(UUID auctionId, UUID bidderId, BidPlaceRequest request) {
@@ -61,16 +64,19 @@ public class BidCreateService implements BidCreateUseCase {
                                                             currentBidFee
         );
 
-        outboxEventRepository.save(OutboxEvent.create(saved.getBidId(),
-                                                      "BID",
-                                                      "BID_FEE_CHARGE_REQUESTED",
-                                                      KafkaTopics.BID_FEE_CHARGE_REQUESTED,
-                                                      auction.getAuctionId().toString(),
-                                                      serialize(event)
+        outboxEventRepository.save(OutboxEvent.create(
+                saved.getBidId(),
+                "BID",
+                "BID_FEE_CHARGE_REQUESTED",
+                KafkaTopics.BID_FEE_CHARGE_REQUESTED,
+                auction.getAuctionId().toString(),
+                serialize(event)
         ));
 
+        eventPublisher.publishEvent(new OutboxEventPendingTrigger());
+
         log.info("Bid pending: bidId={}, auctionId={}, bidderId={}, bidPrice={}",
-                 saved.getBidId(), auctionId, bidderId, saved.getBidPrice());
+                saved.getBidId(), auctionId, bidderId, saved.getBidPrice());
 
         return BidResponse.from(saved);
     }
