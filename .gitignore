@@ -67,5 +67,5 @@ node_modules/
 # Claude Code
 .claude/
 
-.package.json
-.package-lock.json
+package.json
+package-lock.json

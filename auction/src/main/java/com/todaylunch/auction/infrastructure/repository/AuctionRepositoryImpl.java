@@ -4,6 +4,8 @@ import com.todaylunch.auction.common.exception.application.AuctionNotFoundExcept
 import com.todaylunch.auction.domain.entity.Auction;
 import com.todaylunch.auction.domain.enumtype.AuctionStatus;
 import com.todaylunch.auction.domain.repository.AuctionRepository;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -25,6 +27,16 @@ public class AuctionRepositoryImpl implements AuctionRepository {
     public Auction findById(UUID auctionId) {
         return jpaRepository.findById(auctionId)
                 .orElseThrow(AuctionNotFoundException::new);
+    }
+
+    @Override
+    public List<Auction> findStartable(LocalDateTime now) {
+        return jpaRepository.findStartable(now);
+    }
+
+    @Override
+    public List<Auction> findEndable(LocalDateTime now) {
+        return jpaRepository.findEndable(now);
     }
 
     @Override
