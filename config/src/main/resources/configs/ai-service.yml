@@ -50,17 +50,17 @@ ai:
     openai-base-url: ${PROJECT_OPENAI_BASE_URL:https://api.openai.com}
   recommendation:
     rerank:
-      enabled: ${AI_RECOMMENDATION_RERANK_ENABLED:false}
+      enabled: true
       model: ${AI_RECOMMENDATION_RERANK_MODEL:gpt-5.4-nano}
       openai-api-key: ${OPENAI_API_KEY:}
       openai-base-url: ${PROJECT_OPENAI_BASE_URL:https://api.openai.com}
-      temperature: ${AI_RECOMMENDATION_RERANK_TEMPERATURE:0.0}
-      connect-timeout-ms: ${AI_RECOMMENDATION_RERANK_CONNECT_TIMEOUT_MS:1500}
-      read-timeout-ms: ${AI_RECOMMENDATION_RERANK_READ_TIMEOUT_MS:2500}
+      temperature: 0.0
+      connect-timeout-ms: 1500
+      read-timeout-ms: 2500
   cache:
-    recommendation-ttl-seconds: ${AI_RECOMMENDATION_CACHE_TTL_SECONDS:600}
+    recommendation-ttl-seconds: 600
   event:
-    idempotency-ttl-seconds: ${AI_EVENT_IDEMPOTENCY_TTL_SECONDS:259200}
+    idempotency-ttl-seconds: 259200
 
 logging:
   level:

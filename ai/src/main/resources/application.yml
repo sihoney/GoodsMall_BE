@@ -59,44 +59,44 @@ ai:
     openai-base-url: ${PROJECT_OPENAI_BASE_URL:https://api.openai.com}
   recommendation:
     rerank:
-      enabled: ${AI_RECOMMENDATION_RERANK_ENABLED:false}
+      enabled: true
       model: ${AI_RECOMMENDATION_RERANK_MODEL:gpt-5.4-nano}
       openai-api-key: ${OPENAI_API_KEY:}
       openai-base-url: ${PROJECT_OPENAI_BASE_URL:https://api.openai.com}
-      temperature: ${AI_RECOMMENDATION_RERANK_TEMPERATURE:0.0}
-      connect-timeout-ms: ${AI_RECOMMENDATION_RERANK_CONNECT_TIMEOUT_MS:1500}
-      read-timeout-ms: ${AI_RECOMMENDATION_RERANK_READ_TIMEOUT_MS:2500}
+      temperature: 0.0
+      connect-timeout-ms: 1500
+      read-timeout-ms: 2500
   product-draft:
     assist:
-      enabled: ${AI_PRODUCT_DRAFT_ASSIST_ENABLED:false}
+      enabled: true
       model: ${AI_PRODUCT_DRAFT_ASSIST_MODEL:gpt-5.4-nano}
       openai-api-key: ${OPENAI_API_KEY:}
       openai-base-url: ${PROJECT_OPENAI_BASE_URL:https://api.openai.com}
-      temperature: ${AI_PRODUCT_DRAFT_ASSIST_TEMPERATURE:0.2}
-      lock-ttl-seconds: ${AI_PRODUCT_DRAFT_ASSIST_LOCK_TTL_SECONDS:30}
-      result-ttl-seconds: ${AI_PRODUCT_DRAFT_ASSIST_RESULT_TTL_SECONDS:60}
-      wait-timeout-ms: ${AI_PRODUCT_DRAFT_ASSIST_WAIT_TIMEOUT_MS:2000}
-      poll-interval-ms: ${AI_PRODUCT_DRAFT_ASSIST_POLL_INTERVAL_MS:150}
-      connect-timeout-ms: ${AI_PRODUCT_DRAFT_ASSIST_CONNECT_TIMEOUT_MS:3000}
-      read-timeout-ms: ${AI_PRODUCT_DRAFT_ASSIST_READ_TIMEOUT_MS:10000}
+      temperature: 0.2
+      lock-ttl-seconds: 30
+      result-ttl-seconds: 60
+      wait-timeout-ms: 2000
+      poll-interval-ms: 150
+      connect-timeout-ms: 3000
+      read-timeout-ms: 10000
   auction-price-recommendation:
-    enabled: ${AI_AUCTION_PRICE_RECOMMENDATION_ENABLED:true}
+    enabled: true
     model: ${AI_AUCTION_PRICE_RECOMMENDATION_MODEL:gpt-5.4-nano}
     openai-api-key: ${OPENAI_API_KEY:}
     openai-base-url: ${PROJECT_OPENAI_BASE_URL:https://api.openai.com}
-    temperature: ${AI_AUCTION_PRICE_RECOMMENDATION_TEMPERATURE:0.2}
-    connect-timeout-ms: ${AI_AUCTION_PRICE_RECOMMENDATION_CONNECT_TIMEOUT_MS:3000}
-    read-timeout-ms: ${AI_AUCTION_PRICE_RECOMMENDATION_READ_TIMEOUT_MS:8000}
+    temperature: 0.2
+    connect-timeout-ms: 3000
+    read-timeout-ms: 8000
   cache:
-    recommendation-ttl-seconds: ${AI_RECOMMENDATION_CACHE_TTL_SECONDS:600}
+    recommendation-ttl-seconds: 600
   event:
-    idempotency-ttl-seconds: ${AI_EVENT_IDEMPOTENCY_TTL_SECONDS:259200}
+    idempotency-ttl-seconds: 259200
     product:
-      consumer-group: ${AI_PRODUCT_EVENT_CONSUMER_GROUP:ai-product-embedding-group}
+      consumer-group: ai-product-embedding-group
       topics:
-        created: ${AI_PRODUCT_CREATED_TOPIC:product.created}
-        updated: ${AI_PRODUCT_UPDATED_TOPIC:product.updated}
-        deleted: ${AI_PRODUCT_DELETED_TOPIC:product.deleted}
+        created: product.created
+        updated: product.updated
+        deleted: product.deleted
 
 logging:
   level:
