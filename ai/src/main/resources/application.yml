@@ -91,12 +91,6 @@ ai:
     recommendation-ttl-seconds: 600
   event:
     idempotency-ttl-seconds: 259200
-    product:
-      consumer-group: ai-product-embedding-group
-      topics:
-        created: product.created
-        updated: product.updated
-        deleted: product.deleted
 
 logging:
   level:
