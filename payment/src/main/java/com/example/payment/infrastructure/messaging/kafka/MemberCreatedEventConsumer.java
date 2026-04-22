@@ -3,23 +3,26 @@ package com.example.payment.infrastructure.messaging.kafka;
 import com.example.payment.application.dto.CreateWalletCommand;
 import com.example.payment.application.usecase.CreateWalletUseCase;
 import com.example.payment.common.exception.InvalidChargeRequestException;
-import com.example.payment.infrastructure.messaging.kafka.contract.MemberCreatedMessage;
+import com.example.payment.infrastructure.messaging.kafka.contract.MemberSignedUpPayload;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.todaylunch.common.event.contract.EventEnvelope;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-/**
- * 회원 생성 이벤트를 payment wallet 생성 유스케이스로 연결하는 Kafka consumer다.
- * consumer는 계약 검증과 command 변환만 수행하고, wallet 생성 멱등성은 usecase에 위임한다.
- */
 public class MemberCreatedEventConsumer {
 
+    private static final String MEMBER_SIGNED_UP_EVENT_TYPE = "MEMBER_SIGNED_UP";
     private static final ZoneId KOREA_ZONE_ID = ZoneId.of("Asia/Seoul");
+    private static final TypeReference<EventEnvelope<MemberSignedUpPayload>> MEMBER_SIGNED_UP_ENVELOPE_TYPE =
+            new TypeReference<>() {
+            };
 
     private final CreateWalletUseCase createWalletUseCase;
     private final ObjectMapper objectMapper;
@@ -34,37 +37,55 @@ public class MemberCreatedEventConsumer {
             groupId = KafkaConsumerGroups.PAYMENT_SERVICE,
             containerFactory = "memberCreatedKafkaListenerContainerFactory"
     )
-    /**
-     * 회원 생성 이벤트를 wallet 생성 요청으로 변환한다.
-     */
     public void listen(String eventJson) {
-        log.info("event 받는거 : {}",eventJson);
         try {
-            MemberCreatedMessage event = objectMapper.readValue(eventJson, MemberCreatedMessage.class);
-            log.info("event 받는거 : {}",event);
+            EventEnvelope<MemberSignedUpPayload> event = objectMapper.readValue(
+                    eventJson,
+                    MEMBER_SIGNED_UP_ENVELOPE_TYPE
+            );
             validateEvent(event);
+
+            MemberSignedUpPayload payload = event.payload();
             createWalletUseCase.createWallet(new CreateWalletCommand(
-                    event.memberId(),
+                    payload.memberId(),
                     toKoreaLocalDateTime(event.occurredAt())
             ));
         } catch (Exception e) {
-            log.error("Failed to process MemberCreatedMessage", e);
-            throw new RuntimeException("Failed to deserialize MemberCreatedMessage", e);
+            log.error("Failed to process member signed up event envelope.", e);
+            throw new RuntimeException("Failed to process member signed up event envelope.", e);
         }
     }
 
-    /**
-     * member created 계약의 필수 필드만 검증한다.
-     */
-    private void validateEvent(MemberCreatedMessage event) {
+    private void validateEvent(EventEnvelope<MemberSignedUpPayload> event) {
         if (event == null) {
-            throw new InvalidChargeRequestException("memberCreated event is required.");
+            throw new InvalidChargeRequestException("memberSignedUp event is required.");
         }
-        if (event.memberId() == null) {
-            throw new InvalidChargeRequestException("memberId is required.");
+        if (event.eventId() == null) {
+            throw new InvalidChargeRequestException("eventId is required.");
+        }
+        if (!MEMBER_SIGNED_UP_EVENT_TYPE.equals(event.eventType())) {
+            throw new InvalidChargeRequestException("Unsupported eventType: " + event.eventType());
+        }
+        if (event.source() == null || event.source().isBlank()) {
+            throw new InvalidChargeRequestException("source is required.");
+        }
+        if (event.recipientId() == null) {
+            throw new InvalidChargeRequestException("recipientId is required.");
+        }
+        if (event.payload() == null) {
+            throw new InvalidChargeRequestException("payload is required.");
+        }
+        if (event.payload().memberId() == null) {
+            throw new InvalidChargeRequestException("payload.memberId is required.");
+        }
+        if (event.payload().email() == null || event.payload().email().isBlank()) {
+            throw new InvalidChargeRequestException("payload.email is required.");
         }
         if (event.occurredAt() == null) {
             throw new InvalidChargeRequestException("occurredAt is required.");
+        }
+        if (!Objects.equals(event.recipientId(), event.payload().memberId())) {
+            throw new InvalidChargeRequestException("recipientId and payload.memberId must match.");
         }
     }
 
