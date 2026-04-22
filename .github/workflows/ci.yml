@@ -15,9 +15,10 @@ on:
       - "settlement/**"
       - "cart/**"
       - "gateway/**"
-      - "discovery/**"
-      - "config/**"
       - "db-migration/**"
+      - "common-security/**"
+      - "ai/**"
+      - "auction/**"
 
 # 같은 PR에서 새 커밋이 올라오면 이전 실행 취소
 concurrency:
@@ -95,12 +96,16 @@ jobs:
             MODULES+=('{"module_name":"gateway"}')
           fi
 
-          if grep -q '^discovery/' <<< "$CHANGED_FILES"; then
-            MODULES+=('{"module_name":"discovery"}')
+          if grep -q '^common-security/' <<< "$CHANGED_FILES"; then
+            MODULES+=('{"module_name":"common-security"}')
           fi
 
-          if grep -q '^config/' <<< "$CHANGED_FILES"; then
-            MODULES+=('{"module_name":"config"}')
+          if grep -q '^ai/' <<< "$CHANGED_FILES"; then
+            MODULES+=('{"module_name":"ai"}')
+          fi
+
+          if grep -q '^auction/' <<< "$CHANGED_FILES"; then
+            MODULES+=('{"module_name":"auction"}')
           fi
 
           # 변경된 모듈이 없는 경우 → build job skip

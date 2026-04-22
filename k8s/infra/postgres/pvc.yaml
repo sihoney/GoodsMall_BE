@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: goods-mall
+spec:
+  accessModes:
+    - ReadWriteOnce   # 하나의 노드에서만 읽기/쓰기
+  resources:
+    requests:
+      storage: 5Gi

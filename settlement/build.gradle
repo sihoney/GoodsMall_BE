@@ -39,7 +39,6 @@ dependencies {
     // Swagger
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8'
     // Eureka Client
-    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
     // Config Server
     implementation 'org.springframework.cloud:spring-cloud-starter-config'
     // Config Server retry
