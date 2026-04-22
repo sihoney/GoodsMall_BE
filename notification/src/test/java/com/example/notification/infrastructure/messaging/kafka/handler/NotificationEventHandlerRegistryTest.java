@@ -3,7 +3,7 @@ package com.example.notification.infrastructure.messaging.kafka.handler;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import com.todaylunch.common.event.contract.EventEnvelope;
 import java.util.List;
 import org.junit.jupiter.api.Test;
