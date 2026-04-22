@@ -30,21 +30,18 @@ spec:
             - secretRef:
                 name: payment-secret
           startupProbe:
-            httpGet:
-              path: /actuator/health
+            tcpSocket:
               port: 8082
             failureThreshold: 20
             periodSeconds: 10
           livenessProbe:
-            httpGet:
-              path: /actuator/health
+            tcpSocket:
               port: 8082
             initialDelaySeconds: 60
             periodSeconds: 10
             failureThreshold: 3
           readinessProbe:
-            httpGet:
-              path: /actuator/health
+            tcpSocket:
               port: 8082
             initialDelaySeconds: 30
             periodSeconds: 10
