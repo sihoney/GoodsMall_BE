@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka
+  namespace: goods-mall
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka
+  template:
+    metadata:
+      labels:
+        app: kafka
+    spec:
+      containers:
+        - name: kafka
+          image: confluentinc/cp-kafka:7.5.0
+          ports:
+            - containerPort: 9092
+          envFrom:
+            - configMapRef:
+                name: kafka-config
+          startupProbe:
+            exec:
+              command: ["sh", "-c", "kafka-broker-api-versions --bootstrap-server localhost:9092"]
+            failureThreshold: 15
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "kafka-broker-api-versions --bootstrap-server localhost:9092"]
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "kafka-broker-api-versions --bootstrap-server localhost:9092"]
+            initialDelaySeconds: 20
+            periodSeconds: 10

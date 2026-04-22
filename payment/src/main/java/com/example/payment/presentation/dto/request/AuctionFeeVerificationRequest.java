@@ -7,6 +7,9 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 public record AuctionFeeVerificationRequest(
+        @NotNull(message = "bidId는 필수입니다.")
+        UUID bidId,
+
         @NotNull(message = "auctionId는 필수입니다.")
         UUID auctionId,
 

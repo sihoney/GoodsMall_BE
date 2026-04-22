@@ -8,6 +8,7 @@ import java.util.UUID;
  */
 public record BidFeeChargeSucceededMessage(
         UUID eventId,
+        UUID bidId,
         UUID auctionId,
         Instant occurredAt
 ) {

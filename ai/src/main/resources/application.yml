@@ -1,17 +1,6 @@
 spring:
   application:
     name: ai-service
-  config:
-    import:
-      - "optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
-  cloud:
-    config:
-      fail-fast: false
-      retry:
-        initial-interval: 1000
-        max-attempts: 20
-        max-interval: 5000
-        multiplier: 1.5
   datasource:
     driver-class-name: org.postgresql.Driver
     url: "${DB_URL:jdbc:postgresql://localhost:5432/goods_mall}?currentSchema=ai"
@@ -35,14 +24,6 @@ spring:
 server:
   port: 8088
 
-eureka:
-  client:
-    service-url:
-      defaultZone: ${EUREKA_DEFAULT_ZONE:http://localhost:8761/eureka}
-  instance:
-    prefer-ip-address: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:true}
-    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
-
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
@@ -54,7 +35,7 @@ ai:
     base-url: ${AI_PRODUCT_API_BASE_URL:http://localhost:8081}
     page-size: ${AI_PRODUCT_API_PAGE_SIZE:200}
   embedding:
-    model: text-embedding-3-small
+    model: ${AI_EMBEDDING_MODEL:text-embedding-3-small}
     openai-api-key: ${OPENAI_API_KEY:}
     openai-base-url: ${PROJECT_OPENAI_BASE_URL:https://api.openai.com}
   recommendation:

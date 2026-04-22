@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: payment-config
+  namespace: goods-mall
+data:
+  SERVICES_ORDER_URL: "http://order:8084"
+  TOSS_PAYMENTS_BASE_URL: "https://api.tosspayments.com"
+  TOSS_PAYMENTS_CLIENT_KEY: "test_ck_DLJOpm5QrldyeOMlna9QrPNdxbWn"
+  TOSS_PAYMENTS_SUCCESS_URL: "https://goodsmall.vercel.app/payments/toss/success"
+  TOSS_PAYMENTS_FAIL_URL: "https://goodsmall.vercel.app/payments/toss/fail"
+  TOSS_PAYMENTS_WIDGET_ENABLED: "true"

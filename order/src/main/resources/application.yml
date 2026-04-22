@@ -1,22 +1,7 @@
-# ==============================
-# Order Service - 로컬 개발 환경 설정
-# Config Server 미연결 시 사용되는 기본값
-# ==============================
-
 spring:
   application:
     name: order-service
-  config:
-    import:
-      - "configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
   cloud:
-    config:
-      fail-fast: true
-      retry:
-        initial-interval: 1000
-        max-attempts: 20
-        max-interval: 5000
-        multiplier: 1.5
     openfeign:
       client:
         config:
@@ -35,9 +20,19 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
 
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: order_service
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          time_zone: Asia/Seoul
+
   # --- Kafka 설정 (로컬 기본값) ---
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     consumer:
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
@@ -52,22 +47,17 @@ spring:
 server:
   port: 8084
 
-# --- Eureka 설정 (로컬 기본값) ---
-eureka:
-  client:
-    service-url:
-      defaultZone: ${EUREKA_DEFAULT_ZONE:http://localhost:8761/eureka}
-  instance:
-    prefer-ip-address: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:true}
-    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
-
-# --- Sweet Tracker API 설정 ---
 sweet-tracker:
   api:
     key: ${SWEET_TRACKER_API_KEY:test-api-key}
     base-url: ${SWEET_TRACKER_API_BASE_URL:https://info.sweettracker.co.kr}
 
-# --- 로깅 설정 (로컬: DEBUG) ---
+services:
+  payment:
+    url: ${SERVICES_PAYMENT_URL:http://localhost:8082}
+  product:
+    url: ${SERVICES_PRODUCT_URL:http://localhost:8081}
+
 logging:
   level:
     com.example.order: DEBUG
