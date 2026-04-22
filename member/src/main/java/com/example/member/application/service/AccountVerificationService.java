@@ -1,5 +1,6 @@
 package com.example.member.application.service;
 
+import com.example.member.application.event.MemberEventPublisher;
 import com.example.member.application.usecase.AccountVerificationUsecase;
 import com.example.member.common.exception.AccountVerificationAttemptLimitExceededException;
 import com.example.member.common.exception.AccountVerificationNotAllowedException;
@@ -48,6 +49,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
     private final AccountEncryptionService accountEncryptionService;
     private final SellerPromotionService sellerPromotionService;
     private final AccountVerificationProperties properties;
+    private final MemberEventPublisher memberEventPublisher;
 
     @Override
     @Transactional
@@ -123,7 +125,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
             LocalDateTime now = LocalDateTime.now();
 
             if (session.isExpired(now)) {
-                session.markExpired("Account verification session has expired.");
+                expireSession(session, "SESSION_EXPIRED");
                 sessionStore.saveSession(session, Duration.ZERO);
                 throw new ExpiredAccountVerificationException();
             }
@@ -141,8 +143,13 @@ public class AccountVerificationService implements AccountVerificationUsecase {
             if (!session.getCodeHash().equals(hashCode(normalizedCode))) {
                 session.markFailed("Account verification code mismatch.");
                 if (session.getAttemptCount() >= properties.maxAttempts()) {
-                    session.markExpired("Account verification attempt limit exceeded.");
+                    session.markExpired("ATTEMPT_LIMIT_EXCEEDED");
                     sessionStore.saveSession(session, Duration.ZERO);
+                    memberEventPublisher.publishAccountVerificationFailed(
+                            memberId,
+                            session.getSessionId(),
+                            "ATTEMPT_LIMIT_EXCEEDED"
+                    );
                     throw new AccountVerificationAttemptLimitExceededException();
                 }
                 sessionStore.saveSession(session, properties.expiration());
@@ -175,7 +182,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
 
         AccountVerificationSession current = session.get();
         if (current.isExpired(LocalDateTime.now()) && current.getStatus() == AccountVerificationStatus.PENDING) {
-            current.markExpired("Account verification session has expired.");
+            expireSession(current, "SESSION_EXPIRED");
             sessionStore.saveSession(current, Duration.ZERO);
         }
 
@@ -191,7 +198,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
             LocalDateTime now = LocalDateTime.now();
 
             if (session.isExpired(now)) {
-                session.markExpired("Account verification session has expired.");
+                expireSession(session, "SESSION_EXPIRED");
                 sessionStore.saveSession(session, Duration.ZERO);
                 throw new ExpiredAccountVerificationException();
             }
@@ -382,5 +389,18 @@ public class AccountVerificationService implements AccountVerificationUsecase {
             return normalizedAccountNumber.substring(0, 2) + "****" + normalizedAccountNumber.substring(length - 2);
         }
         return normalizedAccountNumber.substring(0, 3) + "-****-" + normalizedAccountNumber.substring(length - 4);
+    }
+
+    private void expireSession(AccountVerificationSession session, String reason) {
+        if (session.getStatus() == AccountVerificationStatus.EXPIRED) {
+            return;
+        }
+
+        session.markExpired(reason);
+        memberEventPublisher.publishAccountVerificationExpired(
+                session.getMemberId(),
+                session.getSessionId(),
+                reason
+        );
     }
 }

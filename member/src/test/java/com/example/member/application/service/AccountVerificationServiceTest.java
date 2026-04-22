@@ -4,11 +4,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.example.member.application.event.MemberEventPublisher;
+import com.example.member.common.exception.AccountVerificationAttemptLimitExceededException;
+import com.example.member.common.exception.ExpiredAccountVerificationException;
 import com.example.member.common.exception.InvalidAccountVerificationCodeException;
 import com.example.member.config.AccountVerificationProperties;
 import com.example.member.infrastructure.crypto.AccountEncryptionService;
@@ -50,6 +54,9 @@ class AccountVerificationServiceTest {
     @Mock
     private SellerPromotionService sellerPromotionService;
 
+    @Mock
+    private MemberEventPublisher memberEventPublisher;
+
     private final AccountVerificationProperties properties = new AccountVerificationProperties(
             Duration.ofMinutes(5),
             5,
@@ -65,7 +72,8 @@ class AccountVerificationServiceTest {
                 sellerDraftStore,
                 accountEncryptionService,
                 sellerPromotionService,
-                properties
+                properties,
+                memberEventPublisher
         );
         UUID memberId = UUID.randomUUID();
         Member member = createMember(memberId);
@@ -109,7 +117,8 @@ class AccountVerificationServiceTest {
                 sellerDraftStore,
                 accountEncryptionService,
                 sellerPromotionService,
-                properties
+                properties,
+                memberEventPublisher
         );
         UUID memberId = UUID.randomUUID();
         Member member = createMember(memberId);
@@ -134,6 +143,8 @@ class AccountVerificationServiceTest {
 
         verify(sessionStore).saveSession(any(AccountVerificationSession.class), any(Duration.class));
         verify(sessionStore).releaseLock(sessionId);
+        verify(memberEventPublisher, never()).publishAccountVerificationExpired(any(UUID.class), anyString(), anyString());
+        verify(memberEventPublisher, never()).publishAccountVerificationFailed(any(UUID.class), anyString(), anyString());
     }
 
     @Test
@@ -144,7 +155,8 @@ class AccountVerificationServiceTest {
                 sellerDraftStore,
                 accountEncryptionService,
                 sellerPromotionService,
-                properties
+                properties,
+                memberEventPublisher
         );
         UUID memberId = UUID.randomUUID();
         Member member = createMember(memberId);
@@ -174,6 +186,87 @@ class AccountVerificationServiceTest {
         assertNotNull(response.verifiedAt());
         verify(sessionStore).saveSession(any(AccountVerificationSession.class), any(Duration.class));
         verify(sellerPromotionService).promoteAfterAccountVerified(memberId, sessionId);
+        verify(sessionStore).releaseLock(sessionId);
+        verify(memberEventPublisher, never()).publishAccountVerificationExpired(any(UUID.class), anyString(), anyString());
+        verify(memberEventPublisher, never()).publishAccountVerificationFailed(any(UUID.class), anyString(), anyString());
+    }
+
+    @Test
+    void confirmAccountVerification_expired_publishesExpiredEvent() {
+        AccountVerificationService service = new AccountVerificationService(
+                memberRepository,
+                sessionStore,
+                sellerDraftStore,
+                accountEncryptionService,
+                sellerPromotionService,
+                properties,
+                memberEventPublisher
+        );
+        UUID memberId = UUID.randomUUID();
+        String sessionId = "av_expired_session";
+        AccountVerificationSession session = AccountVerificationSession.create(
+                sessionId,
+                memberId,
+                "ad_test_draft",
+                hash("482931"),
+                LocalDateTime.now().minusMinutes(10),
+                LocalDateTime.now().minusMinutes(1)
+        );
+
+        when(sessionStore.acquireLock(sessionId, Duration.ofSeconds(5))).thenReturn(true);
+        when(sessionStore.findSession(sessionId)).thenReturn(Optional.of(session));
+
+        assertThrows(
+                ExpiredAccountVerificationException.class,
+                () -> service.confirmAccountVerification(memberId, sessionId, new AccountVerificationConfirmRequest("482931"))
+        );
+
+        verify(sessionStore).saveSession(any(AccountVerificationSession.class), eq(Duration.ZERO));
+        verify(memberEventPublisher).publishAccountVerificationExpired(memberId, sessionId, "SESSION_EXPIRED");
+        verify(memberEventPublisher, never()).publishAccountVerificationFailed(any(UUID.class), anyString(), anyString());
+        verify(sessionStore).releaseLock(sessionId);
+    }
+
+    @Test
+    void confirmAccountVerification_attemptLimitExceeded_publishesFailedEvent() {
+        AccountVerificationProperties strictProperties = new AccountVerificationProperties(
+                Duration.ofMinutes(5),
+                1,
+                3,
+                Duration.ofSeconds(30)
+        );
+        AccountVerificationService service = new AccountVerificationService(
+                memberRepository,
+                sessionStore,
+                sellerDraftStore,
+                accountEncryptionService,
+                sellerPromotionService,
+                strictProperties,
+                memberEventPublisher
+        );
+        UUID memberId = UUID.randomUUID();
+        String sessionId = "av_failed_session";
+        String correctCode = "482931";
+        AccountVerificationSession session = AccountVerificationSession.create(
+                sessionId,
+                memberId,
+                "ad_test_draft",
+                hash(correctCode),
+                LocalDateTime.now().minusMinutes(1),
+                LocalDateTime.now().plusMinutes(4)
+        );
+
+        when(sessionStore.acquireLock(sessionId, Duration.ofSeconds(5))).thenReturn(true);
+        when(sessionStore.findSession(sessionId)).thenReturn(Optional.of(session));
+
+        assertThrows(
+                AccountVerificationAttemptLimitExceededException.class,
+                () -> service.confirmAccountVerification(memberId, sessionId, new AccountVerificationConfirmRequest("111111"))
+        );
+
+        verify(sessionStore).saveSession(any(AccountVerificationSession.class), eq(Duration.ZERO));
+        verify(memberEventPublisher).publishAccountVerificationFailed(memberId, sessionId, "ATTEMPT_LIMIT_EXCEEDED");
+        verify(memberEventPublisher, never()).publishAccountVerificationExpired(any(UUID.class), anyString(), anyString());
         verify(sessionStore).releaseLock(sessionId);
     }
 
