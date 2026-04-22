@@ -4,7 +4,6 @@ import com.example.payment.domain.service.OrderPaymentResultEventPublisher;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPaymentResultMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
@@ -18,16 +17,13 @@ public class KafkaOrderPaymentResultEventPublisher implements OrderPaymentResult
 
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
-    private final String topic;
 
     public KafkaOrderPaymentResultEventPublisher(
             KafkaTemplate<String, String> kafkaTemplate,
-            ObjectMapper objectMapper,
-            @Value("${payment.kafka.topics.order-payment-result:payment.order-payment-result}") String topic
+            ObjectMapper objectMapper
     ) {
         this.kafkaTemplate = kafkaTemplate;
         this.objectMapper = objectMapper;
-        this.topic = topic;
     }
 
     @Override
@@ -37,7 +33,7 @@ public class KafkaOrderPaymentResultEventPublisher implements OrderPaymentResult
     public void publish(OrderPaymentResultMessage event) {
         try {
             String message = objectMapper.writeValueAsString(event);
-            kafkaTemplate.send(topic, String.valueOf(event.orderId()), message);
+            kafkaTemplate.send(KafkaTopics.ORDER_PAYMENT_RESULT, String.valueOf(event.orderId()), message);
         } catch (Exception e) {
             log.error("Failed to serialize OrderPaymentResultMessage. orderId={}", event.orderId(), e);
             throw new RuntimeException("Failed to serialize OrderPaymentResultMessage", e);

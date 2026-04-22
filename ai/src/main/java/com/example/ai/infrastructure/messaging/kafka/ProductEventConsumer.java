@@ -37,8 +37,8 @@ public class ProductEventConsumer {
     private long idempotencyTtlSeconds;
 
     @KafkaListener(
-            topics = "${ai.event.product.topics.created:product.created}",
-            groupId = "${ai.event.product.consumer-group:ai-product-embedding-group}"
+            topics = KafkaTopics.PRODUCT_CREATED,
+            groupId = KafkaConsumerGroups.AI_PRODUCT_EMBEDDING_GROUP
     )
     public void consumeProductCreated(String payload) {
         ProductCreatedMessage message = parse(payload, ProductCreatedMessage.class);
@@ -56,8 +56,8 @@ public class ProductEventConsumer {
     }
 
     @KafkaListener(
-            topics = "${ai.event.product.topics.updated:product.updated}",
-            groupId = "${ai.event.product.consumer-group:ai-product-embedding-group}"
+            topics = KafkaTopics.PRODUCT_UPDATED,
+            groupId = KafkaConsumerGroups.AI_PRODUCT_EMBEDDING_GROUP
     )
     public void consumeProductUpdated(String payload) {
         ProductUpdatedMessage message = parse(payload, ProductUpdatedMessage.class);
@@ -75,8 +75,8 @@ public class ProductEventConsumer {
     }
 
     @KafkaListener(
-            topics = "${ai.event.product.topics.deleted:product.deleted}",
-            groupId = "${ai.event.product.consumer-group:ai-product-embedding-group}"
+            topics = KafkaTopics.PRODUCT_DELETED,
+            groupId = KafkaConsumerGroups.AI_PRODUCT_EMBEDDING_GROUP
     )
     public void consumeProductDeleted(String payload) {
         ProductDeletedMessage message = parse(payload, ProductDeletedMessage.class);

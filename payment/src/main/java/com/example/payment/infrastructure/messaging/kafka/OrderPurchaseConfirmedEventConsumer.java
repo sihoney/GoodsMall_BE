@@ -26,8 +26,8 @@ public class OrderPurchaseConfirmedEventConsumer {
     }
 
     @KafkaListener(
-            topics = "${payment.kafka.topics.order-purchase-confirmed:order.purchase-confirmed}",
-            groupId = "${payment.kafka.consumer-groups.order-purchase-confirmed:payment-service}",
+            topics = KafkaTopics.ORDER_PURCHASE_CONFIRMED,
+            groupId = KafkaConsumerGroups.PAYMENT_SERVICE,
             containerFactory = "orderPurchaseConfirmedKafkaListenerContainerFactory"
     )
     /**

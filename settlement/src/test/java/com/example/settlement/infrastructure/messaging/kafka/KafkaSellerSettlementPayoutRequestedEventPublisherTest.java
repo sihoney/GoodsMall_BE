@@ -30,9 +30,8 @@ class KafkaSellerSettlementPayoutRequestedEventPublisherTest {
     @Test
     @DisplayName("정산 지급 요청 이벤트를 settlementId 키로 Kafka에 발행한다")
     void publish_sendsEventToKafka() throws Exception {
-        String topic = "settlement.seller-payout-requested";
         KafkaSellerSettlementPayoutRequestedEventPublisher publisher =
-                new KafkaSellerSettlementPayoutRequestedEventPublisher(kafkaTemplate, objectMapper, topic);
+                new KafkaSellerSettlementPayoutRequestedEventPublisher(kafkaTemplate, objectMapper);
 
         UUID settlementId = UUID.randomUUID();
         SellerSettlementPayoutRequestedMessage message = new SellerSettlementPayoutRequestedMessage(
@@ -49,7 +48,7 @@ class KafkaSellerSettlementPayoutRequestedEventPublisherTest {
 
         publisher.publish(message);
 
-        verify(kafkaTemplate).send(topic, String.valueOf(settlementId), "serialized-message");
+        verify(kafkaTemplate).send(KafkaTopics.SETTLEMENT_PAYOUT_REQUESTED, String.valueOf(settlementId), "serialized-message");
     }
 }
 
