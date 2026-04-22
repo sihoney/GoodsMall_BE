@@ -27,13 +27,16 @@ spec:
               command: ["sh", "-c", "kafka-broker-api-versions --bootstrap-server localhost:9092"]
             failureThreshold: 15
             periodSeconds: 10
+            timeoutSeconds: 10
           livenessProbe:
             exec:
               command: ["sh", "-c", "kafka-broker-api-versions --bootstrap-server localhost:9092"]
             initialDelaySeconds: 30
             periodSeconds: 15
+            timeoutSeconds: 10
           readinessProbe:
             exec:
               command: ["sh", "-c", "kafka-broker-api-versions --bootstrap-server localhost:9092"]
             initialDelaySeconds: 20
             periodSeconds: 10
+            timeoutSeconds: 10
