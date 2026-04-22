@@ -102,6 +102,99 @@ public class NotificationService implements NotificationUsecase {
 
     @Override
     @Transactional
+    public void createSellerPromotedNotification(
+            UUID eventId,
+            String traceId,
+            UUID memberId,
+            LocalDateTime occurredAt
+    ) {
+        validateCommonArguments(eventId, memberId, occurredAt);
+        saveNotification(
+                eventId,
+                traceId,
+                memberId,
+                NotificationType.SELLER_PROMOTED,
+                "판매자 자격이 완료되었어요",
+                "이제 판매자 기능을 이용할 수 있어요.",
+                null,
+                null,
+                occurredAt
+        );
+    }
+
+    @Override
+    @Transactional
+    public void createAccountVerificationExpiredNotification(
+            UUID eventId,
+            String traceId,
+            UUID memberId,
+            LocalDateTime occurredAt
+    ) {
+        validateCommonArguments(eventId, memberId, occurredAt);
+        saveNotification(
+                eventId,
+                traceId,
+                memberId,
+                NotificationType.ACCOUNT_VERIFICATION_EXPIRED,
+                "계좌 인증이 만료되었어요",
+                "다시 계좌 인증을 진행해 주세요.",
+                null,
+                null,
+                occurredAt
+        );
+    }
+
+    @Override
+    @Transactional
+    public void createAccountVerificationFailedNotification(
+            UUID eventId,
+            String traceId,
+            UUID memberId,
+            LocalDateTime occurredAt
+    ) {
+        validateCommonArguments(eventId, memberId, occurredAt);
+        saveNotification(
+                eventId,
+                traceId,
+                memberId,
+                NotificationType.ACCOUNT_VERIFICATION_FAILED,
+                "계좌 인증에 실패했어요",
+                "인증 시도 횟수를 초과했어요. 다시 시도해 주세요.",
+                null,
+                null,
+                occurredAt
+        );
+    }
+
+    @Override
+    @Transactional
+    public void createMemberOauthLinkedNotification(
+            UUID eventId,
+            String traceId,
+            UUID memberId,
+            String provider,
+            LocalDateTime occurredAt
+    ) {
+        validateCommonArguments(eventId, memberId, occurredAt);
+        if (provider == null || provider.isBlank()) {
+            throw new IllegalArgumentException("provider is required.");
+        }
+
+        saveNotification(
+                eventId,
+                traceId,
+                memberId,
+                NotificationType.MEMBER_OAUTH_LINKED,
+                "소셜 계정 연동이 완료되었어요",
+                provider + " 계정 연동이 완료되었어요.",
+                null,
+                null,
+                occurredAt
+        );
+    }
+
+    @Override
+    @Transactional
     public void createOrderCreatedNotifications(
             UUID eventId,
             String traceId,

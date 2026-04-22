@@ -24,6 +24,35 @@ public interface NotificationUsecase {
             LocalDateTime occurredAt
     );
 
+    void createSellerPromotedNotification(
+            UUID eventId,
+            String traceId,
+            UUID memberId,
+            LocalDateTime occurredAt
+    );
+
+    void createAccountVerificationExpiredNotification(
+            UUID eventId,
+            String traceId,
+            UUID memberId,
+            LocalDateTime occurredAt
+    );
+
+    void createAccountVerificationFailedNotification(
+            UUID eventId,
+            String traceId,
+            UUID memberId,
+            LocalDateTime occurredAt
+    );
+
+    void createMemberOauthLinkedNotification(
+            UUID eventId,
+            String traceId,
+            UUID memberId,
+            String provider,
+            LocalDateTime occurredAt
+    );
+
     void createOrderCreatedNotifications(
             UUID eventId,
             String traceId,

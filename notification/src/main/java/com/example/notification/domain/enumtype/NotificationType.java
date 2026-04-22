@@ -6,6 +6,10 @@ import java.util.Set;
 
 public enum NotificationType {
     BUYER_SIGNUP_COMPLETED(NotificationChannel.INBOX, NotificationChannel.PUSH),
+    SELLER_PROMOTED(NotificationChannel.INBOX, NotificationChannel.PUSH),
+    ACCOUNT_VERIFICATION_EXPIRED(NotificationChannel.INBOX, NotificationChannel.PUSH),
+    ACCOUNT_VERIFICATION_FAILED(NotificationChannel.INBOX, NotificationChannel.PUSH),
+    MEMBER_OAUTH_LINKED(NotificationChannel.INBOX),
     BUYER_ORDER_CREATED(NotificationChannel.INBOX),
     BUYER_ORDER_CANCELED(NotificationChannel.INBOX, NotificationChannel.PUSH),
     BUYER_AUTO_PURCHASE_CONFIRMED(NotificationChannel.INBOX, NotificationChannel.PUSH),
