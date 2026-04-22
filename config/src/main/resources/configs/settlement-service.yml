@@ -48,7 +48,7 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
 
-# --- Settlement Kafka Topic/Consumer Group 설정 ---
+# --- Settlement Batch 설정 ---
 settlement:
   batch:
     monthly-aggregation:
