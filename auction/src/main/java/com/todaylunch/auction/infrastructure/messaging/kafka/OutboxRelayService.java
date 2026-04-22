@@ -40,13 +40,16 @@ public class OutboxRelayService {
         List<OutboxEvent> pending = outboxEventRepository.findAllByStatus(OutboxEventStatus.PENDING);
 
         for (OutboxEvent event : pending) {
+            int updated = outboxEventRepository.changeToPublishedIfPending(event.getId());
+            if (updated == 0) {
+                continue;
+            }
             try {
                 kafkaTemplate.send(event.getTopic(), event.getPartitionKey(), event.getPayload()).get();
-                event.changePublished();
                 log.debug("Outbox Kafka 발행 성공: id={}, topic={}", event.getId(), event.getTopic());
             } catch (Exception e) {
                 log.error("Outbox Kafka 발행 실패: id={}, topic={}", event.getId(), event.getTopic(), e);
-                event.changeFailed();
+                event.revertToPending();
             }
         }
     }

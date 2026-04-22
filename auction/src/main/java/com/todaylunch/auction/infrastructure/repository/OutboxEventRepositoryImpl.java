@@ -22,4 +22,9 @@ public class OutboxEventRepositoryImpl implements OutboxEventRepository {
     public List<OutboxEvent> findAllByStatus(OutboxEventStatus status) {
         return jpaRepository.findAllByStatusOrderByCreatedAtAsc(status);
     }
+
+    @Override
+    public int changeToPublishedIfPending(UUID id) {
+        return jpaRepository.changeToPublishedIfPending(id);
+    }
 }
