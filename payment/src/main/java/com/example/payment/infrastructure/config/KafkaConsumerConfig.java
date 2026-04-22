@@ -2,6 +2,8 @@ package com.example.payment.infrastructure.config;
 
 import com.example.payment.common.exception.WalletNotFoundException;
 import com.example.payment.infrastructure.messaging.kafka.KafkaConsumerGroups;
+import com.example.payment.infrastructure.messaging.kafka.KafkaRetryPolicy;
+import com.example.payment.infrastructure.messaging.kafka.KafkaTopics;
 import com.example.payment.infrastructure.messaging.kafka.contract.MemberCreatedMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPurchaseConfirmedMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.SellerSettlementPayoutRequestedMessage;
@@ -41,11 +43,9 @@ public class KafkaConsumerConfig {
     @Bean
     public ConsumerFactory<String, MemberCreatedMessage> memberCreatedConsumerFactory(
             // Kafka broker 주소
-            @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers,
-            // 이 Consumer가 속할 consumer group 이름
-            @Value("${payment.kafka.consumer-groups.member-created:payment-service}") String groupId
+            @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers
     ) {
-        return createConsumerFactory(bootstrapServers, groupId, MemberCreatedMessage.class);
+        return createConsumerFactory(bootstrapServers, KafkaConsumerGroups.PAYMENT_SERVICE, MemberCreatedMessage.class);
     }
 
     /**
@@ -72,10 +72,9 @@ public class KafkaConsumerConfig {
     // todo: ListenerContainerFactory와 붙여서 보기 편하게 할 것.
     @Bean
     public ConsumerFactory<String, OrderPurchaseConfirmedMessage> orderPurchaseConfirmedConsumerFactory(
-            @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers,
-            @Value("${payment.kafka.consumer-groups.order-purchase-confirmed:payment-service}") String groupId
+            @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers
     ) {
-        return createConsumerFactory(bootstrapServers, groupId, OrderPurchaseConfirmedMessage.class);
+        return createConsumerFactory(bootstrapServers, KafkaConsumerGroups.PAYMENT_SERVICE, OrderPurchaseConfirmedMessage.class);
     }
 
     /**
@@ -131,10 +130,9 @@ public class KafkaConsumerConfig {
      */
     @Bean
     public ConsumerFactory<String, SellerSettlementPayoutRequestedMessage> sellerSettlementPayoutRequestedConsumerFactory(
-            @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers,
-            @Value("${payment.kafka.consumer-groups.settlement-payout-requested:payment-service}") String groupId
+            @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers
     ) {
-        return createConsumerFactory(bootstrapServers, groupId, SellerSettlementPayoutRequestedMessage.class);
+        return createConsumerFactory(bootstrapServers, KafkaConsumerGroups.PAYMENT_SERVICE, SellerSettlementPayoutRequestedMessage.class);
     }
 
     /**
@@ -155,17 +153,7 @@ public class KafkaConsumerConfig {
         sellerSettlementPayoutRequestedKafkaListenerContainerFactory(
             ConsumerFactory<String, SellerSettlementPayoutRequestedMessage> sellerSettlementPayoutRequestedConsumerFactory,
             // DLQ로 메시지를 다시 발행할 때 사용할 KafkaTemplate
-            KafkaTemplate<String, String> kafkaTemplate,
-            // 최종 실패 시 보낼 DLQ 토픽 이름
-            @Value("${payment.kafka.retry.settlement-payout-requested.dlq-topic:settlement.seller-payout-requested.dlq}") String dlqTopic,
-            // 첫 재시도 대기 시간
-            @Value("${payment.kafka.retry.settlement-payout-requested.initial-interval-ms:1000}") long initialIntervalMs,
-            // 재시도 때마다 대기 시간 증가 배수
-            @Value("${payment.kafka.retry.settlement-payout-requested.multiplier:2.0}") double multiplier,
-            // 재시도 최대 대기 시간
-            @Value("${payment.kafka.retry.settlement-payout-requested.max-interval-ms:10000}") long maxIntervalMs,
-            // 최대 재시도 횟수
-            @Value("${payment.kafka.retry.settlement-payout-requested.max-retries:3}") int maxRetries
+            KafkaTemplate<String, String> kafkaTemplate
     ) {
         ConcurrentKafkaListenerContainerFactory<String, SellerSettlementPayoutRequestedMessage> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
@@ -174,12 +162,7 @@ public class KafkaConsumerConfig {
         // 공통 에러 핸들러 연결
         // listener 처리 중 예외가 발생하면 이 정책에 따라 재시도 / DLQ 수행
         factory.setCommonErrorHandler(createPayoutRequestedErrorHandler(
-                kafkaTemplate,
-                dlqTopic,
-                initialIntervalMs,
-                multiplier,
-                maxIntervalMs,
-                maxRetries
+                kafkaTemplate
         ));
         return factory;
     }
@@ -223,23 +206,19 @@ public class KafkaConsumerConfig {
      * 4. 비재시도 예외는 즉시 DLQ로 보냄
      */
     private DefaultErrorHandler createPayoutRequestedErrorHandler(
-            KafkaTemplate<String, String> kafkaTemplate,
-            String dlqTopic,
-            long initialIntervalMs,
-            double multiplier,
-            long maxIntervalMs,
-            int maxRetries
+            KafkaTemplate<String, String> kafkaTemplate
     ) {
         // 재시도 간격을 점점 늘리는 백오프 정책
-        ExponentialBackOffWithMaxRetries backOff = new ExponentialBackOffWithMaxRetries(maxRetries);
-        backOff.setInitialInterval(initialIntervalMs); // 첫 재시도 대기 시간
-        backOff.setMultiplier(multiplier); // 다음 대기 시간 증가 배수
-        backOff.setMaxInterval(maxIntervalMs); // 최대 대기 시간
+        ExponentialBackOffWithMaxRetries backOff =
+                new ExponentialBackOffWithMaxRetries(KafkaRetryPolicy.MAX_RETRIES);
+        backOff.setInitialInterval(KafkaRetryPolicy.INITIAL_INTERVAL_MS);
+        backOff.setMultiplier(KafkaRetryPolicy.MULTIPLIER);
+        backOff.setMaxInterval(KafkaRetryPolicy.MAX_INTERVAL_MS);
 
         // 재시도 끝까지 실패한 메시지를 DLQ 토픽으로 보내는 recoverer
         DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(
                 kafkaTemplate,
-                (record, exception) -> new TopicPartition(dlqTopic, record.partition())
+                (record, exception) -> new TopicPartition(KafkaTopics.SETTLEMENT_PAYOUT_REQUESTED_DLQ, record.partition())
         );
 
         // recoverer + backOff를 사용하는 에러 핸들러 생성
