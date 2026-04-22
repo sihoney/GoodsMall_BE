@@ -1,6 +1,7 @@
 package com.example.member.application.event;
 
 import com.example.member.infrastructure.messaging.MemberEventKafkaProducer;
+import com.example.member.infrastructure.messaging.kafka.contract.MemberSignedUpPayload;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -15,8 +16,8 @@ public class MemberSignedUpEventListener {
     private final MemberEventKafkaProducer memberEventKafkaProducer;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void handle(MemberSignedUpEvent event) {
-        log.info("Handling MemberSignedUpEvent after commit. memberId={}", event.memberId());
-        memberEventKafkaProducer.sendMemberSignedUp(event);
+    public void handle(MemberSignedUpPayload payload) {
+        log.info("Handling MemberSignedUpPayload after commit. memberId={}", payload.memberId());
+        memberEventKafkaProducer.sendMemberSignedUp(payload);
     }
 }
