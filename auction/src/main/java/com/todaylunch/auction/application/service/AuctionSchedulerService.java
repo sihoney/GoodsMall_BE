@@ -18,24 +18,22 @@ public class AuctionSchedulerService {
     private final BidRepository bidRepository;
 
     @Scheduled(fixedRate = 1000 * 10)
-    public void startWaitingActions(){
-        List<Auction> actions = auctionRepository.findStartable(LocalDateTime.now());
-        actions.forEach(Auction::start);
+    public void startWaitingAuctions() {
+        List<Auction> auctions = auctionRepository.findStartable(LocalDateTime.now());
+        auctions.forEach(Auction::start);
     }
 
     @Scheduled(fixedRate = 1000 * 10)
-    public void endWaitingActions(){
-        List<Auction> actions = auctionRepository.findEndable(LocalDateTime.now());
-        endExpiredAuctions(actions);
+    public void endExpiredAuctions() {
+        List<Auction> auctions = auctionRepository.findEndable(LocalDateTime.now());
+        auctions.forEach(this::closeExpiredAuction);
     }
 
-    private void endExpiredAuctions(List<Auction> actions) {
-        for (Auction auction : actions) {
-            Optional<Bid> bid = bidRepository.findActiveByAuctionId(auction.getAuctionId());
-            if (bid.isPresent()) {
-                auction.changeToPendingPayment();
-                continue;
-            }
+    private void closeExpiredAuction(Auction auction) {
+        Optional<Bid> bid = bidRepository.findActiveByAuctionId(auction.getAuctionId());
+        if (bid.isPresent()) {
+            auction.changeToPendingPayment();
+        } else {
             auction.changeToFailed();
         }
     }
