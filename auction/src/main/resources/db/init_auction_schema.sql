@@ -2,6 +2,7 @@ CREATE TABLE auction
 (
     auction_id            UUID PRIMARY KEY,
     product_id            UUID           NOT NULL,
+    product_title         VARCHAR(255)   NOT NULL,
     seller_id             UUID           NOT NULL,
     start_price           DECIMAL(19, 2) NOT NULL,
     bid_unit              DECIMAL(19, 2) NOT NULL,
