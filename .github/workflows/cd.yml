@@ -206,22 +206,16 @@ jobs:
       needs.detect-changes.result == 'success' &&
       (needs.build.result == 'success' || needs.build.result == 'skipped') &&
       (needs.detect-changes.outputs.has_changes == 'true' || needs.detect-changes.outputs.k8s_changed == 'true')
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, ec2, k3s]
 
     steps:
       - name: checkout
         uses: actions/checkout@v4
 
-      - name: setup kubectl
-        uses: azure/setup-kubectl@v3
-
-      # GitHub Secret에 저장된 kubeconfig로 EC2 k3s 클러스터에 접속
-      # chmod 600으로 파일 권한을 소유자만 읽을 수 있도록 제한
-      - name: configure kubeconfig
-        run: |
-          mkdir -p ~/.kube
-          echo "${{ secrets.KUBECONFIG }}" > ~/.kube/config
-          chmod 600 ~/.kube/config
+      # self-hosted runner에서 k8s 클러스터 접근이 정상인지 확인하는 단계
+      # 실패하면 이후 배포를 진행하지 않고 즉시 중단 (환경 문제 조기 감지)
+      - name: sanity check
+        run: kubectl get nodes
 
       # goods-mall 네임스페이스가 없으면 생성
       # 이후 모든 리소스가 이 네임스페이스에 배포되므로 가장 먼저 실행
