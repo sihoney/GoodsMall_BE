@@ -63,7 +63,11 @@ notification:
   kafka:
     consumer-groups:
       member-signed-up: notification-service
+      order-created: notification-service
+      order-canceled: notification-service
+      auto-purchase-confirmed: notification-service
       order-payment-result: notification-service
+      seller-settlement-payout-result: notification-service
 
 logging:
   level:
