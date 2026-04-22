@@ -27,16 +27,16 @@ spec:
               value: "*"
           startupProbe:
             exec:
-              command: ["sh", "-c", "echo ruok | nc localhost 2181 | grep imok"]
+              command: ["sh", "-c", "echo srvr | nc localhost 2181 | grep Mode"]
             failureThreshold: 10
             periodSeconds: 5
           livenessProbe:
             exec:
-              command: ["sh", "-c", "echo ruok | nc localhost 2181 | grep imok"]
+              command: ["sh", "-c", "echo srvr | nc localhost 2181 | grep Mode"]
             initialDelaySeconds: 10
             periodSeconds: 10
           readinessProbe:
             exec:
-              command: ["sh", "-c", "echo ruok | nc localhost 2181 | grep imok"]
+              command: ["sh", "-c", "echo srvr | nc localhost 2181 | grep Mode"]
             initialDelaySeconds: 5
             periodSeconds: 5
