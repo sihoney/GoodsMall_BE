@@ -40,6 +40,7 @@ class AuctionSchedulerServiceTest {
         LocalDateTime now = LocalDateTime.now();
 
         waitingAuction = Auction.create(UUID.randomUUID(),
+                                        "테스트 상품",
                                         UUID.randomUUID(),
                                         new BigDecimal("10000"),
                                         new BigDecimal("1000"),
@@ -47,6 +48,7 @@ class AuctionSchedulerServiceTest {
                                         now.plusHours(1));
 
         ongoingAuction = Auction.create(UUID.randomUUID(),
+                                        "테스트 상품",
                                         UUID.randomUUID(),
                                         new BigDecimal("10000"),
                                         new BigDecimal("1000"),

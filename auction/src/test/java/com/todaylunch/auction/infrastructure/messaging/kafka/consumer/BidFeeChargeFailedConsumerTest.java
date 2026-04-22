@@ -47,6 +47,7 @@ class BidFeeChargeFailedConsumerTest {
         LocalDateTime now = LocalDateTime.now();
 
         auction = Auction.create(UUID.randomUUID(),
+                                 "테스트 상품",
                                  UUID.randomUUID(),
                                  new BigDecimal("10000"),
                                  new BigDecimal("1000"),

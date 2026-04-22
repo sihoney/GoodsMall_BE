@@ -12,7 +12,7 @@
 -- ============================================
 
 INSERT INTO auction.auction (
-    auction_id, product_id, seller_id,
+    auction_id, product_id, product_title, seller_id,
     start_price, bid_unit, current_highest_price,
     started_at, scheduled_close_at, ended_at,
     status, created_at, updated_at
@@ -22,6 +22,7 @@ VALUES
     (
         'eeeeeeee-eeee-eeee-eeee-eeeeeeeee001',
         'dddddddd-dddd-dddd-dddd-ddddddddd010',
+        '한정판 콜라보 후드',
         '22222222-2222-2222-2222-222222222202',
         50000.00, 1000.00, 52000.00,
         NOW() - INTERVAL '1 hour',
@@ -35,6 +36,7 @@ VALUES
     (
         'eeeeeeee-eeee-eeee-eeee-eeeeeeeee002',
         'dddddddd-dddd-dddd-dddd-ddddddddd010',
+        '한정판 콜라보 후드',
         '22222222-2222-2222-2222-222222222202',
         50000.00, 1000.00, NULL,
         NOW() + INTERVAL '2 hour',
@@ -48,6 +50,7 @@ VALUES
     (
         'eeeeeeee-eeee-eeee-eeee-eeeeeeeee003',
         'dddddddd-dddd-dddd-dddd-ddddddddd010',
+        '한정판 콜라보 후드',
         '22222222-2222-2222-2222-222222222202',
         50000.00, 1000.00, 53000.00,
         NOW() - INTERVAL '3 day',

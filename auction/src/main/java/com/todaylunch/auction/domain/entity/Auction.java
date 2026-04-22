@@ -37,6 +37,9 @@ public class Auction {
     @Column(name = "product_id", nullable = false)
     private UUID productId;
 
+    @Column(name = "product_title", nullable = false)
+    private String productTitle;
+
     @Column(name = "seller_id", nullable = false)
     private UUID sellerId;
 
@@ -71,6 +74,7 @@ public class Auction {
     private Auction(
             UUID auctionId,
             UUID productId,
+            String productTitle,
             UUID sellerId,
             BigDecimal startPrice,
             BigDecimal bidUnit,
@@ -83,6 +87,7 @@ public class Auction {
     ) {
         this.auctionId = Objects.requireNonNull(auctionId);
         this.productId = Objects.requireNonNull(productId);
+        this.productTitle = Objects.requireNonNull(productTitle);
         this.sellerId = Objects.requireNonNull(sellerId);
         this.startPrice = Objects.requireNonNull(startPrice);
         this.bidUnit = Objects.requireNonNull(bidUnit);
@@ -97,6 +102,7 @@ public class Auction {
 
     public static Auction create(
             UUID productId,
+            String productTitle,
             UUID sellerId,
             BigDecimal startPrice,
             BigDecimal bidUnit,
@@ -111,6 +117,7 @@ public class Auction {
         return new Auction(
                 UUID.randomUUID(),
                 productId,
+                productTitle,
                 sellerId,
                 startPrice,
                 bidUnit,
