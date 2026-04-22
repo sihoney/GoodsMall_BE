@@ -40,6 +40,7 @@ jobs:
       services: ${{ steps.set-services.outputs.services }}
       migration_changed: ${{ steps.set-flags.outputs.migration_changed }}
       k8s_changed: ${{ steps.set-flags.outputs.k8s_changed }}
+      k8s_services: ${{ steps.set-flags.outputs.k8s_services }}
 
     steps:
       - name: checkout
@@ -148,6 +149,15 @@ jobs:
           else
             echo "k8s_changed=false" >> "$GITHUB_OUTPUT"
           fi
+
+          # k8s 서비스 폴더별 변경 감지
+          K8S_SERVICES=()
+          for service in member product order payment notification settlement cart gateway ai auction; do
+            if grep -q "^k8s/$service/" <<< "$CHANGED_FILES"; then
+              K8S_SERVICES+=("$service")
+            fi
+          done
+          echo "k8s_services=${K8S_SERVICES[*]}" >> "$GITHUB_OUTPUT"
 
   build:
     name: build modules
@@ -293,13 +303,14 @@ jobs:
           kubectl apply -f k8s/db-migration/ -n goods-mall
           kubectl wait --for=condition=complete job/db-migration -n goods-mall --timeout=300s
 
-      # 변경된 서비스의 configmap, deployment, service yaml 적용
-      # SERVICES가 비어있으면 (k8s 파일만 변경된 경우) 루프 실행하지 않음
+      # 코드 변경 서비스 + k8s 파일 변경 서비스를 합쳐서 해당 서비스 yaml만 적용
       - name: apply changed services
         run: |
           SERVICES="${{ needs.detect-changes.outputs.services }}"
-          if [ -n "$SERVICES" ]; then
-            for service in $SERVICES; do
+          K8S_SERVICES="${{ needs.detect-changes.outputs.k8s_services }}"
+          ALL_SERVICES=$(echo "$SERVICES $K8S_SERVICES" | tr ' ' '\n' | sort -u | xargs)
+          if [ -n "$ALL_SERVICES" ]; then
+            for service in $ALL_SERVICES; do
               kubectl apply -f k8s/$service/ -n goods-mall
             done
           fi
