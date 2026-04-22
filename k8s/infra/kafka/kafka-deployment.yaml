@@ -13,6 +13,7 @@ spec:
       labels:
         app: kafka
     spec:
+      enableServiceLinks: false
       containers:
         - name: kafka
           image: confluentinc/cp-kafka:7.5.0
@@ -21,9 +22,6 @@ spec:
           envFrom:
             - configMapRef:
                 name: kafka-config
-          env:
-            - name: KAFKA_PORT
-              value: "9092"
           startupProbe:
             exec:
               command: ["sh", "-c", "kafka-broker-api-versions --bootstrap-server localhost:9092"]
