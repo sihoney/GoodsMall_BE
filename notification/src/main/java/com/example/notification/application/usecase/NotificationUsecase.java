@@ -54,6 +54,14 @@ public interface NotificationUsecase {
             LocalDateTime processedAt
     );
 
+    void createAuctionBidOutbidNotification(
+            UUID eventId,
+            String traceId,
+            UUID auctionId,
+            UUID bidderId,
+            LocalDateTime occurredAt
+    );
+
     void createSellerSettlementPayoutFailedNotification(
             UUID eventId,
             String traceId,
