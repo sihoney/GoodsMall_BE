@@ -28,8 +28,8 @@ public class SellerSettlementPayoutResultEventConsumer {
      * 상태 전이 정책은 application service가 전담한다.
      */
     @KafkaListener(
-            topics = "${settlement.kafka.topics.settlement-payout-result:payment.seller-payout-result}",
-            groupId = "${settlement.kafka.consumer-groups.settlement-payout-result:settlement-service}",
+            topics = KafkaTopics.SETTLEMENT_PAYOUT_RESULT,
+            groupId = KafkaConsumerGroups.SETTLEMENT_SERVICE,
             containerFactory = "sellerSettlementPayoutResultKafkaListenerContainerFactory"
     )
     public void listen(String eventJson) {
