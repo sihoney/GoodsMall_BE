@@ -99,7 +99,7 @@ public class OutboxEvent {
         this.publishedAt = LocalDateTime.now();
     }
 
-    public void changeFailed() {
-        this.status = OutboxEventStatus.FAILED;
+    public void revertToPending() {
+        this.status = OutboxEventStatus.PENDING;
     }
 }

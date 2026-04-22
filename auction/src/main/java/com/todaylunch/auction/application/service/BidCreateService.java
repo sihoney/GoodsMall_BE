@@ -1,7 +1,5 @@
 package com.todaylunch.auction.application.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.todaylunch.auction.application.event.OutboxEventPendingTrigger;
 import com.todaylunch.auction.application.port.dto.request.BidFeeChargeRequest;
 import com.todaylunch.auction.application.usecase.BidCreateUseCase;
@@ -24,6 +22,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 @Slf4j
 @Service
@@ -59,24 +59,25 @@ public class BidCreateService implements BidCreateUseCase {
                                                             auction.getAuctionId(),
                                                             previousBid.isEmpty(),
                                                             previousBid.map(Bid::getBidderId).orElse(null),
-                                                            previousBid.map(b -> BidPolicy.calculateBidFee(b.getBidPrice())).orElse(null),
+                                                            previousBid.map(
+                                                                               b -> BidPolicy.calculateBidFee(b.getBidPrice()))
+                                                                       .orElse(null),
                                                             bidderId,
                                                             currentBidFee
         );
 
-        outboxEventRepository.save(OutboxEvent.create(
-                saved.getBidId(),
-                "BID",
-                "BID_FEE_CHARGE_REQUESTED",
-                KafkaTopics.BID_FEE_CHARGE_REQUESTED,
-                auction.getAuctionId().toString(),
-                serialize(event)
+        outboxEventRepository.save(OutboxEvent.create(saved.getBidId(),
+                                                      "BID",
+                                                      "BID_FEE_CHARGE_REQUESTED",
+                                                      KafkaTopics.BID_FEE_CHARGE_REQUESTED,
+                                                      auction.getAuctionId().toString(),
+                                                      serialize(event)
         ));
 
         eventPublisher.publishEvent(new OutboxEventPendingTrigger());
 
         log.info("Bid pending: bidId={}, auctionId={}, bidderId={}, bidPrice={}",
-                saved.getBidId(), auctionId, bidderId, saved.getBidPrice());
+                 saved.getBidId(), auctionId, bidderId, saved.getBidPrice());
 
         return BidResponse.from(saved);
     }
@@ -84,7 +85,7 @@ public class BidCreateService implements BidCreateUseCase {
     private String serialize(Object obj) {
         try {
             return objectMapper.writeValueAsString(obj);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException("Outbox 이벤트 직렬화 실패", e);
         }
     }
