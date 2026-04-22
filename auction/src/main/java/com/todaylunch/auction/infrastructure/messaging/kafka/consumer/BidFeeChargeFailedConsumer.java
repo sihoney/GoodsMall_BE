@@ -4,9 +4,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.todaylunch.auction.common.exception.application.BidNotFoundException;
 import com.todaylunch.auction.domain.entity.Bid;
 import com.todaylunch.auction.domain.enumtype.BidStatus;
+import com.todaylunch.auction.domain.repository.AuctionRepository;
 import com.todaylunch.auction.domain.repository.BidRepository;
 import com.todaylunch.auction.infrastructure.messaging.kafka.KafkaTopics;
 import com.todaylunch.auction.infrastructure.messaging.kafka.message.BidFeeChargeFailedMessage;
+import java.math.BigDecimal;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -23,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class BidFeeChargeFailedConsumer {
 
     private final BidRepository bidRepository;
+    private final AuctionRepository auctionRepository;
     private final ObjectMapper objectMapper;
 
     @KafkaListener(topics = KafkaTopics.BID_FEE_CHARGE_FAILED)
@@ -43,6 +47,14 @@ public class BidFeeChargeFailedConsumer {
         }
 
         bid.cancel();
+
+        UUID auctionId = message.auctionId();
+        BigDecimal previousHighestPrice = bidRepository.findActiveByAuctionId(auctionId)
+                .map(Bid::getBidPrice)
+                .orElse(null);
+
+        auctionRepository.findByIdWithLock(auctionId)
+                .rollbackHighestPrice(previousHighestPrice);
 
         log.warn("Bid canceled via kafka: bidId={}, errorCode={}, errorMessage={}",
                 bid.getBidId(), message.errorCode(), message.errorMessage());
