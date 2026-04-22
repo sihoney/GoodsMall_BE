@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 
-@FeignClient(name = "product-service", path = "/api/products")
+@FeignClient(name = "product-service", url = "${services.product.url:http://localhost:8081}", path = "/api/products")
 public interface ProductClient {
 
     @PostMapping("/check-availability")

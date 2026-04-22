@@ -1,17 +1,6 @@
 spring:
   application:
     name: cart-service
-  config:
-    import:
-      - "configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
-  cloud:
-    config:
-      fail-fast: true
-      retry:
-        initial-interval: 1000
-        max-attempts: 20
-        max-interval: 5000
-        multiplier: 1.5
 
   # 로컬 개발용 기본값 (Config Server 미연결 시 사용)
   datasource:
@@ -26,18 +15,10 @@ spring:
     show-sql: true
     properties:
       hibernate:
-        format_sql: true
+        default_schema: cart
 
 server:
   port: 8086
-
-eureka:
-  client:
-    service-url:
-      defaultZone: ${EUREKA_DEFAULT_ZONE:http://localhost:8761/eureka}
-  instance:
-    prefer-ip-address: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:true}
-    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
 
 logging:
   level:

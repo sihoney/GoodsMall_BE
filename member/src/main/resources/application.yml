@@ -1,19 +1,10 @@
-﻿spring:
+spring:
   application:
     name: member-service
   config:
     import:
       - "optional:file:member/.env[.properties]"
       - "optional:file:.env[.properties]"
-      - "configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
-  cloud:
-    config:
-      fail-fast: true
-      retry:
-        initial-interval: 1000
-        max-attempts: 20
-        max-interval: 5000
-        multiplier: 1.5
 
   datasource:
     driver-class-name: org.postgresql.Driver
@@ -33,7 +24,7 @@
   data:
     redis:
       host: ${REDIS_HOST:localhost}
-      port: 6379
+      port: ${REDIS_PORT:6379}
   mail:
     host: ${SMTP_HOST:localhost}
     port: ${SMTP_PORT:1025}
@@ -50,7 +41,7 @@
           writetimeout: 5000
 
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
@@ -60,14 +51,6 @@
 server:
   port: 8083
 
-eureka:
-  client:
-    service-url:
-      defaultZone: ${EUREKA_DEFAULT_ZONE:http://localhost:8761/eureka}
-  instance:
-    prefer-ip-address: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:true}
-    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
-
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
@@ -75,7 +58,7 @@ springdoc:
     path: /v3/api-docs
 
 apigateway:
-  host: http://localhost:8080
+  host: ${API_GATEWAY_HOST:http://localhost:8080}
 
 oauth:
   kakao:
@@ -99,7 +82,7 @@ jwt:
 aws:
   s3:
     bucket: ${AWS_S3_BUCKET:todaylunch-local}
-    region: ap-northeast-2
+    region: ${AWS_REGION:ap-northeast-2}
     access-key: ${AWS_ACCESS_KEY_ID:test-access-key}
     secret-key: ${AWS_SECRET_ACCESS_KEY:test-secret-key}
     profile-image-prefix: members/profile
@@ -112,7 +95,7 @@ member:
   email:
     provider: ${EMAIL_PROVIDER:logging}
     from-address: ${MAIL_FROM:no-reply@todaylunch.local}
-    from-name: TodayLunch
+    from-name: ${MAIL_FROM_NAME:TodayLunch}
   email-verification:
     expiration: 24h
     frontend-confirm-url: ${EMAIL_VERIFICATION_FRONTEND_URL}

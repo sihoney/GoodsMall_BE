@@ -51,7 +51,6 @@ dependencies {
     // password hashing only
     implementation 'org.springframework.security:spring-security-crypto'
     // Eureka Client
-    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
     // Config Server
     implementation 'org.springframework.cloud:spring-cloud-starter-config'
     // Config Server retry

@@ -3,6 +3,8 @@ package com.todaylunch.auction.infrastructure.repository;
 import com.todaylunch.auction.domain.entity.Auction;
 import com.todaylunch.auction.domain.enumtype.AuctionStatus;
 import jakarta.persistence.LockModeType;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -20,7 +22,25 @@ public interface AuctionJpaRepository extends JpaRepository<Auction, UUID> {
             """)
     Page<Auction> findAllByStatus(@Param("status") AuctionStatus status, Pageable pageable);
 
-    @Query("select a from Auction a where a.auctionId = :auctionId")
+    @Query("""
+            SELECT a
+            FROM Auction a
+            WHERE a.auctionId = :auctionId""")
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<Auction> findWithLock(@Param("auctionId") UUID auctionId);
+
+    @Query("""
+            SELECT a
+            FROM Auction a
+            WHERE a.status = 'WAITING' AND a.startedAt <= :now
+            """)
+    List<Auction> findStartable(LocalDateTime now);
+
+    @Query("""
+            SELECT a
+            FROM Auction a
+            WHERE a.status = 'ONGOING' AND a.endedAt <= :now
+            """)
+    List<Auction> findEndable(LocalDateTime now);
+
 }

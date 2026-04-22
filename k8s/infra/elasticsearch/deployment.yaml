@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elasticsearch
+  namespace: goods-mall
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: elasticsearch
+  template:
+    metadata:
+      labels:
+        app: elasticsearch
+    spec:
+      containers:
+        - name: elasticsearch
+          image: park9707/goods-mall-elasticsearch:latest
+          ports:
+            - containerPort: 9200
+          envFrom:
+            - configMapRef:
+                name: elasticsearch-config
+          volumeMounts:
+            - name: elasticsearch-storage
+              mountPath: /usr/share/elasticsearch/data
+          startupProbe:
+            exec:
+              command: ["sh", "-c", "curl -sf http://localhost:9200/_cluster/health"]
+            failureThreshold: 20
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "curl -sf http://localhost:9200/_cluster/health"]
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "curl -sf http://localhost:9200/_cluster/health"]
+            initialDelaySeconds: 20
+            periodSeconds: 10
+      volumes:
+        - name: elasticsearch-storage
+          persistentVolumeClaim:
+            claimName: elasticsearch-pvc
