@@ -9,7 +9,7 @@ import static org.mockito.Mockito.when;
 
 import com.example.member.application.event.MemberSignedUpEvent;
 import com.example.member.infrastructure.messaging.kafka.contract.MemberSignedUpPayload;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
