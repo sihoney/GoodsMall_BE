@@ -1,7 +1,7 @@
 package com.todaylunch.auction.application.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import com.todaylunch.auction.application.event.OutboxEventPendingTrigger;
 import com.todaylunch.auction.application.port.dto.request.BidFeeChargeRequest;
 import com.todaylunch.auction.application.usecase.BidCreateUseCase;
@@ -84,7 +84,7 @@ public class BidCreateService implements BidCreateUseCase {
     private String serialize(Object obj) {
         try {
             return objectMapper.writeValueAsString(obj);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException("Outbox 이벤트 직렬화 실패", e);
         }
     }

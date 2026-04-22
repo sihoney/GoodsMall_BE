@@ -1,7 +1,7 @@
 package com.todaylunch.auction.infrastructure.client;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 import com.todaylunch.auction.application.port.BidFeeChargePort;
 import com.todaylunch.auction.application.port.dto.request.BidFeeChargeRequest;
 import com.todaylunch.auction.application.port.dto.response.BidFeeChargeResponse;

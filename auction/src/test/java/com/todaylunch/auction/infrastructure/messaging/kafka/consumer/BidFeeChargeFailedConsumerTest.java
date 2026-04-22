@@ -3,9 +3,8 @@ package com.todaylunch.auction.infrastructure.messaging.kafka.consumer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import com.todaylunch.auction.domain.entity.Auction;
 import com.todaylunch.auction.domain.entity.Bid;
 import com.todaylunch.auction.domain.enumtype.BidStatus;
@@ -38,9 +37,7 @@ class BidFeeChargeFailedConsumerTest {
 
     @BeforeEach
     void setUp() {
-        // 객체 직렬화
-        objectMapper = new ObjectMapper().registerModule(new JavaTimeModule())
-                                         .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        objectMapper = JsonMapper.builder().build();
 
         consumer = new BidFeeChargeFailedConsumer(bidRepository, auctionRepository, objectMapper);
 
