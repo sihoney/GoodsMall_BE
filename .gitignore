@@ -45,6 +45,9 @@ bin/
 .env
 product/.env
 
+### K8s Secrets ###
+k8s/**/secret.yaml
+
 private_docs/
 docs_private/
 docs/
@@ -66,3 +69,5 @@ AGENTS.md
 node_modules/
 # Claude Code
 .claude/
+
+docker-compose.yml
