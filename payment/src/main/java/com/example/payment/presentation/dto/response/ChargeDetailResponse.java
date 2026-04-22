@@ -2,6 +2,7 @@ package com.example.payment.presentation.dto.response;
 
 import com.example.payment.application.dto.ChargeDetailResult;
 import com.example.payment.domain.enumtype.ChargeStatus;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -12,8 +13,8 @@ public record ChargeDetailResponse(
         UUID chargeId,
         UUID memberId,
         UUID walletId,
-        Long requestedAmount,
-        Long approvedAmount,
+        BigDecimal requestedAmount,
+        BigDecimal approvedAmount,
         String tossBankCode,
         String pgOrderId,
         String pgPaymentKey,
@@ -21,9 +22,7 @@ public record ChargeDetailResponse(
         LocalDateTime requestedAt,
         LocalDateTime approvedAt,
         LocalDateTime failedAt,
-        String failureReason,
-        boolean hasRefundHistory,
-        ChargeRefundSummaryResponse latestRefund
+        String failureReason
 ) {
 
     /**
@@ -43,9 +42,7 @@ public record ChargeDetailResponse(
                 result.requestedAt(),
                 result.approvedAt(),
                 result.failedAt(),
-                result.failureReason(),
-                result.hasRefundHistory(),
-                result.latestRefund() == null ? null : ChargeRefundSummaryResponse.from(result.latestRefund())
+                result.failureReason()
         );
     }
 }

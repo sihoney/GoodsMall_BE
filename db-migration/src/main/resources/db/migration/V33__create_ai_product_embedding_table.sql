@@ -1,6 +1,6 @@
-CREATE EXTENSION IF NOT EXISTS vector;
+CREATE EXTENSION IF NOT EXISTS vector SCHEMA public;
 
-CREATE TABLE ai.product_embedding
+CREATE TABLE IF NOT EXISTS ai.product_embedding
 (
     embedding_id       UUID PRIMARY KEY,
     product_id         UUID         NOT NULL UNIQUE,

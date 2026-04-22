@@ -2,17 +2,18 @@ package com.example.payment.presentation.dto.response;
 
 import com.example.payment.application.dto.ChargeConfirmResult;
 import com.example.payment.domain.enumtype.ChargeStatus;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * 충전 승인 API의 응답 DTO다.
+ * 충전 확인 API의 응답 DTO다.
  */
 public record ChargeConfirmResponse(
         UUID chargeId,
         ChargeStatus chargeStatus,
-        Long approvedAmount,
-        Long walletBalance,
+        BigDecimal approvedAmount,
+        BigDecimal walletBalance,
         LocalDateTime approvedAt
 ) {
 

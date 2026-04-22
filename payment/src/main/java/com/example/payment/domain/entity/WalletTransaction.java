@@ -7,6 +7,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
@@ -28,10 +29,10 @@ public class WalletTransaction {
     private UUID walletId;
 
     @Column(name = "amount", nullable = false)
-    private Long amount;
+    private BigDecimal amount;
 
     @Column(name = "balance_after", nullable = false)
-    private Long balanceAfter;
+    private BigDecimal balanceAfter;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "transaction_type", nullable = false)
@@ -52,8 +53,8 @@ public class WalletTransaction {
     private WalletTransaction(
             UUID transactionId,
             UUID walletId,
-            Long amount,
-            Long balanceAfter,
+            BigDecimal amount,
+            BigDecimal balanceAfter,
             WalletTransactionType transactionType,
             UUID referenceId,
             String referenceType,
@@ -74,8 +75,8 @@ public class WalletTransaction {
     public static WalletTransaction create(
             UUID transactionId,
             UUID walletId,
-            Long amount,
-            Long balanceAfter,
+            BigDecimal amount,
+            BigDecimal balanceAfter,
             WalletTransactionType transactionType,
             UUID referenceId,
             String referenceType,
@@ -98,8 +99,8 @@ public class WalletTransaction {
     public static WalletTransaction charge(
             UUID transactionId,
             UUID walletId,
-            Long amount,
-            Long balanceAfter,
+            BigDecimal amount,
+            BigDecimal balanceAfter,
             UUID chargeId,
             LocalDateTime createdAt
     ) {
@@ -121,8 +122,8 @@ public class WalletTransaction {
     public static WalletTransaction refund(
             UUID transactionId,
             UUID walletId,
-            Long amount,
-            Long balanceAfter,
+            BigDecimal amount,
+            BigDecimal balanceAfter,
             UUID chargeId,
             LocalDateTime createdAt
     ) {
@@ -131,7 +132,7 @@ public class WalletTransaction {
         return create(
                 transactionId,
                 walletId,
-                -amount,
+                amount.negate(),
                 balanceAfter,
                 WalletTransactionType.REFUND,
                 chargeId,
@@ -144,8 +145,8 @@ public class WalletTransaction {
     public static WalletTransaction purchase(
             UUID transactionId,
             UUID walletId,
-            Long amount,
-            Long balanceAfter,
+            BigDecimal amount,
+            BigDecimal balanceAfter,
             UUID orderId,
             LocalDateTime createdAt
     ) {
@@ -154,7 +155,7 @@ public class WalletTransaction {
         return create(
                 transactionId,
                 walletId,
-                -amount,
+                amount.negate(),
                 balanceAfter,
                 WalletTransactionType.PURCHASE,
                 orderId,
@@ -164,8 +165,54 @@ public class WalletTransaction {
         );
     }
 
-    private static void validatePositiveAmount(Long amount, String message) {
-        if (Objects.requireNonNull(amount) <= 0) {
+    public static WalletTransaction auctionDepositHold(
+            UUID transactionId,
+            UUID walletId,
+            BigDecimal amount,
+            BigDecimal balanceAfter,
+            UUID bidId,
+            LocalDateTime createdAt
+    ) {
+        validatePositiveAmount(amount, "Auction deposit hold amount must be positive.");
+
+        return create(
+                transactionId,
+                walletId,
+                amount.negate(),
+                balanceAfter,
+                WalletTransactionType.AUCTION_DEPOSIT_HOLD,
+                bidId,
+                "AUCTION_BID",
+                "auction deposit hold",
+                createdAt
+        );
+    }
+
+    public static WalletTransaction auctionDepositRefund(
+            UUID transactionId,
+            UUID walletId,
+            BigDecimal amount,
+            BigDecimal balanceAfter,
+            UUID bidId,
+            LocalDateTime createdAt
+    ) {
+        validatePositiveAmount(amount, "Auction deposit refund amount must be positive.");
+
+        return create(
+                transactionId,
+                walletId,
+                amount,
+                balanceAfter,
+                WalletTransactionType.AUCTION_DEPOSIT_REFUND,
+                bidId,
+                "AUCTION_BID",
+                "auction deposit refund",
+                createdAt
+        );
+    }
+
+    private static void validatePositiveAmount(BigDecimal amount, String message) {
+        if (Objects.requireNonNull(amount).compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException(message);
         }
     }

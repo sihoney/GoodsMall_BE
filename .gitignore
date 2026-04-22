@@ -45,7 +45,13 @@ bin/
 .env
 product/.env
 
+### K8s Secrets ###
+k8s/**/secret.yaml
+
 private_docs/
+docs_private/
+docs/
+temp_api.json
 
 ### setting ###
 **/src/main/resources/application-local.yml
@@ -63,3 +69,6 @@ AGENTS.md
 node_modules/
 # Claude Code
 .claude/
+
+package.json
+package-lock.json

@@ -1,28 +1,29 @@
 package com.example.payment.application.service;
 
-import com.example.payment.application.dto.CreateWalletCommand;
-import com.example.payment.application.dto.CreateWalletResult;
-import com.example.payment.domain.entity.Wallet;
-import com.example.payment.common.exception.InvalidChargeRequestException;
-import com.example.payment.domain.repository.WalletRepository;
-import com.example.payment.domain.service.IdentifierGenerator;
-import java.time.LocalDateTime;
-import java.util.Optional;
-import java.util.UUID;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+
+import com.example.payment.application.dto.CreateWalletCommand;
+import com.example.payment.application.dto.CreateWalletResult;
+import com.example.payment.common.exception.InvalidChargeRequestException;
+import com.example.payment.domain.entity.Wallet;
+import com.example.payment.domain.repository.WalletRepository;
+import com.example.payment.domain.service.IdentifierGenerator;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.Optional;
+import java.util.UUID;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("WalletCreationService 테스트")
@@ -37,13 +38,17 @@ class WalletCreationServiceTest {
     @InjectMocks
     private WalletCreationService walletCreationService;
 
+    private BigDecimal amount(long value) {
+        return BigDecimal.valueOf(value);
+    }
+
     @Test
     @DisplayName("기존 wallet가 있으면 새로 생성하지 않고 기존 wallet를 반환한다")
     void createWallet_existingWallet_returnsExistingWallet() {
         UUID memberId = UUID.randomUUID();
         UUID walletId = UUID.randomUUID();
         LocalDateTime now = LocalDateTime.of(2024, 1, 1, 12, 0, 0);
-        Wallet existingWallet = Wallet.create(walletId, memberId, 0L, now, now);
+        Wallet existingWallet = Wallet.create(walletId, memberId, amount(0L), now, now);
 
         given(walletRepository.findByMemberId(memberId)).willReturn(Optional.of(existingWallet));
 
@@ -51,7 +56,7 @@ class WalletCreationServiceTest {
 
         assertThat(result.walletId()).isEqualTo(walletId);
         assertThat(result.memberId()).isEqualTo(memberId);
-        assertThat(result.balance()).isEqualTo(0L);
+        assertThat(result.balance()).isEqualTo(amount(0L));
         assertThat(result.created()).isFalse();
         verify(walletRepository, never()).save(any(Wallet.class));
     }
@@ -62,7 +67,7 @@ class WalletCreationServiceTest {
         UUID memberId = UUID.randomUUID();
         UUID walletId = UUID.randomUUID();
         LocalDateTime now = LocalDateTime.of(2024, 1, 1, 12, 0, 0);
-        Wallet createdWallet = Wallet.create(walletId, memberId, 0L, now, now);
+        Wallet createdWallet = Wallet.create(walletId, memberId, amount(0L), now, now);
 
         given(walletRepository.findByMemberId(memberId)).willReturn(Optional.empty());
         given(identifierGenerator.generateUuid()).willReturn(walletId);
@@ -72,7 +77,7 @@ class WalletCreationServiceTest {
 
         assertThat(result.walletId()).isEqualTo(walletId);
         assertThat(result.memberId()).isEqualTo(memberId);
-        assertThat(result.balance()).isEqualTo(0L);
+        assertThat(result.balance()).isEqualTo(amount(0L));
         assertThat(result.created()).isTrue();
         verify(walletRepository).save(any(Wallet.class));
     }
@@ -83,7 +88,7 @@ class WalletCreationServiceTest {
         UUID memberId = UUID.randomUUID();
         UUID walletId = UUID.randomUUID();
         LocalDateTime now = LocalDateTime.of(2024, 1, 1, 12, 0, 0);
-        Wallet existingWallet = Wallet.create(walletId, memberId, 0L, now, now);
+        Wallet existingWallet = Wallet.create(walletId, memberId, amount(0L), now, now);
 
         given(walletRepository.findByMemberId(memberId))
                 .willReturn(Optional.empty())

@@ -1,5 +1,7 @@
 package com.todaylunch.auction.domain.entity;
 
+import com.todaylunch.auction.common.exception.domain.BidNotActiveException;
+import com.todaylunch.auction.common.exception.domain.InvalidBidPriceException;
 import com.todaylunch.auction.domain.enumtype.BidStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -68,9 +70,7 @@ public class Bid {
 
     /** 초기 상태(ACTIVE + 타임스탬프) 불변성을 팩토리로 강제. 입찰가 양수 검증 포함. */
     public static Bid place(Auction auction, UUID bidderId, BigDecimal bidPrice) {
-        if (bidPrice == null || bidPrice.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("입찰가는 0보다 커야 합니다");
-        }
+        validateBidPrice(bidPrice);
         LocalDateTime now = LocalDateTime.now();
         return new Bid(
                 UUID.randomUUID(),
@@ -83,12 +83,34 @@ public class Bid {
         );
     }
 
+    public static Bid placePending(Auction auction, UUID bidderId, BigDecimal bidPrice) {
+        validateBidPrice(bidPrice);
+        LocalDateTime now = LocalDateTime.now();
+        return new Bid(
+                UUID.randomUUID(),
+                auction,
+                bidderId,
+                bidPrice,
+                BidStatus.PENDING,
+                now,
+                now
+        );
+    }
+
+    public void confirm() {
+        if (this.status != BidStatus.PENDING) {
+            throw new IllegalStateException("대기 상태의 입찰만 확정할 수 있습니다");
+        }
+        this.status = BidStatus.ACTIVE;
+        this.updatedAt = LocalDateTime.now();
+    }
+
     public void outbid() {
         if (this.status == BidStatus.OUTBID) {
             return;
         }
         if (this.status != BidStatus.ACTIVE) {
-            throw new IllegalStateException("활성 상태의 입찰만 OUTBID 처리할 수 있습니다");
+            throw new BidNotActiveException();
         }
         this.status = BidStatus.OUTBID;
         this.updatedAt = LocalDateTime.now();
@@ -103,11 +125,17 @@ public class Bid {
     }
 
     public void cancel() {
-        if (this.status != BidStatus.WINNING) {
-            throw new IllegalStateException("낙찰 상태의 입찰만 취소할 수 있습니다");
+        if (this.status != BidStatus.PENDING && this.status != BidStatus.WINNING) {
+            throw new IllegalStateException("대기 또는 낙찰 상태의 입찰만 취소할 수 있습니다");
         }
         this.status = BidStatus.CANCELED;
         this.updatedAt = LocalDateTime.now();
+    }
+
+    private static void validateBidPrice(BigDecimal bidPrice) {
+        if (bidPrice == null || bidPrice.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new InvalidBidPriceException();
+        }
     }
 
     public void paid() {

@@ -2,7 +2,6 @@ package com.example.settlement.application.usecase;
 
 import com.example.settlement.application.dto.MonthlySettlementAggregateResult;
 import com.example.settlement.application.dto.SettlementItemCreateCommand;
-import com.example.settlement.application.dto.SettlementRefundExclusionCommand;
 import com.example.settlement.domain.entity.SettlementItem;
 import java.time.LocalDateTime;
 
@@ -12,8 +11,6 @@ import java.time.LocalDateTime;
 public interface MonthlySettlementUseCase {
 
     SettlementItem registerSettlementItem(SettlementItemCreateCommand command);
-
-    void applyRefundExclusion(SettlementRefundExclusionCommand command);
 
     MonthlySettlementAggregateResult aggregatePreviousMonth(LocalDateTime referenceDateTime);
 }

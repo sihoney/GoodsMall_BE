@@ -8,6 +8,7 @@ import com.example.payment.infrastructure.messaging.kafka.contract.SettlementCan
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,9 +33,8 @@ class KafkaSettlementCandidateCreatedEventPublisherTest {
     @Test
     @DisplayName("정산 원천 이벤트를 escrowId 키로 Kafka에 발행한다")
     void publish_sendsEventToKafka() throws Exception {
-        String topic = "payment.settlement-candidate-created";
         KafkaSettlementCandidateCreatedEventPublisher publisher =
-                new KafkaSettlementCandidateCreatedEventPublisher(kafkaTemplate, objectMapper, topic);
+                new KafkaSettlementCandidateCreatedEventPublisher(kafkaTemplate, objectMapper);
         UUID eventId = UUID.randomUUID();
         UUID orderId = UUID.randomUUID();
         UUID escrowId = UUID.randomUUID();
@@ -43,7 +43,7 @@ class KafkaSettlementCandidateCreatedEventPublisherTest {
                 orderId,
                 escrowId,
                 UUID.randomUUID(),
-                10_000L,
+                BigDecimal.valueOf(10_000L),
                 LocalDateTime.of(2024, 1, 1, 12, 0, 0),
                 ConfirmationType.AUTO,
                 LocalDateTime.of(2024, 1, 1, 12, 0, 1)
@@ -63,6 +63,6 @@ class KafkaSettlementCandidateCreatedEventPublisherTest {
         assertThat(captor.getValue().releasedAt()).isEqualTo(Instant.parse("2024-01-01T03:00:00Z"));
         assertThat(captor.getValue().confirmationType()).isEqualTo(event.confirmationType());
         assertThat(captor.getValue().occurredAt()).isEqualTo(Instant.parse("2024-01-01T03:00:01Z"));
-        verify(kafkaTemplate).send(topic, String.valueOf(escrowId), "serialized-message");
+        verify(kafkaTemplate).send(KafkaTopics.SETTLEMENT_CANDIDATE_CREATED, String.valueOf(escrowId), "serialized-message");
     }
 }

@@ -1,8 +1,10 @@
 package com.example.payment.infrastructure.client;
 
 import com.example.payment.common.exception.PaymentGatewayException;
+import com.example.payment.common.exception.PaymentGatewayAmountConversionException;
 import com.example.payment.domain.service.TossPaymentGateway;
 import com.example.payment.infrastructure.config.TossPaymentsProperties;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -42,7 +44,7 @@ public class TossPaymentGatewayImpl implements TossPaymentGateway {
      * Toss 승인 API를 호출하고 application에서 필요한 최소 응답만 추려 반환한다.
      * HTTP 오류, 빈 응답, 파싱 오류는 모두 PaymentGatewayException으로 통일한다.
      */
-    public TossPaymentConfirmation confirm(String paymentKey, String orderId, Long amount) {
+    public TossPaymentConfirmation confirm(String paymentKey, String orderId, BigDecimal amount) {
         validateConfiguration();
         // todo: 성공 url을 통해서 받은 amount와 orderId가 저장된 데이터와 일치하는지 보안상 확인이 필요할 수 있다.
         try {
@@ -50,11 +52,10 @@ public class TossPaymentGatewayImpl implements TossPaymentGateway {
                     .uri("/v1/payments/confirm")
                     // 넣어 외부 시스켐이 중복처리하지 않도록 멱등성 키를 헤더로 보낸다.
                     .header("Idempotency-Key", orderId)
-                    .body(new TossConfirmRequest(paymentKey, orderId, amount))
+                    .body(new TossConfirmRequest(paymentKey, orderId, toTossAmount(amount)))
                     .retrieve()// 응답을 가져옴
                     .body(TossConfirmResponse.class); //JSON 응답을 Java 객체로 역직렬화
 
-            // todo : 멱등성키를 사용한 상태에서 에러 응답 처리에 대한 로직이 필요
 
             if (response == null) {
                 throw new PaymentGatewayException("Toss confirm response is empty.");
@@ -67,7 +68,7 @@ public class TossPaymentGatewayImpl implements TossPaymentGateway {
             return new TossPaymentConfirmation(
                     response.paymentKey(),
                     response.orderId(),
-                    response.totalAmount(),
+                    BigDecimal.valueOf(response.totalAmount()),
                     OffsetDateTime.parse(response.approvedAt()).toLocalDateTime(),
                     response.method(),
                     response.transfer() == null ? null : response.transfer().bankCode(),
@@ -93,7 +94,7 @@ public class TossPaymentGatewayImpl implements TossPaymentGateway {
      * Toss 취소 API를 호출하고 마지막 cancel 항목을 기준으로 환불 결과를 구성한다.
      * 승인과 동일하게 외부 통신 및 응답 오류는 PaymentGatewayException으로 감싼다.
      */
-    public TossPaymentCancellation cancel(String paymentKey, String cancelReason, Long cancelAmount) {
+    public TossPaymentCancellation cancel(String paymentKey, String cancelReason, BigDecimal cancelAmount) {
         validateConfiguration();
 
         try {
@@ -101,17 +102,15 @@ public class TossPaymentGatewayImpl implements TossPaymentGateway {
                     .uri("/v1/payments/{paymentKey}/cancel", paymentKey)
                     // 멱등성 키
                     .header("Idempotency-Key", paymentKey + "-cancel")
-                    .body(new TossCancelRequest(cancelReason, cancelAmount)) // 일부 취소하지 않을 경우 cancelAmount을 null로 보낼 수 있다.
+                    .body(new TossCancelRequest(cancelReason, toTossCancelAmount(cancelAmount))) // 일부 취소하지 않을 경우 cancelAmount을 null로 보낼 수 있다.
                     .retrieve()
                     .body(TossCancelResponse.class);
 
-            //todo: 멱등성 키를 사용한 다음 로직이 없으므로 추가해야함.
 
             if (response == null || response.cancels() == null || response.cancels().isEmpty()) {
                 throw new PaymentGatewayException("Toss cancel response is empty.");
             }
             //취소 목록에서 마지막 하나의 목록을 담는다.
-            // todo: get()을 getLast() 변경하기 -> java21 버전이므로 가능.
             TossCancelItem lastCancel = response.cancels().get(response.cancels().size() - 1);
             if (lastCancel.cancelAmount() == null || lastCancel.canceledAt() == null) {
                 throw new PaymentGatewayException("Toss cancel response is missing required fields.");
@@ -119,7 +118,7 @@ public class TossPaymentGatewayImpl implements TossPaymentGateway {
 
             return new TossPaymentCancellation(
                     response.paymentKey(),
-                    lastCancel.cancelAmount(),
+                    BigDecimal.valueOf(lastCancel.cancelAmount()),
                     OffsetDateTime.parse(lastCancel.canceledAt()).toLocalDateTime()
             );
         } catch (RestClientResponseException e) {
@@ -146,6 +145,31 @@ public class TossPaymentGatewayImpl implements TossPaymentGateway {
         }
         if (isBlank(properties.secretKey())) {
             throw new PaymentGatewayException("toss.payments.secret-key is required.");
+        }
+    }
+
+    private Long toTossAmount(BigDecimal amount) {
+        if (amount == null) {
+            throw new PaymentGatewayException("Toss confirm amount is required.");
+        }
+        try {
+            return amount.longValueExact();
+        } catch (ArithmeticException e) {
+            throw new PaymentGatewayAmountConversionException("Toss 승인 요청 금액은 원 단위 정수여야 합니다. amount=" + amount, e);
+        }
+    }
+
+    private Long toTossCancelAmount(BigDecimal cancelAmount) {
+        if (cancelAmount == null) {
+            return null;
+        }
+        try {
+            return cancelAmount.longValueExact();
+        } catch (ArithmeticException e) {
+            throw new PaymentGatewayAmountConversionException(
+                    "Toss 취소 요청 금액은 원 단위 정수여야 합니다. cancelAmount=" + cancelAmount,
+                    e
+            );
         }
     }
 

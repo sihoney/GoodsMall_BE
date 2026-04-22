@@ -32,7 +32,7 @@ public class OrderPaymentValidationService implements OrderPaymentValidationUseC
         if (command.buyerId() == null) {
             throw new InvalidCardPaymentRequestException("buyerId is required for order validation.");
         }
-        if (command.amount() == null || command.amount() <= 0) {
+        if (command.amount() == null || command.amount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
             throw new InvalidCardPaymentRequestException("amount must be positive for order validation.");
         }
     }

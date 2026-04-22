@@ -7,7 +7,6 @@ import com.example.payment.application.dto.ChargeCreateResult;
 import com.example.payment.application.dto.WalletSummaryResult;
 import com.example.payment.application.usecase.ChargeConfirmUseCase;
 import com.example.payment.application.usecase.ChargeCreateUseCase;
-import com.example.payment.application.usecase.ChargeRefundUseCase;
 import com.example.payment.application.usecase.OrderPaymentApiUseCase;
 import com.example.payment.application.usecase.PaymentSearchUseCase;
 import com.example.payment.domain.enumtype.ChargeStatus;
@@ -44,9 +43,6 @@ class PaymentControllerTest {
     private ChargeConfirmUseCase chargeConfirmUseCase;
 
     @Mock
-    private ChargeRefundUseCase chargeRefundUseCase;
-
-    @Mock
     private PaymentSearchUseCase paymentSearchUseCase;
 
     @Mock
@@ -68,13 +64,13 @@ class PaymentControllerTest {
                         chargeId,
                         walletId,
                         "pg-order-001",
-                        1000L,
+                        BigDecimal.valueOf(1000L),
                         ChargeStatus.PENDING
                 ));
 
         ResponseEntity<ApiResponse<ChargeCreateResponse>> response = paymentController.createCharge(
                 authenticatedMember,
-                new ChargeCreateRequest(1000L)
+                new ChargeCreateRequest(BigDecimal.valueOf(1000L))
         );
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
@@ -83,7 +79,7 @@ class PaymentControllerTest {
         assertThat(response.getBody().data()).isNotNull();
         assertThat(response.getBody().data().chargeId()).isEqualTo(chargeId);
         assertThat(response.getBody().data().walletId()).isEqualTo(walletId);
-        assertThat(response.getBody().data().amount()).isEqualTo(1000L);
+        assertThat(response.getBody().data().amount()).isEqualTo(BigDecimal.valueOf(1000L));
         assertThat(response.getBody().error()).isNull();
     }
 
@@ -97,7 +93,7 @@ class PaymentControllerTest {
         given(paymentSearchUseCase.findWalletSummary(memberId)).willReturn(new WalletSummaryResult(
                 walletId,
                 memberId,
-                5000L,
+                BigDecimal.valueOf(5000L),
                 LocalDateTime.of(2026, 3, 27, 10, 0)
         ));
 
@@ -109,7 +105,7 @@ class PaymentControllerTest {
         assertThat(response.getBody().data()).isNotNull();
         assertThat(response.getBody().data().walletId()).isEqualTo(walletId);
         assertThat(response.getBody().data().memberId()).isEqualTo(memberId);
-        assertThat(response.getBody().data().balance()).isEqualTo(5000L);
+        assertThat(response.getBody().data().balance()).isEqualTo(BigDecimal.valueOf(5000L));
         assertThat(response.getBody().error()).isNull();
     }
 

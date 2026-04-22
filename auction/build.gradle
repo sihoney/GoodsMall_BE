@@ -27,6 +27,8 @@ dependencies {
     implementation project(':common-security')
     // Web
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    // WebSocket (STOMP)
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
     // JPA
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     // Validation
@@ -46,11 +48,14 @@ dependencies {
     testAnnotationProcessor 'org.projectlombok:lombok'
 
     // Eureka 서버 등록
-    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
     // Config Server 에서 설정을 가져오기 위한 클라이언트
     implementation 'org.springframework.cloud:spring-cloud-starter-config'
     // Config Server retry
     implementation 'org.springframework.retry:spring-retry'
+    // OpenFeign
+    implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+    // Kafka
+    implementation 'org.springframework.kafka:spring-kafka'
 }
 
 dependencyManagement {

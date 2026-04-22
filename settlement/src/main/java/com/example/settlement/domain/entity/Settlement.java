@@ -1,12 +1,14 @@
 package com.example.settlement.domain.entity;
 
 import com.example.settlement.domain.enumtype.SettlementStatus;
+import com.example.settlement.domain.enumtype.SettlementType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
@@ -27,6 +29,10 @@ public class Settlement {
     @Column(name = "seller_id", nullable = false)
     private UUID sellerId;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "settlement_type", nullable = false)
+    private SettlementType settlementType;
+
     @Column(name = "settlement_year", nullable = false)
     private Integer settlementYear;
 
@@ -34,16 +40,16 @@ public class Settlement {
     private Integer settlementMonth;
 
     @Column(name = "total_sales_amount", nullable = false)
-    private Long totalSalesAmount;
+    private BigDecimal totalSalesAmount;
 
     @Column(name = "fee_amount", nullable = false)
-    private Long feeAmount;
+    private BigDecimal feeAmount;
 
     @Column(name = "final_settlement_amount", nullable = false)
-    private Long finalSettlementAmount;
+    private BigDecimal finalSettlementAmount;
 
     @Column(name = "settled_amount", nullable = false)
-    private Long settledAmount;
+    private BigDecimal settledAmount;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "settlement_status", nullable = false)
@@ -64,12 +70,13 @@ public class Settlement {
     private Settlement(
             UUID settlementId,
             UUID sellerId,
+            SettlementType settlementType,
             Integer settlementYear,
             Integer settlementMonth,
-            Long totalSalesAmount,
-            Long feeAmount,
-            Long finalSettlementAmount,
-            Long settledAmount,
+            BigDecimal totalSalesAmount,
+            BigDecimal feeAmount,
+            BigDecimal finalSettlementAmount,
+            BigDecimal settledAmount,
             SettlementStatus settlementStatus,
             LocalDateTime settledAt,
             String lastFailureReason,
@@ -78,6 +85,7 @@ public class Settlement {
     ) {
         this.settlementId = Objects.requireNonNull(settlementId);
         this.sellerId = Objects.requireNonNull(sellerId);
+        this.settlementType = Objects.requireNonNull(settlementType);
         this.settlementYear = Objects.requireNonNull(settlementYear);
         this.settlementMonth = Objects.requireNonNull(settlementMonth);
         this.totalSalesAmount = Objects.requireNonNull(totalSalesAmount);
@@ -94,12 +102,13 @@ public class Settlement {
     public static Settlement create(
             UUID settlementId,
             UUID sellerId,
+            SettlementType settlementType,
             Integer settlementYear,
             Integer settlementMonth,
-            Long totalSalesAmount,
-            Long feeAmount,
-            Long finalSettlementAmount,
-            Long settledAmount,
+            BigDecimal totalSalesAmount,
+            BigDecimal feeAmount,
+            BigDecimal finalSettlementAmount,
+            BigDecimal settledAmount,
             SettlementStatus settlementStatus,
             LocalDateTime settledAt,
             String lastFailureReason,
@@ -109,6 +118,7 @@ public class Settlement {
         return new Settlement(
                 settlementId,
                 sellerId,
+                settlementType,
                 settlementYear,
                 settlementMonth,
                 totalSalesAmount,
@@ -123,26 +133,56 @@ public class Settlement {
         );
     }
 
-    public static Settlement createPending(
+    public static Settlement createMonthlyPending(
             UUID settlementId,
             UUID sellerId,
             Integer settlementYear,
             Integer settlementMonth,
-            Long totalSalesAmount,
-            Long feeAmount,
-            Long finalSettlementAmount,
+            BigDecimal totalSalesAmount,
+            BigDecimal feeAmount,
+            BigDecimal finalSettlementAmount,
             LocalDateTime requestedAt
     ) {
         LocalDateTime now = Objects.requireNonNull(requestedAt);
         return new Settlement(
                 settlementId,
                 sellerId,
+                SettlementType.MONTHLY,
                 settlementYear,
                 settlementMonth,
                 validateNonNegative(totalSalesAmount, "totalSalesAmount"),
                 validateNonNegative(feeAmount, "feeAmount"),
                 validateNonNegative(finalSettlementAmount, "finalSettlementAmount"),
-                0L,
+                BigDecimal.ZERO,
+                SettlementStatus.PENDING,
+                null,
+                null,
+                now,
+                now
+        );
+    }
+
+    public static Settlement createPartialPending(
+            UUID settlementId,
+            UUID sellerId,
+            Integer settlementYear,
+            Integer settlementMonth,
+            BigDecimal totalSalesAmount,
+            BigDecimal feeAmount,
+            BigDecimal finalSettlementAmount,
+            LocalDateTime requestedAt
+    ) {
+        LocalDateTime now = Objects.requireNonNull(requestedAt);
+        return new Settlement(
+                settlementId,
+                sellerId,
+                SettlementType.PARTIAL,
+                settlementYear,
+                settlementMonth,
+                validateNonNegative(totalSalesAmount, "totalSalesAmount"),
+                validateNonNegative(feeAmount, "feeAmount"),
+                validateNonNegative(finalSettlementAmount, "finalSettlementAmount"),
+                BigDecimal.ZERO,
                 SettlementStatus.PENDING,
                 null,
                 null,
@@ -152,48 +192,53 @@ public class Settlement {
     }
 
     public void accumulate(
-            Long salesAmount,
-            Long feeAmount,
-            Long finalSettlementAmount,
+            BigDecimal salesAmount,
+            BigDecimal feeAmount,
+            BigDecimal finalSettlementAmount,
             LocalDateTime updatedAt
     ) {
-        this.totalSalesAmount += validateNonNegative(salesAmount, "salesAmount");
-        this.feeAmount += validateNonNegative(feeAmount, "feeAmount");
-        this.finalSettlementAmount += validateNonNegative(finalSettlementAmount, "finalSettlementAmount");
+        this.totalSalesAmount = this.totalSalesAmount.add(validateNonNegative(salesAmount, "salesAmount"));
+        this.feeAmount = this.feeAmount.add(validateNonNegative(feeAmount, "feeAmount"));
+        this.finalSettlementAmount = this.finalSettlementAmount.add(validateNonNegative(finalSettlementAmount, "finalSettlementAmount"));
         this.updatedAt = Objects.requireNonNull(updatedAt);
     }
 
     public void deduct(
-            Long salesAmount,
-            Long feeAmount,
-            Long finalSettlementAmount,
+            BigDecimal salesAmount,
+            BigDecimal feeAmount,
+            BigDecimal finalSettlementAmount,
             LocalDateTime updatedAt
     ) {
-        long validatedSalesAmount = validateNonNegative(salesAmount, "salesAmount");
-        long validatedFeeAmount = validateNonNegative(feeAmount, "feeAmount");
-        long validatedFinalSettlementAmount = validateNonNegative(finalSettlementAmount, "finalSettlementAmount");
+        BigDecimal validatedSalesAmount = validateNonNegative(salesAmount, "salesAmount");
+        BigDecimal validatedFeeAmount = validateNonNegative(feeAmount, "feeAmount");
+        BigDecimal validatedFinalSettlementAmount = validateNonNegative(finalSettlementAmount, "finalSettlementAmount");
 
-        if (validatedSalesAmount > this.totalSalesAmount) {
+        if (validatedSalesAmount.compareTo(this.totalSalesAmount) > 0) {
             throw new IllegalArgumentException("salesAmount exceeds totalSalesAmount.");
         }
-        if (validatedFeeAmount > this.feeAmount) {
+        if (validatedFeeAmount.compareTo(this.feeAmount) > 0) {
             throw new IllegalArgumentException("feeAmount exceeds feeAmount.");
         }
-        if (validatedFinalSettlementAmount > this.finalSettlementAmount) {
+        if (validatedFinalSettlementAmount.compareTo(this.finalSettlementAmount) > 0) {
             throw new IllegalArgumentException("finalSettlementAmount exceeds finalSettlementAmount.");
         }
 
-        this.totalSalesAmount -= validatedSalesAmount;
-        this.feeAmount -= validatedFeeAmount;
-        this.finalSettlementAmount -= validatedFinalSettlementAmount;
+        this.totalSalesAmount = this.totalSalesAmount.subtract(validatedSalesAmount);
+        this.feeAmount = this.feeAmount.subtract(validatedFeeAmount);
+        this.finalSettlementAmount = this.finalSettlementAmount.subtract(validatedFinalSettlementAmount);
         this.updatedAt = Objects.requireNonNull(updatedAt);
     }
 
-    public void complete(Long settledAmount, LocalDateTime settledAt, LocalDateTime updatedAt) {
+    public void complete(BigDecimal settledAmount, LocalDateTime settledAt, LocalDateTime updatedAt) {
         this.settledAmount = Objects.requireNonNull(settledAmount);
         this.settledAt = Objects.requireNonNull(settledAt);
         this.updatedAt = Objects.requireNonNull(updatedAt);
         this.settlementStatus = SettlementStatus.COMPLETED;
+    }
+
+    public void markPayoutRequested(LocalDateTime updatedAt) {
+        this.updatedAt = Objects.requireNonNull(updatedAt);
+        this.settlementStatus = SettlementStatus.PROCESSING;
     }
 
     public void fail(String failureReason, LocalDateTime updatedAt) {
@@ -214,8 +259,8 @@ public class Settlement {
         this.settlementStatus = SettlementStatus.PENDING;
     }
 
-    private static Long validateNonNegative(Long amount, String fieldName) {
-        if (Objects.requireNonNull(amount) < 0) {
+    private static BigDecimal validateNonNegative(BigDecimal amount, String fieldName) {
+        if (Objects.requireNonNull(amount).compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException(fieldName + " must not be negative.");
         }
         return amount;

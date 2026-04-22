@@ -5,7 +5,6 @@ import com.example.payment.application.dto.PaymentRefundItemCommand;
 import com.example.payment.application.dto.PaymentRefundItemResult;
 import com.example.payment.application.dto.PaymentRefundResult;
 import com.example.payment.application.dto.SellerRefundCommand;
-import com.example.payment.application.event.SettlementCandidateExcludedEvent;
 import com.example.payment.application.usecase.PaymentCancellationUseCase;
 import com.example.payment.application.usecase.SellerRefundUseCase;
 import com.example.payment.common.exception.InvalidOrderPaymentRequestException;
@@ -37,15 +36,15 @@ import com.example.payment.domain.repository.WalletTransactionRepository;
 import com.example.payment.domain.service.IdentifierGenerator;
 import com.example.payment.domain.service.OrderRefundNotificationGateway;
 import com.example.payment.domain.service.OrderRefundResultEventPublisher;
-import com.example.payment.domain.service.SettlementCandidateExcludedEventPublisher;
 import com.example.payment.domain.service.TimeProvider;
 import com.example.payment.domain.service.TossPaymentGateway;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderRefundResultMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderRefundResultStatus;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -54,7 +53,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -63,7 +61,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 public class PaymentRefundService implements PaymentCancellationUseCase, SellerRefundUseCase {
 
-    private static final long ROUND_TRIP_DELIVERY_FEE = 6_000L;
+    private static final BigDecimal ROUND_TRIP_DELIVERY_FEE = BigDecimal.valueOf(6_000L);
 
     private final PaymentRefundRepository paymentRefundRepository;
     private final PaymentRefundAllocationRepository paymentRefundAllocationRepository;
@@ -79,8 +77,6 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
     private final OrderPaymentRepository orderPaymentRepository;
     private final OrderRefundNotificationGateway orderRefundNotificationGateway;
     private final OrderRefundResultEventPublisher orderRefundResultEventPublisher;
-    private final SettlementCandidateExcludedEventPublisher settlementCandidateExcludedEventPublisher;
-    private final long refundAvailableDays;
 
     public PaymentRefundService(
             PaymentRefundRepository paymentRefundRepository,
@@ -96,9 +92,7 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
             TimeProvider timeProvider,
             OrderPaymentRepository orderPaymentRepository,
             OrderRefundNotificationGateway orderRefundNotificationGateway,
-            OrderRefundResultEventPublisher orderRefundResultEventPublisher,
-            SettlementCandidateExcludedEventPublisher settlementCandidateExcludedEventPublisher,
-            @Value("${payment.policy.refund-available-days:7}") long refundAvailableDays
+            OrderRefundResultEventPublisher orderRefundResultEventPublisher
     ) {
         this.paymentRefundRepository = paymentRefundRepository;
         this.paymentRefundAllocationRepository = paymentRefundAllocationRepository;
@@ -114,24 +108,22 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
         this.orderPaymentRepository = orderPaymentRepository;
         this.orderRefundNotificationGateway = orderRefundNotificationGateway;
         this.orderRefundResultEventPublisher = orderRefundResultEventPublisher;
-        this.settlementCandidateExcludedEventPublisher = settlementCandidateExcludedEventPublisher;
-        this.refundAvailableDays = refundAvailableDays;
     }
 
     @Override
     @Transactional
     public PaymentRefundResult requestCancellation(PaymentRefundCommand command) {
-        return processCancellationOrSellerRefund(command, CompletionFlow.CANCELLATION_API);
+        return processCancellation(command, CompletionFlow.CANCELLATION_API);
     }
 
     @Override
     @Transactional
     public PaymentRefundResult requestSellerRefund(SellerRefundCommand command) {
         PaymentRefundCommand sellerRefundCommand = buildSellerRefundCommandFromEscrow(command);
-        return processCancellationOrSellerRefund(sellerRefundCommand, CompletionFlow.SELLER_REFUND_KAFKA);
+        return processCancellation(sellerRefundCommand, CompletionFlow.SELLER_REFUND_KAFKA);
     }
 
-    private PaymentRefundResult processCancellationOrSellerRefund(
+    private PaymentRefundResult processCancellation(
             PaymentRefundCommand command,
             CompletionFlow completionFlow
     ) {
@@ -151,7 +143,7 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
         }
 
         LocalDateTime refundRequestedAt = timeProvider.now();
-        Long requestedTotalRefundAmount = calculateTotalRefundAmount(command.items());
+        BigDecimal requestedTotalRefundAmount = calculateTotalRefundAmount(command.items());
         PaymentRefundMethod resolvedPaymentMethod = resolvePaymentRefundMethod(command.items());
         validateCardRefundReason(resolvedPaymentMethod, command.reason(), requestedTotalRefundAmount);
 
@@ -174,7 +166,7 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
         PaymentRefund processingRefund = paymentRefundRepository.save(savedRequestedRefund);
 
         try {
-            if (processingRefund.getTotalRefundAmount() > 0L) {
+            if (processingRefund.getTotalRefundAmount().compareTo(BigDecimal.ZERO) > 0) {
                 List<PaymentRefundAllocation> refundAllocations = executeRefundByPaymentMethod(processingRefund, command.items());
                 paymentRefundAllocationRepository.saveAll(refundAllocations);
                 refundEscrows(
@@ -220,7 +212,7 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
                 command.orderItemIds()
         );
 
-        Map<UUID, Escrow> escrowByOrderItemId = new LinkedHashMap<>();
+        Map<UUID, Escrow> escrowByOrderItemId = new HashMap<>();
         for (Escrow escrow : orderItemEscrows) {
             escrowByOrderItemId.put(escrow.getReferenceId(), escrow);
         }
@@ -238,6 +230,9 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
             if (!Objects.equals(escrow.getSellerMemberId(), command.sellerMemberId())) {
                 throw new InvalidOrderPaymentRequestException("seller is not allowed for orderItemId: " + orderItemId);
             }
+            if (!escrow.isHeld()) {
+                throw new InvalidOrderPaymentRequestException("seller refund is allowed only before purchase confirmation.");
+            }
 
             if (buyerMemberId == null) {
                 buyerMemberId = escrow.getBuyerMemberId();
@@ -247,15 +242,13 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
             refundItems.add(new PaymentRefundItemCommand(orderItemId, escrow.getAmount()));
         }
 
-        List<PaymentRefundItemCommand> deductedRefundItems = applyRoundTripDeliveryFeeDeduction(refundItems);
-        // TODO: Rename orderCancelRequestId to neutral idempotency key once order contract is finalized.
         return new PaymentRefundCommand(
                 command.orderId(),
                 Objects.requireNonNull(buyerMemberId),
                 command.orderCancelRequestId(),
                 command.refundType(),
                 command.reason(),
-                deductedRefundItems
+                applyRoundTripDeliveryFeeDeduction(refundItems)
         );
     }
 
@@ -278,6 +271,7 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
         if (command.orderItemIds() == null || command.orderItemIds().isEmpty()) {
             throw new InvalidOrderPaymentRequestException("orderItemIds must not be empty.");
         }
+
         Set<UUID> seenOrderItemIds = new HashSet<>();
         for (UUID orderItemId : command.orderItemIds()) {
             if (orderItemId == null) {
@@ -290,15 +284,15 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
     }
 
     private List<PaymentRefundItemCommand> applyRoundTripDeliveryFeeDeduction(List<PaymentRefundItemCommand> items) {
-        long remainingFee = ROUND_TRIP_DELIVERY_FEE;
+        BigDecimal remainingFee = ROUND_TRIP_DELIVERY_FEE;
         List<PaymentRefundItemCommand> deductedItems = new ArrayList<>();
         for (PaymentRefundItemCommand item : items) {
-            long amount = item.refundAmount();
-            long deductedAmount;
-            if (remainingFee > 0L) {
-                long consumedFee = Math.min(remainingFee, amount);
-                deductedAmount = amount - consumedFee;
-                remainingFee -= consumedFee;
+            BigDecimal amount = item.refundAmount();
+            BigDecimal deductedAmount;
+            if (remainingFee.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal consumedFee = remainingFee.min(amount);
+                deductedAmount = amount.subtract(consumedFee);
+                remainingFee = remainingFee.subtract(consumedFee);
             } else {
                 deductedAmount = amount;
             }
@@ -343,7 +337,7 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
     private PaymentRefund saveRequestedRefund(
             PaymentRefundCommand command,
             PaymentRefundMethod paymentRefundMethod,
-            Long requestedTotalRefundAmount,
+            BigDecimal requestedTotalRefundAmount,
             LocalDateTime refundRequestedAt
     ) {
         PaymentRefund requestedRefund = PaymentRefund.createRequested(
@@ -376,17 +370,17 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
         if (item.orderItemId() == null) {
             throw new InvalidOrderPaymentRequestException("orderItemId is required.");
         }
-        if (item.refundAmount() == null || item.refundAmount() < 0) {
+        if (item.refundAmount() == null || item.refundAmount().compareTo(BigDecimal.ZERO) < 0) {
             throw new InvalidOrderPaymentRequestException("refundAmount must not be negative.");
         }
     }
 
-    private Long calculateTotalRefundAmount(List<PaymentRefundItemCommand> items) {
-        long totalAmount = 0L;
+    private BigDecimal calculateTotalRefundAmount(List<PaymentRefundItemCommand> items) {
+        BigDecimal totalAmount = BigDecimal.ZERO;
         for (PaymentRefundItemCommand item : items) {
-            totalAmount += item.refundAmount();
+            totalAmount = totalAmount.add(item.refundAmount());
         }
-        if (totalAmount < 0L) {
+        if (totalAmount.compareTo(BigDecimal.ZERO) < 0) {
             throw new InvalidOrderPaymentRequestException("total refund amount must not be negative.");
         }
         return totalAmount;
@@ -418,9 +412,9 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
     private void validateCardRefundReason(
             PaymentRefundMethod paymentRefundMethod,
             String refundReason,
-            Long totalRefundAmount
+            BigDecimal totalRefundAmount
     ) {
-        if (totalRefundAmount == null || totalRefundAmount == 0L) {
+        if (totalRefundAmount == null || totalRefundAmount.compareTo(BigDecimal.ZERO) == 0) {
             return;
         }
         if ((paymentRefundMethod == PaymentRefundMethod.CARD || paymentRefundMethod == PaymentRefundMethod.MIXED)
@@ -464,16 +458,16 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
 
     private PaymentRefundAllocation executeWalletRefund(
             PaymentRefund paymentRefund,
-            Long refundAmount,
+            BigDecimal refundAmount,
             LocalDateTime refundedAt
     ) {
-        if (refundAmount <= 0L) {
+        if (refundAmount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new InvalidOrderPaymentRequestException("wallet refund amount must be positive.");
         }
         Wallet buyerWallet = walletRepository.findByMemberId(paymentRefund.getBuyerMemberId())
                 .orElseThrow(WalletNotFoundException::new);
 
-        Long balanceAfter = buyerWallet.increaseBalance(refundAmount, refundedAt);
+        BigDecimal balanceAfter = buyerWallet.increaseBalance(refundAmount, refundedAt);
         walletRepository.save(buyerWallet);
 
         WalletTransaction refundTransaction = WalletTransaction.create(
@@ -500,38 +494,36 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
 
     private void refundEscrows(
             UUID orderId,
-            Long totalRefundAmount,
+            BigDecimal totalRefundAmount,
             UUID buyerMemberId,
             UUID refundId,
             List<PaymentRefundItemCommand> itemCommands,
             LocalDateTime refundedAt
     ) {
-        Map<UUID, Long> requestedRefundAmountByOrderItemId = toRequestedRefundAmountByOrderItemId(itemCommands);
+        Map<UUID, BigDecimal> requestedRefundAmountByOrderItemId = toRequestedRefundAmountByOrderItemId(itemCommands);
 
         List<Escrow> refundableEscrows = escrowRepository.findAllByReferenceTypeAndReferenceIdIn(
                 EscrowReferenceType.ORDER_ITEM,
                 requestedRefundAmountByOrderItemId.keySet().stream().toList()
         ).stream()
-                .filter(escrow -> escrow.isHeld() || escrow.isReleased())
+                .filter(Escrow::isHeld)
                 .toList();
 
         if (refundableEscrows.isEmpty()) {
-            throw new InvalidOrderPaymentRequestException("refundable escrow not found for refund.");
+            throw new InvalidOrderPaymentRequestException("held escrow not found for refund.");
         }
 
         Map<UUID, Escrow> escrowByOrderItemId = mapRefundableEscrowsByOrderItemId(refundableEscrows, buyerMemberId, orderId);
-        long appliedTotalRefundAmount = 0L;
-        for (Map.Entry<UUID, Long> requestedRefundAmountEntry : requestedRefundAmountByOrderItemId.entrySet()) {
+        BigDecimal appliedTotalRefundAmount = BigDecimal.ZERO;
+        for (Map.Entry<UUID, BigDecimal> requestedRefundAmountEntry : requestedRefundAmountByOrderItemId.entrySet()) {
             Escrow escrow = escrowByOrderItemId.get(requestedRefundAmountEntry.getKey());
             if (escrow == null) {
                 throw new InvalidOrderPaymentRequestException(
-                        "refundable escrow not found for orderItemId: " + requestedRefundAmountEntry.getKey()
+                        "held escrow not found for orderItemId: " + requestedRefundAmountEntry.getKey()
                 );
             }
-            boolean wasReleasedBeforeRefund = escrow.isReleased();
-            validateReleasedEscrowRefundWindow(escrow, refundedAt);
 
-            long beforeAmount = escrow.getAmount();
+            BigDecimal beforeAmount = escrow.getAmount();
             escrow.applyRefundAmount(requestedRefundAmountEntry.getValue(), refundedAt, refundedAt);
             escrowRepository.save(escrow);
             recordRefundEscrowTransaction(
@@ -542,27 +534,19 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
                     refundId,
                     refundedAt
             );
-            if (wasReleasedBeforeRefund) {
-                publishSettlementCandidateExcludedEvent(
-                        escrow,
-                        refundId,
-                        requestedRefundAmountEntry.getValue(),
-                        refundedAt
-                );
-            }
-            appliedTotalRefundAmount += requestedRefundAmountEntry.getValue();
+            appliedTotalRefundAmount = appliedTotalRefundAmount.add(requestedRefundAmountEntry.getValue());
         }
 
-        if (appliedTotalRefundAmount != totalRefundAmount) {
+        if (appliedTotalRefundAmount.compareTo(totalRefundAmount) != 0) {
             throw new InvalidOrderPaymentRequestException("refunded escrow amount does not match total refund amount.");
         }
     }
 
     private void recordRefundEscrowTransaction(
             Escrow escrow,
-            Long refundAmount,
-            Long beforeAmount,
-            Long afterAmount,
+            BigDecimal refundAmount,
+            BigDecimal beforeAmount,
+            BigDecimal afterAmount,
             UUID refundId,
             LocalDateTime occurredAt
     ) {
@@ -585,10 +569,10 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
         escrowTransactionRepository.save(transaction);
     }
 
-    private Map<UUID, Long> toRequestedRefundAmountByOrderItemId(List<PaymentRefundItemCommand> itemCommands) {
-        Map<UUID, Long> requestedRefundAmountByOrderItemId = new HashMap<>();
+    private Map<UUID, BigDecimal> toRequestedRefundAmountByOrderItemId(List<PaymentRefundItemCommand> itemCommands) {
+        Map<UUID, BigDecimal> requestedRefundAmountByOrderItemId = new HashMap<>();
         for (PaymentRefundItemCommand itemCommand : itemCommands) {
-            requestedRefundAmountByOrderItemId.merge(itemCommand.orderItemId(), itemCommand.refundAmount(), Long::sum);
+            requestedRefundAmountByOrderItemId.merge(itemCommand.orderItemId(), itemCommand.refundAmount(), BigDecimal::add);
         }
         return requestedRefundAmountByOrderItemId;
     }
@@ -610,44 +594,11 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
         return refundableEscrowByOrderItemId;
     }
 
-    private void validateReleasedEscrowRefundWindow(Escrow escrow, LocalDateTime refundedAt) {
-        if (!escrow.isReleased()) {
-            return;
-        }
-        LocalDateTime releasedAt = escrow.getReleasedAt();
-        if (releasedAt == null) {
-            throw new InvalidOrderPaymentRequestException("released escrow has no releasedAt.");
-        }
-        LocalDateTime refundDeadline = releasedAt.plusDays(refundAvailableDays);
-        if (refundedAt.isAfter(refundDeadline)) {
-            throw new InvalidOrderPaymentRequestException("refund period expired for released escrow.");
-        }
-    }
-
-    private void publishSettlementCandidateExcludedEvent(
-            Escrow escrow,
-            UUID refundId,
-            Long refundAmount,
-            LocalDateTime occurredAt
-    ) {
-        settlementCandidateExcludedEventPublisher.publish(new SettlementCandidateExcludedEvent(
-                identifierGenerator.generateUuid(),
-                refundId,
-                escrow.getOrderId(),
-                escrow.getEscrowId(),
-                escrow.getReferenceId(),
-                escrow.getSellerMemberId(),
-                escrow.getBuyerMemberId(),
-                refundAmount,
-                occurredAt
-        ));
-    }
-
     private PaymentRefundAllocation executeCardRefund(PaymentRefund paymentRefund, List<PaymentRefundItemCommand> itemCommands) {
         List<CardTransaction> originalPayments = findOriginalCardPayments(itemCommands);
         Map<UUID, CardTransaction> originalPaymentMap = mapOriginalPaymentsByOrderItemId(originalPayments);
         List<UUID> orderItemIds = itemCommands.stream().map(PaymentRefundItemCommand::orderItemId).distinct().toList();
-        long cardRefundAmount = calculateTotalRefundAmount(itemCommands);
+        BigDecimal cardRefundAmount = calculateTotalRefundAmount(itemCommands);
 
         validateOriginalCardPayments(orderItemIds, originalPaymentMap, paymentRefund.getBuyerMemberId());
         UUID cardCancelTransactionGroupId = executeCardCancellation(
@@ -695,7 +646,7 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
                 .toList();
         validateOriginalCardPayments(cardOrderItemIds, originalPaymentMap, paymentRefund.getBuyerMemberId());
 
-        long cardRefundAmount = calculateTotalRefundAmount(cardRefundItems);
+        BigDecimal cardRefundAmount = calculateTotalRefundAmount(cardRefundItems);
         UUID cardCancelTransactionGroupId = executeCardCancellation(
                 paymentRefund,
                 cardRefundItems,
@@ -704,7 +655,7 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
                 cardRefundAmount
         );
 
-        long walletRefundAmount = calculateTotalRefundAmount(walletRefundItems);
+        BigDecimal walletRefundAmount = calculateTotalRefundAmount(walletRefundItems);
         PaymentRefundAllocation walletAllocation = executeWalletRefund(paymentRefund, walletRefundAmount, refundedAt);
 
         PaymentRefundAllocation cardAllocation = PaymentRefundAllocation.cardAllocation(
@@ -730,9 +681,9 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
             List<PaymentRefundItemCommand> cardRefundItems,
             List<CardTransaction> originalPayments,
             Map<UUID, CardTransaction> originalPaymentMap,
-            Long cancellationAmount
+            BigDecimal cancellationAmount
     ) {
-        Map<UUID, Long> remainingAmountByOrderItemId = validateAndResolveRemainingAmounts(
+        Map<UUID, BigDecimal> remainingAmountByOrderItemId = validateAndResolveRemainingAmounts(
                 cardRefundItems,
                 originalPaymentMap
         );
@@ -767,7 +718,7 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
         return cancelTransactionGroupId;
     }
 
-    private Map<UUID, Long> validateAndResolveRemainingAmounts(
+    private Map<UUID, BigDecimal> validateAndResolveRemainingAmounts(
             List<PaymentRefundItemCommand> cardRefundItems,
             Map<UUID, CardTransaction> originalPaymentMap
     ) {
@@ -779,35 +730,35 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
         List<CardTransaction> successfulCancels = cardTransactionRepository.findSuccessfulCancelsByRelatedTransactionIds(
                 originalTransactionIds
         );
-        Map<UUID, Long> remainingAmountByOriginalTransactionId = resolveRemainingAmountByOriginalTransactionId(
+        Map<UUID, BigDecimal> remainingAmountByOriginalTransactionId = resolveRemainingAmountByOriginalTransactionId(
                 originalPaymentMap,
                 successfulCancels
         );
 
-        Map<UUID, Long> remainingAmountByOrderItemId = new HashMap<>();
+        Map<UUID, BigDecimal> remainingAmountByOrderItemId = new HashMap<>();
         for (PaymentRefundItemCommand cardRefundItem : cardRefundItems) {
             CardTransaction originalPayment = Objects.requireNonNull(originalPaymentMap.get(cardRefundItem.orderItemId()));
             UUID originalTransactionId = originalPayment.getCardTransactionId();
-            Long currentRemainingAmount = remainingAmountByOriginalTransactionId.get(originalTransactionId);
+            BigDecimal currentRemainingAmount = remainingAmountByOriginalTransactionId.get(originalTransactionId);
             if (currentRemainingAmount == null) {
                 throw new InvalidOrderPaymentRequestException("remaining card amount not found for orderItemId: " + cardRefundItem.orderItemId());
             }
-            if (cardRefundItem.refundAmount() > currentRemainingAmount) {
+            if (cardRefundItem.refundAmount().compareTo(currentRemainingAmount) > 0) {
                 throw new InvalidOrderPaymentRequestException("card refund amount exceeds remaining amount for orderItemId: " + cardRefundItem.orderItemId());
             }
 
-            long nextRemainingAmount = currentRemainingAmount - cardRefundItem.refundAmount();
+            BigDecimal nextRemainingAmount = currentRemainingAmount.subtract(cardRefundItem.refundAmount());
             remainingAmountByOriginalTransactionId.put(originalTransactionId, nextRemainingAmount);
             remainingAmountByOrderItemId.put(cardRefundItem.orderItemId(), nextRemainingAmount);
         }
         return remainingAmountByOrderItemId;
     }
 
-    private Map<UUID, Long> resolveRemainingAmountByOriginalTransactionId(
+    private Map<UUID, BigDecimal> resolveRemainingAmountByOriginalTransactionId(
             Map<UUID, CardTransaction> originalPaymentMap,
             List<CardTransaction> successfulCancels
     ) {
-        Map<UUID, Long> canceledAmountByOriginalTransactionId = new HashMap<>();
+        Map<UUID, BigDecimal> canceledAmountByOriginalTransactionId = new HashMap<>();
         for (CardTransaction successfulCancel : successfulCancels) {
             UUID originalTransactionId = successfulCancel.getRelatedTransactionId();
             if (originalTransactionId == null) {
@@ -816,19 +767,19 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
             canceledAmountByOriginalTransactionId.merge(
                     originalTransactionId,
                     resolveApprovedAmount(successfulCancel),
-                    Long::sum
+                    BigDecimal::add
             );
         }
 
-        Map<UUID, Long> remainingAmountByOriginalTransactionId = new HashMap<>();
+        Map<UUID, BigDecimal> remainingAmountByOriginalTransactionId = new HashMap<>();
         for (CardTransaction originalPayment : originalPaymentMap.values()) {
-            long originalApprovedAmount = resolveApprovedAmount(originalPayment);
-            long canceledAmount = canceledAmountByOriginalTransactionId.getOrDefault(
+            BigDecimal originalApprovedAmount = resolveApprovedAmount(originalPayment);
+            BigDecimal canceledAmount = canceledAmountByOriginalTransactionId.getOrDefault(
                     originalPayment.getCardTransactionId(),
-                    0L
+                    BigDecimal.ZERO
             );
-            long remainingAmount = originalApprovedAmount - canceledAmount;
-            if (remainingAmount < 0L) {
+            BigDecimal remainingAmount = originalApprovedAmount.subtract(canceledAmount);
+            if (remainingAmount.compareTo(BigDecimal.ZERO) < 0) {
                 throw new InvalidOrderPaymentRequestException("remaining card amount is invalid for orderItemId: " + originalPayment.getReferenceId());
             }
             remainingAmountByOriginalTransactionId.put(originalPayment.getCardTransactionId(), remainingAmount);
@@ -836,13 +787,13 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
         return remainingAmountByOriginalTransactionId;
     }
 
-    private Long resolveApprovedAmount(CardTransaction cardTransaction) {
-        Long approvedAmount = cardTransaction.getApprovedAmount();
-        if (approvedAmount != null && approvedAmount > 0L) {
+    private BigDecimal resolveApprovedAmount(CardTransaction cardTransaction) {
+        BigDecimal approvedAmount = cardTransaction.getApprovedAmount();
+        if (approvedAmount != null && approvedAmount.compareTo(BigDecimal.ZERO) > 0) {
             return approvedAmount;
         }
-        Long requestedAmount = cardTransaction.getRequestedAmount();
-        if (requestedAmount != null && requestedAmount > 0L) {
+        BigDecimal requestedAmount = cardTransaction.getRequestedAmount();
+        if (requestedAmount != null && requestedAmount.compareTo(BigDecimal.ZERO) > 0) {
             return requestedAmount;
         }
         throw new InvalidOrderPaymentRequestException("card transaction amount is invalid.");
@@ -888,8 +839,8 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
         return paymentKey;
     }
 
-    private void validateCardCancellationAmount(Long expectedAmount, Long canceledAmount) {
-        if (!Objects.equals(expectedAmount, canceledAmount)) {
+    private void validateCardCancellationAmount(BigDecimal expectedAmount, BigDecimal canceledAmount) {
+        if (expectedAmount.compareTo(canceledAmount) != 0) {
             throw new InvalidOrderPaymentRequestException("card cancellation amount does not match requested amount.");
         }
     }
@@ -897,8 +848,8 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
     private CardTransaction createApprovedCancelTransaction(
             UUID cancelTransactionGroupId,
             CardTransaction originalPayment,
-            Long cancelAmount,
-            Long remainingAmount,
+            BigDecimal cancelAmount,
+            BigDecimal remainingAmount,
             CardTransactionCancelScope cancelScope,
             String cancelReason,
             LocalDateTime canceledAt
@@ -943,10 +894,10 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
             return;
         }
 
-        long totalRefundedAmount = paymentRefundRepository.findAllByOrderIdAndRefundStatus(orderId, PaymentRefundStatus.SUCCEEDED)
+        BigDecimal totalRefundedAmount = paymentRefundRepository.findAllByOrderIdAndRefundStatus(orderId, PaymentRefundStatus.SUCCEEDED)
                 .stream()
-                .mapToLong(PaymentRefund::getTotalRefundAmount)
-                .sum();
+                .map(PaymentRefund::getTotalRefundAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         LocalDateTime now = timeProvider.now();
         orderPayment.markRefundStatusByTotalRefundedAmount(totalRefundedAmount, now);

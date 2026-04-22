@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: goods-mall
+spec:
+  replicas: 1                  # DB는 단일 인스턴스
+  selector:
+    matchLabels:
+      app: postgres            # 이 라벨을 가진 Pod를 관리
+  template:
+    metadata:
+      labels:
+        app: postgres          # Pod에 붙는 라벨
+    spec:
+      containers:
+        - name: postgres
+          image: pgvector/pgvector:pg18
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: postgres-config
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: common-secret
+                  key: DB_USER_NAME
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: common-secret
+                  key: DB_USER_PASSWORD
+            - name: POSTGRES_HOST_AUTH_METHOD
+              value: scram-sha-256
+            - name: TZ
+              value: Asia/Seoul
+          volumeMounts:
+            - name: postgres-storage
+              mountPath: /var/lib/postgresql/data
+          startupProbe: # 최초 기동 완료될 때까지 대기 (최대 300초)
+            exec:
+              command: [ "pg_isready", "-U", "goods_mall_user", "-d", "goods_mall" ]
+            failureThreshold: 12
+            periodSeconds: 10
+          livenessProbe: # Pod가 살아있는지 확인
+            exec:
+              command: [ "pg_isready", "-U", "goods_mall_user", "-d", "goods_mall" ]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe: # 트래픽 받을 준비됐는지 확인
+            exec:
+              command: [ "pg_isready", "-U", "goods_mall_user", "-d", "goods_mall" ]
+            initialDelaySeconds: 10
+            periodSeconds: 5
+      volumes:
+        - name: postgres-storage
+          persistentVolumeClaim:
+            claimName: postgres-pvc  # pvc.yaml과 연결

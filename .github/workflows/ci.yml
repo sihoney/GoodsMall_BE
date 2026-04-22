@@ -15,8 +15,6 @@ on:
       - "settlement/**"
       - "cart/**"
       - "gateway/**"
-      - "discovery/**"
-      - "config/**"
       - "db-migration/**"
       - "common-security/**"
       - "ai/**"
@@ -98,12 +96,16 @@ jobs:
             MODULES+=('{"module_name":"gateway"}')
           fi
 
-          if grep -q '^discovery/' <<< "$CHANGED_FILES"; then
-            MODULES+=('{"module_name":"discovery"}')
+          if grep -q '^common-security/' <<< "$CHANGED_FILES"; then
+            MODULES+=('{"module_name":"common-security"}')
           fi
 
-          if grep -q '^config/' <<< "$CHANGED_FILES"; then
-            MODULES+=('{"module_name":"config"}')
+          if grep -q '^ai/' <<< "$CHANGED_FILES"; then
+            MODULES+=('{"module_name":"ai"}')
+          fi
+
+          if grep -q '^auction/' <<< "$CHANGED_FILES"; then
+            MODULES+=('{"module_name":"auction"}')
           fi
 
           if grep -q '^common-security/' <<< "$CHANGED_FILES"; then

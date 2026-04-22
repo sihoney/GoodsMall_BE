@@ -12,10 +12,12 @@ import com.example.settlement.application.dto.MonthlySettlementAggregateResult;
 import com.example.settlement.application.dto.SettlementItemCreateCommand;
 import com.example.settlement.domain.entity.Settlement;
 import com.example.settlement.domain.entity.SettlementItem;
+import com.example.settlement.domain.enumtype.SettlementItemStatus;
 import com.example.settlement.domain.enumtype.SettlementStatus;
+import com.example.settlement.domain.enumtype.SettlementType;
 import com.example.settlement.domain.repository.SettlementItemRepository;
-import com.example.settlement.domain.repository.SettlementRefundManualActionRepository;
 import com.example.settlement.domain.repository.SettlementRepository;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -37,18 +39,18 @@ class MonthlySettlementServiceTest {
     @Mock
     private SettlementItemRepository settlementItemRepository;
 
-    @Mock
-    private SettlementRefundManualActionRepository settlementRefundManualActionRepository;
-
     private MonthlySettlementService monthlySettlementService;
 
     @BeforeEach
     void setUp() {
         monthlySettlementService = new MonthlySettlementService(
                 settlementRepository,
-                settlementItemRepository,
-                settlementRefundManualActionRepository
+                settlementItemRepository
         );
+    }
+
+    private BigDecimal amount(long value) {
+        return BigDecimal.valueOf(value);
     }
 
     @Test
@@ -60,9 +62,9 @@ class MonthlySettlementServiceTest {
                 UUID.randomUUID(),
                 escrowId,
                 UUID.randomUUID(),
-                10_000L,
-                1_000L,
-                9_000L,
+                amount(10_000L),
+                amount(1_000L),
+                amount(9_000L),
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );
@@ -72,7 +74,7 @@ class MonthlySettlementServiceTest {
                 UUID.randomUUID(),
                 escrowId,
                 UUID.randomUUID(),
-                10_000L,
+                amount(10_000L),
                 LocalDateTime.now()
         ));
 
@@ -89,13 +91,13 @@ class MonthlySettlementServiceTest {
                 UUID.randomUUID(),
                 escrowId,
                 UUID.randomUUID(),
-                10_000L,
+                amount(10_000L),
                 LocalDateTime.now()
         ));
 
-        assertThat(result.getGrossAmount()).isEqualTo(10_000L);
-        assertThat(result.getFeeAmount()).isEqualTo(1_000L);
-        assertThat(result.getNetAmount()).isEqualTo(9_000L);
+        assertThat(result.getGrossAmount()).isEqualTo(amount(10_000L));
+        assertThat(result.getFeeAmount()).isEqualTo(amount(1_000L));
+        assertThat(result.getNetAmount()).isEqualTo(amount(9_000L));
     }
 
     @ParameterizedTest
@@ -116,13 +118,13 @@ class MonthlySettlementServiceTest {
                 UUID.randomUUID(),
                 escrowId,
                 UUID.randomUUID(),
-                grossAmount,
+                amount(grossAmount),
                 LocalDateTime.now()
         ));
 
-        assertThat(result.getFeeAmount()).isEqualTo(expectedFeeAmount);
-        assertThat(result.getNetAmount()).isEqualTo(expectedNetAmount);
-        assertThat(result.getGrossAmount() - result.getFeeAmount()).isEqualTo(result.getNetAmount());
+        assertThat(result.getFeeAmount()).isEqualTo(amount(expectedFeeAmount));
+        assertThat(result.getNetAmount()).isEqualTo(amount(expectedNetAmount));
+        assertThat(result.getGrossAmount().subtract(result.getFeeAmount())).isEqualTo(result.getNetAmount());
     }
 
     @Test
@@ -134,21 +136,22 @@ class MonthlySettlementServiceTest {
                 UUID.randomUUID(),
                 UUID.randomUUID(),
                 sellerId,
-                10_000L,
-                1_000L,
-                9_000L,
+                amount(10_000L),
+                amount(1_000L),
+                amount(9_000L),
                 LocalDateTime.of(2026, 3, 15, 10, 0),
                 LocalDateTime.now()
         );
         Settlement createdSettlement = Settlement.create(
                 UUID.randomUUID(),
                 sellerId,
+                SettlementType.MONTHLY,
                 2026,
                 3,
-                10_000L,
-                1_000L,
-                9_000L,
-                0L,
+                amount(10_000L),
+                amount(1_000L),
+                amount(9_000L),
+                amount(0L),
                 SettlementStatus.PENDING,
                 null,
                 null,
@@ -156,8 +159,22 @@ class MonthlySettlementServiceTest {
                 LocalDateTime.now()
         );
         when(settlementItemRepository.findUnassignedByReleasedAtBetween(any(), any())).thenReturn(List.of(settlementItem));
-        when(settlementRepository.findBySellerIdAndSettlementYearAndSettlementMonth(sellerId, 2026, 3))
-                .thenReturn(Optional.empty());
+        when(settlementItemRepository.updateSettlementItemStatusIn(
+                List.of(settlementItem.getSettlementItemId()),
+                SettlementItemStatus.UNASSIGNED,
+                SettlementItemStatus.PROCESSING
+        )).thenReturn(1);
+        settlementItem.markProcessing();
+        when(settlementItemRepository.findAllBySettlementItemIdInAndSettlementItemStatus(
+                List.of(settlementItem.getSettlementItemId()),
+                SettlementItemStatus.PROCESSING
+        )).thenReturn(List.of(settlementItem));
+        when(settlementRepository.findAllBySellerIdInAndSettlementYearAndSettlementMonthAndSettlementType(
+                List.of(sellerId),
+                2026,
+                3,
+                SettlementType.MONTHLY
+        )).thenReturn(List.of());
         when(settlementRepository.save(any(Settlement.class))).thenReturn(createdSettlement);
         when(settlementItemRepository.save(any(SettlementItem.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -184,25 +201,39 @@ class MonthlySettlementServiceTest {
                 UUID.randomUUID(),
                 UUID.randomUUID(),
                 sellerId,
-                20_000L,
-                2_000L,
-                18_000L,
+                amount(20_000L),
+                amount(2_000L),
+                amount(18_000L),
                 LocalDateTime.of(2026, 3, 20, 10, 0),
                 LocalDateTime.now()
         );
-        Settlement existingSettlement = Settlement.createPending(
+        Settlement existingSettlement = Settlement.createMonthlyPending(
                 UUID.randomUUID(),
                 sellerId,
                 2026,
                 3,
-                10_000L,
-                1_000L,
-                9_000L,
+                amount(10_000L),
+                amount(1_000L),
+                amount(9_000L),
                 LocalDateTime.now()
         );
         when(settlementItemRepository.findUnassignedByReleasedAtBetween(any(), any())).thenReturn(List.of(settlementItem));
-        when(settlementRepository.findBySellerIdAndSettlementYearAndSettlementMonth(sellerId, 2026, 3))
-                .thenReturn(Optional.of(existingSettlement));
+        when(settlementItemRepository.updateSettlementItemStatusIn(
+                List.of(settlementItem.getSettlementItemId()),
+                SettlementItemStatus.UNASSIGNED,
+                SettlementItemStatus.PROCESSING
+        )).thenReturn(1);
+        settlementItem.markProcessing();
+        when(settlementItemRepository.findAllBySettlementItemIdInAndSettlementItemStatus(
+                List.of(settlementItem.getSettlementItemId()),
+                SettlementItemStatus.PROCESSING
+        )).thenReturn(List.of(settlementItem));
+        when(settlementRepository.findAllBySellerIdInAndSettlementYearAndSettlementMonthAndSettlementType(
+                List.of(sellerId),
+                2026,
+                3,
+                SettlementType.MONTHLY
+        )).thenReturn(List.of(existingSettlement));
         when(settlementRepository.save(any(Settlement.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(settlementItemRepository.save(any(SettlementItem.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -215,9 +246,9 @@ class MonthlySettlementServiceTest {
                 )
         );
 
-        assertThat(existingSettlement.getTotalSalesAmount()).isEqualTo(30_000L);
-        assertThat(existingSettlement.getFeeAmount()).isEqualTo(3_000L);
-        assertThat(existingSettlement.getFinalSettlementAmount()).isEqualTo(27_000L);
+        assertThat(existingSettlement.getTotalSalesAmount()).isEqualTo(amount(30_000L));
+        assertThat(existingSettlement.getFeeAmount()).isEqualTo(amount(3_000L));
+        assertThat(existingSettlement.getFinalSettlementAmount()).isEqualTo(amount(27_000L));
         assertThat(result.createdSettlementCount()).isZero();
         assertThat(result.updatedSettlementCount()).isEqualTo(1);
         verify(settlementRepository, times(1)).save(existingSettlement);
@@ -274,9 +305,9 @@ class MonthlySettlementServiceTest {
                 UUID.randomUUID(),
                 UUID.randomUUID(),
                 UUID.randomUUID(),
-                10_000L,
-                1_000L,
-                9_000L,
+                amount(10_000L),
+                amount(1_000L),
+                amount(9_000L),
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );

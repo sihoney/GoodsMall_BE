@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auction
+  namespace: goods-mall
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auction
+  template:
+    metadata:
+      labels:
+        app: auction
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: auction
+          image: ghcr.io/prgrms-be-adv-devcourse/beadv5_2_todaylunchmenu_be/auction:latest
+          ports:
+            - containerPort: 8090
+          envFrom:
+            - configMapRef:
+                name: common-config
+            - secretRef:
+                name: common-secret
+            - configMapRef:
+                name: auction-config
+            - secretRef:
+                name: auction-secret
+          startupProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8090
+            failureThreshold: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8090
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8090
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3

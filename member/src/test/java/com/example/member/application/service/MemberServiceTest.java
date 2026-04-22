@@ -9,17 +9,17 @@ import static org.mockito.Mockito.when;
 
 import com.example.member.application.event.MemberEventPublisher;
 import com.example.member.application.support.ProfileImageUrlResolver;
-import com.example.member.application.service.EmailVerificationService;
 import com.example.member.common.exception.DuplicateMemberEmailException;
+import com.example.member.config.MemberSignupProperties;
 import com.example.member.domain.entity.Member;
 import com.example.member.domain.enumtype.MemberStatus;
 import com.example.member.infrastructure.repository.MemberRepository;
 import com.example.member.presentation.dto.CreateMemberRequest;
 import com.example.member.presentation.dto.CreateMemberResponse;
 import com.example.member.presentation.dto.UpdateMemberRequest;
+import com.todaylunch.common.security.auth.enumtype.MemberRole;
 import java.time.LocalDateTime;
 import java.util.UUID;
-import com.todaylunch.common.security.auth.enumtype.MemberRole;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -46,6 +46,9 @@ class MemberServiceTest {
     @Mock
     private EmailVerificationService emailVerificationService;
 
+    @Mock
+    private MemberSignupProperties memberSignupProperties;
+
     @InjectMocks
     private MemberService memberService;
 
@@ -67,6 +70,7 @@ class MemberServiceTest {
         when(profileImageUrlResolver.isSupportedKey("members/profile/profile.png")).thenReturn(true);
         when(profileImageUrlResolver.resolve("members/profile/profile.png"))
                 .thenReturn("https://cdn.test/members/profile/profile.png");
+        when(memberSignupProperties.requireEmailVerification()).thenReturn(true);
         when(emailVerificationService.createSignupVerification(any(Member.class))).thenReturn(null);
 
         CreateMemberResponse response = memberService.createMember(request);
@@ -74,6 +78,7 @@ class MemberServiceTest {
         ArgumentCaptor<Member> memberCaptor = ArgumentCaptor.forClass(Member.class);
         verify(memberRepository).save(memberCaptor.capture());
         verify(memberEventPublisher).publishMemberSignedUp(memberCaptor.getValue());
+        verify(emailVerificationService).createSignupVerification(memberCaptor.getValue());
 
         Member savedMember = memberCaptor.getValue();
         assertEquals("member@test.com", savedMember.getEmail());
@@ -85,6 +90,36 @@ class MemberServiceTest {
         assertEquals(savedMember.getMemberId(), response.memberId());
         assertEquals(savedMember.getNickname(), response.nickname());
         assertEquals("https://cdn.test/members/profile/profile.png", response.profileImageUrl());
+    }
+
+    @Test
+    void createMember_whenEmailVerificationDisabled_savesActiveMemberWithoutSendingEmail() {
+        CreateMemberRequest request = new CreateMemberRequest(
+                "local@test.com",
+                "plain-password",
+                "local-user",
+                null,
+                null,
+                null,
+                MemberRole.USER
+        );
+
+        when(memberRepository.existsByEmail("local@test.com")).thenReturn(false);
+        when(passwordEncoder.encode("plain-password")).thenReturn("encoded-password");
+        when(memberRepository.save(any(Member.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(profileImageUrlResolver.resolve(null)).thenReturn(null);
+        when(memberSignupProperties.requireEmailVerification()).thenReturn(false);
+
+        CreateMemberResponse response = memberService.createMember(request);
+
+        ArgumentCaptor<Member> memberCaptor = ArgumentCaptor.forClass(Member.class);
+        verify(memberRepository).save(memberCaptor.capture());
+        verify(memberEventPublisher).publishMemberSignedUp(memberCaptor.getValue());
+        verify(emailVerificationService, never()).createSignupVerification(any(Member.class));
+
+        Member savedMember = memberCaptor.getValue();
+        assertEquals(MemberStatus.ACTIVE, savedMember.getStatus());
+        assertEquals(savedMember.getMemberId(), response.memberId());
     }
 
     @Test

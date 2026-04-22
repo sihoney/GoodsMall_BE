@@ -1,6 +1,7 @@
 package com.example.payment.application.dto;
 
 import com.example.payment.domain.enumtype.ChargeStatus;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -11,8 +12,8 @@ public record ChargeDetailResult(
         UUID chargeId,
         UUID memberId,
         UUID walletId,
-        Long requestedAmount,
-        Long approvedAmount,
+        BigDecimal requestedAmount,
+        BigDecimal approvedAmount,
         String tossBankCode,
         String pgOrderId,
         String pgPaymentKey,
@@ -20,8 +21,6 @@ public record ChargeDetailResult(
         LocalDateTime requestedAt,
         LocalDateTime approvedAt,
         LocalDateTime failedAt,
-        String failureReason,
-        boolean hasRefundHistory,
-        ChargeRefundSummaryResult latestRefund
+        String failureReason
 ) {
 }

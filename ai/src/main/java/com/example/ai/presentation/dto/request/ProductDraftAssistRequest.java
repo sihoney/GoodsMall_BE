@@ -10,6 +10,7 @@ import com.example.ai.common.exception.ProductDraftAssistImageTooLargeException;
 import com.example.ai.common.exception.ProductDraftAssistInputFieldsRequiredException;
 import com.example.ai.common.exception.ProductDraftAssistThumbnailIndexInvalidException;
 import com.example.ai.common.exception.ProductDraftAssistUnsupportedImageTypeException;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
@@ -17,12 +18,25 @@ import java.util.Set;
 import org.springframework.web.multipart.MultipartFile;
 
 public record ProductDraftAssistRequest(
+        @Schema(description = "추천을 받을 입력 필드 목록")
         List<ProductDraftAssistFieldRequest> inputFields,
+
+        @Schema(description = "현재 상품명 초안", example = "곰돌이 반팔 티셔츠")
         String titleDraft,
+
+        @Schema(description = "현재 상품 설명 초안", example = "화이트 색상의 귀여운 캐릭터 반팔 티셔츠입니다.")
         String descriptionDraft,
+
+        @Schema(description = "현재 가격 초안", example = "25000")
         String priceDraft,
+
+        @Schema(description = "선택된 카테고리명", example = "의류")
         String categoryName,
+
+        @Schema(description = "선택된 카테고리 경로", example = "패션 > 의류 > 상의")
         String categoryPathText,
+
+        @Schema(description = "대표 이미지 인덱스. 생략하면 0번 이미지를 사용합니다.", example = "0")
         Integer thumbnailIndex
 ) {
 

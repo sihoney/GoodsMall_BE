@@ -8,6 +8,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
@@ -49,19 +50,19 @@ public class Escrow {
      * 현재 정산 대상으로 남아있는 잔액이다.
      */
     @Column(name = "amount", nullable = false)
-    private Long amount;
+    private BigDecimal amount;
 
     /**
      * 주문 결제 시점의 원본 escrow 금액이다.
      */
     @Column(name = "original_amount", nullable = false)
-    private Long originalAmount;
+    private BigDecimal originalAmount;
 
     /**
      * 누적 환불 금액이다.
      */
     @Column(name = "refunded_amount", nullable = false)
-    private Long refundedAmount;
+    private BigDecimal refundedAmount;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "escrow_status", nullable = false)
@@ -86,9 +87,9 @@ public class Escrow {
             EscrowReferenceType referenceType,
             UUID buyerMemberId,
             UUID sellerMemberId,
-            Long amount,
-            Long originalAmount,
-            Long refundedAmount,
+            BigDecimal amount,
+            BigDecimal originalAmount,
+            BigDecimal refundedAmount,
             EscrowStatus escrowStatus,
             LocalDateTime refundedAt,
             LocalDateTime releasedAt,
@@ -118,12 +119,11 @@ public class Escrow {
             EscrowReferenceType referenceType,
             UUID buyerMemberId,
             UUID sellerMemberId,
-            Long amount,
+            BigDecimal amount,
             LocalDateTime createdAt
     ) {
         LocalDateTime now = Objects.requireNonNull(createdAt);
-        long validatedAmount = validatePositiveAmount(amount);
-
+        BigDecimal validatedAmount = validatePositiveAmount(amount);
         return new Escrow(
                 escrowId,
                 orderId,
@@ -133,7 +133,7 @@ public class Escrow {
                 sellerMemberId,
                 validatedAmount,
                 validatedAmount,
-                0L,
+                BigDecimal.ZERO,
                 EscrowStatus.HELD,
                 null,
                 null,
@@ -150,7 +150,7 @@ public class Escrow {
             UUID orderId,
             UUID buyerMemberId,
             UUID sellerMemberId,
-            Long amount,
+            BigDecimal amount,
             LocalDateTime createdAt
     ) {
         return createHeld(
@@ -172,7 +172,7 @@ public class Escrow {
             EscrowReferenceType referenceType,
             UUID buyerMemberId,
             UUID sellerMemberId,
-            Long amount,
+            BigDecimal amount,
             EscrowStatus escrowStatus,
             LocalDateTime refundedAt,
             LocalDateTime releasedAt,
@@ -180,7 +180,7 @@ public class Escrow {
             LocalDateTime createdAt,
             LocalDateTime updatedAt
     ) {
-        long validatedAmount = validatePositiveAmount(amount);
+        BigDecimal validatedAmount = validatePositiveAmount(amount);
         return new Escrow(
                 escrowId,
                 orderId,
@@ -190,7 +190,7 @@ public class Escrow {
                 sellerMemberId,
                 validatedAmount,
                 validatedAmount,
-                0L,
+                BigDecimal.ZERO,
                 escrowStatus,
                 refundedAt,
                 releasedAt,
@@ -207,7 +207,7 @@ public class Escrow {
             UUID orderId,
             UUID buyerMemberId,
             UUID sellerMemberId,
-            Long amount,
+            BigDecimal amount,
             EscrowStatus escrowStatus,
             LocalDateTime refundedAt,
             LocalDateTime releasedAt,
@@ -239,9 +239,9 @@ public class Escrow {
             EscrowReferenceType referenceType,
             UUID buyerMemberId,
             UUID sellerMemberId,
-            Long amount,
-            Long originalAmount,
-            Long refundedAmount,
+            BigDecimal amount,
+            BigDecimal originalAmount,
+            BigDecimal refundedAmount,
             EscrowStatus escrowStatus,
             LocalDateTime refundedAt,
             LocalDateTime releasedAt,
@@ -249,17 +249,16 @@ public class Escrow {
             LocalDateTime createdAt,
             LocalDateTime updatedAt
     ) {
-        long validatedAmount = validateNonNegativeAmount(amount);
-        long validatedOriginalAmount = validatePositiveAmount(originalAmount);
-        long validatedRefundedAmount = validateNonNegativeAmount(refundedAmount);
+        BigDecimal validatedAmount = validateNonNegativeAmount(amount);
+        BigDecimal validatedOriginalAmount = validatePositiveAmount(originalAmount);
+        BigDecimal validatedRefundedAmount = validateNonNegativeAmount(refundedAmount);
 
-        if (validatedRefundedAmount > validatedOriginalAmount) {
+        if (validatedRefundedAmount.compareTo(validatedOriginalAmount) > 0) {
             throw new IllegalArgumentException("Refunded amount must not exceed original amount.");
         }
-        if (validatedAmount != (validatedOriginalAmount - validatedRefundedAmount)) {
+        if (validatedAmount.compareTo(validatedOriginalAmount.subtract(validatedRefundedAmount)) != 0) {
             throw new IllegalArgumentException("Escrow amount must equal originalAmount - refundedAmount.");
         }
-
         return new Escrow(
                 escrowId,
                 orderId,
@@ -286,9 +285,9 @@ public class Escrow {
             UUID orderId,
             UUID buyerMemberId,
             UUID sellerMemberId,
-            Long amount,
-            Long originalAmount,
-            Long refundedAmount,
+            BigDecimal amount,
+            BigDecimal originalAmount,
+            BigDecimal refundedAmount,
             EscrowStatus escrowStatus,
             LocalDateTime refundedAt,
             LocalDateTime releasedAt,
@@ -332,7 +331,7 @@ public class Escrow {
      */
     public void refund(LocalDateTime refundedAt, LocalDateTime updatedAt) {
         validateHeldStatus();
-        if (amount != 0L) {
+        if (amount.compareTo(BigDecimal.ZERO) != 0) {
             throw new IllegalStateException("Only zero-balance escrow can be marked as refunded.");
         }
         this.escrowStatus = EscrowStatus.REFUNDED;
@@ -344,68 +343,43 @@ public class Escrow {
      * HELD/RELEASED escrow에서 환불 금액만큼 정산대상 잔액(amount)을 차감한다.
      * amount가 0이 되면 REFUNDED 상태로 전이한다.
      */
-    public void applyRefundAmount(Long refundAmount, LocalDateTime refundedAt, LocalDateTime updatedAt) {
+    public void applyRefundAmount(BigDecimal refundAmount, LocalDateTime refundedAt, LocalDateTime updatedAt) {
         validateRefundableStatus();
-        long validatedRefundAmount = validatePositiveAmount(refundAmount);
-        if (validatedRefundAmount > amount) {
+        BigDecimal validatedRefundAmount = validatePositiveAmount(refundAmount);
+        if (validatedRefundAmount.compareTo(amount) > 0) {
             throw new IllegalArgumentException("Refund amount exceeds escrow amount.");
         }
-
-        this.amount -= validatedRefundAmount;
-        this.refundedAmount += validatedRefundAmount;
+        this.amount = this.amount.subtract(validatedRefundAmount);
+        this.refundedAmount = this.refundedAmount.add(validatedRefundAmount);
         this.updatedAt = Objects.requireNonNull(updatedAt);
-
-        if (this.amount == 0L) {
+        if (this.amount.compareTo(BigDecimal.ZERO) == 0) {
             this.escrowStatus = EscrowStatus.REFUNDED;
             this.refundedAt = Objects.requireNonNull(refundedAt);
         }
     }
 
-    public boolean isHeld() {
-        return escrowStatus == EscrowStatus.HELD;
-    }
+    public boolean isHeld() { return escrowStatus == EscrowStatus.HELD; }
+    public boolean isReleased() { return escrowStatus == EscrowStatus.RELEASED; }
+    public boolean isRefunded() { return escrowStatus == EscrowStatus.REFUNDED; }
+    public boolean isOrderItemReference() { return referenceType == EscrowReferenceType.ORDER_ITEM; }
 
-    public boolean isReleased() {
-        return escrowStatus == EscrowStatus.RELEASED;
-    }
-
-    public boolean isRefunded() {
-        return escrowStatus == EscrowStatus.REFUNDED;
-    }
-
-    public boolean isOrderItemReference() {
-        return referenceType == EscrowReferenceType.ORDER_ITEM;
-    }
-
-    /**
-     * 배송완료 이후 자동 구매확정 시점을 예약한다.
-     * application에서 이중분기하더라도 엔티티는 마지막 방어선으로 상태를 다시 확인한다.
-     */
     private void validateHeldStatus() {
-        if (!isHeld()) {
-            throw new IllegalStateException("Only held escrow can be changed.");
-        }
+        if (!isHeld()) throw new IllegalStateException("Only held escrow can be changed.");
     }
 
     private void validateRefundableStatus() {
-        if (!isHeld() && !isReleased()) {
-            throw new IllegalStateException("Only held or released escrow can be refunded.");
-        }
+        if (!isHeld() && !isReleased()) throw new IllegalStateException("Only held or released escrow can be refunded.");
     }
 
-    private static long validatePositiveAmount(Long amount) {
+    private static BigDecimal validatePositiveAmount(BigDecimal amount) {
         Objects.requireNonNull(amount);
-        if (amount <= 0L) {
-            throw new IllegalArgumentException("Escrow amount must be positive.");
-        }
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) throw new IllegalArgumentException("Escrow amount must be positive.");
         return amount;
     }
 
-    private static long validateNonNegativeAmount(Long amount) {
+    private static BigDecimal validateNonNegativeAmount(BigDecimal amount) {
         Objects.requireNonNull(amount);
-        if (amount < 0L) {
-            throw new IllegalArgumentException("Escrow amount must not be negative.");
-        }
+        if (amount.compareTo(BigDecimal.ZERO) < 0) throw new IllegalArgumentException("Escrow amount must not be negative.");
         return amount;
     }
 }

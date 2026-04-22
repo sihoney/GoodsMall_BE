@@ -1,25 +1,16 @@
-﻿spring:
+spring:
   application:
     name: member-service
   config:
     import:
       - "optional:file:member/.env[.properties]"
       - "optional:file:.env[.properties]"
-      - "configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
-  cloud:
-    config:
-      fail-fast: true
-      retry:
-        initial-interval: 1000
-        max-attempts: 20
-        max-interval: 5000
-        multiplier: 1.5
 
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/goods_mall?currentSchema=member
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
+    url: "${DB_URL:jdbc:postgresql://localhost:5432/goods_mall}?currentSchema=member"
+    username: ${DB_USER_NAME:postgres}
+    password: ${DB_USER_PASSWORD:postgres}
 
   jpa:
     hibernate:
@@ -32,8 +23,8 @@
 
   data:
     redis:
-      host: localhost
-      port: 6379
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
   mail:
     host: ${SMTP_HOST:localhost}
     port: ${SMTP_PORT:1025}
@@ -50,7 +41,7 @@
           writetimeout: 5000
 
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
@@ -60,14 +51,6 @@
 server:
   port: 8083
 
-eureka:
-  client:
-    service-url:
-      defaultZone: ${EUREKA_DEFAULT_ZONE:http://localhost:8761/eureka}
-  instance:
-    prefer-ip-address: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:true}
-    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
-
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
@@ -75,7 +58,7 @@ springdoc:
     path: /v3/api-docs
 
 apigateway:
-  host: http://localhost:8080
+  host: ${API_GATEWAY_HOST:http://localhost:8080}
 
 oauth:
   kakao:
@@ -85,8 +68,10 @@ oauth:
     token-uri: ${KAKAO_TOKEN_URI:https://kauth.kakao.com/oauth/token}
     user-info-uri: ${KAKAO_USER_INFO_URI:https://kapi.kakao.com/v2/user/me}
     redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:8083/api/auth/oauth/kakao/callback}
+    frontend-callback-url: ${KAKAO_FRONTEND_CALLBACK_URL:http://localhost:5173/auth/kakao/callback}
     state-ttl: ${KAKAO_OAUTH_STATE_TTL:10m}
     pending-link-ttl: ${KAKAO_OAUTH_PENDING_LINK_TTL:10m}
+    result-ttl: ${KAKAO_OAUTH_RESULT_TTL:3m}
 
 jwt:
   secret: ${JWT_SECRET_KEY:local-dev-secret-key-for-testing-purposes-only-32chars}
@@ -97,7 +82,7 @@ jwt:
 aws:
   s3:
     bucket: ${AWS_S3_BUCKET:todaylunch-local}
-    region: ap-northeast-2
+    region: ${AWS_REGION:ap-northeast-2}
     access-key: ${AWS_ACCESS_KEY_ID:test-access-key}
     secret-key: ${AWS_SECRET_ACCESS_KEY:test-secret-key}
     profile-image-prefix: members/profile
@@ -105,13 +90,15 @@ aws:
     get-presign-expiration-seconds: 600
 
 member:
+  signup:
+    require-email-verification: ${MEMBER_SIGNUP_REQUIRE_EMAIL_VERIFICATION:false}
   email:
     provider: ${EMAIL_PROVIDER:logging}
     from-address: ${MAIL_FROM:no-reply@todaylunch.local}
-    from-name: TodayLunch
+    from-name: ${MAIL_FROM_NAME:TodayLunch}
   email-verification:
     expiration: 24h
-    frontend-confirm-url: ${EMAIL_VERIFICATION_FRONTEND_URL:http://localhost:3000/email-verification}
+    frontend-confirm-url: ${EMAIL_VERIFICATION_FRONTEND_URL}
   account-verification:
     expiration: 5m
     max-attempts: 5
@@ -119,10 +106,6 @@ member:
     resend-cooldown: 30s
     crypto:
       secret-key: ${ACCOUNT_VERIFICATION_SECRET_KEY:local-dev-account-verification-secret-key}
-  kafka:
-    topic:
-      signed-up: member-signed-up
-
 logging:
   level:
     com.example.member: DEBUG

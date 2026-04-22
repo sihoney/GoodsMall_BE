@@ -12,6 +12,7 @@ import com.example.payment.infrastructure.messaging.kafka.contract.PayoutFailure
 import com.example.payment.infrastructure.messaging.kafka.contract.SellerSettlementPayoutRequestedMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultStatus;
+import com.example.payment.infrastructure.messaging.kafka.contract.SettlementPayoutType;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import org.slf4j.Logger;
@@ -28,9 +29,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class SellerSettlementPayoutRequestedEventConsumer {
 
     private static final Logger log = LoggerFactory.getLogger(SellerSettlementPayoutRequestedEventConsumer.class);
-    // todo: enum 타입으로 묶을지 고려하기
-    private static final String SETTLEMENT_REFERENCE_TYPE = "SETTLEMENT";
-
     private final WalletRepository walletRepository;
     private final WalletTransactionRepository walletTransactionRepository;
     private final IdentifierGenerator identifierGenerator;
@@ -58,8 +56,8 @@ public class SellerSettlementPayoutRequestedEventConsumer {
      * - 그 외 예외는 Kafka 에러 처리기로 전파해 retry(재시도)/DLQ(사후처리큐) 정책에 위임한다.
      */
     @KafkaListener(
-            topics = "${payment.kafka.topics.settlement-payout-requested:settlement.seller-payout-requested}",
-            groupId = "${payment.kafka.consumer-groups.settlement-payout-requested:payment-service}",
+            topics = KafkaTopics.SETTLEMENT_PAYOUT_REQUESTED,
+            groupId = KafkaConsumerGroups.PAYMENT_SERVICE,
             containerFactory = "sellerSettlementPayoutRequestedKafkaListenerContainerFactory"
     )
     public void listen(SellerSettlementPayoutRequestedMessage event) {
@@ -70,7 +68,7 @@ public class SellerSettlementPayoutRequestedEventConsumer {
         LocalDateTime now = timeProvider.now();
         try {
             WalletTransaction existingTransaction = walletTransactionRepository
-                    .findByReferenceIdAndReferenceType(event.settlementId(), SETTLEMENT_REFERENCE_TYPE)
+                    .findByReferenceIdAndReferenceType(event.settlementId(), resolveSettlementReferenceType(event.settlementType()))
                     .orElse(null);
             // 이미 동일한 settlementId로 지급 처리된 거래가 있으면 중복 처리 방지 위해 성공으로 간주하고 종료한다.
             // settlement 서비스가 상태를 맞출 수 있도록 성공 결과 이벤트는 항상 발행.
@@ -83,7 +81,7 @@ public class SellerSettlementPayoutRequestedEventConsumer {
                     .orElseThrow(WalletNotFoundException::new);
 
             // 증가 후 잔액(balanceAfter)을 반환해 거래 이력에 스냅샷처럼 남긴다.
-            Long balanceAfter = wallet.increaseBalance(event.payoutAmount(), now);
+            java.math.BigDecimal balanceAfter = wallet.increaseBalance(event.payoutAmount(), now);
             walletRepository.save(wallet);
 
             // 예치금이 변경되어 기록을 남긴다.
@@ -94,8 +92,8 @@ public class SellerSettlementPayoutRequestedEventConsumer {
                     balanceAfter,
                     WalletTransactionType.SETTLEMENT,
                     event.settlementId(),
-                    SETTLEMENT_REFERENCE_TYPE,
-                    "seller settlement payout",
+                    resolveSettlementReferenceType(event.settlementType()),
+                    resolveSettlementDescription(event.settlementType()),
                     now
             );
             walletTransactionRepository.save(settlementTransaction);
@@ -163,12 +161,29 @@ public class SellerSettlementPayoutRequestedEventConsumer {
         if (event.sellerMemberId() == null) {
             throw new IllegalArgumentException("sellerMemberId is required.");
         }
-        if (event.payoutAmount() == null || event.payoutAmount() <= 0) {
+        if (event.settlementType() == null) {
+            throw new IllegalArgumentException("settlementType is required.");
+        }
+        if (event.payoutAmount() == null || event.payoutAmount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("payoutAmount must be positive.");
         }
         if (event.requestedAt() == null) {
             throw new IllegalArgumentException("requestedAt is required.");
         }
+    }
+
+    private String resolveSettlementReferenceType(SettlementPayoutType settlementPayoutType) {
+        return switch (settlementPayoutType) {
+            case MONTHLY -> "MONTHLY_SETTLEMENT";
+            case PARTIAL -> "PARTIAL_SETTLEMENT";
+        };
+    }
+
+    private String resolveSettlementDescription(SettlementPayoutType settlementPayoutType) {
+        return switch (settlementPayoutType) {
+            case MONTHLY -> "monthly settlement payout";
+            case PARTIAL -> "partial settlement payout";
+        };
     }
 }
 

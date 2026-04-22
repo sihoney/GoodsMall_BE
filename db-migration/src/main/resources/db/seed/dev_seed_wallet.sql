@@ -9,5 +9,5 @@ INSERT INTO payment.wallet (wallet_id, member_id, balance, created_at, updated_a
 VALUES
     ('ffffffff-ffff-ffff-ffff-fffffffffff1',
      '11111111-1111-1111-1111-111111111101',
-     500000, NOW(), NOW())
+     500000.00, NOW(), NOW())
 ON CONFLICT (wallet_id) DO NOTHING;

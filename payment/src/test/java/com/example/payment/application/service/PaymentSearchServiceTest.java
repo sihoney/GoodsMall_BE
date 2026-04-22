@@ -7,7 +7,6 @@ import static org.mockito.BDDMockito.given;
 
 import com.example.payment.application.dto.ChargeDetailResult;
 import com.example.payment.application.dto.ChargeListItemResult;
-import com.example.payment.application.dto.ChargeRefundSummaryResult;
 import com.example.payment.application.dto.PagedResult;
 import com.example.payment.application.dto.PendingSellerIncomeItemResult;
 import com.example.payment.application.dto.WalletSummaryResult;
@@ -15,19 +14,18 @@ import com.example.payment.application.dto.WalletTransactionItemResult;
 import com.example.payment.common.exception.ChargeNotFoundException;
 import com.example.payment.common.exception.WalletNotFoundException;
 import com.example.payment.domain.entity.Charge;
-import com.example.payment.domain.entity.ChargeRefund;
 import com.example.payment.domain.entity.Escrow;
 import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.entity.WalletTransaction;
-import com.example.payment.domain.enumtype.ChargeRefundStatus;
 import com.example.payment.domain.enumtype.ChargeStatus;
 import com.example.payment.domain.enumtype.EscrowStatus;
 import com.example.payment.domain.enumtype.WalletTransactionType;
-import com.example.payment.domain.repository.ChargeRefundRepository;
 import com.example.payment.domain.repository.ChargeRepository;
 import com.example.payment.domain.repository.EscrowRepository;
+import com.example.payment.domain.repository.EscrowTransactionRepository;
 import com.example.payment.domain.repository.WalletRepository;
 import com.example.payment.domain.repository.WalletTransactionRepository;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -54,13 +52,13 @@ class PaymentSearchServiceTest {
     private ChargeRepository chargeRepository;
 
     @Mock
-    private ChargeRefundRepository chargeRefundRepository;
-
-    @Mock
     private WalletTransactionRepository walletTransactionRepository;
 
     @Mock
     private EscrowRepository escrowRepository;
+
+    @Mock
+    private EscrowTransactionRepository escrowTransactionRepository;
 
     @InjectMocks
     private PaymentSearchService paymentSearchService;
@@ -68,7 +66,6 @@ class PaymentSearchServiceTest {
     private UUID memberId;
     private UUID walletId;
     private UUID chargeId;
-    private UUID refundId;
     private UUID transactionId;
     private UUID escrowId;
     private UUID orderId;
@@ -79,11 +76,14 @@ class PaymentSearchServiceTest {
         memberId = UUID.randomUUID();
         walletId = UUID.randomUUID();
         chargeId = UUID.randomUUID();
-        refundId = UUID.randomUUID();
         transactionId = UUID.randomUUID();
         escrowId = UUID.randomUUID();
         orderId = UUID.randomUUID();
         now = LocalDateTime.of(2024, 1, 1, 12, 0, 0);
+    }
+
+    private BigDecimal amount(long value) {
+        return BigDecimal.valueOf(value);
     }
 
     @Nested
@@ -91,16 +91,16 @@ class PaymentSearchServiceTest {
     class FindWalletSummary {
 
         @Test
-        @DisplayName("회원 지갑을 조회해 요약 정보를 반환한다")
+        @DisplayName("회원 지갑을 조회하면 요약 정보를 반환한다")
         void findWalletSummary_success_returnsWalletSummary() {
-            Wallet wallet = Wallet.create(walletId, memberId, 30_000L, now, now);
+            Wallet wallet = Wallet.create(walletId, memberId, amount(30_000L), now, now);
             given(walletRepository.findByMemberId(memberId)).willReturn(Optional.of(wallet));
 
             WalletSummaryResult result = paymentSearchService.findWalletSummary(memberId);
 
             assertThat(result.walletId()).isEqualTo(walletId);
             assertThat(result.memberId()).isEqualTo(memberId);
-            assertThat(result.balance()).isEqualTo(30_000L);
+            assertThat(result.balance()).isEqualTo(amount(30_000L));
         }
 
         @Test
@@ -116,8 +116,8 @@ class PaymentSearchServiceTest {
     @Test
     @DisplayName("충전 목록은 최신순 페이지 결과를 반환한다")
     void findAllCharges_success_returnsPagedCharges() {
-        Charge charge = Charge.create(chargeId, memberId, walletId, 10_000L, "CHARGE-1", now);
-        charge.approve(10_000L, "payment-key", now.plusMinutes(1), "92");
+        Charge charge = Charge.create(chargeId, memberId, walletId, amount(10_000L), "CHARGE-1", now);
+        charge.approve(amount(10_000L), "payment-key", now.plusMinutes(1), "92");
         given(chargeRepository.findByMemberId(any(), any())).willReturn(
                 new PageImpl<>(List.of(charge), PageRequest.of(0, 20), 1)
         );
@@ -131,28 +131,17 @@ class PaymentSearchServiceTest {
     }
 
     @Test
-    @DisplayName("충전 상세는 본인 charge만 조회하고 최신 환불 이력을 포함한다")
+    @DisplayName("충전 상세는 본인 charge만 조회한다")
     void findChargeDetail_success_returnsChargeDetail() {
-        Charge charge = Charge.create(chargeId, memberId, walletId, 10_000L, "CHARGE-1", now);
-        charge.approve(10_000L, "payment-key", now.plusMinutes(1), "92");
-        ChargeRefund refund = ChargeRefund.refunded(
-                refundId,
-                chargeId,
-                10_000L,
-                "단순 변심",
-                now.plusDays(1),
-                now.plusDays(1).plusMinutes(1)
-        );
+        Charge charge = Charge.create(chargeId, memberId, walletId, amount(10_000L), "CHARGE-1", now);
+        charge.approve(amount(10_000L), "payment-key", now.plusMinutes(1), "92");
         given(chargeRepository.findByChargeIdAndMemberId(chargeId, memberId)).willReturn(Optional.of(charge));
-        given(chargeRefundRepository.findTopByChargeIdOrderByRequestedAtDesc(chargeId)).willReturn(Optional.of(refund));
 
         ChargeDetailResult result = paymentSearchService.findChargeDetail(memberId, chargeId);
 
         assertThat(result.chargeId()).isEqualTo(chargeId);
         assertThat(result.tossBankCode()).isEqualTo("92");
-        assertThat(result.hasRefundHistory()).isTrue();
-        assertThat(result.latestRefund()).isNotNull();
-        assertThat(result.latestRefund().refundStatus()).isEqualTo(ChargeRefundStatus.REFUNDED);
+        assertThat(result.failureReason()).isNull();
     }
 
     @Test
@@ -165,36 +154,14 @@ class PaymentSearchServiceTest {
     }
 
     @Test
-    @DisplayName("환불 목록은 charge 소유 기준으로 조회된다")
-    void findAllRefunds_success_returnsPagedRefunds() {
-        ChargeRefund refund = ChargeRefund.failed(
-                refundId,
-                chargeId,
-                10_000L,
-                "중복 결제",
-                now,
-                now.plusMinutes(1),
-                "실패"
-        );
-        given(chargeRefundRepository.findByMemberId(any(), any())).willReturn(
-                new PageImpl<>(List.of(refund), PageRequest.of(0, 20), 1)
-        );
-
-        PagedResult<ChargeRefundSummaryResult> result = paymentSearchService.findAllRefunds(memberId, 0, 20);
-
-        assertThat(result.items()).hasSize(1);
-        assertThat(result.items().getFirst().chargeRefundId()).isEqualTo(refundId);
-    }
-
-    @Test
-    @DisplayName("거래 내역은 회원 지갑 기준으로 조회된다")
+    @DisplayName("거래 내역은 회원 지갑 기준으로 조회한다")
     void findAllTransactions_success_returnsWalletTransactions() {
-        Wallet wallet = Wallet.create(walletId, memberId, 20_000L, now, now);
+        Wallet wallet = Wallet.create(walletId, memberId, amount(20_000L), now, now);
         WalletTransaction transaction = WalletTransaction.create(
                 transactionId,
                 walletId,
-                10_000L,
-                20_000L,
+                amount(10_000L),
+                amount(20_000L),
                 WalletTransactionType.CHARGE,
                 chargeId,
                 "CHARGE",
@@ -221,7 +188,7 @@ class PaymentSearchServiceTest {
                 orderId,
                 UUID.randomUUID(),
                 memberId,
-                8_000L,
+                amount(8_000L),
                 EscrowStatus.HELD,
                 null,
                 null,

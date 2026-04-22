@@ -6,6 +6,7 @@ import com.example.payment.application.usecase.ChargeConfirmUseCase;
 import com.example.payment.domain.entity.Charge;
 import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.entity.WalletTransaction;
+import com.example.payment.common.exception.ChargeConfirmationMismatchException;
 import com.example.payment.common.exception.ChargeNotFoundException;
 import com.example.payment.common.exception.InvalidChargeRequestException;
 import com.example.payment.common.exception.PaymentGatewayException;
@@ -16,6 +17,7 @@ import com.example.payment.domain.repository.WalletTransactionRepository;
 import com.example.payment.domain.service.IdentifierGenerator;
 import com.example.payment.domain.service.TimeProvider;
 import com.example.payment.domain.service.TossPaymentGateway;
+import java.math.BigDecimal;
 import java.util.Objects;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -72,7 +74,9 @@ public class ConfirmChargeService implements ChargeConfirmUseCase {
             throw new InvalidChargeRequestException("pgOrderId does not match charge.");
         }
         // 금액 검증은 pg 요청에서 온 금액과 기록된 금액을 모두 비교
-        if (!Objects.equals(charge.getRequestedAmount(), command.amount())) {
+        if (charge.getRequestedAmount() == null
+                || command.amount() == null
+                || charge.getRequestedAmount().compareTo(command.amount()) != 0) {
             throw new InvalidChargeRequestException("amount does not match charge.");
         }
 
@@ -83,6 +87,7 @@ public class ConfirmChargeService implements ChargeConfirmUseCase {
                     command.pgOrderId(),
                     command.amount()
             );
+            validateConfirmation(command, confirmation);
         } catch (PaymentGatewayException e) {
             failCharge(charge, e.getMessage());
             throw e;
@@ -102,7 +107,7 @@ public class ConfirmChargeService implements ChargeConfirmUseCase {
         );
 
         // 지갑 증가 메서드를 이용해서 값을 증가
-        Long balanceAfter = wallet.increaseBalance(confirmation.approvedAmount(), confirmation.approvedAt());
+        BigDecimal balanceAfter = wallet.increaseBalance(confirmation.approvedAmount(), confirmation.approvedAt());
         // 지갑 변경 이력을 저장
         WalletTransaction walletTransaction = WalletTransaction.charge(
                 identifierGenerator.generateUuid(),
@@ -136,8 +141,24 @@ public class ConfirmChargeService implements ChargeConfirmUseCase {
         if (command.pgOrderId() == null || command.pgOrderId().isBlank()) {
             throw new InvalidChargeRequestException("pgOrderId is required.");
         }
-        if (command.amount() == null || command.amount() <= 0) {
+        if (command.amount() == null || command.amount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
             throw new InvalidChargeRequestException("amount must be positive.");
+        }
+    }
+
+    private void validateConfirmation(
+            ChargeConfirmCommand command,
+            TossPaymentGateway.TossPaymentConfirmation confirmation
+    ) {
+        if (!Objects.equals(confirmation.paymentKey(), command.paymentKey())) {
+            throw new ChargeConfirmationMismatchException("Toss 승인 응답의 paymentKey가 충전 요청과 일치하지 않습니다.");
+        }
+        if (!Objects.equals(confirmation.orderId(), command.pgOrderId())) {
+            throw new ChargeConfirmationMismatchException("Toss 승인 응답의 orderId가 충전 요청과 일치하지 않습니다.");
+        }
+        if (confirmation.approvedAmount() == null
+                || confirmation.approvedAmount().compareTo(command.amount()) != 0) {
+            throw new ChargeConfirmationMismatchException("Toss 승인 금액이 충전 요청 금액과 일치하지 않습니다.");
         }
     }
 

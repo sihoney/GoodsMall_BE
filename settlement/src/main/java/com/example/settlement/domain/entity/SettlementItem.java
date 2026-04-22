@@ -1,9 +1,13 @@
 package com.example.settlement.domain.entity;
 
+import com.example.settlement.domain.enumtype.SettlementItemStatus;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
@@ -16,7 +20,7 @@ import lombok.NoArgsConstructor;
  *
  * <p>payment 모듈에서 escrow(에스크로)가 release(해제)될 때 생성된다.
  * escrowId에 unique constraint(유니크 제약)를 적용해 DB 레벨에서 중복 적재를 방지한다.
- * settlementId가 null이면 아직 월 집계에 포함되지 않은 미집계 항목이다.
+ * settlementItemStatus가 UNASSIGNED이면 아직 어떤 정산에도 연결되지 않은 항목이다.
  */
 @Getter
 @Entity
@@ -34,6 +38,10 @@ public class SettlementItem {
     @Column(name = "settlement_id")
     private UUID settlementId;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "settlement_item_status", nullable = false)
+    private SettlementItemStatus settlementItemStatus;
+
     @Column(name = "order_id", nullable = false)
     private UUID orderId;
 
@@ -48,13 +56,13 @@ public class SettlementItem {
     private UUID sellerId;
 
     @Column(name = "gross_amount", nullable = false)
-    private Long grossAmount;
+    private BigDecimal grossAmount;
 
     @Column(name = "fee_amount", nullable = false)
-    private Long feeAmount;
+    private BigDecimal feeAmount;
 
     @Column(name = "net_amount", nullable = false)
-    private Long netAmount;
+    private BigDecimal netAmount;
 
     @Column(name = "released_at", nullable = false)
     private LocalDateTime releasedAt;
@@ -65,17 +73,19 @@ public class SettlementItem {
     private SettlementItem(
             UUID settlementItemId,
             UUID settlementId,
+            SettlementItemStatus settlementItemStatus,
             UUID orderId,
             UUID escrowId,
             UUID sellerId,
-            Long grossAmount,
-            Long feeAmount,
-            Long netAmount,
+            BigDecimal grossAmount,
+            BigDecimal feeAmount,
+            BigDecimal netAmount,
             LocalDateTime releasedAt,
             LocalDateTime createdAt
     ) {
         this.settlementItemId = Objects.requireNonNull(settlementItemId);
         this.settlementId = settlementId;
+        this.settlementItemStatus = Objects.requireNonNull(settlementItemStatus);
         this.orderId = Objects.requireNonNull(orderId);
         this.escrowId = Objects.requireNonNull(escrowId);
         this.sellerId = Objects.requireNonNull(sellerId);
@@ -96,15 +106,16 @@ public class SettlementItem {
             UUID orderId,
             UUID escrowId,
             UUID sellerId,
-            Long grossAmount,
-            Long feeAmount,
-            Long netAmount,
+            BigDecimal grossAmount,
+            BigDecimal feeAmount,
+            BigDecimal netAmount,
             LocalDateTime releasedAt,
             LocalDateTime createdAt
     ) {
         return new SettlementItem(
                 settlementItemId,
                 settlementId,
+                settlementId == null ? SettlementItemStatus.UNASSIGNED : SettlementItemStatus.ASSIGNED,
                 orderId,
                 escrowId,
                 sellerId,
@@ -117,53 +128,69 @@ public class SettlementItem {
     }
 
     /**
-     * 월 집계 시 정산서 ID를 연결한다.
-     * 한번 연결된 항목은 이미 집계 완료 상태로 간주한다.
+     * 정산 연결이 완료되면 settlementId를 기록하고 ASSIGNED 상태로 변경한다.
      */
     public void assignSettlement(UUID settlementId) {
         this.settlementId = Objects.requireNonNull(settlementId);
+        this.settlementItemStatus = SettlementItemStatus.ASSIGNED;
+    }
+
+    public void markProcessing() {
+        if (settlementItemStatus != SettlementItemStatus.UNASSIGNED) {
+            throw new IllegalArgumentException("Only unassigned settlement item can move to processing.");
+        }
+        this.settlementItemStatus = SettlementItemStatus.PROCESSING;
+    }
+
+    public void markUnassigned() {
+        this.settlementItemStatus = SettlementItemStatus.UNASSIGNED;
     }
 
     /**
-     * 이미 월 집계에 포함된 항목인지 확인한다.
-     * settlementId가 존재하면 집계 완료(aggregated) 항목이다.
+     * 이미 어떤 정산에 연결된 항목인지 확인한다.
      */
     public boolean isAlreadyAggregated() {
-        return this.settlementId != null;
+        return this.settlementItemStatus == SettlementItemStatus.ASSIGNED;
     }
 
-    public void applyRefund(Long grossReduction, Long feeReduction, Long netReduction) {
-        long validatedGrossReduction = requireNonNegative(grossReduction, "grossReduction");
-        long validatedFeeReduction = requireNonNegative(feeReduction, "feeReduction");
-        long validatedNetReduction = requireNonNegative(netReduction, "netReduction");
+    public boolean isUnassigned() {
+        return this.settlementItemStatus == SettlementItemStatus.UNASSIGNED;
+    }
 
-        if (validatedGrossReduction > grossAmount) {
+    public void applyRefund(BigDecimal grossReduction, BigDecimal feeReduction, BigDecimal netReduction) {
+        BigDecimal validatedGrossReduction = requireNonNegative(grossReduction, "grossReduction");
+        BigDecimal validatedFeeReduction = requireNonNegative(feeReduction, "feeReduction");
+        BigDecimal validatedNetReduction = requireNonNegative(netReduction, "netReduction");
+
+        if (validatedGrossReduction.compareTo(grossAmount) > 0) {
             throw new IllegalArgumentException("grossReduction exceeds grossAmount.");
         }
-        if (validatedFeeReduction > feeAmount) {
+        if (validatedFeeReduction.compareTo(feeAmount) > 0) {
             throw new IllegalArgumentException("feeReduction exceeds feeAmount.");
         }
-        if (validatedNetReduction > netAmount) {
+        if (validatedNetReduction.compareTo(netAmount) > 0) {
             throw new IllegalArgumentException("netReduction exceeds netAmount.");
         }
-        if (validatedGrossReduction != validatedFeeReduction + validatedNetReduction) {
+        if (validatedGrossReduction.compareTo(validatedFeeReduction.add(validatedNetReduction)) != 0) {
             throw new IllegalArgumentException("grossReduction must equal feeReduction + netReduction.");
         }
 
-        this.grossAmount -= validatedGrossReduction;
-        this.feeAmount -= validatedFeeReduction;
-        this.netAmount -= validatedNetReduction;
+        this.grossAmount = this.grossAmount.subtract(validatedGrossReduction);
+        this.feeAmount = this.feeAmount.subtract(validatedFeeReduction);
+        this.netAmount = this.netAmount.subtract(validatedNetReduction);
     }
 
     public boolean isDepleted() {
-        return this.grossAmount == 0L && this.feeAmount == 0L && this.netAmount == 0L;
+        return this.grossAmount.compareTo(BigDecimal.ZERO) == 0
+                && this.feeAmount.compareTo(BigDecimal.ZERO) == 0
+                && this.netAmount.compareTo(BigDecimal.ZERO) == 0;
     }
 
-    private long requireNonNegative(Long amount, String fieldName) {
-        long value = Objects.requireNonNull(amount, fieldName + " must not be null.");
-        if (value < 0L) {
+    private BigDecimal requireNonNegative(BigDecimal amount, String fieldName) {
+        Objects.requireNonNull(amount, fieldName + " must not be null.");
+        if (amount.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException(fieldName + " must not be negative.");
         }
-        return value;
+        return amount;
     }
 }

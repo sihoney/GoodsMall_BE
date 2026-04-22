@@ -11,7 +11,9 @@ public record KakaoOAuthProperties(
         String tokenUri,
         String userInfoUri,
         String redirectUri,
+        String frontendCallbackUrl,
         Duration stateTtl,
-        Duration pendingLinkTtl
+        Duration pendingLinkTtl,
+        Duration resultTtl
 ) {
 }

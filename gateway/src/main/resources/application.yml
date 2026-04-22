@@ -33,154 +33,150 @@ spring:
                 allowCredentials: true
           routes:
             - id: member-auth-service
-              uri: lb://member-service
+              uri: http://member:8083
               predicates:
                 - Path=/api/auth/**
 
             - id: member-service-v1
-              uri: lb://member-service
+              uri: http://member:8083
               predicates:
                 - Path=/api/members/**
 
             - id: member-seller-service
-              uri: lb://member-service
+              uri: http://member:8083
               predicates:
                 - Path=/api/sellers/**
 
             - id: member-report-service
-              uri: lb://member-service
+              uri: http://member:8083
               predicates:
                 - Path=/api/member-reports/**
 
             - id: member-admin-report-service
-              uri: lb://member-service
+              uri: http://member:8083
               predicates:
                 - Path=/api/admin/member-reports/**
 
             - id: member-admin-restriction-service
-              uri: lb://member-service
+              uri: http://member:8083
               predicates:
                 - Path=/api/admin/member-restrictions/**
 
             - id: product-service
-              uri: lb://product-service
+              uri: http://product:8081
               predicates:
                 - Path=/api/products/**
 
             - id: category-service
-              uri: lb://product-service
+              uri: http://product:8081
               predicates:
                 - Path=/api/category/**
 
             - id: cart-service
-              uri: lb://cart-service
+              uri: http://cart:8086
               predicates:
                 - Path=/api/carts/**
 
             - id: category-service
-              uri: lb://product-service
+              uri: http://product:8081
               predicates:
                 - Path=/api/categories/**
 
             - id: cart-service
-              uri: lb://cart-service
+              uri: http://cart:8086
               predicates:
                 - Path=/api/carts/**
 
             - id: wish-service
-              uri: lb://cart-service
+              uri: http://cart:8086
               predicates:
                 - Path=/api/wishes/**
 
             - id: order-service
-              uri: lb://order-service
+              uri: http://order:8084
               predicates:
                 - Path=/api/orders/**
 
             - id: payment-service
-              uri: lb://payment-service
+              uri: http://payment:8082
               predicates:
                 - Path=/api/payments/**
 
             - id: settlement-service
-              uri: lb://settlement-service
+              uri: http://settlement:8085
               predicates:
                 - Path=/api/settlements/**
 
             - id: ai-service
-              uri: lb://ai-service
+              uri: http://ai:8088
               predicates:
                 - Path=/api/ai/**
 
             - id: member-service-docs
-              uri: lb://member-service
+              uri: http://member:8083
               predicates:
                 - Path=/swagger/member/v3/api-docs
               filters:
                 - SetPath=/v3/api-docs
 
             - id: payment-service-docs
-              uri: lb://payment-service
+              uri: http://payment:8082
               predicates:
                 - Path=/swagger/payment/v3/api-docs
               filters:
                 - SetPath=/v3/api-docs
 
             - id: settlement-service-docs
-              uri: lb://settlement-service
+              uri: http://settlement:8085
               predicates:
                 - Path=/swagger/settlement/v3/api-docs
               filters:
                 - SetPath=/v3/api-docs
 
             - id: product-service-docs
-              uri: lb://product-service
+              uri: http://product:8081
               predicates:
                 - Path=/swagger/product/v3/api-docs
               filters:
                 - SetPath=/v3/api-docs
 
             - id: cart-service-docs
-              uri: lb://cart-service
+              uri: http://cart:8086
               predicates:
                 - Path=/swagger/cart/v3/api-docs
               filters:
                 - SetPath=/v3/api-docs
 
             - id: order-service-docs
-              uri: lb://order-service
+              uri: http://order:8084
               predicates:
                 - Path=/swagger/order/v3/api-docs
               filters:
                 - SetPath=/v3/api-docs
 
+            - id: auction-service
+              uri: http://auction:8090
+              predicates:
+                - Path=/api/auctions/**
+
             - id: notification-service
-              uri: lb://notification-service
+              uri: http://notification:8087
               predicates:
                 - Path=/api/notifications/**
 
             - id: notification-service-docs
-              uri: lb://notification-service
+              uri: http://notification:8087
               predicates:
                 - Path=/swagger/notification/v3/api-docs
               filters:
                 - SetPath=/v3/api-docs
 
             - id: ai-service-docs
-              uri: lb://ai-service
+              uri: http://ai:8088
               predicates:
                 - Path=/swagger/ai/v3/api-docs
               filters:
                 - SetPath=/v3/api-docs
-
-eureka:
-  instance:
-    prefer-ip-address: true
-    ip-address: ${EUREKA_INSTANCE_IP:127.0.0.1}
-    instance-id: ${spring.application.name}:${server.port}
-  client:
-    service-url:
-      defaultZone: ${EUREKA_DEFAULT_ZONE:http://localhost:8761/eureka/}
 
 jwt:
   secret: ${JWT_SECRET_KEY}
@@ -195,9 +191,11 @@ gateway:
       - /api/auth/refresh
       - /api/auth/oauth/kakao/authorize
       - /api/auth/oauth/kakao/callback
+      - /api/auth/oauth/kakao/result
       - /api/auth/email-verifications
       - /api/auth/email-verifications/confirm
       - /api/auth/profile-images/presign
+      - /api/auctions/ws
       - /swagger/**
       - /swagger-ui.html
     public-rules:
@@ -209,12 +207,23 @@ gateway:
         pattern: /api/products/**
       - methods: [GET]
         pattern: /api/ai/**
+      - methods: [GET]
+        pattern: /api/auctions/**
     role-rules:
       - methods: [GET, PUT]
         pattern: /api/members/me
         allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [GET, DELETE]
+        pattern: /api/members/me/oauth-accounts/**
+        allowed-roles: [USER, SELLER, ADMIN]
       - methods: [POST]
         pattern: /api/auth/logout/**
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [GET]
+        pattern: /api/auth/oauth/kakao/link/authorize
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [GET]
+        pattern: /api/auth/oauth/kakao/link/authorize-url
         allowed-roles: [USER, SELLER, ADMIN]
       - methods: [POST]
         pattern: /api/auth/oauth/kakao/link
@@ -237,9 +246,18 @@ gateway:
       - methods: [GET, POST]
         pattern: /api/payments/**
         allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [POST]
+        pattern: /api/auctions/*/bids
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [POST]
+        pattern: /api/auctions
+        allowed-roles: [SELLER, ADMIN]
       - methods: [POST, GET, PUT]
         pattern: /api/sellers/**
         allowed-roles: [SELLER, ADMIN]
+      - methods: [POST]
+        pattern: /api/sellers/register
+        allowed-roles: [USER, SELLER, ADMIN]
       - methods: [GET]
         pattern: /api/products/seller
         allowed-roles: [SELLER, ADMIN]

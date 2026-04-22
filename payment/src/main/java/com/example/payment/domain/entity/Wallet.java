@@ -4,6 +4,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
@@ -29,7 +30,7 @@ public class Wallet {
     private UUID memberId;
 
     @Column(name = "balance", nullable = false)
-    private Long balance;
+    private BigDecimal balance;
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
@@ -37,7 +38,7 @@ public class Wallet {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    private Wallet(UUID walletId, UUID memberId, Long balance, LocalDateTime updatedAt, LocalDateTime createdAt) {
+    private Wallet(UUID walletId, UUID memberId, BigDecimal balance, LocalDateTime updatedAt, LocalDateTime createdAt) {
         this.walletId = Objects.requireNonNull(walletId);
         this.memberId = Objects.requireNonNull(memberId);
         this.balance = Objects.requireNonNull(balance);
@@ -48,7 +49,7 @@ public class Wallet {
     public static Wallet create(
             UUID walletId,
             UUID memberId,
-            Long balance,
+            BigDecimal balance,
             LocalDateTime updatedAt,
             LocalDateTime createdAt
     ) {
@@ -58,7 +59,7 @@ public class Wallet {
     /**
      * 외부에서 계산된 최종 balance를 그대로 반영한다.
      */
-    public void applyTransaction(Long balanceAfter, LocalDateTime updatedAt) {
+    public void applyTransaction(BigDecimal balanceAfter, LocalDateTime updatedAt) {
         this.balance = Objects.requireNonNull(balanceAfter);
         this.updatedAt = Objects.requireNonNull(updatedAt);
     }
@@ -66,13 +67,13 @@ public class Wallet {
     /**
      * wallet 잔액을 증가시키고 반영 후 balance를 반환한다.
      */
-    public Long increaseBalance(Long amount, LocalDateTime updatedAt) {
+    public BigDecimal increaseBalance(BigDecimal amount, LocalDateTime updatedAt) {
         Objects.requireNonNull(amount);
-        if (amount <= 0) {
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Amount must be positive.");
         }
 
-        this.balance = balance + amount;
+        this.balance = balance.add(amount);
         this.updatedAt = Objects.requireNonNull(updatedAt);
         return this.balance;
     }
@@ -81,16 +82,16 @@ public class Wallet {
      * wallet 잔액을 차감하고 반영 후 balance를 반환한다.
      * 부족한 잔액으로는 차감할 수 없다.
      */
-    public Long decreaseBalance(Long amount, LocalDateTime updatedAt) {
+    public BigDecimal decreaseBalance(BigDecimal amount, LocalDateTime updatedAt) {
         Objects.requireNonNull(amount);
-        if (amount <= 0) {
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Amount must be positive.");
         }
-        if (balance < amount) {
+        if (balance.compareTo(amount) < 0) {
             throw new IllegalArgumentException("Balance is insufficient.");
         }
 
-        this.balance = balance - amount;
+        this.balance = balance.subtract(amount);
         this.updatedAt = Objects.requireNonNull(updatedAt);
         return this.balance;
     }

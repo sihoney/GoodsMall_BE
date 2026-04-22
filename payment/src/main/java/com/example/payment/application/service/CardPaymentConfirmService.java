@@ -96,7 +96,7 @@ public class CardPaymentConfirmService implements CardPaymentConfirmUseCase {
                 cardTransaction.approve(
                         confirmation.paymentKey(),
                         cardTransaction.getRequestedAmount(),
-                        0L,
+                        java.math.BigDecimal.ZERO,
                         confirmation.approvedAt()
                 );
             }
@@ -140,7 +140,7 @@ public class CardPaymentConfirmService implements CardPaymentConfirmUseCase {
         if (command.paymentKey() == null || command.paymentKey().isBlank()) {
             throw new InvalidCardPaymentRequestException("paymentKey is required.");
         }
-        if (command.amount() == null || command.amount() <= 0) {
+        if (command.amount() == null || command.amount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
             throw new InvalidCardPaymentRequestException("amount must be positive.");
         }
 
@@ -154,16 +154,16 @@ public class CardPaymentConfirmService implements CardPaymentConfirmUseCase {
             throw new InvalidCardPaymentRequestException("order validation orderItems must not be empty.");
         }
 
-        long orderItemsTotalAmount = getOrderItemsTotalAmount(validationData);
+        java.math.BigDecimal orderItemsTotalAmount = getOrderItemsTotalAmount(validationData);
 
-        if (!Objects.equals(orderItemsTotalAmount, command.amount())) {
+        if (orderItemsTotalAmount.compareTo(command.amount()) != 0) {
             throw new InvalidCardPaymentRequestException("order validation lineAmount total must equal amount.");
         }
         return validationData;
     }
 
-    private static long getOrderItemsTotalAmount(OrderPaymentValidationData validationData) {
-        long orderItemsTotalAmount = 0L;
+    private static java.math.BigDecimal getOrderItemsTotalAmount(OrderPaymentValidationData validationData) {
+        java.math.BigDecimal orderItemsTotalAmount = java.math.BigDecimal.ZERO;
         for (OrderPaymentValidationItemData orderItem : validationData.orderItems()) {
             if (orderItem == null) {
                 throw new InvalidCardPaymentRequestException("order validation orderItems must not contain null.");
@@ -174,10 +174,10 @@ public class CardPaymentConfirmService implements CardPaymentConfirmUseCase {
             if (orderItem.sellerId() == null) {
                 throw new InvalidCardPaymentRequestException("order validation sellerId is required.");
             }
-            if (orderItem.lineAmount() == null || orderItem.lineAmount() <= 0) {
+            if (orderItem.lineAmount() == null || orderItem.lineAmount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
                 throw new InvalidCardPaymentRequestException("order validation lineAmount must be positive.");
             }
-            orderItemsTotalAmount += orderItem.lineAmount();
+            orderItemsTotalAmount = orderItemsTotalAmount.add(orderItem.lineAmount());
         }
         return orderItemsTotalAmount;
     }
@@ -227,7 +227,9 @@ public class CardPaymentConfirmService implements CardPaymentConfirmUseCase {
         if (!Objects.equals(confirmation.orderId(), command.orderId().toString())) {
             throw new InvalidCardPaymentRequestException("confirmed orderId does not match request.");
         }
-        if (!Objects.equals(confirmation.approvedAmount(), command.amount())) {
+        if (confirmation.approvedAmount() == null
+                || command.amount() == null
+                || confirmation.approvedAmount().compareTo(command.amount()) != 0) {
             throw new InvalidCardPaymentRequestException("confirmed amount does not match request.");
         }
         if (!CARD_METHOD.equals(confirmation.method())) {

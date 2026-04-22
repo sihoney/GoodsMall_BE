@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: member-config
+  namespace: goods-mall
+data:
+  API_GATEWAY_HOST: "http://gateway:8080"
+  AWS_REGION: "ap-northeast-2"
+  EMAIL_PROVIDER: "smtp"
+  SMTP_HOST: "sandbox.smtp.mailtrap.io"
+  SMTP_PORT: "2525"
+  SMTP_AUTH: "true"
+  SMTP_STARTTLS_ENABLE: "true"
+  MAIL_FROM: "no-reply@todaylunch.local"
+  MAIL_FROM_NAME: "TodayLunch"
+  EMAIL_VERIFICATION_FRONTEND_URL: "https://goodsmall.vercel.app/email-verification"
+  KAKAO_REDIRECT_URI: "http://3.36.235.7/api/auth/oauth/kakao/callback"
+  AWS_S3_BUCKET: "todaylunchmenu"
+  KAKAO_CLIENT_ID: "40bcc2744d37da5ed008a7a22fe45b7a"

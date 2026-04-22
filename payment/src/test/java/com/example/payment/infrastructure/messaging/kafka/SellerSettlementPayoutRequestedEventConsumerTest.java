@@ -16,6 +16,8 @@ import com.example.payment.infrastructure.messaging.kafka.contract.PayoutFailure
 import com.example.payment.infrastructure.messaging.kafka.contract.SellerSettlementPayoutRequestedMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultStatus;
+import com.example.payment.infrastructure.messaging.kafka.contract.SettlementPayoutType;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -29,6 +31,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 @DisplayName("SellerSettlementPayoutRequestedEventConsumer 테스트")
 class SellerSettlementPayoutRequestedEventConsumerTest {
+    private BigDecimal amount(long value) {
+        return BigDecimal.valueOf(value);
+    }
+
     @Mock
     private WalletRepository walletRepository;
     @Mock
@@ -51,16 +57,17 @@ class SellerSettlementPayoutRequestedEventConsumerTest {
         SellerSettlementPayoutRequestedMessage event = new SellerSettlementPayoutRequestedMessage(
                 UUID.randomUUID(),
                 settlementId,
+                SettlementPayoutType.MONTHLY,
                 sellerMemberId,
                 2026,
                 3,
-                9_000L,
+                amount(9_000L),
                 LocalDateTime.of(2026, 4, 1, 3, 5)
         );
-        Wallet wallet = Wallet.create(walletId, sellerMemberId, 1_000L, now, now.minusDays(1));
+        Wallet wallet = Wallet.create(walletId, sellerMemberId, amount(1_000L), now, now.minusDays(1));
         when(timeProvider.now()).thenReturn(now);
         when(identifierGenerator.generateUuid()).thenReturn(UUID.randomUUID(), UUID.randomUUID());
-        when(walletTransactionRepository.findByReferenceIdAndReferenceType(settlementId, "SETTLEMENT"))
+        when(walletTransactionRepository.findByReferenceIdAndReferenceType(settlementId, "MONTHLY_SETTLEMENT"))
                 .thenReturn(Optional.empty());
         when(walletRepository.findByMemberId(sellerMemberId)).thenReturn(Optional.of(wallet));
         consumer.listen(event);
@@ -82,26 +89,27 @@ class SellerSettlementPayoutRequestedEventConsumerTest {
         SellerSettlementPayoutRequestedMessage event = new SellerSettlementPayoutRequestedMessage(
                 UUID.randomUUID(),
                 settlementId,
+                SettlementPayoutType.MONTHLY,
                 sellerMemberId,
                 2026,
                 3,
-                9_000L,
+                amount(9_000L),
                 LocalDateTime.of(2026, 4, 1, 3, 5)
         );
         WalletTransaction existingTransaction = WalletTransaction.create(
                 UUID.randomUUID(),
                 UUID.randomUUID(),
-                9_000L,
-                10_000L,
+                amount(9_000L),
+                amount(10_000L),
                 WalletTransactionType.SETTLEMENT,
                 settlementId,
-                "SETTLEMENT",
+                "MONTHLY_SETTLEMENT",
                 "seller settlement payout",
                 now
         );
         when(timeProvider.now()).thenReturn(now);
         when(identifierGenerator.generateUuid()).thenReturn(UUID.randomUUID());
-        when(walletTransactionRepository.findByReferenceIdAndReferenceType(settlementId, "SETTLEMENT"))
+        when(walletTransactionRepository.findByReferenceIdAndReferenceType(settlementId, "MONTHLY_SETTLEMENT"))
                 .thenReturn(Optional.of(existingTransaction));
         consumer.listen(event);
         verify(walletRepository, never()).save(any());
@@ -117,15 +125,16 @@ class SellerSettlementPayoutRequestedEventConsumerTest {
         SellerSettlementPayoutRequestedMessage event = new SellerSettlementPayoutRequestedMessage(
                 UUID.randomUUID(),
                 settlementId,
+                SettlementPayoutType.MONTHLY,
                 sellerMemberId,
                 2026,
                 3,
-                9_000L,
+                amount(9_000L),
                 LocalDateTime.of(2026, 4, 1, 3, 5)
         );
         when(timeProvider.now()).thenReturn(now);
         when(identifierGenerator.generateUuid()).thenReturn(UUID.randomUUID());
-        when(walletTransactionRepository.findByReferenceIdAndReferenceType(settlementId, "SETTLEMENT"))
+        when(walletTransactionRepository.findByReferenceIdAndReferenceType(settlementId, "MONTHLY_SETTLEMENT"))
                 .thenReturn(Optional.empty());
         when(walletRepository.findByMemberId(sellerMemberId)).thenReturn(Optional.empty());
         consumer.listen(event);
@@ -143,10 +152,11 @@ class SellerSettlementPayoutRequestedEventConsumerTest {
         SellerSettlementPayoutRequestedMessage event = new SellerSettlementPayoutRequestedMessage(
                 UUID.randomUUID(),
                 null,
+                SettlementPayoutType.MONTHLY,
                 UUID.randomUUID(),
                 2026,
                 3,
-                9_000L,
+                amount(9_000L),
                 LocalDateTime.of(2026, 4, 1, 3, 5)
         );
         assertThatThrownBy(() -> consumer.listen(event))
@@ -162,16 +172,17 @@ class SellerSettlementPayoutRequestedEventConsumerTest {
         SellerSettlementPayoutRequestedMessage event = new SellerSettlementPayoutRequestedMessage(
                 UUID.randomUUID(),
                 settlementId,
+                SettlementPayoutType.MONTHLY,
                 sellerMemberId,
                 2026,
                 3,
-                9_000L,
+                amount(9_000L),
                 LocalDateTime.of(2026, 4, 1, 3, 5)
         );
-        Wallet wallet = Wallet.create(UUID.randomUUID(), sellerMemberId, 1_000L, now, now.minusDays(1));
+        Wallet wallet = Wallet.create(UUID.randomUUID(), sellerMemberId, amount(1_000L), now, now.minusDays(1));
 
         when(timeProvider.now()).thenReturn(now);
-        when(walletTransactionRepository.findByReferenceIdAndReferenceType(settlementId, "SETTLEMENT"))
+        when(walletTransactionRepository.findByReferenceIdAndReferenceType(settlementId, "MONTHLY_SETTLEMENT"))
                 .thenReturn(Optional.empty());
         when(walletRepository.findByMemberId(sellerMemberId)).thenReturn(Optional.of(wallet));
         when(walletRepository.save(any(Wallet.class))).thenThrow(new RuntimeException("temporary db error"));

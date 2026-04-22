@@ -2,6 +2,7 @@ package com.example.payment.presentation.dto.response;
 
 import com.example.payment.application.dto.ChargeListItemResult;
 import com.example.payment.domain.enumtype.ChargeStatus;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -10,8 +11,8 @@ import java.util.UUID;
  */
 public record ChargeListItemResponse(
         UUID chargeId,
-        Long requestedAmount,
-        Long approvedAmount,
+        BigDecimal requestedAmount,
+        BigDecimal approvedAmount,
         ChargeStatus chargeStatus,
         String tossBankCode,
         LocalDateTime requestedAt,

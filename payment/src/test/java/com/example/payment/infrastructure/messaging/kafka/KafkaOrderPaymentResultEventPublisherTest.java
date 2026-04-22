@@ -29,9 +29,8 @@ class KafkaOrderPaymentResultEventPublisherTest {
     @Test
     @DisplayName("주문 결제 결과 이벤트를 지정한 토픽으로 발행한다")
     void publish_sendsEventToKafka() throws Exception {
-        String topic = "payment.order-payment-result";
         KafkaOrderPaymentResultEventPublisher publisher =
-                new KafkaOrderPaymentResultEventPublisher(kafkaTemplate, objectMapper, topic);
+                new KafkaOrderPaymentResultEventPublisher(kafkaTemplate, objectMapper);
         UUID orderId = UUID.randomUUID();
         OrderPaymentResultMessage event = new OrderPaymentResultMessage(
                 UUID.randomUUID(),
@@ -46,6 +45,6 @@ class KafkaOrderPaymentResultEventPublisherTest {
 
         publisher.publish(event);
 
-        verify(kafkaTemplate).send(topic, String.valueOf(orderId), "serialized-message");
+        verify(kafkaTemplate).send(KafkaTopics.ORDER_PAYMENT_RESULT, String.valueOf(orderId), "serialized-message");
     }
 }

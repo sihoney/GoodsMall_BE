@@ -1,17 +1,26 @@
 # Settlement Service
 
-`settlement` 모듈은 판매자 정산을 담당하는 서비스입니다. payment 모듈에서 넘어온 정산 후보를 적재하고, 월 단위로 집계해 정산 건을 만들며, 지급 요청과 지급 결과 반영, 실패 건 재시도/수동 재처리를 수행합니다.
+`settlement` 모듈은 판매자 정산을 담당하는 서비스입니다. payment 모듈에서 넘어온 정산 후보를 적재하고, 월 단위 집계 정산과 판매자 선택 기반 부분 정산을 만들며, 지급 요청과 지급 결과 반영, 실패 건 재시도/수동 재처리를 수행합니다.
 
 ## 1. 한눈에 보는 역할
 
 - payment가 발행한 `settlement candidate` 이벤트를 받아 `settlement_item`으로 적재한다.
   - 현재는 seller별 집계 항목이 들어가나 부분 취소, 환불 요청으로 order_item 단위로 세분화할 수도 있다.
-- 판매자 + 정산 대상 연월 기준으로 정산 금액을 집계한다.
-- 월 정산 배치에서 `PENDING settlement`에 대해 지급 요청 이벤트를 발행한다.
+- 월 정산 대상 기간의 `UNASSIGNED settlement_item`을 판매자 + 정산 대상 연월 기준으로 집계한다.
+- 판매자가 선택한 `SettlementItem`으로 `Settlement(PARTIAL)`를 생성한다.
+- 월 정산 배치에서 `MONTHLY + PENDING settlement`에 대해 지급 요청 이벤트를 발행한다.
+- 부분 정산 실행 시 즉시 payout 요청을 발행한다.
 - payment가 회신한 지급 결과를 반영해 `COMPLETED` 또는 `FAILED` 상태로 변경한다.
 - `RETRYABLE` 실패 건은 스케줄러로 자동 재시도한다.
 - `NON_RETRYABLE` 실패 건은 운영 API로 수동 재처리할 수 있게 한다.
 - DLQ 재처리 대상 settlement 목록을 운영 API로 일괄 replay 할 수 있다.
+
+현재 중요한 전제:
+
+- 월 정산과 부분 정산은 같은 `SettlementItem` 원천 데이터를 공유한다.
+- 따라서 월 정산은 더 이상 "구매확정된 전체 정산 대기 건"을 의미하지 않는다.
+- 정확히는 "`SettlementItemStatus = UNASSIGNED` 인 항목 중 월 정산 배치가 가져간 항목"이 월 정산 대상이다.
+- 판매자가 부분 정산으로 먼저 가져간 항목은 월 정산 대상에서 제외된다.
 
 ## 2. 실행 정보
 
@@ -78,10 +87,9 @@ Docker/AWS 환경에서는 기본적으로 `prod` 프로필로 실행됩니다.
 | DB | `DB_URL`, `DB_USER_NAME`, `DB_USER_PASSWORD` |
 | Kafka | `SPRING_KAFKA_BOOTSTRAP_SERVERS` |
 | Eureka | `EUREKA_DEFAULT_ZONE` |
-| Settlement Kafka | `SETTLEMENT_KAFKA_TOPIC_*`, `SETTLEMENT_KAFKA_CONSUMER_GROUP_*`, `SETTLEMENT_KAFKA_RETRY_*` |
 | Batch | `settlement.batch.monthly-aggregation.*`, `settlement.batch.retryable-failed-payout.*` |
 
-실제 루트 `.env.example`와 `.env.aws.example`에도 settlement 관련 Kafka 설정값이 들어 있습니다.
+Settlement Kafka 토픽, 컨슈머 그룹, retry 값은 서비스 설정값으로 고정합니다.
 
 ## 4. AWS 배포 고려사항
 
@@ -132,8 +140,14 @@ Docker/AWS 환경에서는 기본적으로 `prod` 프로필로 실행됩니다.
 | 개념 | 설명 |
 |---|---|
 | `SettlementItem` | payment의 `escrow release` 결과를 정산 대상으로 적재한 원천 항목 |
-| `Settlement` | 판매자별 월 정산 집계 결과 |
-| `SettlementStatus.PENDING` | 집계는 되었지만 아직 지급 전 또는 재시도 대기 상태 |
+| `Settlement` | 월 정산 또는 부분 정산 지급 단위 |
+| `SettlementType.MONTHLY` | 배치 집계 월 정산 |
+| `SettlementType.PARTIAL` | 판매자 선택 기반 부분 정산 |
+| `SettlementItemStatus.UNASSIGNED` | 아직 어떤 정산에도 연결되지 않은 상태 |
+| `SettlementItemStatus.PROCESSING` | 월 정산 또는 부분 정산이 선점한 상태 |
+| `SettlementItemStatus.ASSIGNED` | 특정 정산에 연결 완료된 상태 |
+| `SettlementStatus.PENDING` | 정산 생성 완료, payout 요청 전 |
+| `SettlementStatus.PROCESSING` | payout 요청 발행 완료, payment 결과 대기 |
 | `SettlementStatus.COMPLETED` | 지급 완료 |
 | `SettlementStatus.FAILED` | 지급 실패 |
 
@@ -143,16 +157,31 @@ Docker/AWS 환경에서는 기본적으로 `prod` 프로필로 실행됩니다.
 - `feeAmount`: `grossAmount * 10%`, 정수 나눗셈 기준 버림
 - `netAmount`: `grossAmount - feeAmount`
 
+도메인 해석 기준:
+
+| 대상 | 의미 |
+|---|---|
+| `SettlementItem` | 정산 대기 원천 항목 |
+| `Settlement(PARTIAL)` | 판매자가 직접 선택해 만든 부분 정산 |
+| `Settlement(MONTHLY)` | 월 배치가 집계해 만든 월 정산 |
+
+즉, 같은 `Settlement`를 쓰더라도 생성 주체와 생성 방식이 다르므로 `SettlementType` 구분이 필수다.
+
 ## 6. 모듈 간 통신 구조
 
 ### 6.1 HTTP로 받는 요청
 
 | Method | Path | 인증 | 목적 |
 |---|---|---|---|
+| `GET` | `/api/settlements/seller/partial-settlements/available` | 필요 | seller 부분 정산 가능 항목 조회 |
+| `POST` | `/api/settlements/seller/partial-settlements` | 필요 | seller 부분 정산 생성 및 즉시 payout 요청 |
 | `POST` | `/api/settlements/failed-payout/manual-retry` | 필요 | FAILED 정산 1건 수동 재지급 요청 |
 | `POST` | `/api/settlements/failed-payout/replay` | 필요 | FAILED 정산 다건 DLQ replay 처리 |
 
-이 API는 `gateway`를 통해 호출하며, 로그인한 사용자 정보는 `@CurrentMember`로 전달됩니다. 일반 사용자용 기능이 아니라 정산 실패 건을 다시 처리하는 운영용 API이므로, `ADMIN` 권한을 가진 사용자가 호출하는 것을 기준으로 합니다.
+이 API는 `gateway`를 통해 호출하며, 로그인한 사용자 정보는 `@CurrentMember`로 전달됩니다.
+
+- `/api/settlements/seller/partial-settlements*` 는 판매자용 API입니다.
+- `/api/settlements/failed-payout/*` 는 운영용 API이며 `ADMIN` 권한을 가진 사용자가 호출하는 것을 기준으로 합니다.
 
 ### 6.2 Kafka로 받는 이벤트
 
@@ -165,7 +194,7 @@ Docker/AWS 환경에서는 기본적으로 `prod` 프로필로 실행됩니다.
 
 | Topic | 메시지 타입 | 목적 |
 |---|---|---|
-| `settlement.seller-payout-requested` | `SellerSettlementPayoutRequestedMessage` | payment에 판매자 정산금 지급 요청 |
+| `settlement.seller-payout-requested` | `SellerSettlementPayoutRequestedMessage` | payment에 월 정산 또는 부분 정산 지급 요청 |
 
 ## 7. 공통 응답 형식
 
@@ -207,7 +236,56 @@ Docker/AWS 환경에서는 기본적으로 `prod` 프로필로 실행됩니다.
 
 ## 8. HTTP API 상세
 
-### 8.1 `POST /api/settlements/failed-payout/manual-retry`
+### 8.0 `GET /api/settlements/seller/partial-settlements/available`
+
+판매자가 현재 부분 정산 가능한 항목을 조회하는 API입니다.
+
+- 인증: 필요
+- 호출 대상: `SELLER`
+- 조회 기준:
+  - seller 본인
+  - `settlementItemStatus == UNASSIGNED`
+  - `grossAmount > 0`
+- 응답 주요 필드:
+  - `settlementItemId`
+  - `escrowId`
+  - `orderId`
+  - `grossAmount`
+  - `feeAmount`
+  - `netAmount`
+  - `releasedAt`
+
+### 8.1 `POST /api/settlements/seller/partial-settlements`
+
+판매자가 선택한 `settlementItemId` 목록으로 부분 정산을 생성하고 즉시 payout 요청까지 연결하는 API입니다.
+
+- 인증: 필요
+- 호출 대상: `SELLER`
+- 요청 본문:
+
+```json
+{
+  "settlementItemIds": [
+    "UUID-1",
+    "UUID-2"
+  ]
+}
+```
+
+- 검증 규칙:
+  - 목록은 비어 있으면 안 됩니다.
+  - 모든 `settlementItemId`가 존재해야 합니다.
+  - 모두 같은 seller 소유여야 합니다.
+  - 이미 다른 settlement에 연결된 항목이면 안 됩니다.
+  - `grossAmount > 0` 이어야 합니다.
+
+- 처리 순서:
+  - `Settlement(PARTIAL)` 생성
+  - `SettlementItem` 연결
+  - payout 요청 발행
+  - 상태 `PENDING -> PROCESSING`
+
+### 8.2 `POST /api/settlements/failed-payout/manual-retry`
 
 정산 지급이 실패한 건 1개를 다시 지급해보라고 요청하는 API입니다.
 
@@ -250,7 +328,7 @@ Docker/AWS 환경에서는 기본적으로 `prod` 프로필로 실행됩니다.
 }
 ```
 
-### 8.2 `POST /api/settlements/failed-payout/replay`
+### 8.3 `POST /api/settlements/failed-payout/replay`
 
 정산 지급이 실패했던 건 여러 개를 한 번에 다시 확인하고 재처리하는 API입니다.
 
@@ -305,14 +383,18 @@ Docker/AWS 환경에서는 기본적으로 `prod` 프로필로 실행됩니다.
 1. payment가 `payment.settlement-candidate-created` 발행
 2. settlement가 이벤트를 받아 `SettlementItem` 생성
 3. 동일 `escrowId`가 이미 존재하면 중복 적재하지 않는다
+4. 신규 `SettlementItem`은 기본적으로 `UNASSIGNED` 상태로 시작한다
 
 ### 9.2 월 정산 집계
 
 1. `MonthlySettlementAggregationScheduler`가 매월 실행
 2. 기준 시점의 직전 월 범위를 계산
-3. 아직 `settlementId`가 없는 `SettlementItem`을 조회
-4. 판매자 + 연월 기준으로 `Settlement`를 생성 또는 누적
-5. 집계가 끝나면 같은 월의 `PENDING settlement`에 대해 지급 요청 이벤트를 발행
+3. 대상 기간의 `UNASSIGNED SettlementItem`을 조회
+4. 조건부 상태 변경으로 `UNASSIGNED -> PROCESSING` 선점
+5. 선점 성공한 항목만 seller 기준으로 그룹 집계
+6. seller + 연월 기준으로 기존 `MONTHLY settlement`를 조회하거나 새로 생성
+7. 집계가 끝나면 각 item을 `Settlement`에 연결하고 `ASSIGNED` 상태로 변경
+8. 집계가 끝난 뒤 같은 월의 `MONTHLY + PENDING settlement`에 대해 지급 요청 이벤트를 발행
 
 기본 스케줄:
 
@@ -321,20 +403,40 @@ Docker/AWS 환경에서는 기본적으로 `prod` 프로필로 실행됩니다.
 
 즉, 매월 1일 03:05 KST에 직전 월을 집계합니다.
 
-### 9.3 지급 요청
+중요한 의미 변화:
+
+- 예전 기준: `settlementId == null` 인 item을 월 정산이 가져간다
+- 현재 기준: `UNASSIGNED` item을 월 정산이 먼저 선점한 뒤 집계한다
+
+이 구조는 부분 정산과 월 정산이 같은 `SettlementItem`을 동시에 가져가려는 상황을 줄이기 위한 방향이다.
+
+### 9.3 부분 정산 실행
+
+1. 판매자가 부분 정산 가능 항목 조회 API를 호출한다.
+2. settlement가 seller 기준 `UNASSIGNED SettlementItem`을 내려준다.
+3. 판매자가 일부 `settlementItemId`를 선택한다.
+4. settlement가 `Settlement(PARTIAL)`를 `PENDING` 상태로 생성한다.
+5. 선택한 `SettlementItem`에 `settlementId`를 연결하고 `ASSIGNED` 상태로 변경한다.
+6. 즉시 payout 요청 이벤트를 발행한다.
+7. `Settlement` 상태를 `PROCESSING`으로 변경한다.
+
+### 9.4 지급 요청
 
 1. settlement가 `settlement.seller-payout-requested` 발행
 2. payment가 판매자 wallet에 정산금을 적립
 3. payment가 결과를 `payment.seller-payout-result`로 회신
 
-### 9.4 지급 결과 반영
+월 정산과 부분 정산 모두 같은 payout 채널을 사용한다.
+대신 이벤트의 `settlementType`으로 구분한다.
+
+### 9.5 지급 결과 반영
 
 1. settlement가 지급 결과 이벤트를 소비
 2. 성공이면 `COMPLETED`
 3. 실패면 `FAILED`와 `lastFailureReason` 저장
 4. 이미 `COMPLETED`인 건에 대한 중복 성공 이벤트는 no-op 처리
 
-### 9.5 실패 재시도
+### 9.6 실패 재시도
 
 1. `RetryableFailedPayoutScheduler`가 현재 월의 `FAILED settlement`를 주기적으로 조회
 2. `lastFailureReason`이 `retryable=true`인 경우만 자동 재시도
@@ -360,7 +462,7 @@ Docker/AWS 환경에서는 기본적으로 `prod` 프로필로 실행됩니다.
 
 | 메시지 | 주요 필드 |
 |---|---|
-| `SellerSettlementPayoutRequestedMessage` | `eventId`, `settlementId`, `sellerMemberId`, `settlementYear`, `settlementMonth`, `payoutAmount`, `requestedAt` |
+| `SellerSettlementPayoutRequestedMessage` | `eventId`, `settlementId`, `settlementType`, `sellerMemberId`, `settlementYear`, `settlementMonth`, `payoutAmount`, `requestedAt` |
 
 ### 지급 실패 사유 분류
 
@@ -396,8 +498,12 @@ Docker/AWS 환경에서는 기본적으로 `prod` 프로필로 실행됩니다.
 ## 11. 운영 시 참고사항
 
 - settlement는 사용자-facing 결제 API가 아니라 운영/배치 중심 서비스입니다.
+- 다만 현재는 seller 부분 정산 API가 추가되어 판매자 직접 진입 경로도 함께 가집니다.
 - 실질적인 핵심 흐름은 HTTP보다 Kafka와 scheduler입니다.
-- 월 정산 집계는 `SettlementItem`이 이미 `settlementId`를 가지면 다시 집계하지 않으므로 재실행에 대해 어느 정도 멱등성을 가집니다.
+- 월 정산은 `UNASSIGNED -> PROCESSING -> ASSIGNED` 상태 흐름을 통해 item을 선점하고 처리합니다.
+- 부분 정산도 같은 `SettlementItem`을 사용하므로 `UNASSIGNED` 상태 item만 실행 대상이 됩니다.
+- 월 정산과 부분 정산은 `SettlementType`으로 반드시 구분해서 해석해야 합니다.
+- 월 정산 집계는 같은 `SettlementItem`을 다시 가져가지 않도록 상태 기반으로 동작합니다.
 - 정산 후보 적재는 `escrowId` unique 기준으로 중복 적재를 방지합니다.
 - 지급 결과 성공 이벤트가 중복으로 들어와도 이미 `COMPLETED`면 no-op 처리합니다.
 - 재시도 기준은 `Settlement.lastFailureReason`을 `PayoutFailureReason` enum으로 해석할 수 있는지에 따라 결정됩니다.
@@ -407,7 +513,16 @@ Docker/AWS 환경에서는 기본적으로 `prod` 프로필로 실행됩니다.
 ## 12. 현재 구현상 메모
 
 - 정산 스케줄링 시간은 필요시 변경 가능합니다.
-- 정산 집계는 현재 판매자 + 연월 기준 누적 방식입니다.
-- 코드 주석 기준으로 월 집계 쪽에는 동시 실행 시 중복 집계 가능성에 대한 TODO가 남아 있습니다.
+- 정산 집계는 현재 seller + year + month 기준 `MONTHLY settlement` 누적 방식입니다.
+- 부분 정산은 판매자 선택 기준으로 즉시 생성하는 방식입니다.
+- 월 정산과 부분 정산은 모두 같은 `SettlementItem`을 공유합니다.
+- 월 정산 헤더는 `MONTHLY` 기준 seller/year/month 유니크 인덱스로 중복 생성을 막는 방향입니다.
+- 상태 선점 이후 실패 복구나 stuck `PROCESSING` 대응은 후속 보완 범위입니다.
 - 실패 재시도 스케줄러는 현재 월 기준만 대상으로 합니다.
-- OpenAPI 설명상 운영 검증은 `ADMIN` 만 사용 가능한 것을 전제로 합니다.
+- OpenAPI 설명상 운영 검증은 `ADMIN` 만 사용 가능한 것을 전제로 합니다
+## 13. 변경 메모 (2026-04-20)
+
+- settlement 모듈의 금액 필드(`grossAmount`, `feeAmount`, `netAmount`, `payoutAmount` 등) 문서 기준을 코드와 동일하게 `BigDecimal`로 정렬했습니다.
+- 월 정산/부분 정산 집계 합계는 `BigDecimal` 누적 기준으로 해석합니다.
+- 시간 필드(예: `remainingSeconds`)와 금액 필드를 명확히 분리해 타입 혼동을 방지합니다.
+

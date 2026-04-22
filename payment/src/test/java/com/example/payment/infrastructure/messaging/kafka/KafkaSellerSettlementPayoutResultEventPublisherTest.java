@@ -5,6 +5,7 @@ import static org.mockito.Mockito.verify;
 import com.example.payment.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -28,9 +29,8 @@ class KafkaSellerSettlementPayoutResultEventPublisherTest {
     @Test
     @DisplayName("정산 지급 결과 이벤트를 settlementId 키로 Kafka에 발행한다")
     void publish_sendsEventToKafka() throws Exception {
-        String topic = "payment.seller-payout-result";
         KafkaSellerSettlementPayoutResultEventPublisher publisher =
-                new KafkaSellerSettlementPayoutResultEventPublisher(kafkaTemplate, objectMapper, topic);
+                new KafkaSellerSettlementPayoutResultEventPublisher(kafkaTemplate, objectMapper);
 
         UUID settlementId = UUID.randomUUID();
         SellerSettlementPayoutResultMessage message = new SellerSettlementPayoutResultMessage(
@@ -38,7 +38,7 @@ class KafkaSellerSettlementPayoutResultEventPublisherTest {
                 UUID.randomUUID(),
                 settlementId,
                 UUID.randomUUID(),
-                9_000L,
+                BigDecimal.valueOf(9_000L),
                 SellerSettlementPayoutResultStatus.SUCCESS,
                 null,
                 LocalDateTime.of(2026, 4, 1, 3, 10)
@@ -47,7 +47,7 @@ class KafkaSellerSettlementPayoutResultEventPublisherTest {
 
         publisher.publish(message);
 
-        verify(kafkaTemplate).send(topic, String.valueOf(settlementId), "serialized-message");
+        verify(kafkaTemplate).send(KafkaTopics.SETTLEMENT_PAYOUT_RESULT, String.valueOf(settlementId), "serialized-message");
     }
 }
 

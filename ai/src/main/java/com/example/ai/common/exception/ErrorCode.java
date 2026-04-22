@@ -25,7 +25,14 @@ public enum ErrorCode {
     AI_PRODUCT_DRAFT_ASSIST_EXTERNAL_CALL_ERROR(HttpStatus.BAD_GATEWAY, "상품 등록 보조 AI 외부 호출 중 오류가 발생했습니다."),
     AI_PRODUCT_DRAFT_ASSIST_RESPONSE_INVALID_ERROR(HttpStatus.BAD_GATEWAY, "상품 등록 보조 AI 응답 형식이 올바르지 않습니다."),
     AI_PRODUCT_DRAFT_ASSIST_IMAGE_READ_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "상품 등록 보조 AI 이미지 처리 중 오류가 발생했습니다."),
-    AI_PRODUCT_DRAFT_ASSIST_FINGERPRINT_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "상품 등록 보조 AI 요청 식별값 생성 중 오류가 발생했습니다.");
+    AI_PRODUCT_DRAFT_ASSIST_FINGERPRINT_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "상품 등록 보조 AI 요청 식별값 생성 중 오류가 발생했습니다."),
+
+    AI_AUCTION_PRICE_RECOMMENDATION_ERROR(HttpStatus.UNPROCESSABLE_CONTENT, "경매 가격 추천 AI 처리 중 오류가 발생했습니다."),
+    AI_AUCTION_PRICE_RECOMMENDATION_REQUEST_INVALID(HttpStatus.BAD_REQUEST, "경매 가격 추천 요청 값이 올바르지 않습니다."),
+    AI_AUCTION_PRICE_RECOMMENDATION_CONFIGURATION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "경매 가격 추천 AI 설정 오류가 발생했습니다."),
+    AI_AUCTION_PRICE_RECOMMENDATION_EXTERNAL_CALL_ERROR(HttpStatus.BAD_GATEWAY, "경매 가격 추천 AI 외부 호출 중 오류가 발생했습니다."),
+    AI_AUCTION_PRICE_RECOMMENDATION_RESPONSE_INVALID_ERROR(HttpStatus.BAD_GATEWAY, "경매 가격 추천 AI 응답 형식이 올바르지 않습니다."),
+    AI_AUCTION_PRICE_RECOMMENDATION_PROCESSING_ERROR(HttpStatus.UNPROCESSABLE_CONTENT, "경매 가격 추천 계산 처리 중 오류가 발생했습니다.");
 
     private final HttpStatus httpStatus;
     private final String message;

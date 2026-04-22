@@ -28,8 +28,8 @@ public class SettlementCandidateCreatedEventConsumer {
     }
 
     @KafkaListener(
-            topics = "${settlement.kafka.topics.settlement-candidate-created:payment.settlement-candidate-created}",
-            groupId = "${settlement.kafka.consumer-groups.settlement-candidate-created:settlement-service}",
+            topics = KafkaTopics.SETTLEMENT_CANDIDATE_CREATED,
+            groupId = KafkaConsumerGroups.SETTLEMENT_SERVICE,
             containerFactory = "settlementCandidateCreatedKafkaListenerContainerFactory"
     )
     public void listen(String eventJson) {
@@ -63,7 +63,7 @@ public class SettlementCandidateCreatedEventConsumer {
         if (event.sellerMemberId() == null) {
             throw new IllegalArgumentException("sellerMemberId is required.");
         }
-        if (event.grossAmount() == null || event.grossAmount() <= 0) {
+        if (event.grossAmount() == null || event.grossAmount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("grossAmount must be positive.");
         }
         if (event.releasedAt() == null) {

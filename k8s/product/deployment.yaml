@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product
+  namespace: goods-mall
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: product
+  template:
+    metadata:
+      labels:
+        app: product
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: product
+          image: ghcr.io/prgrms-be-adv-devcourse/beadv5_2_todaylunchmenu_be/product:latest
+          ports:
+            - containerPort: 8081
+          envFrom:
+            - configMapRef:
+                name: common-config
+            - secretRef:
+                name: common-secret
+            - configMapRef:
+                name: product-config
+            - secretRef:
+                name: product-secret
+          startupProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8081
+            failureThreshold: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8081
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8081
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3

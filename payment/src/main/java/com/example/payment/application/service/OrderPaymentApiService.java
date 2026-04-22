@@ -158,17 +158,13 @@ public class OrderPaymentApiService implements OrderPaymentApiUseCase {
                 .map(line -> new OrderPaymentLineCommand(
                         line.orderItemId(),
                         line.sellerId(),
-                        toAmount(line.lineTotalPrice())
+                        line.lineTotalPrice()
                 ))
                 .toList();
     }
 
-    // long 값을 BigDecimal로 변경
-    private Long toAmount(BigDecimal amount) {
-        try {
-            return amount.longValueExact();
-        } catch (ArithmeticException e) {
-            throw new InvalidOrderPaymentRequestException("price must be an exact whole amount.");
-        }
+    // BigDecimal을 결제 금액으로 그대로 반환한다.
+    private BigDecimal toAmount(BigDecimal amount) {
+        return amount;
     }
 }
