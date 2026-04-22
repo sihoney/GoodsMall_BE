@@ -190,33 +190,6 @@ public class NotificationService implements NotificationUsecase {
 
     @Override
     @Transactional
-    public void createAuctionBidOutbidNotification(
-            UUID eventId,
-            String traceId,
-            UUID auctionId,
-            UUID bidderId,
-            LocalDateTime occurredAt
-    ) {
-        validateCommonArguments(eventId, bidderId, occurredAt);
-        if (auctionId == null) {
-            throw new IllegalArgumentException("auctionId is required.");
-        }
-
-        saveNotification(
-                eventId,
-                traceId,
-                bidderId,
-                NotificationType.AUCTION_BID_OUTBID,
-                "입찰 밀림",
-                "더 높은 입찰가가 등록되어 최고 입찰자에서 밀렸습니다.",
-                auctionId,
-                NotificationReferenceType.AUCTION,
-                occurredAt
-        );
-    }
-
-    @Override
-    @Transactional
     public void createSellerSettlementPayoutSucceededNotification(
             UUID eventId,
             String traceId,

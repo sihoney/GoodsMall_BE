@@ -4,6 +4,5 @@ public enum NotificationReferenceType {
     PAYMENT,
     ORDER,
     SETTLEMENT,
-    WITHDRAWAL,
-    AUCTION
+    WITHDRAWAL
 }

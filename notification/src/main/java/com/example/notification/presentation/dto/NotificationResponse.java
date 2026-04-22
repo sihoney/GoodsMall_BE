@@ -60,7 +60,6 @@ public record NotificationResponse(
                     "주문번호 " + notification.getReferenceId();
             case SELLER_SETTLEMENT_PAYOUT_SUCCEEDED, SELLER_SETTLEMENT_PAYOUT_FAILED ->
                     "정산번호 " + notification.getReferenceId();
-            case AUCTION_BID_OUTBID -> "경매번호 " + notification.getReferenceId();
         };
     }
 
@@ -90,9 +89,6 @@ public record NotificationResponse(
             case SELLER_SETTLEMENT_PAYOUT_FAILED -> List.of(
                     createNavigateAction("다시 요청", "SETTLEMENT_DETAIL", referenceId, "primary"),
                     new NotificationAction("고객센터 문의", "callback", "SUPPORT_CONTACT", null, "secondary")
-            );
-            case AUCTION_BID_OUTBID -> List.of(
-                    createNavigateAction("경매 보기", "AUCTION_DETAIL", referenceId, "primary")
             );
         };
     }

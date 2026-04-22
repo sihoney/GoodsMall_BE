@@ -35,8 +35,7 @@ public class NotificationEventConsumer {
     @KafkaListener(
             topics = {
                     KafkaTopics.MEMBER_SIGNED_UP,
-                    KafkaTopics.ORDER_PAYMENT_RESULT,
-                    KafkaTopics.AUCTION_BID_OUTBID
+                    KafkaTopics.ORDER_PAYMENT_RESULT
             },
             groupId = "${notification.kafka.consumer-groups.member-signed-up:notification-service}",
             containerFactory = "memberSignedUpKafkaListenerContainerFactory"
