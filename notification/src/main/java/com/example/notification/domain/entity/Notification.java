@@ -27,7 +27,7 @@ public class Notification {
     @Column(name = "notification_id", nullable = false, updatable = false)
     private UUID notificationId;
 
-    @Column(name = "event_id", nullable = false, updatable = false, unique = true)
+    @Column(name = "event_id", nullable = false, updatable = false)
     private UUID eventId;
 
     @Column(name = "trace_id")

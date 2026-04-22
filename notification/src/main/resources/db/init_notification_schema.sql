@@ -16,8 +16,8 @@ create table if not exists notification_service.notification (
     status_changed_at timestamp not null
 );
 
-create unique index if not exists uq_notification_event_id
-    on notification_service.notification (event_id);
+create unique index if not exists uq_notification_event_member_type
+    on notification_service.notification (event_id, member_id, type);
 
 create index if not exists idx_notification_member_created_at
     on notification_service.notification (member_id, created_at desc);

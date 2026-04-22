@@ -1,10 +1,10 @@
 package com.example.notification.application.service;
 
-import com.example.notification.application.dto.NotificationCommand;
 import com.example.notification.application.monitoring.NotificationMetricsRecorder;
 import com.example.notification.application.usecase.NotificationUsecase;
 import com.example.notification.common.exception.NotificationNotFoundException;
 import com.example.notification.domain.entity.Notification;
+import com.example.notification.domain.enumtype.NotificationChannel;
 import com.example.notification.domain.enumtype.NotificationMetricReason;
 import com.example.notification.domain.enumtype.NotificationReferenceType;
 import com.example.notification.domain.enumtype.NotificationStatus;
@@ -16,6 +16,9 @@ import com.example.notification.presentation.dto.NotificationResponse;
 import com.example.notification.presentation.dto.NotificationUnreadCountResponse;
 import com.example.notification.presentation.dto.PagedResponse;
 import java.time.LocalDateTime;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -71,37 +74,117 @@ public class NotificationService implements NotificationUsecase {
 
         boolean alreadyRead = notification.isRead();
         notification.markAsRead();
-        notificationMetricsRecorder.recordMarkRead(alreadyRead); // 이미 읽은 알림인지 여부 기록
+        notificationMetricsRecorder.recordMarkRead(alreadyRead);
         return NotificationResponse.from(notification);
     }
 
     @Override
     @Transactional
-    public void createNotification(NotificationCommand command) {
-        if (command == null) {
-            throw new IllegalArgumentException("notification command is required.");
-        }
-        validateCommonArguments(command.eventId(), command.memberId(), command.occurredAt());
-        if (command.type() == null) {
-            throw new IllegalArgumentException("type is required.");
-        }
-        if (command.title() == null || command.title().isBlank()) {
-            throw new IllegalArgumentException("title is required.");
-        }
-        if (command.content() == null || command.content().isBlank()) {
-            throw new IllegalArgumentException("content is required.");
-        }
+    public void createMemberSignedUpNotification(
+            UUID eventId,
+            String traceId,
+            UUID memberId,
+            LocalDateTime occurredAt
+    ) {
+        validateCommonArguments(eventId, memberId, occurredAt);
         saveNotification(
-                command.eventId(),
-                command.traceId(),
-                command.memberId(),
-                command.type(),
-                command.title(),
-                command.content(),
-                command.referenceId(),
-                command.referenceType(),
-                command.occurredAt()
+                eventId,
+                traceId,
+                memberId,
+                NotificationType.BUYER_SIGNUP_COMPLETED,
+                "회원가입을 환영해요",
+                "투데이런치 회원가입이 완료되었어요.",
+                null,
+                null,
+                occurredAt
         );
+    }
+
+    @Override
+    @Transactional
+    public void createOrderCreatedNotifications(
+            UUID eventId,
+            String traceId,
+            UUID orderId,
+            UUID buyerMemberId,
+            Long totalAmount,
+            List<UUID> sellerMemberIds,
+            LocalDateTime occurredAt
+    ) {
+        validateCommonArguments(eventId, buyerMemberId, occurredAt);
+        validateOrderArguments(orderId, totalAmount);
+
+        Set<UUID> distinctSellerMemberIds = validateAndDistinctSellerMemberIds(sellerMemberIds);
+
+        saveNotification(
+                eventId,
+                traceId,
+                buyerMemberId,
+                NotificationType.BUYER_ORDER_CREATED,
+                "주문이 접수되었어요",
+                "주문이 정상적으로 생성되었어요. 결제 금액: " + totalAmount + "원",
+                orderId,
+                NotificationReferenceType.ORDER,
+                occurredAt
+        );
+
+        for (UUID sellerMemberId : distinctSellerMemberIds) {
+            saveNotification(
+                    eventId,
+                    traceId,
+                    sellerMemberId,
+                    NotificationType.SELLER_ORDER_RECEIVED,
+                    "새 주문이 접수되었어요",
+                    "새 주문이 들어왔어요. 주문 내용을 확인하고 준비를 시작해 주세요.",
+                    orderId,
+                    NotificationReferenceType.ORDER,
+                    occurredAt
+            );
+        }
+    }
+
+    @Override
+    @Transactional
+    public void createOrderCanceledNotifications(
+            UUID eventId,
+            String traceId,
+            UUID orderId,
+            UUID buyerMemberId,
+            List<UUID> sellerMemberIds,
+            LocalDateTime occurredAt
+    ) {
+        validateCommonArguments(eventId, buyerMemberId, occurredAt);
+        if (orderId == null) {
+            throw new IllegalArgumentException("orderId is required.");
+        }
+
+        Set<UUID> distinctSellerMemberIds = validateAndDistinctSellerMemberIds(sellerMemberIds);
+
+        saveNotification(
+                eventId,
+                traceId,
+                buyerMemberId,
+                NotificationType.BUYER_ORDER_CANCELED,
+                "주문 취소가 완료되었어요",
+                "주문이 정상적으로 취소되었어요.",
+                orderId,
+                NotificationReferenceType.ORDER,
+                occurredAt
+        );
+
+        for (UUID sellerMemberId : distinctSellerMemberIds) {
+            saveNotification(
+                    eventId,
+                    traceId,
+                    sellerMemberId,
+                    NotificationType.SELLER_ORDER_CANCELED,
+                    "주문 취소가 발생했어요",
+                    "구매자가 주문을 취소했어요. 주문 상태를 확인해 주세요.",
+                    orderId,
+                    NotificationReferenceType.ORDER,
+                    occurredAt
+            );
+        }
     }
 
     @Override
@@ -122,9 +205,9 @@ public class NotificationService implements NotificationUsecase {
                 eventId,
                 traceId,
                 buyerMemberId,
-                NotificationType.AUTO_PURCHASE_CONFIRMED,
-                "Auto purchase confirmed",
-                "Your order was automatically confirmed.",
+                NotificationType.BUYER_AUTO_PURCHASE_CONFIRMED,
+                "자동 구매 확정이 완료되었어요",
+                "주문이 자동으로 구매 확정되었어요.",
                 orderId,
                 NotificationReferenceType.ORDER,
                 confirmedAt
@@ -148,9 +231,9 @@ public class NotificationService implements NotificationUsecase {
                 eventId,
                 traceId,
                 buyerMemberId,
-                NotificationType.ORDER_PAYMENT_SUCCEEDED,
-                "Payment completed",
-                "Your payment was completed successfully. Amount: " + paidAmount,
+                NotificationType.BUYER_ORDER_PAYMENT_SUCCEEDED,
+                "결제가 완료되었어요",
+                "결제가 정상적으로 완료되었어요. 결제 금액: " + paidAmount + "원",
                 orderId,
                 NotificationReferenceType.ORDER,
                 occurredAt
@@ -179,8 +262,8 @@ public class NotificationService implements NotificationUsecase {
                 eventId,
                 traceId,
                 buyerMemberId,
-                NotificationType.ORDER_PAYMENT_FAILED,
-                "Payment failed",
+                NotificationType.BUYER_ORDER_PAYMENT_FAILED,
+                "결제에 실패했어요",
                 mapFailureReasonToContent(failureReason),
                 orderId,
                 NotificationReferenceType.ORDER,
@@ -211,8 +294,8 @@ public class NotificationService implements NotificationUsecase {
                 traceId,
                 sellerMemberId,
                 NotificationType.SELLER_SETTLEMENT_PAYOUT_SUCCEEDED,
-                "Settlement payout completed",
-                "Your settlement payout was completed. Amount: " + payoutAmount,
+                "정산 지급이 완료되었어요",
+                "정산금 지급이 완료되었어요. 지급 금액: " + payoutAmount + "원",
                 settlementId,
                 NotificationReferenceType.SETTLEMENT,
                 processedAt
@@ -242,7 +325,7 @@ public class NotificationService implements NotificationUsecase {
                 traceId,
                 sellerMemberId,
                 NotificationType.SELLER_SETTLEMENT_PAYOUT_FAILED,
-                "Settlement payout failed",
+                "정산 지급에 실패했어요",
                 mapPayoutFailureReasonToContent(failureReason),
                 settlementId,
                 NotificationReferenceType.SETTLEMENT,
@@ -261,10 +344,14 @@ public class NotificationService implements NotificationUsecase {
             NotificationReferenceType referenceType,
             LocalDateTime occurredAt
     ) {
-        notificationMetricsRecorder.recordEventReceived(type); // 알림 이벤트 수신 카운트 기록
+        if (!type.supportsChannel(NotificationChannel.INBOX)) {
+            throw new IllegalStateException("NotificationType must support INBOX to be persisted. type=" + type);
+        }
 
-        if (notificationJpaRepository.existsByEventId(eventId)) {
-            notificationMetricsRecorder.recordDuplicateEvent(type); // 중복 이벤트 카운트 기록
+        notificationMetricsRecorder.recordEventReceived(type);
+
+        if (notificationJpaRepository.existsByEventIdAndMemberIdAndType(eventId, memberId, type)) {
+            notificationMetricsRecorder.recordDuplicateEvent(type);
             log.info("Duplicate notification ignored. eventId={} memberId={} type={}", eventId, memberId, type);
             return;
         }
@@ -285,10 +372,13 @@ public class NotificationService implements NotificationUsecase {
             );
 
             Notification savedNotification = notificationJpaRepository.save(notification);
-            notificationMetricsRecorder.recordSaved(type); // 저장된 알림 수 기록
-            pushAfterCommit(NotificationResponse.from(savedNotification));
+            notificationMetricsRecorder.recordSaved(type);
+
+            if (type.supportsChannel(NotificationChannel.PUSH)) {
+                pushAfterCommit(NotificationResponse.from(savedNotification));
+            }
         } catch (RuntimeException e) {
-            notificationMetricsRecorder.recordSaveFailed(type, NotificationMetricReason.DB_ERROR.name()); // 저장 실패 카운트 기록
+            notificationMetricsRecorder.recordSaveFailed(type, NotificationMetricReason.DB_ERROR.name());
             throw e;
         }
     }
@@ -328,25 +418,41 @@ public class NotificationService implements NotificationUsecase {
         }
     }
 
+    private Set<UUID> validateAndDistinctSellerMemberIds(List<UUID> sellerMemberIds) {
+        if (sellerMemberIds == null || sellerMemberIds.isEmpty()) {
+            throw new IllegalArgumentException("sellerMemberIds is required.");
+        }
+
+        LinkedHashSet<UUID> distinctSellerMemberIds = new LinkedHashSet<>();
+        for (UUID sellerMemberId : sellerMemberIds) {
+            if (sellerMemberId == null) {
+                throw new IllegalArgumentException("sellerMemberIds must not contain null.");
+            }
+            distinctSellerMemberIds.add(sellerMemberId);
+        }
+
+        return distinctSellerMemberIds;
+    }
+
     private String mapFailureReasonToContent(OrderPaymentFailureReason failureReason) {
         return switch (failureReason) {
-            case INSUFFICIENT_BALANCE -> "Payment failed due to insufficient balance.";
-            case WALLET_NOT_FOUND -> "Payment failed because no wallet information was found.";
-            case INVALID_REQUEST -> "Payment failed because the request was invalid.";
-            case DUPLICATE_ORDER_PAYMENT -> "Payment was already processed for this order.";
-            case INTERNAL_ERROR -> "Payment failed due to a temporary internal error.";
+            case INSUFFICIENT_BALANCE -> "잔액이 부족해 결제에 실패했어요.";
+            case WALLET_NOT_FOUND -> "지갑 정보를 찾을 수 없어 결제에 실패했어요.";
+            case INVALID_REQUEST -> "요청 정보가 올바르지 않아 결제에 실패했어요.";
+            case DUPLICATE_ORDER_PAYMENT -> "이미 처리된 주문 결제예요.";
+            case INTERNAL_ERROR -> "일시적인 내부 오류로 결제에 실패했어요.";
         };
     }
 
     private String mapPayoutFailureReasonToContent(PayoutFailureReason failureReason) {
         return switch (failureReason) {
-            case WALLET_NOT_FOUND -> "Settlement payout failed because no wallet information was found.";
-            case INVALID_PAYOUT_AMOUNT -> "Settlement payout failed because the payout amount was invalid.";
-            case DUPLICATE_PAYOUT -> "Settlement payout was already processed for this settlement.";
-            case SETTLEMENT_NOT_FOUND -> "Settlement payout failed because the settlement could not be found.";
-            case TEMPORARY_DB_ERROR -> "Settlement payout failed due to a temporary database error.";
-            case KAFKA_PUBLISH_ERROR -> "Settlement payout failed during event publishing.";
-            case INTERNAL_ERROR -> "Settlement payout failed due to a temporary internal error.";
+            case WALLET_NOT_FOUND -> "지갑 정보를 찾을 수 없어 정산 지급에 실패했어요.";
+            case INVALID_PAYOUT_AMOUNT -> "지급 금액이 올바르지 않아 정산 지급에 실패했어요.";
+            case DUPLICATE_PAYOUT -> "이미 처리된 정산 지급이에요.";
+            case SETTLEMENT_NOT_FOUND -> "정산 정보를 찾을 수 없어 정산 지급에 실패했어요.";
+            case TEMPORARY_DB_ERROR -> "일시적인 데이터베이스 오류로 정산 지급에 실패했어요.";
+            case KAFKA_PUBLISH_ERROR -> "이벤트 발행 중 오류가 발생해 정산 지급에 실패했어요.";
+            case INTERNAL_ERROR -> "일시적인 내부 오류로 정산 지급에 실패했어요.";
         };
     }
 }

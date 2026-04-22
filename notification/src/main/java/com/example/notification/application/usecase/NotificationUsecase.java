@@ -1,12 +1,12 @@
 package com.example.notification.application.usecase;
 
-import com.example.notification.application.dto.NotificationCommand;
 import com.example.notification.infrastructure.messaging.kafka.contract.OrderPaymentFailureReason;
 import com.example.notification.infrastructure.messaging.kafka.contract.PayoutFailureReason;
 import com.example.notification.presentation.dto.NotificationResponse;
 import com.example.notification.presentation.dto.NotificationUnreadCountResponse;
 import com.example.notification.presentation.dto.PagedResponse;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public interface NotificationUsecase {
@@ -17,7 +17,31 @@ public interface NotificationUsecase {
 
     NotificationResponse markAsRead(UUID memberId, UUID notificationId);
 
-    void createNotification(NotificationCommand command);
+    void createMemberSignedUpNotification(
+            UUID eventId,
+            String traceId,
+            UUID memberId,
+            LocalDateTime occurredAt
+    );
+
+    void createOrderCreatedNotifications(
+            UUID eventId,
+            String traceId,
+            UUID orderId,
+            UUID buyerMemberId,
+            Long totalAmount,
+            List<UUID> sellerMemberIds,
+            LocalDateTime occurredAt
+    );
+
+    void createOrderCanceledNotifications(
+            UUID eventId,
+            String traceId,
+            UUID orderId,
+            UUID buyerMemberId,
+            List<UUID> sellerMemberIds,
+            LocalDateTime occurredAt
+    );
 
     void createAutoPurchaseConfirmedNotification(
             UUID eventId,
