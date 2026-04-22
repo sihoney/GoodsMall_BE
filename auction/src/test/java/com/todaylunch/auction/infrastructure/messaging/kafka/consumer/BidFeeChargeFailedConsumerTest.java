@@ -9,9 +9,11 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.todaylunch.auction.domain.entity.Auction;
 import com.todaylunch.auction.domain.entity.Bid;
 import com.todaylunch.auction.domain.enumtype.BidStatus;
+import com.todaylunch.auction.domain.repository.AuctionRepository;
 import com.todaylunch.auction.domain.repository.BidRepository;
 import com.todaylunch.auction.infrastructure.messaging.kafka.message.BidFeeChargeFailedMessage;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -26,6 +28,8 @@ class BidFeeChargeFailedConsumerTest {
 
     @Mock
     BidRepository bidRepository;
+    @Mock
+    AuctionRepository auctionRepository;
 
     BidFeeChargeFailedConsumer consumer;
     ObjectMapper objectMapper;
@@ -38,7 +42,7 @@ class BidFeeChargeFailedConsumerTest {
         objectMapper = new ObjectMapper().registerModule(new JavaTimeModule())
                                          .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-        consumer = new BidFeeChargeFailedConsumer(bidRepository, objectMapper);
+        consumer = new BidFeeChargeFailedConsumer(bidRepository, auctionRepository, objectMapper);
 
         LocalDateTime now = LocalDateTime.now();
 
@@ -58,14 +62,16 @@ class BidFeeChargeFailedConsumerTest {
                                    UUID.randomUUID(),
                                    new BigDecimal("11000"));
 
-        BidFeeChargeFailedMessage message = new BidFeeChargeFailedMessage(bid.getBidId(),
+        BidFeeChargeFailedMessage message = new BidFeeChargeFailedMessage(UUID.randomUUID(),
+                                                                          bid.getBidId(),
                                                                           auction.getAuctionId(),
-                                                                          bid.getBidderId(),
                                                                           "INSUFFICIENT_WALLET_BALANCE",
                                                                           "잔액 부족",
-                                                                          LocalDateTime.now());
+                                                                          Instant.now());
 
         given(bidRepository.findById(bid.getBidId())).willReturn(Optional.of(bid));
+        given(bidRepository.findActiveByAuctionId(auction.getAuctionId())).willReturn(Optional.empty());
+        given(auctionRepository.findByIdWithLock(auction.getAuctionId())).willReturn(auction);
 
         consumer.handle(objectMapper.writeValueAsString(message));
 
@@ -78,12 +84,12 @@ class BidFeeChargeFailedConsumerTest {
                             UUID.randomUUID(),
                             new BigDecimal("11000"));
 
-        BidFeeChargeFailedMessage message = new BidFeeChargeFailedMessage(bid.getBidId(),
+        BidFeeChargeFailedMessage message = new BidFeeChargeFailedMessage(UUID.randomUUID(),
+                                                                          bid.getBidId(),
                                                                           auction.getAuctionId(),
-                                                                          bid.getBidderId(),
                                                                           "INSUFFICIENT_WALLET_BALANCE",
                                                                           "잔액 부족",
-                                                                          LocalDateTime.now());
+                                                                          Instant.now());
 
         given(bidRepository.findById(bid.getBidId())).willReturn(Optional.of(bid));
 
