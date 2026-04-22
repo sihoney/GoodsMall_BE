@@ -9,6 +9,9 @@ import com.todaylunch.auction.domain.entity.Bid;
 import com.todaylunch.auction.domain.enumtype.AuctionStatus;
 import com.todaylunch.auction.domain.repository.AuctionRepository;
 import com.todaylunch.auction.domain.repository.BidRepository;
+import com.todaylunch.auction.infrastructure.messaging.kafka.publisher.KafkaAuctionClosedSoldEventPublisher;
+import com.todaylunch.auction.infrastructure.messaging.kafka.publisher.KafkaAuctionClosedUnsoldEventPublisher;
+import com.todaylunch.auction.infrastructure.messaging.kafka.publisher.KafkaAuctionWonEventPublisher;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -28,6 +31,12 @@ class AuctionSchedulerServiceTest {
     AuctionRepository auctionRepository;
     @Mock
     BidRepository bidRepository;
+    @Mock
+    KafkaAuctionWonEventPublisher auctionWonEventPublisher;
+    @Mock
+    KafkaAuctionClosedSoldEventPublisher auctionClosedSoldEventPublisher;
+    @Mock
+    KafkaAuctionClosedUnsoldEventPublisher auctionClosedUnsoldEventPublisher;
 
     @InjectMocks
     AuctionSchedulerService auctionSchedulerService;
