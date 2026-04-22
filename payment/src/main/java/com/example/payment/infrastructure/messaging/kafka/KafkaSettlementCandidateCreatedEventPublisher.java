@@ -6,7 +6,6 @@ import com.example.payment.infrastructure.messaging.kafka.contract.SettlementCan
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.ZoneId;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
@@ -18,16 +17,13 @@ public class KafkaSettlementCandidateCreatedEventPublisher implements Settlement
 
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
-    private final String topic;
 
     public KafkaSettlementCandidateCreatedEventPublisher(
             KafkaTemplate<String, String> kafkaTemplate,
-            ObjectMapper objectMapper,
-            @Value("${payment.kafka.topics.settlement-candidate-created:payment.settlement-candidate-created}") String topic
+            ObjectMapper objectMapper
     ) {
         this.kafkaTemplate = kafkaTemplate;
         this.objectMapper = objectMapper;
-        this.topic = topic;
     }
 
     @Override
@@ -43,7 +39,7 @@ public class KafkaSettlementCandidateCreatedEventPublisher implements Settlement
                     event.confirmationType(),
                     event.occurredAt().atZone(KOREA_ZONE_ID).toInstant()
             ));
-            kafkaTemplate.send(topic, String.valueOf(event.escrowId()), message);
+            kafkaTemplate.send(KafkaTopics.SETTLEMENT_CANDIDATE_CREATED, String.valueOf(event.escrowId()), message);
         } catch (Exception e) {
             log.error("Failed to serialize SettlementCandidateCreatedMessage. escrowId={}", event.escrowId(), e);
             throw new RuntimeException("Failed to serialize SettlementCandidateCreatedMessage", e);

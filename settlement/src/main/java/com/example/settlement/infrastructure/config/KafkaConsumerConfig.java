@@ -1,5 +1,8 @@
 package com.example.settlement.infrastructure.config;
 
+import com.example.settlement.infrastructure.messaging.kafka.KafkaConsumerGroups;
+import com.example.settlement.infrastructure.messaging.kafka.KafkaRetryPolicy;
+import com.example.settlement.infrastructure.messaging.kafka.KafkaTopics;
 import com.example.settlement.infrastructure.messaging.kafka.contract.SettlementCandidateCreatedMessage;
 import com.example.settlement.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultMessage;
 import java.util.HashMap;
@@ -28,12 +31,11 @@ public class KafkaConsumerConfig {
 
     @Bean
     public ConsumerFactory<String, SettlementCandidateCreatedMessage> settlementCandidateCreatedConsumerFactory(
-            @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers,
-            @Value("${settlement.kafka.consumer-groups.settlement-candidate-created:settlement-service}") String groupId
+            @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers
     ) {
         Map<String, Object> props = new HashMap<>();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, KafkaConsumerGroups.SETTLEMENT_SERVICE);
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
@@ -49,35 +51,25 @@ public class KafkaConsumerConfig {
     public ConcurrentKafkaListenerContainerFactory<String, SettlementCandidateCreatedMessage>
         settlementCandidateCreatedKafkaListenerContainerFactory(
             ConsumerFactory<String, SettlementCandidateCreatedMessage> settlementCandidateCreatedConsumerFactory,
-            KafkaTemplate<String, String> kafkaTemplate,
-            @Value("${settlement.kafka.retry.settlement-candidate-created.dlq-topic:payment.settlement-candidate-created.dlq}") String dlqTopic,
-            @Value("${settlement.kafka.retry.settlement-candidate-created.initial-interval-ms:1000}") long initialIntervalMs,
-            @Value("${settlement.kafka.retry.settlement-candidate-created.multiplier:2.0}") double multiplier,
-            @Value("${settlement.kafka.retry.settlement-candidate-created.max-interval-ms:10000}") long maxIntervalMs,
-            @Value("${settlement.kafka.retry.settlement-candidate-created.max-retries:3}") int maxRetries
+            KafkaTemplate<String, String> kafkaTemplate
     ) {
         ConcurrentKafkaListenerContainerFactory<String, SettlementCandidateCreatedMessage> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(settlementCandidateCreatedConsumerFactory);
         factory.setCommonErrorHandler(createCommonErrorHandler(
                 kafkaTemplate,
-                dlqTopic,
-                initialIntervalMs,
-                multiplier,
-                maxIntervalMs,
-                maxRetries
+                KafkaTopics.SETTLEMENT_CANDIDATE_CREATED_DLQ
         ));
         return factory;
     }
 
     @Bean
     public ConsumerFactory<String, SellerSettlementPayoutResultMessage> sellerSettlementPayoutResultConsumerFactory(
-            @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers,
-            @Value("${settlement.kafka.consumer-groups.settlement-payout-result:settlement-service}") String groupId
+            @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers
     ) {
         Map<String, Object> props = new HashMap<>();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, KafkaConsumerGroups.SETTLEMENT_SERVICE);
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
@@ -93,23 +85,14 @@ public class KafkaConsumerConfig {
     public ConcurrentKafkaListenerContainerFactory<String, SellerSettlementPayoutResultMessage>
         sellerSettlementPayoutResultKafkaListenerContainerFactory(
             ConsumerFactory<String, SellerSettlementPayoutResultMessage> sellerSettlementPayoutResultConsumerFactory,
-            KafkaTemplate<String, String> kafkaTemplate,
-            @Value("${settlement.kafka.retry.settlement-payout-result.dlq-topic:payment.seller-payout-result.dlq}") String dlqTopic,
-            @Value("${settlement.kafka.retry.settlement-payout-result.initial-interval-ms:1000}") long initialIntervalMs,
-            @Value("${settlement.kafka.retry.settlement-payout-result.multiplier:2.0}") double multiplier,
-            @Value("${settlement.kafka.retry.settlement-payout-result.max-interval-ms:10000}") long maxIntervalMs,
-            @Value("${settlement.kafka.retry.settlement-payout-result.max-retries:3}") int maxRetries
+            KafkaTemplate<String, String> kafkaTemplate
     ) {
         ConcurrentKafkaListenerContainerFactory<String, SellerSettlementPayoutResultMessage> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(sellerSettlementPayoutResultConsumerFactory);
         factory.setCommonErrorHandler(createCommonErrorHandler(
                 kafkaTemplate,
-                dlqTopic,
-                initialIntervalMs,
-                multiplier,
-                maxIntervalMs,
-                maxRetries
+                KafkaTopics.SETTLEMENT_PAYOUT_RESULT_DLQ
         ));
         return factory;
     }
@@ -123,16 +106,13 @@ public class KafkaConsumerConfig {
      */
     private DefaultErrorHandler createCommonErrorHandler(
             KafkaTemplate<String, String> kafkaTemplate,
-            String dlqTopic,
-            long initialIntervalMs,
-            double multiplier,
-            long maxIntervalMs,
-            int maxRetries
+            String dlqTopic
     ) {
-        ExponentialBackOffWithMaxRetries backOff = new ExponentialBackOffWithMaxRetries(maxRetries);
-        backOff.setInitialInterval(initialIntervalMs);
-        backOff.setMultiplier(multiplier);
-        backOff.setMaxInterval(maxIntervalMs);
+        ExponentialBackOffWithMaxRetries backOff =
+                new ExponentialBackOffWithMaxRetries(KafkaRetryPolicy.MAX_RETRIES);
+        backOff.setInitialInterval(KafkaRetryPolicy.INITIAL_INTERVAL_MS);
+        backOff.setMultiplier(KafkaRetryPolicy.MULTIPLIER);
+        backOff.setMaxInterval(KafkaRetryPolicy.MAX_INTERVAL_MS);
 
         DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(
                 kafkaTemplate,

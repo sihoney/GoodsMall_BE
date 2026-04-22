@@ -56,8 +56,8 @@ public class SellerSettlementPayoutRequestedEventConsumer {
      * - 그 외 예외는 Kafka 에러 처리기로 전파해 retry(재시도)/DLQ(사후처리큐) 정책에 위임한다.
      */
     @KafkaListener(
-            topics = "${payment.kafka.topics.settlement-payout-requested:settlement.seller-payout-requested}",
-            groupId = "${payment.kafka.consumer-groups.settlement-payout-requested:payment-service}",
+            topics = KafkaTopics.SETTLEMENT_PAYOUT_REQUESTED,
+            groupId = KafkaConsumerGroups.PAYMENT_SERVICE,
             containerFactory = "sellerSettlementPayoutRequestedKafkaListenerContainerFactory"
     )
     public void listen(SellerSettlementPayoutRequestedMessage event) {

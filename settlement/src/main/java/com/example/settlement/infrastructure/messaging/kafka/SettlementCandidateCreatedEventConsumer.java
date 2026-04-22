@@ -28,8 +28,8 @@ public class SettlementCandidateCreatedEventConsumer {
     }
 
     @KafkaListener(
-            topics = "${settlement.kafka.topics.settlement-candidate-created:payment.settlement-candidate-created}",
-            groupId = "${settlement.kafka.consumer-groups.settlement-candidate-created:settlement-service}",
+            topics = KafkaTopics.SETTLEMENT_CANDIDATE_CREATED,
+            groupId = KafkaConsumerGroups.SETTLEMENT_SERVICE,
             containerFactory = "settlementCandidateCreatedKafkaListenerContainerFactory"
     )
     public void listen(String eventJson) {

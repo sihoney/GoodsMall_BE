@@ -2,6 +2,7 @@ package com.example.payment.infrastructure.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.example.payment.infrastructure.messaging.kafka.KafkaConsumerGroups;
 import com.example.payment.infrastructure.messaging.kafka.contract.MemberCreatedMessage;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -19,13 +20,14 @@ class KafkaConsumerConfigTest {
     @DisplayName("member created consumer는 StringDeserializer를 사용한다")
     void memberCreatedConsumerFactory_usesStringDeserializer() {
         ConsumerFactory<String, MemberCreatedMessage> consumerFactory = kafkaConsumerConfig.memberCreatedConsumerFactory(
-                "localhost:9092",
-                "payment-service"
+                "localhost:9092"
         );
 
         assertThat(consumerFactory).isInstanceOf(DefaultKafkaConsumerFactory.class);
         DefaultKafkaConsumerFactory<?, ?> defaultFactory = (DefaultKafkaConsumerFactory<?, ?>) consumerFactory;
         assertThat(defaultFactory.getConfigurationProperties().get(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG))
                 .isEqualTo(StringDeserializer.class);
+        assertThat(defaultFactory.getConfigurationProperties().get(ConsumerConfig.GROUP_ID_CONFIG))
+                .isEqualTo(KafkaConsumerGroups.PAYMENT_SERVICE);
     }
 }

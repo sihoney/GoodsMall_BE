@@ -87,10 +87,9 @@ Docker/AWS 환경에서는 기본적으로 `prod` 프로필로 실행됩니다.
 | DB | `DB_URL`, `DB_USER_NAME`, `DB_USER_PASSWORD` |
 | Kafka | `SPRING_KAFKA_BOOTSTRAP_SERVERS` |
 | Eureka | `EUREKA_DEFAULT_ZONE` |
-| Settlement Kafka | `SETTLEMENT_KAFKA_TOPIC_*`, `SETTLEMENT_KAFKA_CONSUMER_GROUP_*`, `SETTLEMENT_KAFKA_RETRY_*` |
 | Batch | `settlement.batch.monthly-aggregation.*`, `settlement.batch.retryable-failed-payout.*` |
 
-실제 루트 `.env.example`와 `.env.aws.example`에도 settlement 관련 Kafka 설정값이 들어 있습니다.
+Settlement Kafka 토픽, 컨슈머 그룹, retry 값은 서비스 설정값으로 고정합니다.
 
 ## 4. AWS 배포 고려사항
 

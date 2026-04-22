@@ -16,7 +16,7 @@ services:
       timeout: 5s
       retries: 10
     volumes:
-      - goods_mall_postgres_data:/var/lib/postgresql
+      - goods_mall_postgres_data:/var/lib/postgresql/data
       # 스키마 기준은 Flyway로 단일화합니다. seed SQL은 로컬 테스트 시 수동 실행용으로만 사용합니다.
       - ./db-migration/src/main/resources/db/seed/dev_seed_payment_settlement.sql:/opt/seed/dev_seed_payment_settlement.sql:ro
 
@@ -352,8 +352,10 @@ services:
       AI_PRODUCT_API_PAGE_SIZE: ${AI_PRODUCT_API_PAGE_SIZE:-200}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       AI_EMBEDDING_MODEL: ${AI_EMBEDDING_MODEL:-text-embedding-3-small}
-      AI_RECOMMENDATION_CACHE_TTL_SECONDS: ${AI_RECOMMENDATION_CACHE_TTL_SECONDS:-600}
-      AI_EVENT_IDEMPOTENCY_TTL_SECONDS: ${AI_EVENT_IDEMPOTENCY_TTL_SECONDS:-259200}
+      EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "false"
+      EUREKA_INSTANCE_HOSTNAME: ai
+      CONFIG_SERVER_URL: http://config:8888
     ports:
       - "8088:8088"
 

@@ -108,6 +108,18 @@ jobs:
             MODULES+=('{"module_name":"auction"}')
           fi
 
+          if grep -q '^common-security/' <<< "$CHANGED_FILES"; then
+            MODULES+=('{"module_name":"common-security"}')
+          fi
+
+          if grep -q '^ai/' <<< "$CHANGED_FILES"; then
+            MODULES+=('{"module_name":"ai"}')
+          fi
+
+          if grep -q '^auction/' <<< "$CHANGED_FILES"; then
+            MODULES+=('{"module_name":"auction"}')
+          fi
+
           # 변경된 모듈이 없는 경우 → build job skip
           if [ ${#MODULES[@]} -eq 0 ]; then
             echo 'has_changes=false' >> "$GITHUB_OUTPUT"

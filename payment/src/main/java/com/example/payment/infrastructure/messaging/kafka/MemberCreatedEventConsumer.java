@@ -30,8 +30,8 @@ public class MemberCreatedEventConsumer {
     }
 
     @KafkaListener(
-            topics = "${payment.kafka.topics.member-created:member-signed-up}",
-            groupId = "${payment.kafka.consumer-groups.member-created:payment-service}",
+            topics = KafkaTopics.MEMBER_CREATED,
+            groupId = KafkaConsumerGroups.PAYMENT_SERVICE,
             containerFactory = "memberCreatedKafkaListenerContainerFactory"
     )
     /**
