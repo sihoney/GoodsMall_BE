@@ -8,7 +8,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.example.member.application.event.MemberSignedUpEvent;
+import com.example.member.application.event.SellerPromotedEvent;
 import com.example.member.infrastructure.messaging.kafka.contract.MemberSignedUpPayload;
+import com.example.member.infrastructure.messaging.kafka.contract.SellerPromotedPayload;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.UUID;
@@ -78,5 +80,50 @@ class MemberEventKafkaProducerTest {
         MemberSignedUpPayload payload = (MemberSignedUpPayload) message.payload();
         assertEquals(memberId, payload.memberId());
         assertEquals("member@test.com", payload.email());
+    }
+
+    @Test
+    void sendSellerPromoted_serializesContractMessage() throws Exception {
+        UUID eventId = UUID.randomUUID();
+        UUID memberId = UUID.randomUUID();
+        UUID sellerId = UUID.randomUUID();
+        Instant occurredAt = Instant.parse("2026-04-22T10:00:00Z");
+        SellerPromotedEvent event = new SellerPromotedEvent(eventId, memberId, sellerId, "KAKAO", occurredAt);
+
+        when(objectMapper.writeValueAsString(any())).thenReturn("{\"ok\":true}");
+
+        ProducerRecord<String, String> record = new ProducerRecord<>("member-seller-promoted", memberId.toString(), "{\"ok\":true}");
+        RecordMetadata metadata = new RecordMetadata(
+                new TopicPartition("member-seller-promoted", 0),
+                0L,
+                0,
+                System.currentTimeMillis(),
+                0,
+                0
+        );
+        SendResult<String, String> sendResult = new SendResult<>(record, metadata);
+        when(kafkaTemplate.send(anyString(), anyString(), anyString()))
+                .thenReturn(CompletableFuture.completedFuture(sendResult));
+
+        memberEventKafkaProducer.sendSellerPromoted(event);
+
+        ArgumentCaptor<Object> messageCaptor = ArgumentCaptor.forClass(Object.class);
+        verify(objectMapper).writeValueAsString(messageCaptor.capture());
+
+        Object captured = messageCaptor.getValue();
+        assertInstanceOf(EventEnvelope.class, captured);
+        EventEnvelope<?> message = (EventEnvelope<?>) captured;
+        assertEquals(eventId, message.eventId());
+        assertEquals("SELLER_PROMOTED", message.eventType());
+        assertEquals("member-service", message.source());
+        assertEquals(sellerId, message.aggregateId());
+        assertEquals(memberId, message.recipientId());
+        assertEquals(occurredAt, message.occurredAt());
+        assertEquals("mock-trace-id", message.traceId());
+        assertInstanceOf(SellerPromotedPayload.class, message.payload());
+        SellerPromotedPayload payload = (SellerPromotedPayload) message.payload();
+        assertEquals(memberId, payload.memberId());
+        assertEquals(sellerId, payload.sellerId());
+        assertEquals("KAKAO", payload.bankName());
     }
 }

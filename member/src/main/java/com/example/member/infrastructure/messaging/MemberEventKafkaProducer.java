@@ -1,8 +1,10 @@
 package com.example.member.infrastructure.messaging;
 
 import com.example.member.application.event.MemberSignedUpEvent;
+import com.example.member.application.event.SellerPromotedEvent;
 import com.example.member.infrastructure.messaging.kafka.KafkaTopics;
 import com.example.member.infrastructure.messaging.kafka.contract.MemberSignedUpPayload;
+import com.example.member.infrastructure.messaging.kafka.contract.SellerPromotedPayload;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -64,6 +66,59 @@ public class MemberEventKafkaProducer {
             log.error(
                     "Failed to serialize EventEnvelope. memberId={}",
                     event.memberId(),
+                    e
+            );
+        }
+    }
+
+    public void sendSellerPromoted(SellerPromotedEvent event) {
+        try {
+            EventEnvelope<SellerPromotedPayload> message = new EventEnvelope<>(
+                    event.eventId(),
+                    "SELLER_PROMOTED",
+                    "member-service",
+                    event.sellerId(),
+                    event.memberId(),
+                    event.occurredAt(),
+                    MOCK_TRACE_ID,
+                    new SellerPromotedPayload(
+                            event.memberId(),
+                            event.sellerId(),
+                            event.bankName()
+                    )
+            );
+
+            String eventJson = objectMapper.writeValueAsString(message);
+            kafkaTemplate.send(
+                    KafkaTopics.SELLER_PROMOTED,
+                    event.memberId().toString(),
+                    eventJson
+            ).whenComplete((result, exception) -> {
+                if (exception != null) {
+                    log.error(
+                            "Failed to publish EventEnvelope. topic={} memberId={} sellerId={}",
+                            KafkaTopics.SELLER_PROMOTED,
+                            event.memberId(),
+                            event.sellerId(),
+                            exception
+                    );
+                    return;
+                }
+
+                log.info(
+                        "Published EventEnvelope. topic={} partition={} offset={} memberId={} sellerId={}",
+                        KafkaTopics.SELLER_PROMOTED,
+                        result.getRecordMetadata().partition(),
+                        result.getRecordMetadata().offset(),
+                        event.memberId(),
+                        event.sellerId()
+                );
+            });
+        } catch (Exception e) {
+            log.error(
+                    "Failed to serialize EventEnvelope. memberId={} sellerId={}",
+                    event.memberId(),
+                    event.sellerId(),
                     e
             );
         }
