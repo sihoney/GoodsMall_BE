@@ -5,8 +5,8 @@ import com.example.ai.common.exception.ProductDraftAssistInputFieldInvalidExcept
 import com.example.ai.presentation.dto.request.ProductDraftAssistRequest;
 import com.example.ai.presentation.dto.response.ApiResponse;
 import com.example.ai.presentation.dto.response.ProductDraftAssistResponse;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -161,7 +161,7 @@ public class ProductDraftAssistController {
     private ProductDraftAssistRequest parseRequest(String requestJson) {
         try {
             return objectMapper.readValue(requestJson, ProductDraftAssistRequest.class);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new ProductDraftAssistInputFieldInvalidException();
         }
     }

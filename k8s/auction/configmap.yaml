@@ -6,3 +6,4 @@ metadata:
 data:
   AWS_S3_BUCKET: "todaylunchmenu"
   ELASTICSEARCH_URI: "http://elasticsearch:9200"
+  SERVICES_PAYMENT_URL: "http://payment:8082"

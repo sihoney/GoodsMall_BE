@@ -8,7 +8,7 @@ import com.example.ai.infrastructure.embedding.EventIdempotencyRepository;
 import com.example.ai.infrastructure.messaging.kafka.contract.ProductCreatedMessage;
 import com.example.ai.infrastructure.messaging.kafka.contract.ProductDeletedMessage;
 import com.example.ai.infrastructure.messaging.kafka.contract.ProductUpdatedMessage;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;

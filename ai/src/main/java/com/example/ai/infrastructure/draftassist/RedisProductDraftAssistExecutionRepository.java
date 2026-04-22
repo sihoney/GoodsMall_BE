@@ -2,7 +2,7 @@ package com.example.ai.infrastructure.draftassist;
 
 import com.example.ai.application.dto.ProductDraftAssistResult;
 import com.example.ai.domain.service.ProductDraftAssistExecutionRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;

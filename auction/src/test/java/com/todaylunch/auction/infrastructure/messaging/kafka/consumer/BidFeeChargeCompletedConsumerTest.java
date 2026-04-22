@@ -23,6 +23,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import com.todaylunch.auction.infrastructure.messaging.kafka.publisher.KafkaBidOutbidEventPublisher;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -33,6 +34,8 @@ class BidFeeChargeCompletedConsumerTest {
     BidRepository bidRepository;
     @Mock
     ApplicationEventPublisher applicationEventPublisher;
+    @Mock
+    KafkaBidOutbidEventPublisher bidOutbidEventPublisher;
 
     BidFeeChargeCompletedConsumer consumer;
     ObjectMapper objectMapper;
@@ -45,6 +48,7 @@ class BidFeeChargeCompletedConsumerTest {
 
         consumer = new BidFeeChargeCompletedConsumer(bidRepository,
                                                      applicationEventPublisher,
+                                                     bidOutbidEventPublisher,
                                                      objectMapper);
 
         LocalDateTime now = LocalDateTime.now();

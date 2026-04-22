@@ -5,8 +5,8 @@ import com.example.notification.infrastructure.messaging.kafka.contract.OrderPay
 import com.example.notification.infrastructure.messaging.kafka.contract.OrderPaymentResultMessage;
 import com.example.notification.infrastructure.messaging.kafka.contract.OrderPaymentResultStatus;
 import com.example.notification.infrastructure.messaging.kafka.dlq.InvalidEventPayloadException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.todaylunch.common.event.contract.EventEnvelope;
 import java.math.BigDecimal;
 import java.time.Instant;
