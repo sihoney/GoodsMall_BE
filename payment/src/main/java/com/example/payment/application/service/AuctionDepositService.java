@@ -101,6 +101,7 @@ public class AuctionDepositService implements AuctionDepositUseCase {
         );
 
         return new AuctionDepositResult(
+                command.bidId(),
                 command.auctionId(),
                 command.highestBidderId(),
                 command.highestBidderFee(),
@@ -159,12 +160,22 @@ public class AuctionDepositService implements AuctionDepositUseCase {
             throw new InvalidAuctionBidFeeRequestException("최고 입찰자 예치금은 0보다 커야 합니다.");
         }
 
-        boolean hasPreviousBidContext = command.previousBidderId() != null
-                || command.previousBidderPaidFee() != null;
-        if (!hasPreviousBidContext) {
+        validateFirstBidContext(command);
+    }
+
+    private void validateFirstBidContext(AuctionDepositCommand command) {
+        boolean hasPreviousBidContext = command.previousBidderId() != null || command.previousBidderPaidFee() != null;
+
+        if (command.isFirst()) {
+            if (hasPreviousBidContext) {
+                throw new InvalidAuctionBidFeeRequestException("첫 입찰 요청에는 이전 최고 입찰자 정보가 포함될 수 없습니다.");
+            }
             return;
         }
 
+        if (!hasPreviousBidContext) {
+            throw new InvalidAuctionBidFeeRequestException("첫 입찰이 아닌 요청에는 이전 최고 입찰자 정보가 필요합니다.");
+        }
         if (command.previousBidderId() == null) {
             throw new InvalidAuctionBidFeeRequestException("이전 최고 입찰자 ID가 누락되었습니다.");
         }

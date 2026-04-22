@@ -6,6 +6,7 @@ import com.example.payment.application.usecase.ChargeConfirmUseCase;
 import com.example.payment.domain.entity.Charge;
 import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.entity.WalletTransaction;
+import com.example.payment.common.exception.ChargeConfirmationMismatchException;
 import com.example.payment.common.exception.ChargeNotFoundException;
 import com.example.payment.common.exception.InvalidChargeRequestException;
 import com.example.payment.common.exception.PaymentGatewayException;
@@ -86,6 +87,7 @@ public class ConfirmChargeService implements ChargeConfirmUseCase {
                     command.pgOrderId(),
                     command.amount()
             );
+            validateConfirmation(command, confirmation);
         } catch (PaymentGatewayException e) {
             failCharge(charge, e.getMessage());
             throw e;
@@ -141,6 +143,22 @@ public class ConfirmChargeService implements ChargeConfirmUseCase {
         }
         if (command.amount() == null || command.amount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
             throw new InvalidChargeRequestException("amount must be positive.");
+        }
+    }
+
+    private void validateConfirmation(
+            ChargeConfirmCommand command,
+            TossPaymentGateway.TossPaymentConfirmation confirmation
+    ) {
+        if (!Objects.equals(confirmation.paymentKey(), command.paymentKey())) {
+            throw new ChargeConfirmationMismatchException("Toss 승인 응답의 paymentKey가 충전 요청과 일치하지 않습니다.");
+        }
+        if (!Objects.equals(confirmation.orderId(), command.pgOrderId())) {
+            throw new ChargeConfirmationMismatchException("Toss 승인 응답의 orderId가 충전 요청과 일치하지 않습니다.");
+        }
+        if (confirmation.approvedAmount() == null
+                || confirmation.approvedAmount().compareTo(command.amount()) != 0) {
+            throw new ChargeConfirmationMismatchException("Toss 승인 금액이 충전 요청 금액과 일치하지 않습니다.");
         }
     }
 

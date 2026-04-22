@@ -42,8 +42,24 @@ public class RecommendationController {
                                       "success": true,
                                       "data": [
                                         {
-                                          "productId": "11111111-1111-1111-1111-111111111111",
-                                          "similarityScore": 0.9231
+                                          "productId": "dddddddd-dddd-dddd-dddd-ddddddddd101",
+                                          "similarityScore": 0.9998
+                                        },
+                                        {
+                                          "productId": "dddddddd-dddd-dddd-dddd-ddddddddd102",
+                                          "similarityScore": 0.9997
+                                        },
+                                        {
+                                          "productId": "dddddddd-dddd-dddd-dddd-ddddddddd002",
+                                          "similarityScore": 0.9996
+                                        },
+                                        {
+                                          "productId": "dddddddd-dddd-dddd-dddd-ddddddddd103",
+                                          "similarityScore": 0.9991
+                                        },
+                                        {
+                                          "productId": "dddddddd-dddd-dddd-dddd-ddddddddd010",
+                                          "similarityScore": 0.9988
                                         }
                                       ],
                                       "error": null
@@ -68,7 +84,7 @@ public class RecommendationController {
             @Parameter(
                     description = "기준 상품 ID",
                     required = true,
-                    example = "11111111-1111-1111-1111-111111111111"
+                    example = "dddddddd-dddd-dddd-dddd-ddddddddd001"
             )
             @PathVariable UUID productId
     ) {

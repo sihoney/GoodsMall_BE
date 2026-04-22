@@ -191,6 +191,7 @@ gateway:
       - /api/auth/refresh
       - /api/auth/oauth/kakao/authorize
       - /api/auth/oauth/kakao/callback
+      - /api/auth/oauth/kakao/result
       - /api/auth/email-verifications
       - /api/auth/email-verifications/confirm
       - /api/auth/profile-images/presign
@@ -212,8 +213,17 @@ gateway:
       - methods: [GET, PUT]
         pattern: /api/members/me
         allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [GET, DELETE]
+        pattern: /api/members/me/oauth-accounts/**
+        allowed-roles: [USER, SELLER, ADMIN]
       - methods: [POST]
         pattern: /api/auth/logout/**
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [GET]
+        pattern: /api/auth/oauth/kakao/link/authorize
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [GET]
+        pattern: /api/auth/oauth/kakao/link/authorize-url
         allowed-roles: [USER, SELLER, ADMIN]
       - methods: [POST]
         pattern: /api/auth/oauth/kakao/link
@@ -245,6 +255,9 @@ gateway:
       - methods: [POST, GET, PUT]
         pattern: /api/sellers/**
         allowed-roles: [SELLER, ADMIN]
+      - methods: [POST]
+        pattern: /api/sellers/register
+        allowed-roles: [USER, SELLER, ADMIN]
       - methods: [GET]
         pattern: /api/products/seller
         allowed-roles: [SELLER, ADMIN]

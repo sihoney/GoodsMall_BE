@@ -109,9 +109,12 @@ public class PaymentController {
     public ResponseEntity<ApiResponse<AuctionFeeVerificationResponse>> verifyAuctionDeposit(
             @Valid @RequestBody AuctionFeeVerificationRequest request
     ) {
+        boolean isFirst = request.previousBidderId() == null && request.previousBidderPaidFee() == null;
         AuctionFeeVerificationResponse response = AuctionFeeVerificationResponse.success(
                 auctionDepositUseCase.processAuctionDeposit(new AuctionDepositCommand(
+                        request.bidId(),
                         request.auctionId(),
+                        isFirst,
                         request.previousBidderId(),
                         request.previousBidderPaidFee(),
                         request.highestBidderId(),
@@ -140,9 +143,10 @@ public class PaymentController {
             @RequestParam(defaultValue = "20") int size
     ) {
         var result = paymentSearchUseCase.findAllCharges(authenticatedMember.memberId(), page, size);
-        List<ChargeListItemResponse> items = result.items().stream()
-                .map(ChargeListItemResponse::from)
-                .toList();
+        List<ChargeListItemResponse> items = result.items()
+                                                   .stream()
+                                                   .map(ChargeListItemResponse::from)
+                                                   .toList();
         PagedResponse<ChargeListItemResponse> response = new PagedResponse<>(
                 items,
                 result.page(),
@@ -175,8 +179,8 @@ public class PaymentController {
     ) {
         var result = paymentSearchUseCase.findAllTransactions(authenticatedMember.memberId(), page, size);
         List<WalletTransactionItemResponse> items = result.items().stream()
-                .map(WalletTransactionItemResponse::from)
-                .toList();
+                                                          .map(WalletTransactionItemResponse::from)
+                                                          .toList();
         PagedResponse<WalletTransactionItemResponse> response = new PagedResponse<>(
                 items,
                 result.page(),
@@ -197,8 +201,8 @@ public class PaymentController {
     ) {
         var result = paymentSearchUseCase.findAllPendingSellerIncomes(authenticatedMember.memberId(), page, size);
         List<PendingSellerIncomeItemResponse> items = result.items().stream()
-                .map(PendingSellerIncomeItemResponse::from)
-                .toList();
+                                                            .map(PendingSellerIncomeItemResponse::from)
+                                                            .toList();
         PagedResponse<PendingSellerIncomeItemResponse> response = new PagedResponse<>(
                 items,
                 result.page(),
@@ -219,8 +223,8 @@ public class PaymentController {
     ) {
         var result = paymentSearchUseCase.findAllWithdrawRequests(authenticatedMember.memberId(), page, size);
         List<WithdrawListItemResponse> items = result.items().stream()
-                .map(WithdrawListItemResponse::from)
-                .toList();
+                                                     .map(WithdrawListItemResponse::from)
+                                                     .toList();
         PagedResponse<WithdrawListItemResponse> response = new PagedResponse<>(
                 items,
                 result.page(),
@@ -243,11 +247,11 @@ public class PaymentController {
         }
 
         List<EscrowTransactionItemResponse> response = paymentSearchUseCase.findEscrowTransactionsByOrderId(
-                        authenticatedMember.memberId(),
-                        orderId
-                ).stream()
-                .map(EscrowTransactionItemResponse::from)
-                .toList();
+                                                                                   authenticatedMember.memberId(),
+                                                                                   orderId
+                                                                           ).stream()
+                                                                           .map(EscrowTransactionItemResponse::from)
+                                                                           .toList();
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -329,10 +333,11 @@ public class PaymentController {
                 request.refundType(),
                 request.reason(),
                 request.items().stream()
-                        .map(item -> new PaymentRefundItemCommand(item.orderItemId(), item.refundAmount()))
-                        .toList()
+                       .map(item -> new PaymentRefundItemCommand(item.orderItemId(), item.refundAmount()))
+                       .toList()
         );
-        PaymentRefundResponse response = PaymentRefundResponse.from(paymentCancellationUseCase.requestCancellation(command));
+        PaymentRefundResponse response = PaymentRefundResponse.from(
+                paymentCancellationUseCase.requestCancellation(command));
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -353,8 +358,8 @@ public class PaymentController {
                 request.refundType(),
                 request.reason(),
                 request.items().stream()
-                        .map(item -> item.orderItemId())
-                        .toList()
+                       .map(item -> item.orderItemId())
+                       .toList()
         );
         PaymentRefundResponse response = PaymentRefundResponse.from(sellerRefundUseCase.requestSellerRefund(command));
         return ResponseEntity.ok(ApiResponse.success(response));

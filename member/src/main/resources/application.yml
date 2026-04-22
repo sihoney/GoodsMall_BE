@@ -68,8 +68,10 @@ oauth:
     token-uri: ${KAKAO_TOKEN_URI:https://kauth.kakao.com/oauth/token}
     user-info-uri: ${KAKAO_USER_INFO_URI:https://kapi.kakao.com/v2/user/me}
     redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:8083/api/auth/oauth/kakao/callback}
+    frontend-callback-url: ${KAKAO_FRONTEND_CALLBACK_URL:http://localhost:5173/auth/kakao/callback}
     state-ttl: ${KAKAO_OAUTH_STATE_TTL:10m}
     pending-link-ttl: ${KAKAO_OAUTH_PENDING_LINK_TTL:10m}
+    result-ttl: ${KAKAO_OAUTH_RESULT_TTL:3m}
 
 jwt:
   secret: ${JWT_SECRET_KEY:local-dev-secret-key-for-testing-purposes-only-32chars}
@@ -89,7 +91,7 @@ aws:
 
 member:
   signup:
-    require-email-verification: ${MEMBER_SIGNUP_REQUIRE_EMAIL_VERIFICATION:true}
+    require-email-verification: ${MEMBER_SIGNUP_REQUIRE_EMAIL_VERIFICATION:false}
   email:
     provider: ${EMAIL_PROVIDER:logging}
     from-address: ${MAIL_FROM:no-reply@todaylunch.local}
@@ -104,10 +106,6 @@ member:
     resend-cooldown: 30s
     crypto:
       secret-key: ${ACCOUNT_VERIFICATION_SECRET_KEY:local-dev-account-verification-secret-key}
-  kafka:
-    topic:
-      signed-up: member-signed-up
-
 logging:
   level:
     com.example.member: DEBUG

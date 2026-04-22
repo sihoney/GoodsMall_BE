@@ -1,11 +1,11 @@
 package com.example.notification.infrastructure.messaging.kafka.dlq;
 
+import com.example.notification.infrastructure.messaging.kafka.KafkaTopics;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
@@ -16,9 +16,6 @@ public class KafkaNotificationDlqPublisher implements NotificationDlqPublisher {
 
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
-
-    @Value("${notification.kafka.topics.dlq:notification.dlq}")
-    private String dlqTopic;
 
     @Override
     public void publish(
@@ -38,7 +35,7 @@ public class KafkaNotificationDlqPublisher implements NotificationDlqPublisher {
 
         try {
             String payload = objectMapper.writeValueAsString(dlqMessage);
-            kafkaTemplate.send(dlqTopic, payload);
+            kafkaTemplate.send(KafkaTopics.NOTIFICATION_DLQ, payload);
         } catch (JsonProcessingException publishPayloadException) {
             log.error(
                     "Failed to serialize DLQ message. listener={} reason={} rawMessage={}",
@@ -50,7 +47,7 @@ public class KafkaNotificationDlqPublisher implements NotificationDlqPublisher {
         } catch (RuntimeException publishException) {
             log.error(
                     "Failed to publish notification event to DLQ topic. topic={} listener={} reason={} rawMessage={}",
-                    dlqTopic,
+                    KafkaTopics.NOTIFICATION_DLQ,
                     listenerName,
                     decision.reason(),
                     rawMessage,

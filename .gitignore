@@ -70,4 +70,5 @@ node_modules/
 # Claude Code
 .claude/
 
-docker-compose.yml
+package.json
+package-lock.json
