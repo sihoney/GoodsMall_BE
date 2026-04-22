@@ -15,7 +15,7 @@ import com.example.ai.infrastructure.client.dto.request.OpenAiMultimodalChatComp
 import com.example.ai.infrastructure.client.dto.response.OpenAiChatCompletionResponse;
 import com.example.ai.infrastructure.client.dto.response.ProductDraftAssistAiResponse;
 import com.example.ai.infrastructure.config.ProductDraftAssistProperties;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;

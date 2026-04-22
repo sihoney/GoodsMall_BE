@@ -4,7 +4,7 @@ import com.example.order.infrastructure.kafka.KafkaTopics;
 import com.example.order.infrastructure.kafka.event.OrderCanceledEvent;
 import com.example.order.infrastructure.kafka.event.OrderCreatedEvent;
 import com.example.order.infrastructure.kafka.event.OrderReturnRequestedEvent;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;

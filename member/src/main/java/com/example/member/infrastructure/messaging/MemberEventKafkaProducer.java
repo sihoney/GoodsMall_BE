@@ -3,7 +3,7 @@ package com.example.member.infrastructure.messaging;
 import com.example.member.application.event.MemberSignedUpEvent;
 import com.example.member.infrastructure.messaging.kafka.KafkaTopics;
 import com.example.member.infrastructure.messaging.kafka.contract.MemberSignedUpPayload;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;

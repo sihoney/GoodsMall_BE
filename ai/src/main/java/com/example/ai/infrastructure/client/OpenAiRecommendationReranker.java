@@ -8,8 +8,8 @@ import com.example.ai.infrastructure.client.dto.request.OpenAiChatCompletionRequ
 import com.example.ai.infrastructure.client.dto.request.OpenAiChatCompletionRequest.ResponseFormat;
 import com.example.ai.infrastructure.client.dto.response.OpenAiChatCompletionResponse;
 import com.example.ai.infrastructure.config.RecommendationRerankProperties;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
