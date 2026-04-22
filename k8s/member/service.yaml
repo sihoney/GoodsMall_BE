@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: member
+  namespace: goods-mall
+spec:
+  type: ClusterIP
+  selector:
+    app: member
+  ports:
+    - port: 8083
+      targetPort: 8083

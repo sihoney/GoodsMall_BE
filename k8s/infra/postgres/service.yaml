@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: goods-mall
+spec:
+  selector:
+    app: postgres        # deployment.yaml의 Pod 라벨과 매칭
+  ports:
+    - port: 5432         # 다른 Pod가 접근할 포트
+      targetPort: 5432   # Pod 내부 포트
+  type: ClusterIP        # 클러스터 내부에서만 접근 가능
