@@ -123,6 +123,27 @@ public class Auction {
         );
     }
 
+    private static void validateStartPrice(BigDecimal startPrice) {
+        if (startPrice == null || startPrice.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("시작가는 0보다 커야 합니다");
+        }
+    }
+
+    private static void validateBidUnit(BigDecimal bidUnit) {
+        if (bidUnit == null || bidUnit.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("최소 입찰 단위는 0보다 커야 합니다");
+        }
+    }
+
+    private static void validateScheduledCloseAt(LocalDateTime startedAt, LocalDateTime scheduledCloseAt) {
+        if (startedAt == null || scheduledCloseAt == null) {
+            throw new IllegalArgumentException("시작/종료 시각이 필요합니다");
+        }
+        if (!scheduledCloseAt.isAfter(startedAt)) {
+            throw new IllegalArgumentException("종료 시각은 시작 시각 이후여야 합니다");
+        }
+    }
+
     public void start() {
         if (this.status != AuctionStatus.WAITING) {
             throw new IllegalStateException("대기 중인 경매만 시작할 수 있습니다");
@@ -134,7 +155,6 @@ public class Auction {
     public void rollbackHighestPrice(BigDecimal previousHighestPrice) {
         this.currentHighestPrice = previousHighestPrice;
     }
-
 
     public void applyConfirmedBid(UUID bidderId, BigDecimal bidPrice, LocalDateTime now) {
         if (this.sellerId.equals(bidderId)) {
@@ -162,7 +182,7 @@ public class Auction {
         this.updatedAt = LocalDateTime.now();
     }
 
-    public void markFailed() {
+    public void changeToFailed() {
         if (this.status != AuctionStatus.ONGOING && this.status != AuctionStatus.PENDING_PAYMENT) {
             throw new IllegalStateException("진행 중이거나 결제 대기 상태의 경매만 유찰 처리할 수 있습니다");
         }
@@ -189,27 +209,6 @@ public class Auction {
         long remaining = Duration.between(now, this.endedAt).toSeconds();
         if (remaining > 0 && remaining <= EXTEND_THRESHOLD_SECONDS) {
             this.endedAt = this.endedAt.plusSeconds(EXTEND_AMOUNT_SECONDS);
-        }
-    }
-
-    private static void validateStartPrice(BigDecimal startPrice) {
-        if (startPrice == null || startPrice.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("시작가는 0보다 커야 합니다");
-        }
-    }
-
-    private static void validateBidUnit(BigDecimal bidUnit) {
-        if (bidUnit == null || bidUnit.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("최소 입찰 단위는 0보다 커야 합니다");
-        }
-    }
-
-    private static void validateScheduledCloseAt(LocalDateTime startedAt, LocalDateTime scheduledCloseAt) {
-        if (startedAt == null || scheduledCloseAt == null) {
-            throw new IllegalArgumentException("시작/종료 시각이 필요합니다");
-        }
-        if (!scheduledCloseAt.isAfter(startedAt)) {
-            throw new IllegalArgumentException("종료 시각은 시작 시각 이후여야 합니다");
         }
     }
 }
