@@ -100,6 +100,7 @@ public class AuctionBidFeeChargeRequestedEventConsumer {
 
     private AuctionDepositCommand toCommand(BidFeeChargeRequestMessage event) {
         return new AuctionDepositCommand(
+                event.bidId(),
                 event.auctionId(),
                 event.isFirst(),
                 event.previousBidderId(),
@@ -112,6 +113,7 @@ public class AuctionBidFeeChargeRequestedEventConsumer {
     private void publishSuccess(AuctionDepositResult result) {
         resultEventPublisher.publishSuccess(new BidFeeChargeSucceededMessage(
                 identifierGenerator.generateUuid(),
+                result.bidId(),
                 result.auctionId(),
                 nowAsInstant()
         ));
@@ -120,6 +122,7 @@ public class AuctionBidFeeChargeRequestedEventConsumer {
     private void publishFailure(BidFeeChargeRequestMessage event, String errorCode, String errorMessage) {
         resultEventPublisher.publishFailure(new BidFeeChargeFailedMessage(
                 identifierGenerator.generateUuid(),
+                event.bidId(),
                 event.auctionId(),
                 errorCode,
                 errorMessage,

@@ -131,6 +131,10 @@ public class Auction {
         this.updatedAt = LocalDateTime.now();
     }
 
+    public void rollbackHighestPrice(BigDecimal previousHighestPrice) {
+        this.currentHighestPrice = previousHighestPrice;
+    }
+
 
     public void applyConfirmedBid(UUID bidderId, BigDecimal bidPrice, LocalDateTime now) {
         if (this.sellerId.equals(bidderId)) {

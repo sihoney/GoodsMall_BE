@@ -16,6 +16,7 @@ import com.todaylunch.auction.domain.enumtype.BidStatus;
 import com.todaylunch.auction.domain.repository.BidRepository;
 import com.todaylunch.auction.infrastructure.messaging.kafka.message.BidFeeChargeCompletedMessage;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -65,13 +66,10 @@ class BidFeeChargeCompletedConsumerTest {
                                    UUID.randomUUID(),
                                    new BigDecimal("11000"));
 
-        BidFeeChargeCompletedMessage message = new BidFeeChargeCompletedMessage(bid.getBidId(),
+        BidFeeChargeCompletedMessage message = new BidFeeChargeCompletedMessage(UUID.randomUUID(),
+                                                                                bid.getBidId(),
                                                                                 auction.getAuctionId(),
-                                                                                bid.getBidderId(),
-                                                                                new BigDecimal("1100"),
-                                                                                null,
-                                                                                BigDecimal.ZERO,
-                                                                                LocalDateTime.now());
+                                                                                Instant.now());
 
         given(bidRepository.findById(bid.getBidId())).willReturn(Optional.of(bid));
 
@@ -94,13 +92,10 @@ class BidFeeChargeCompletedConsumerTest {
                                       UUID.randomUUID(),
                                       new BigDecimal("12000"));
 
-        BidFeeChargeCompletedMessage message = new BidFeeChargeCompletedMessage(newBid.getBidId(),
+        BidFeeChargeCompletedMessage message = new BidFeeChargeCompletedMessage(UUID.randomUUID(),
+                                                                                newBid.getBidId(),
                                                                                 auction.getAuctionId(),
-                                                                                newBid.getBidderId(),
-                                                                                new BigDecimal("1200"),
-                                                                                previousBid.getBidderId(),
-                                                                                new BigDecimal("1100"),
-                                                                                LocalDateTime.now());
+                                                                                Instant.now());
 
         given(bidRepository.findById(newBid.getBidId())).willReturn(Optional.of(newBid));
 
@@ -117,14 +112,10 @@ class BidFeeChargeCompletedConsumerTest {
         Bid bid = Bid.place(auction,
                             UUID.randomUUID(),
                             new BigDecimal("11000"));
-        BidFeeChargeCompletedMessage message = new BidFeeChargeCompletedMessage(bid.getBidId(),
+        BidFeeChargeCompletedMessage message = new BidFeeChargeCompletedMessage(UUID.randomUUID(),
+                                                                                bid.getBidId(),
                                                                                 auction.getAuctionId(),
-                                                                                bid.getBidderId(),
-                                                                                new BigDecimal("1100"),
-                                                                                null,
-                                                                                BigDecimal.ZERO,
-                                                                                LocalDateTime.now()
-        );
+                                                                                Instant.now());
         given(bidRepository.findById(bid.getBidId())).willReturn(Optional.of(bid));
 
         consumer.handle(objectMapper.writeValueAsString(message));
