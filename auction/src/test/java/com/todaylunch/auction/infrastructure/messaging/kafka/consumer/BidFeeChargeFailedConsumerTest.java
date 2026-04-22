@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 @ExtendWith(MockitoExtension.class)
 class BidFeeChargeFailedConsumerTest {
@@ -29,6 +30,8 @@ class BidFeeChargeFailedConsumerTest {
     BidRepository bidRepository;
     @Mock
     AuctionRepository auctionRepository;
+    @Mock
+    SimpMessagingTemplate messagingTemplate;
 
     BidFeeChargeFailedConsumer consumer;
     ObjectMapper objectMapper;
@@ -39,7 +42,7 @@ class BidFeeChargeFailedConsumerTest {
     void setUp() {
         objectMapper = JsonMapper.builder().build();
 
-        consumer = new BidFeeChargeFailedConsumer(bidRepository, auctionRepository, objectMapper);
+        consumer = new BidFeeChargeFailedConsumer(bidRepository, auctionRepository, messagingTemplate, objectMapper);
 
         LocalDateTime now = LocalDateTime.now();
 

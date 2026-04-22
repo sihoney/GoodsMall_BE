@@ -50,6 +50,10 @@ logging:
     com.todaylunch.auction: DEBUG
     org.hibernate.SQL: DEBUG
 
+services:
+  payment:
+    url: ${PAYMENT_SERVICE_URL:http://localhost:8082}
+
 auction:
   kafka:
     topic:
