@@ -101,6 +101,7 @@ public class AuctionDepositService implements AuctionDepositUseCase {
         );
 
         return new AuctionDepositResult(
+                command.bidId(),
                 command.auctionId(),
                 command.highestBidderId(),
                 command.highestBidderFee(),

@@ -44,8 +44,8 @@ public class BidFeeChargeFailedConsumer {
 
         bid.cancel();
 
-        log.warn("Bid canceled via kafka: bidId={}, reason={}, message={}",
-                bid.getBidId(), message.failureReason(), message.failureMessage());
+        log.warn("Bid canceled via kafka: bidId={}, errorCode={}, errorMessage={}",
+                bid.getBidId(), message.errorCode(), message.errorMessage());
 
         // TODO: 사용자 개인 채널 WebSocket 메시지 전송 (개인 채널 구현 시 추가)
     }

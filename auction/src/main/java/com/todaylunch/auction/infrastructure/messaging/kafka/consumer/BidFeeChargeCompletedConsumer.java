@@ -56,7 +56,6 @@ public class BidFeeChargeCompletedConsumer {
                 bid.getAuction().getEndedAt()
         ));
 
-        log.info("Bid confirmed via kafka: bidId={}, heldAmount={}, refundedAmount={}",
-                bid.getBidId(), message.heldAmount(), message.refundedAmount());
+        log.info("Bid confirmed via kafka: bidId={}, auctionId={}", bid.getBidId(), message.auctionId());
     }
 }

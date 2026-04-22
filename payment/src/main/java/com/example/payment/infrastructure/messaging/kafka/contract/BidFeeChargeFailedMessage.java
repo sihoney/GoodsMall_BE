@@ -8,6 +8,7 @@ import java.util.UUID;
  */
 public record BidFeeChargeFailedMessage(
         UUID eventId,
+        UUID bidId,
         UUID auctionId,
         String errorCode,
         String errorMessage,
