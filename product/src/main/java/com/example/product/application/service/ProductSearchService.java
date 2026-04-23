@@ -113,7 +113,10 @@ public class ProductSearchService implements ProductSearchUseCase {
     public List<ProductResponse> findByProductIds(List<UUID> productIds) {
         List<Product> products = productRepository.findAllByProductIdIn(productIds);
         return products.stream()
-                .map(ProductResponse::from)
+                .map(product -> {
+                    List<ProductImage> images = productImageRepository.findByProductId(product.getProductId());
+                    return buildProductResponse(product, images);
+                })
                 .toList();
     }
 
