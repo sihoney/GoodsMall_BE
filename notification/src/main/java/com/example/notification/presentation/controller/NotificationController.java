@@ -9,6 +9,8 @@ import com.todaylunch.common.security.auth.annotation.CurrentMember;
 import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -19,14 +21,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/notifications")
-@Tag(name = "Notification", description = "notification API")
+@Tag(name = "알림", description = "알림 API")
+@RequiredArgsConstructor
 public class NotificationController {
 
     private final NotificationUsecase notificationUsecase;
-
-    public NotificationController(NotificationUsecase notificationUsecase) {
-        this.notificationUsecase = notificationUsecase;
-    }
 
     @GetMapping
     @Operation(summary = "내 알림 목록 조회")

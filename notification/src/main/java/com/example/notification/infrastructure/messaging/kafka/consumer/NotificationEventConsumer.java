@@ -1,12 +1,12 @@
 package com.example.notification.infrastructure.messaging.kafka.consumer;
 
 import com.example.notification.infrastructure.messaging.kafka.KafkaTopics;
-import com.example.notification.infrastructure.messaging.kafka.dlq.NotificationConsumerExceptionClassifier;
-import com.example.notification.infrastructure.messaging.kafka.dlq.NotificationConsumerFailureAction;
-import com.example.notification.infrastructure.messaging.kafka.dlq.NotificationConsumerFailureDecision;
-import com.example.notification.infrastructure.messaging.kafka.dlq.NotificationDlqPublisher;
-import com.example.notification.infrastructure.messaging.kafka.dlq.EventParseException;
-import com.example.notification.infrastructure.messaging.kafka.dlq.InvalidEventPayloadException;
+import com.example.notification.infrastructure.messaging.kafka.dlq.classifier.NotificationConsumerExceptionClassifier;
+import com.example.notification.infrastructure.messaging.kafka.dlq.exception.EventParseException;
+import com.example.notification.infrastructure.messaging.kafka.dlq.exception.InvalidEventPayloadException;
+import com.example.notification.infrastructure.messaging.kafka.dlq.model.NotificationConsumerFailureAction;
+import com.example.notification.infrastructure.messaging.kafka.dlq.model.NotificationConsumerFailureDecision;
+import com.example.notification.infrastructure.messaging.kafka.dlq.publisher.NotificationDlqPublisher;
 import com.example.notification.infrastructure.messaging.kafka.handler.NotificationEventHandler;
 import com.example.notification.infrastructure.messaging.kafka.handler.NotificationEventHandlerRegistry;
 import tools.jackson.core.JacksonException;
@@ -69,7 +69,11 @@ public class NotificationEventConsumer {
         }
     }
 
-    private void handleConsumerFailure(String listenerName, String rawMessage, RuntimeException exception) {
+    private void handleConsumerFailure(
+        String listenerName, 
+        String rawMessage, 
+        RuntimeException exception
+    ) {
         NotificationConsumerFailureDecision decision = exceptionClassifier.classify(exception);
 
         if (decision.action() == NotificationConsumerFailureAction.DLQ) {

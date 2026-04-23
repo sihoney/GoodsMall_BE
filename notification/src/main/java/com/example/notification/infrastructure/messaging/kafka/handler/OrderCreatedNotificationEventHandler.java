@@ -2,7 +2,7 @@ package com.example.notification.infrastructure.messaging.kafka.handler;
 
 import com.example.notification.application.usecase.NotificationUsecase;
 import com.example.notification.infrastructure.messaging.kafka.contract.OrderCreatedMessage;
-import com.example.notification.infrastructure.messaging.kafka.dlq.InvalidEventPayloadException;
+import com.example.notification.infrastructure.messaging.kafka.dlq.exception.InvalidEventPayloadException;
 import com.todaylunch.common.event.contract.EventEnvelope;
 import java.math.BigDecimal;
 import java.time.Instant;
