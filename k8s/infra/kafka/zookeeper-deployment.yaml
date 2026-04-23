@@ -26,17 +26,17 @@ spec:
             - name: ZOOKEEPER_4LW_COMMANDS_WHITELIST
               value: "*"
           startupProbe:
-            exec:
-              command: ["sh", "-c", "echo srvr | nc localhost 2181 | grep Mode"]
-            failureThreshold: 10
-            periodSeconds: 5
-          livenessProbe:
-            exec:
-              command: ["sh", "-c", "echo srvr | nc localhost 2181 | grep Mode"]
-            initialDelaySeconds: 10
+            tcpSocket:
+              port: 2181
+            failureThreshold: 15
             periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 2181
+            initialDelaySeconds: 30
+            periodSeconds: 15
           readinessProbe:
-            exec:
-              command: ["sh", "-c", "echo srvr | nc localhost 2181 | grep Mode"]
-            initialDelaySeconds: 5
-            periodSeconds: 5
+            tcpSocket:
+              port: 2181
+            initialDelaySeconds: 20
+            periodSeconds: 10
