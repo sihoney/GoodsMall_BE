@@ -36,14 +36,14 @@ public class SellerPromotionService {
         AccountVerificationSession session = sessionStore.findSession(sessionId)
                 .orElseThrow(AccountVerificationNotFoundException::new);
         if (!session.belongsTo(memberId)) {
-            throw new AccountVerificationNotAllowedException("Account verification session does not belong to current member.");
+            throw new AccountVerificationNotAllowedException("계좌 인증 세션이 현재 회원에게 속하지 않습니다.");
         }
         if (!session.isVerified()) {
-            throw new AccountVerificationNotAllowedException("Account verification session is not verified yet.");
+            throw new AccountVerificationNotAllowedException("계좌 인증 세션이 아직 완료되지 않았습니다.");
         }
 
         SellerDraft draft = sellerDraftStore.findDraft(session.getDraftId())
-                .orElseThrow(() -> new IllegalStateException("Seller draft was not found."));
+                .orElseThrow(() -> new IllegalStateException("판매자 등록 임시 정보를 찾을 수 없습니다."));
 
         if (sellerRepository.existsByMemberId(memberId)) {
             sellerDraftStore.deleteDraft(draft.getDraftId());

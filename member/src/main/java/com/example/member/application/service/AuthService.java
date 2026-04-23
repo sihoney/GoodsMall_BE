@@ -149,7 +149,7 @@ public class AuthService implements AuthUsecase {
 
     private ParsedAccessToken parseRequiredAccessToken(String accessToken) {
         if (accessToken == null || accessToken.isBlank()) {
-            throw new IllegalArgumentException("Authorization header is required.");
+            throw new IllegalArgumentException("Authorization 헤더는 필수입니다.");
         }
         String token = accessToken.startsWith("Bearer ") ? accessToken.substring(7) : accessToken;
         return jwtTokenProvider.parseAccessToken(token);
@@ -162,19 +162,19 @@ public class AuthService implements AuthUsecase {
 
     private void validateLoginRequest(LoginRequest request) {
         if (request == null) {
-            throw new IllegalArgumentException("Login request body is required.");
+            throw new IllegalArgumentException("로그인 요청 본문은 필수입니다.");
         }
     }
 
     private void validateRefreshRequest(TokenRefreshRequest request) {
         if (request == null) {
-            throw new IllegalArgumentException("Refresh request body is required.");
+            throw new IllegalArgumentException("토큰 갱신 요청 본문은 필수입니다.");
         }
     }
 
     private String normalizeRequired(String value, String fieldName) {
         if (value == null || value.trim().isEmpty()) {
-            throw new IllegalArgumentException(fieldName + " is required.");
+            throw new IllegalArgumentException(fieldName + "은(는) 필수입니다.");
         }
         return value.trim();
     }

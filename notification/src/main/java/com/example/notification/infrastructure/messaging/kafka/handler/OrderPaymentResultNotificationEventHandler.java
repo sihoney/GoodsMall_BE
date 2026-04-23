@@ -72,46 +72,34 @@ public class OrderPaymentResultNotificationEventHandler implements NotificationE
 
     private void validateOrderPaymentResultEvent(EventEnvelope<OrderPaymentResultMessage> event) {
         if (event == null) {
-            throw new InvalidEventPayloadException("orderPaymentResult event is required.");
+            throw new InvalidEventPayloadException("주문 결제 결과 이벤트는 필수입니다.");
         }
         if (!ORDER_PAYMENT_RESULT_EVENT_TYPE.equals(event.eventType())) {
-            throw new InvalidEventPayloadException("Unsupported eventType: " + event.eventType());
-        }
-        if (event.eventId() == null) {
-            throw new InvalidEventPayloadException("eventId is required.");
-        }
-        if (event.source() == null || event.source().isBlank()) {
-            throw new InvalidEventPayloadException("source is required.");
+            throw new InvalidEventPayloadException("지원하지 않는 eventType입니다: " + event.eventType());
         }
         if (event.recipientId() == null) {
-            throw new InvalidEventPayloadException("recipientId is required.");
-        }
-        if (event.occurredAt() == null) {
-            throw new InvalidEventPayloadException("occurredAt is required.");
-        }
-        if (event.traceId() == null || event.traceId().isBlank()) {
-            throw new InvalidEventPayloadException("traceId is required.");
+            throw new InvalidEventPayloadException("recipientId는 필수입니다.");
         }
         if (event.payload() == null) {
-            throw new InvalidEventPayloadException("payload is required.");
+            throw new InvalidEventPayloadException("payload는 필수입니다.");
         }
         if (event.payload().orderId() == null) {
-            throw new InvalidEventPayloadException("payload.orderId is required.");
+            throw new InvalidEventPayloadException("payload.orderId는 필수입니다.");
         }
         if (event.payload().buyerMemberId() == null) {
-            throw new InvalidEventPayloadException("payload.buyerMemberId is required.");
+            throw new InvalidEventPayloadException("payload.buyerMemberId는 필수입니다.");
         }
         if (event.payload().amount() == null) {
-            throw new InvalidEventPayloadException("payload.amount is required.");
+            throw new InvalidEventPayloadException("payload.amount는 필수입니다.");
         }
         if (event.payload().status() == null) {
-            throw new InvalidEventPayloadException("payload.status is required.");
+            throw new InvalidEventPayloadException("payload.status는 필수입니다.");
         }
         if (event.payload().status() == OrderPaymentResultStatus.FAILED && event.payload().reasonCode() == null) {
-            throw new InvalidEventPayloadException("payload.reasonCode is required for failed payment.");
+            throw new InvalidEventPayloadException("결제 실패 이벤트에는 payload.reasonCode가 필수입니다.");
         }
         if (!Objects.equals(event.recipientId(), event.payload().buyerMemberId())) {
-            throw new InvalidEventPayloadException("recipientId and payload.buyerMemberId must match.");
+            throw new InvalidEventPayloadException("recipientId와 payload.buyerMemberId가 일치해야 합니다.");
         }
     }
 
@@ -123,7 +111,7 @@ public class OrderPaymentResultNotificationEventHandler implements NotificationE
         try {
             return amount.longValueExact();
         } catch (ArithmeticException e) {
-            throw new InvalidEventPayloadException("payload.amount must be a whole number.", e);
+            throw new InvalidEventPayloadException("payload.amount는 정수 금액이어야 합니다.", e);
         }
     }
 

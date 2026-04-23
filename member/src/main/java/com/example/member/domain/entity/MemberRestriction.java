@@ -105,7 +105,7 @@ public class MemberRestriction {
 
     public void deactivate(LocalDateTime updatedAt) {
         if (!active) {
-            throw new IllegalStateException("Restriction is already inactive.");
+            throw new IllegalStateException("이미 비활성화된 제재입니다.");
         }
         this.active = false;
         this.updatedAt = Objects.requireNonNull(updatedAt);
@@ -117,13 +117,13 @@ public class MemberRestriction {
 
     private static void validateReason(String reason) {
         if (reason == null || reason.trim().isEmpty()) {
-            throw new IllegalArgumentException("reason is required.");
+            throw new IllegalArgumentException("reason은 필수입니다.");
         }
     }
 
     private static void validateDurationHours(Integer durationHours) {
         if (durationHours == null || durationHours <= 0) {
-            throw new IllegalArgumentException("durationHours must be greater than zero.");
+            throw new IllegalArgumentException("durationHours는 0보다 커야 합니다.");
         }
     }
 }

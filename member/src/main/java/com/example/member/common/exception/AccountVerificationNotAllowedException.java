@@ -3,7 +3,7 @@ package com.example.member.common.exception;
 public class AccountVerificationNotAllowedException extends RuntimeException {
 
     public AccountVerificationNotAllowedException() {
-        super("Account verification is not allowed.");
+        super("계좌 인증을 진행할 수 없습니다.");
     }
 
     public AccountVerificationNotAllowedException(String message) {

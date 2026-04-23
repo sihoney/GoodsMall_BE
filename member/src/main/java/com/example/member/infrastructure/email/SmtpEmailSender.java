@@ -38,7 +38,7 @@ public class SmtpEmailSender implements EmailSender {
             log.info("Email sent via SMTP. to={}, subject={}, html={}", to, subject, html);
         } catch (MessagingException | UnsupportedEncodingException | MailException ex) {
             log.error("Failed to send email via SMTP. to={}, subject={}", to, subject, ex);
-            throw new EmailSendFailedException("Failed to send email via SMTP.", ex);
+            throw new EmailSendFailedException("SMTP 이메일 전송에 실패했습니다.", ex);
         }
     }
 }

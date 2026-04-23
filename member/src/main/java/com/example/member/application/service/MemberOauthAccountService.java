@@ -66,13 +66,13 @@ public class MemberOauthAccountService implements MemberOauthAccountUsecase {
 
     private OAuthProvider parseProvider(String provider) {
         if (provider == null || provider.trim().isEmpty()) {
-            throw new IllegalArgumentException("provider is required.");
+            throw new IllegalArgumentException("provider는 필수입니다.");
         }
 
         try {
             return OAuthProvider.valueOf(provider.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException exception) {
-            throw new IllegalArgumentException("Unsupported oauth provider: " + provider);
+            throw new IllegalArgumentException("지원하지 않는 OAuth provider입니다: " + provider);
         }
     }
 

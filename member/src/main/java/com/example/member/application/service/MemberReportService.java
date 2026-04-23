@@ -113,7 +113,7 @@ public class MemberReportService implements MemberReportUsecase {
 
         if (request.restrictionType() != null || request.durationHours() != null) {
             if (request.restrictionType() == null || request.durationHours() == null) {
-                throw new IllegalArgumentException("restrictionType and durationHours must be provided together.");
+                throw new IllegalArgumentException("restrictionType과 durationHours는 함께 제공되어야 합니다.");
             }
 
             memberRestrictionService.createRestriction(
@@ -148,25 +148,25 @@ public class MemberReportService implements MemberReportUsecase {
 
     private void validateReporter(AuthenticatedMember authenticatedMember) {
         if (authenticatedMember == null || authenticatedMember.memberId() == null) {
-            throw new IllegalArgumentException("Authenticated member is required.");
+            throw new IllegalArgumentException("인증된 회원 정보는 필수입니다.");
         }
     }
 
     private void validateCreateRequest(CreateMemberReportRequest request) {
         if (request == null) {
-            throw new IllegalArgumentException("Create member report request body is required.");
+            throw new IllegalArgumentException("회원 신고 생성 요청 본문은 필수입니다.");
         }
         if (request.reportedMemberId() == null) {
-            throw new IllegalArgumentException("reportedMemberId is required.");
+            throw new IllegalArgumentException("reportedMemberId는 필수입니다.");
         }
         if (request.reportType() == null) {
-            throw new IllegalArgumentException("reportType is required.");
+            throw new IllegalArgumentException("reportType은 필수입니다.");
         }
     }
 
     private void validateReviewRequest(ReviewMemberReportRequest request) {
         if (request == null) {
-            throw new IllegalArgumentException("Review member report request body is required.");
+            throw new IllegalArgumentException("회원 신고 검토 요청 본문은 필수입니다.");
         }
     }
 }

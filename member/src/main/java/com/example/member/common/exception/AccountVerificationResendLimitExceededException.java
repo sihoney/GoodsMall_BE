@@ -3,7 +3,7 @@ package com.example.member.common.exception;
 public class AccountVerificationResendLimitExceededException extends RuntimeException {
 
     public AccountVerificationResendLimitExceededException() {
-        super("Account verification resend limit exceeded.");
+        super("계좌 인증 재전송 횟수를 초과했습니다.");
     }
 
     public AccountVerificationResendLimitExceededException(String message) {

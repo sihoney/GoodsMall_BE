@@ -32,7 +32,7 @@ public class JwtTokenProvider {
         this.jwtProperties = jwtProperties;
         String secret = jwtProperties.secret();
         if (secret == null || secret.isBlank() || secret.contains("${")) {
-            throw new IllegalStateException("JWT secret is not configured for member-service.");
+            throw new IllegalStateException("member-service의 JWT secret이 설정되지 않았습니다.");
         }
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }

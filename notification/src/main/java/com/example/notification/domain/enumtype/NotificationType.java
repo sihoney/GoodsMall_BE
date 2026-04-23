@@ -18,13 +18,17 @@ public enum NotificationType {
     SELLER_ORDER_RECEIVED(NotificationChannel.INBOX, NotificationChannel.PUSH),
     SELLER_ORDER_CANCELED(NotificationChannel.INBOX, NotificationChannel.PUSH),
     SELLER_SETTLEMENT_PAYOUT_SUCCEEDED(NotificationChannel.INBOX, NotificationChannel.PUSH),
-    SELLER_SETTLEMENT_PAYOUT_FAILED(NotificationChannel.INBOX, NotificationChannel.PUSH);
+    SELLER_SETTLEMENT_PAYOUT_FAILED(NotificationChannel.INBOX, NotificationChannel.PUSH),
+    BUYER_AUCTION_OUTBID(NotificationChannel.INBOX, NotificationChannel.PUSH),
+    BUYER_AUCTION_WON(NotificationChannel.INBOX, NotificationChannel.PUSH),
+    SELLER_AUCTION_CLOSED_SOLD(NotificationChannel.INBOX, NotificationChannel.PUSH),
+    SELLER_AUCTION_CLOSED_UNSOLD(NotificationChannel.INBOX, NotificationChannel.PUSH);
 
     private final Set<NotificationChannel> channels;
 
     NotificationType(NotificationChannel... channels) {
         if (channels == null || channels.length == 0) {
-            throw new IllegalArgumentException("NotificationType must define at least one channel.");
+            throw new IllegalArgumentException("NotificationType은 최소 하나 이상의 채널을 정의해야 합니다.");
         }
         this.channels = Collections.unmodifiableSet(EnumSet.of(channels[0], channels));
     }

@@ -71,48 +71,36 @@ public class SellerSettlementPayoutResultNotificationEventHandler implements Not
 
     private void validateSellerSettlementPayoutResultEvent(EventEnvelope<SellerSettlementPayoutResultMessage> event) {
         if (event == null) {
-            throw new InvalidEventPayloadException("sellerSettlementPayoutResult event is required.");
+            throw new InvalidEventPayloadException("판매자 정산 지급 결과 이벤트는 필수입니다.");
         }
         if (!SELLER_SETTLEMENT_PAYOUT_RESULT_EVENT_TYPE.equals(event.eventType())) {
-            throw new InvalidEventPayloadException("Unsupported eventType: " + event.eventType());
-        }
-        if (event.eventId() == null) {
-            throw new InvalidEventPayloadException("eventId is required.");
-        }
-        if (event.source() == null || event.source().isBlank()) {
-            throw new InvalidEventPayloadException("source is required.");
+            throw new InvalidEventPayloadException("지원하지 않는 eventType입니다: " + event.eventType());
         }
         if (event.recipientId() == null) {
-            throw new InvalidEventPayloadException("recipientId is required.");
-        }
-        if (event.occurredAt() == null) {
-            throw new InvalidEventPayloadException("occurredAt is required.");
-        }
-        if (event.traceId() == null || event.traceId().isBlank()) {
-            throw new InvalidEventPayloadException("traceId is required.");
+            throw new InvalidEventPayloadException("recipientId는 필수입니다.");
         }
         if (event.payload() == null) {
-            throw new InvalidEventPayloadException("payload is required.");
+            throw new InvalidEventPayloadException("payload는 필수입니다.");
         }
         if (event.payload().settlementId() == null) {
-            throw new InvalidEventPayloadException("payload.settlementId is required.");
+            throw new InvalidEventPayloadException("payload.settlementId는 필수입니다.");
         }
         if (event.payload().sellerMemberId() == null) {
-            throw new InvalidEventPayloadException("payload.sellerMemberId is required.");
+            throw new InvalidEventPayloadException("payload.sellerMemberId는 필수입니다.");
         }
         if (event.payload().resultStatus() == null) {
-            throw new InvalidEventPayloadException("payload.resultStatus is required.");
+            throw new InvalidEventPayloadException("payload.resultStatus는 필수입니다.");
         }
         if (event.payload().resultStatus() == SellerSettlementPayoutResultStatus.SUCCESS
                 && (event.payload().payoutAmount() == null || event.payload().payoutAmount() <= 0)) {
-            throw new InvalidEventPayloadException("payload.payoutAmount must be positive for successful payout.");
+            throw new InvalidEventPayloadException("정산 지급 성공 이벤트에는 양수인 payload.payoutAmount가 필요합니다.");
         }
         if (event.payload().resultStatus() == SellerSettlementPayoutResultStatus.FAILED
                 && event.payload().failureReason() == null) {
-            throw new InvalidEventPayloadException("payload.failureReason is required for failed payout.");
+            throw new InvalidEventPayloadException("정산 지급 실패 이벤트에는 payload.failureReason이 필수입니다.");
         }
         if (!Objects.equals(event.recipientId(), event.payload().sellerMemberId())) {
-            throw new InvalidEventPayloadException("recipientId and payload.sellerMemberId must match.");
+            throw new InvalidEventPayloadException("recipientId와 payload.sellerMemberId가 일치해야 합니다.");
         }
     }
 
