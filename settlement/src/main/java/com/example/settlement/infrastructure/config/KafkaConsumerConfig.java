@@ -3,8 +3,6 @@ package com.example.settlement.infrastructure.config;
 import com.example.settlement.infrastructure.messaging.kafka.KafkaConsumerGroups;
 import com.example.settlement.infrastructure.messaging.kafka.KafkaRetryPolicy;
 import com.example.settlement.infrastructure.messaging.kafka.KafkaTopics;
-import com.example.settlement.infrastructure.messaging.kafka.contract.SettlementCandidateCreatedMessage;
-import com.example.settlement.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultMessage;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -30,7 +28,7 @@ import org.springframework.kafka.support.ExponentialBackOffWithMaxRetries;
 public class KafkaConsumerConfig {
 
     @Bean
-    public ConsumerFactory<String, SettlementCandidateCreatedMessage> settlementCandidateCreatedConsumerFactory(
+    public ConsumerFactory<String, String> settlementCandidateCreatedConsumerFactory(
             @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers
     ) {
         Map<String, Object> props = new HashMap<>();
@@ -48,12 +46,12 @@ public class KafkaConsumerConfig {
      * 예외 발생 시 공통 에러 처리기로 재시도 후 DLQ 발행을 수행한다.
      */
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, SettlementCandidateCreatedMessage>
+    public ConcurrentKafkaListenerContainerFactory<String, String>
         settlementCandidateCreatedKafkaListenerContainerFactory(
-            ConsumerFactory<String, SettlementCandidateCreatedMessage> settlementCandidateCreatedConsumerFactory,
+            ConsumerFactory<String, String> settlementCandidateCreatedConsumerFactory,
             KafkaTemplate<String, String> kafkaTemplate
     ) {
-        ConcurrentKafkaListenerContainerFactory<String, SettlementCandidateCreatedMessage> factory =
+        ConcurrentKafkaListenerContainerFactory<String, String> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(settlementCandidateCreatedConsumerFactory);
         factory.setCommonErrorHandler(createCommonErrorHandler(
@@ -64,7 +62,7 @@ public class KafkaConsumerConfig {
     }
 
     @Bean
-    public ConsumerFactory<String, SellerSettlementPayoutResultMessage> sellerSettlementPayoutResultConsumerFactory(
+    public ConsumerFactory<String, String> sellerSettlementPayoutResultConsumerFactory(
             @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers
     ) {
         Map<String, Object> props = new HashMap<>();
@@ -82,12 +80,12 @@ public class KafkaConsumerConfig {
      * 예외 발생 시 공통 에러 처리기로 재시도 후 DLQ 발행을 수행한다.
      */
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, SellerSettlementPayoutResultMessage>
+    public ConcurrentKafkaListenerContainerFactory<String, String>
         sellerSettlementPayoutResultKafkaListenerContainerFactory(
-            ConsumerFactory<String, SellerSettlementPayoutResultMessage> sellerSettlementPayoutResultConsumerFactory,
+            ConsumerFactory<String, String> sellerSettlementPayoutResultConsumerFactory,
             KafkaTemplate<String, String> kafkaTemplate
     ) {
-        ConcurrentKafkaListenerContainerFactory<String, SellerSettlementPayoutResultMessage> factory =
+        ConcurrentKafkaListenerContainerFactory<String, String> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(sellerSettlementPayoutResultConsumerFactory);
         factory.setCommonErrorHandler(createCommonErrorHandler(
