@@ -6,16 +6,15 @@ import com.example.member.infrastructure.messaging.kafka.contract.AccountVerific
 import com.example.member.infrastructure.messaging.kafka.contract.MemberSignedUpPayload;
 import com.example.member.infrastructure.messaging.kafka.contract.MemberOauthLinkedPayload;
 import com.example.member.infrastructure.messaging.kafka.contract.SellerPromotedPayload;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.todaylunch.common.event.contract.EventEnvelope;
 import java.time.Instant;
 import java.util.UUID;
-// import tools.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
-import com.todaylunch.common.event.contract.EventEnvelope;
- 
+import tools.jackson.databind.ObjectMapper;
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -24,6 +23,7 @@ public class MemberEventKafkaProducer {
     private static final String MOCK_TRACE_ID = "mock-trace-id";
 
     private final KafkaTemplate<String, String> kafkaTemplate;
+    // Spring Boot 4 registers the Jackson 3 ObjectMapper under tools.jackson.
     private final ObjectMapper objectMapper;
 
     public void sendMemberSignedUp(MemberSignedUpPayload payload) {

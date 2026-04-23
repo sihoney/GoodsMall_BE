@@ -10,6 +10,7 @@ public class JacksonConfig {
 
     @Bean
     public ObjectMapper objectMapper() {
+        // Keep notification event parsing on the Spring Boot 4 / Jackson 3 mapper.
         return JsonMapper.builder().build();
     }
 }
