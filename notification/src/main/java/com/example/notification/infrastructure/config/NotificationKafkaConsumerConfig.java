@@ -12,10 +12,10 @@ import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 
 @Configuration
-public class KafkaConsumerConfig {
+public class NotificationKafkaConsumerConfig {
 
     @Bean
-    public ConsumerFactory<String, String> memberSignedUpConsumerFactory(
+    public ConsumerFactory<String, String> notificationConsumerFactory(
             @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers,
             @Value("${notification.kafka.consumer-groups.member-signed-up:notification-service}") String groupId
     ) {
@@ -29,12 +29,12 @@ public class KafkaConsumerConfig {
     }
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, String> memberSignedUpKafkaListenerContainerFactory(
-            ConsumerFactory<String, String> memberSignedUpConsumerFactory
+    public ConcurrentKafkaListenerContainerFactory<String, String> notificationKafkaListenerContainerFactory(
+            ConsumerFactory<String, String> notificationConsumerFactory
     ) {
         ConcurrentKafkaListenerContainerFactory<String, String> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
-        factory.setConsumerFactory(memberSignedUpConsumerFactory);
+        factory.setConsumerFactory(notificationConsumerFactory);
         return factory;
     }
 }

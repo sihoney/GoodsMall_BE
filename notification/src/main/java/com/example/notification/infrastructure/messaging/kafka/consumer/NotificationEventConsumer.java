@@ -50,7 +50,7 @@ public class NotificationEventConsumer {
                     KafkaTopics.AUCTION_CLOSED
             },
             groupId = "${notification.kafka.consumer-groups.member-signed-up:notification-service}",
-            containerFactory = "memberSignedUpKafkaListenerContainerFactory"
+            containerFactory = "notificationKafkaListenerContainerFactory"
     )
     public void listen(String message) {
         consume(UNIFIED_NOTIFICATION_LISTENER, message, () -> {
