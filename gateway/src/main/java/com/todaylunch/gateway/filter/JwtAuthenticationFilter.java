@@ -23,6 +23,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     private static final String MEMBER_ID_HEADER = "X-Member-Id";
     private static final String MEMBER_ROLE_HEADER = "X-Member-Role";
+    private static final String SESSION_ID_HEADER = "X-Session-Id";
 
     private final GatewayJwtValidator gatewayJwtValidator;
     private final GatewayAuthProperties gatewayAuthProperties;
@@ -70,8 +71,10 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                     .headers(headers -> {
                         headers.remove(MEMBER_ID_HEADER);
                         headers.remove(MEMBER_ROLE_HEADER);
+                        headers.remove(SESSION_ID_HEADER);
                         headers.add(MEMBER_ID_HEADER, principal.memberId().toString());
                         headers.add(MEMBER_ROLE_HEADER, principal.role());
+                        headers.add(SESSION_ID_HEADER, principal.sessionId().toString());
                     })
                     .build();
             return chain.filter(exchange.mutate().request(mutatedRequest).build());

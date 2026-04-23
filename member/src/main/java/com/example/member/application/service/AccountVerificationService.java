@@ -1,5 +1,6 @@
 package com.example.member.application.service;
 
+import com.example.member.application.event.MemberEventPublisher;
 import com.example.member.application.usecase.AccountVerificationUsecase;
 import com.example.member.common.exception.AccountVerificationAttemptLimitExceededException;
 import com.example.member.common.exception.AccountVerificationNotAllowedException;
@@ -8,11 +9,13 @@ import com.example.member.common.exception.AccountVerificationResendLimitExceede
 import com.example.member.common.exception.ExpiredAccountVerificationException;
 import com.example.member.common.exception.InvalidAccountVerificationCodeException;
 import com.example.member.config.AccountVerificationProperties;
-import com.example.member.infrastructure.crypto.AccountEncryptionService;
 import com.example.member.domain.entity.Member;
 import com.example.member.domain.enumtype.AccountVerificationStatus;
+import com.example.member.infrastructure.crypto.AccountEncryptionService;
 import com.example.member.infrastructure.redis.AccountVerificationSession;
 import com.example.member.infrastructure.redis.AccountVerificationSessionStore;
+import com.example.member.infrastructure.redis.ParsedRefreshToken;
+import com.example.member.infrastructure.redis.RefreshTokenStore;
 import com.example.member.infrastructure.redis.SellerDraft;
 import com.example.member.infrastructure.redis.SellerDraftStore;
 import com.example.member.infrastructure.repository.MemberRepository;
@@ -22,6 +25,7 @@ import com.example.member.presentation.dto.AccountVerificationConfirmResponse;
 import com.example.member.presentation.dto.AccountVerificationCreateRequest;
 import com.example.member.presentation.dto.AccountVerificationCurrentResponse;
 import com.example.member.presentation.dto.AccountVerificationSendResponse;
+import com.example.member.security.JwtTokenProvider;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -47,7 +51,10 @@ public class AccountVerificationService implements AccountVerificationUsecase {
     private final SellerDraftStore sellerDraftStore;
     private final AccountEncryptionService accountEncryptionService;
     private final SellerPromotionService sellerPromotionService;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final RefreshTokenStore refreshTokenStore;
     private final AccountVerificationProperties properties;
+    private final MemberEventPublisher memberEventPublisher;
 
     @Override
     @Transactional
@@ -113,6 +120,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
     @Transactional
     public AccountVerificationConfirmResponse confirmAccountVerification(
             UUID memberId,
+            UUID authSessionId,
             String sessionId,
             AccountVerificationConfirmRequest request
     ) {
@@ -123,14 +131,14 @@ public class AccountVerificationService implements AccountVerificationUsecase {
             LocalDateTime now = LocalDateTime.now();
 
             if (session.isExpired(now)) {
-                session.markExpired("Account verification session has expired.");
+                expireSession(session, "SESSION_EXPIRED");
                 sessionStore.saveSession(session, Duration.ZERO);
                 throw new ExpiredAccountVerificationException();
             }
 
             if (session.isVerified()) {
                 sellerPromotionService.promoteAfterAccountVerified(memberId, sessionId);
-                return buildConfirmResponse(session);
+                return buildConfirmResponse(session, issuePromotedTokens(memberId, authSessionId));
             }
 
             if (!session.canConfirm()) {
@@ -141,8 +149,13 @@ public class AccountVerificationService implements AccountVerificationUsecase {
             if (!session.getCodeHash().equals(hashCode(normalizedCode))) {
                 session.markFailed("Account verification code mismatch.");
                 if (session.getAttemptCount() >= properties.maxAttempts()) {
-                    session.markExpired("Account verification attempt limit exceeded.");
+                    session.markExpired("ATTEMPT_LIMIT_EXCEEDED");
                     sessionStore.saveSession(session, Duration.ZERO);
+                    memberEventPublisher.publishAccountVerificationFailed(
+                            memberId,
+                            session.getSessionId(),
+                            "ATTEMPT_LIMIT_EXCEEDED"
+                    );
                     throw new AccountVerificationAttemptLimitExceededException();
                 }
                 sessionStore.saveSession(session, properties.expiration());
@@ -152,7 +165,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
             session.markVerified(now);
             sessionStore.saveSession(session, properties.expiration());
             sellerPromotionService.promoteAfterAccountVerified(memberId, sessionId);
-            return buildConfirmResponse(session);
+            return buildConfirmResponse(session, issuePromotedTokens(memberId, authSessionId));
         } finally {
             sessionStore.releaseLock(sessionId);
         }
@@ -175,7 +188,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
 
         AccountVerificationSession current = session.get();
         if (current.isExpired(LocalDateTime.now()) && current.getStatus() == AccountVerificationStatus.PENDING) {
-            current.markExpired("Account verification session has expired.");
+            expireSession(current, "SESSION_EXPIRED");
             sessionStore.saveSession(current, Duration.ZERO);
         }
 
@@ -191,7 +204,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
             LocalDateTime now = LocalDateTime.now();
 
             if (session.isExpired(now)) {
-                session.markExpired("Account verification session has expired.");
+                expireSession(session, "SESSION_EXPIRED");
                 sessionStore.saveSession(session, Duration.ZERO);
                 throw new ExpiredAccountVerificationException();
             }
@@ -299,13 +312,40 @@ public class AccountVerificationService implements AccountVerificationUsecase {
         );
     }
 
-    private AccountVerificationConfirmResponse buildConfirmResponse(AccountVerificationSession session) {
+    private AccountVerificationConfirmResponse buildConfirmResponse(
+            AccountVerificationSession session,
+            AccountVerificationConfirmResponse.AuthTokens authTokens
+    ) {
         return new AccountVerificationConfirmResponse(
                 session.getSessionId(),
                 true,
                 session.getStatus().name(),
                 session.getVerifiedAt(),
-                session.getAttemptCount()
+                session.getAttemptCount(),
+                authTokens
+        );
+    }
+
+    private AccountVerificationConfirmResponse.AuthTokens issuePromotedTokens(UUID memberId, UUID authSessionId) {
+        Member member = getMember(memberId);
+        String accessToken = jwtTokenProvider.createAccessToken(member, authSessionId);
+        String refreshToken = jwtTokenProvider.createRefreshToken(member, authSessionId);
+        ParsedRefreshToken parsedRefreshToken = jwtTokenProvider.parseRefreshToken(refreshToken);
+        Duration refreshTtl = Duration.ofMillis(jwtTokenProvider.getRefreshExpiration());
+
+        if (refreshTokenStore.findBySessionId(authSessionId).isPresent()) {
+            refreshTokenStore.updateRefreshTokenId(authSessionId, parsedRefreshToken.refreshTokenId(), refreshTtl);
+        } else {
+            refreshTokenStore.createSession(memberId, authSessionId, parsedRefreshToken.refreshTokenId(), refreshTtl);
+        }
+
+        return new AccountVerificationConfirmResponse.AuthTokens(
+                accessToken,
+                refreshToken,
+                "Bearer",
+                jwtTokenProvider.getAccessExpiration(),
+                jwtTokenProvider.getRefreshExpiration(),
+                authSessionId
         );
     }
 
@@ -382,5 +422,18 @@ public class AccountVerificationService implements AccountVerificationUsecase {
             return normalizedAccountNumber.substring(0, 2) + "****" + normalizedAccountNumber.substring(length - 2);
         }
         return normalizedAccountNumber.substring(0, 3) + "-****-" + normalizedAccountNumber.substring(length - 4);
+    }
+
+    private void expireSession(AccountVerificationSession session, String reason) {
+        if (session.getStatus() == AccountVerificationStatus.EXPIRED) {
+            return;
+        }
+
+        session.markExpired(reason);
+        memberEventPublisher.publishAccountVerificationExpired(
+                session.getMemberId(),
+                session.getSessionId(),
+                reason
+        );
     }
 }

@@ -6,10 +6,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.example.member.application.event.MemberEventPublisher;
 import com.example.member.common.exception.AccountVerificationNotAllowedException;
 import com.example.member.domain.entity.Member;
 import com.example.member.domain.entity.Seller;
-import com.example.member.domain.enumtype.AccountVerificationStatus;
 import com.example.member.domain.enumtype.MemberStatus;
 import com.example.member.infrastructure.crypto.AccountEncryptionService;
 import com.example.member.infrastructure.redis.AccountVerificationSession;
@@ -46,6 +46,9 @@ class SellerPromotionServiceTest {
     @Mock
     private AccountEncryptionService accountEncryptionService;
 
+    @Mock
+    private MemberEventPublisher memberEventPublisher;
+
     @Test
     void promoteAfterAccountVerified_success_createsSellerAndUpdatesMemberRole() {
         SellerPromotionService service = new SellerPromotionService(
@@ -53,7 +56,8 @@ class SellerPromotionServiceTest {
                 sellerDraftStore,
                 sellerRepository,
                 memberRepository,
-                accountEncryptionService
+                accountEncryptionService,
+                memberEventPublisher
         );
 
         UUID memberId = UUID.randomUUID();
@@ -96,6 +100,7 @@ class SellerPromotionServiceTest {
         assertEquals("KAKAO", savedSeller.getBankName());
         assertEquals("1234567890123", savedSeller.getAccount());
         assertEquals(MemberRole.SELLER, member.getRole());
+        verify(memberEventPublisher).publishSellerPromoted(member, savedSeller);
         verify(sellerDraftStore).deleteDraft(draftId);
         verify(sellerDraftStore).deleteCurrentDraft(memberId);
     }
@@ -107,7 +112,8 @@ class SellerPromotionServiceTest {
                 sellerDraftStore,
                 sellerRepository,
                 memberRepository,
-                accountEncryptionService
+                accountEncryptionService,
+                memberEventPublisher
         );
 
         UUID memberId = UUID.randomUUID();
@@ -130,6 +136,7 @@ class SellerPromotionServiceTest {
         );
 
         verify(sellerDraftStore, never()).deleteDraft(org.mockito.ArgumentMatchers.anyString());
+        verify(memberEventPublisher, never()).publishSellerPromoted(org.mockito.ArgumentMatchers.any(Member.class), org.mockito.ArgumentMatchers.any(Seller.class));
     }
 
     private Member createMember(UUID memberId) {

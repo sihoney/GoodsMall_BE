@@ -29,7 +29,7 @@ import org.springframework.http.ResponseEntity;
 class SettlementOpsControllerTest {
 
     private static final AuthenticatedMember AUTHENTICATED_MEMBER =
-            new AuthenticatedMember(UUID.randomUUID(), MemberRole.ADMIN);
+            new AuthenticatedMember(UUID.randomUUID(), MemberRole.ADMIN, UUID.randomUUID());
 
     @Mock
     private SettlementPayoutUseCase settlementPayoutService;

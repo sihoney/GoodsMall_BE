@@ -35,7 +35,15 @@ public class NotificationEventConsumer {
     @KafkaListener(
             topics = {
                     KafkaTopics.MEMBER_SIGNED_UP,
-                    KafkaTopics.ORDER_PAYMENT_RESULT
+                    KafkaTopics.SELLER_PROMOTED,
+                    KafkaTopics.ACCOUNT_VERIFICATION_EXPIRED,
+                    KafkaTopics.ACCOUNT_VERIFICATION_FAILED,
+                    KafkaTopics.MEMBER_OAUTH_LINKED,
+                    KafkaTopics.ORDER_CREATED,
+                    KafkaTopics.ORDER_CANCELED,
+                    KafkaTopics.AUTO_PURCHASE_CONFIRMED,
+                    KafkaTopics.ORDER_PAYMENT_RESULT,
+                    KafkaTopics.SELLER_SETTLEMENT_PAYOUT_RESULT
             },
             groupId = "${notification.kafka.consumer-groups.member-signed-up:notification-service}",
             containerFactory = "memberSignedUpKafkaListenerContainerFactory"
