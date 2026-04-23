@@ -12,7 +12,7 @@ public class NotificationSseEmitterRegistry {
     private final ConcurrentHashMap<UUID, SseEmitter> emitters = new ConcurrentHashMap<>();
 
     public SseEmitter register(UUID memberId, SseEmitter emitter) {
-        SseEmitter previous = emitters.put(memberId, emitter);
+        SseEmitter previous = emitters.put(memberId, emitter); 
         if (previous != null) {
             previous.complete();
         }

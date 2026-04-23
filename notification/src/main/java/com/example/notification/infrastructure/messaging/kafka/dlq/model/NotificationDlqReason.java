@@ -1,4 +1,4 @@
-package com.example.notification.infrastructure.messaging.kafka.dlq;
+package com.example.notification.infrastructure.messaging.kafka.dlq.model;
 
 public enum NotificationDlqReason {
     EVENT_PARSE_FAILURE,

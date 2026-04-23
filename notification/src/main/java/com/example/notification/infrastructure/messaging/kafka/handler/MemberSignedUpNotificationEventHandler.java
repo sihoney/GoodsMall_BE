@@ -2,7 +2,7 @@ package com.example.notification.infrastructure.messaging.kafka.handler;
 
 import com.example.notification.application.usecase.NotificationUsecase;
 import com.example.notification.infrastructure.messaging.kafka.contract.MemberSignedUpPayload;
-import com.example.notification.infrastructure.messaging.kafka.dlq.InvalidEventPayloadException;
+import com.example.notification.infrastructure.messaging.kafka.dlq.exception.InvalidEventPayloadException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import com.todaylunch.common.event.contract.EventEnvelope;

@@ -1,6 +1,6 @@
 package com.example.notification.infrastructure.messaging.kafka.handler;
 
-import com.example.notification.infrastructure.messaging.kafka.dlq.UnsupportedEventTypeException;
+import com.example.notification.infrastructure.messaging.kafka.dlq.exception.UnsupportedEventTypeException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;

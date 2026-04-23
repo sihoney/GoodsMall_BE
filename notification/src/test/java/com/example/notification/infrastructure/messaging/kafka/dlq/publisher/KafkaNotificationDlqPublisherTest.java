@@ -1,10 +1,13 @@
-package com.example.notification.infrastructure.messaging.kafka.dlq;
+package com.example.notification.infrastructure.messaging.kafka.dlq.publisher;
 
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 
 import com.example.notification.infrastructure.messaging.kafka.KafkaTopics;
+import com.example.notification.infrastructure.messaging.kafka.dlq.exception.InvalidEventPayloadException;
+import com.example.notification.infrastructure.messaging.kafka.dlq.model.NotificationConsumerFailureDecision;
+import com.example.notification.infrastructure.messaging.kafka.dlq.model.NotificationDlqReason;
 import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
