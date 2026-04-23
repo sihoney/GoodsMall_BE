@@ -9,6 +9,7 @@ import java.util.UUID;
 public record AuctionResponse(
         UUID auctionId,
         UUID productId,
+        String productTitle,
         UUID sellerId,
         BigDecimal startPrice,
         BigDecimal bidUnit,
@@ -24,6 +25,7 @@ public record AuctionResponse(
         return new AuctionResponse(
                 auction.getAuctionId(),
                 auction.getProductId(),
+                auction.getProductTitle(),
                 auction.getSellerId(),
                 auction.getStartPrice(),
                 auction.getBidUnit(),
