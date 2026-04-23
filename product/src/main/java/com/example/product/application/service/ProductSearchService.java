@@ -50,7 +50,10 @@ public class ProductSearchService implements ProductSearchUseCase {
                 pageable
         );
 
-        return products.map(ProductResponse::from);
+        return products.map(product -> {
+            List<ProductImage> images = productImageRepository.findByProductId(product.getProductId());
+            return buildProductResponse(product, images);
+        });
     }
 
     private List<UUID> collectCategoryIds(String categoryId) {
@@ -70,13 +73,19 @@ public class ProductSearchService implements ProductSearchUseCase {
     @Override
     public Page<ProductResponse> findPopularProducts(Pageable pageable) {
         Page<Product> products = productRepository.findPopularProducts(pageable);
-        return products.map(ProductResponse::from);
+        return products.map(product -> {
+            List<ProductImage> images = productImageRepository.findByProductId(product.getProductId());
+            return buildProductResponse(product, images);
+        });
     }
 
     @Override
     public Page<ProductResponse> getAllProducts(Pageable pageable) {
         Page<Product> products = productRepository.findAll(pageable);
-        return products.map(ProductResponse::from);
+        return products.map(product -> {
+            List<ProductImage> images = productImageRepository.findByProductId(product.getProductId());
+            return buildProductResponse(product, images);
+        });
     }
 
     @Override
