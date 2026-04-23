@@ -13,6 +13,8 @@ spec:
       labels:
         app: elasticsearch
     spec:
+      nodeSelector:
+        role: infra
       containers:
         - name: elasticsearch
           image: park9707/goods-mall-elasticsearch:latest

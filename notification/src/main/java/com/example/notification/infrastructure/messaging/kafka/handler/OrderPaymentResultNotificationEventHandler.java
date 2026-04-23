@@ -4,7 +4,7 @@ import com.example.notification.application.usecase.NotificationUsecase;
 import com.example.notification.infrastructure.messaging.kafka.contract.OrderPaymentFailureReason;
 import com.example.notification.infrastructure.messaging.kafka.contract.OrderPaymentResultMessage;
 import com.example.notification.infrastructure.messaging.kafka.contract.OrderPaymentResultStatus;
-import com.example.notification.infrastructure.messaging.kafka.dlq.InvalidEventPayloadException;
+import com.example.notification.infrastructure.messaging.kafka.dlq.exception.InvalidEventPayloadException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import com.todaylunch.common.event.contract.EventEnvelope;

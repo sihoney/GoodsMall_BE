@@ -22,10 +22,10 @@ import com.example.notification.infrastructure.messaging.kafka.contract.OrderPay
 import com.example.notification.infrastructure.messaging.kafka.contract.PayoutFailureReason;
 import com.example.notification.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultMessage;
 import com.example.notification.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultStatus;
-import com.example.notification.infrastructure.messaging.kafka.dlq.NotificationConsumerExceptionClassifier;
-import com.example.notification.infrastructure.messaging.kafka.dlq.NotificationConsumerFailureDecision;
-import com.example.notification.infrastructure.messaging.kafka.dlq.NotificationDlqReason;
-import com.example.notification.infrastructure.messaging.kafka.dlq.NotificationDlqPublisher;
+import com.example.notification.infrastructure.messaging.kafka.dlq.classifier.NotificationConsumerExceptionClassifier;
+import com.example.notification.infrastructure.messaging.kafka.dlq.model.NotificationConsumerFailureDecision;
+import com.example.notification.infrastructure.messaging.kafka.dlq.model.NotificationDlqReason;
+import com.example.notification.infrastructure.messaging.kafka.dlq.publisher.NotificationDlqPublisher;
 import com.example.notification.infrastructure.messaging.kafka.handler.AutoPurchaseConfirmedNotificationEventHandler;
 import com.example.notification.infrastructure.messaging.kafka.handler.AuctionBidOutbidNotificationEventHandler;
 import com.example.notification.infrastructure.messaging.kafka.handler.AuctionClosedSoldNotificationEventHandler;

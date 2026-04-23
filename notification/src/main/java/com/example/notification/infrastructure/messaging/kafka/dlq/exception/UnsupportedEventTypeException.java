@@ -1,4 +1,4 @@
-package com.example.notification.infrastructure.messaging.kafka.dlq;
+package com.example.notification.infrastructure.messaging.kafka.dlq.exception;
 
 public class UnsupportedEventTypeException extends IllegalArgumentException {
 

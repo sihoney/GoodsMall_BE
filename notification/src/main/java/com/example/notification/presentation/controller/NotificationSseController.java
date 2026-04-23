@@ -28,7 +28,9 @@ public class NotificationSseController {
 
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "알림 SSE 구독")
-    public SseEmitter subscribe(@CurrentMember AuthenticatedMember authenticatedMember) {
+    public SseEmitter subscribe(
+        @CurrentMember AuthenticatedMember authenticatedMember
+    ) {
         UUID memberId = authenticatedMember.memberId();
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
         emitterRegistry.register(memberId, emitter);

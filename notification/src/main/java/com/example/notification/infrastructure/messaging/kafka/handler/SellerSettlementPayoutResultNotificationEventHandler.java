@@ -4,7 +4,7 @@ import com.example.notification.application.usecase.NotificationUsecase;
 import com.example.notification.infrastructure.messaging.kafka.contract.PayoutFailureReason;
 import com.example.notification.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultMessage;
 import com.example.notification.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultStatus;
-import com.example.notification.infrastructure.messaging.kafka.dlq.InvalidEventPayloadException;
+import com.example.notification.infrastructure.messaging.kafka.dlq.exception.InvalidEventPayloadException;
 import com.todaylunch.common.event.contract.EventEnvelope;
 import java.time.Instant;
 import java.time.LocalDateTime;

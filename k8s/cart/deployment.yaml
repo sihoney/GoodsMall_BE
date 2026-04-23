@@ -13,6 +13,8 @@ spec:
       labels:
         app: cart
     spec:
+      nodeSelector:
+        role: app
       imagePullSecrets:
         - name: ghcr-secret
       containers:
