@@ -20,6 +20,9 @@ spec:
           image: ghcr.io/prgrms-be-adv-devcourse/beadv5_2_todaylunchmenu_be/settlement:latest
           ports:
             - containerPort: 8085
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: "-Xms128m -Xmx256m"
           envFrom:
             - configMapRef:
                 name: common-config
