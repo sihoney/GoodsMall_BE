@@ -35,15 +35,19 @@ public class CurrentMemberArgumentResolver implements HandlerMethodArgumentResol
 
         String memberIdHeader = request.getHeader(AuthHeaders.MEMBER_ID);
         String roleHeader = request.getHeader(AuthHeaders.MEMBER_ROLE);
+        String sessionIdHeader = request.getHeader(AuthHeaders.SESSION_ID);
 
-        if (memberIdHeader == null || memberIdHeader.isBlank() || roleHeader == null || roleHeader.isBlank()) {
+        if (memberIdHeader == null || memberIdHeader.isBlank()
+                || roleHeader == null || roleHeader.isBlank()
+                || sessionIdHeader == null || sessionIdHeader.isBlank()) {
             throw new InvalidTokenException();
         }
 
         try {
             return new AuthenticatedMember(
                     UUID.fromString(memberIdHeader),
-                    MemberRole.valueOf(roleHeader)
+                    MemberRole.valueOf(roleHeader),
+                    UUID.fromString(sessionIdHeader)
             );
         } catch (IllegalArgumentException exception) {
             throw new InvalidTokenException();

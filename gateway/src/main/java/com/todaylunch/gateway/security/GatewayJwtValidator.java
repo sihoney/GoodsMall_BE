@@ -57,10 +57,11 @@ public class GatewayJwtValidator {
 
         return new AuthenticatedPrincipal(
                 UUID.fromString(claims.get(MEMBER_ID_CLAIM, String.class)),
-                claims.get(ROLE_CLAIM, String.class)
+                claims.get(ROLE_CLAIM, String.class),
+                UUID.fromString(sessionId)
         );
     }
 
-    public record AuthenticatedPrincipal(UUID memberId, String role) {
+    public record AuthenticatedPrincipal(UUID memberId, String role, UUID sessionId) {
     }
 }
