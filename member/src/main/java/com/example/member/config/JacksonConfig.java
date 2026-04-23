@@ -10,6 +10,7 @@ public class JacksonConfig {
 
     @Bean
     public ObjectMapper objectMapper() {
+        // Keep member module serialization aligned with Spring Boot 4 / Jackson 3.
         return JsonMapper.builder().build();
     }
 }

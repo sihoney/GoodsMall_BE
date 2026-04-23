@@ -12,13 +12,10 @@ import com.example.member.infrastructure.messaging.kafka.contract.AccountVerific
 import com.example.member.infrastructure.messaging.kafka.contract.MemberOauthLinkedPayload;
 import com.example.member.infrastructure.messaging.kafka.contract.MemberSignedUpPayload;
 import com.example.member.infrastructure.messaging.kafka.contract.SellerPromotedPayload;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.todaylunch.common.event.contract.EventEnvelope;
 import java.time.LocalDateTime;
-// import tools.jackson.databind.ObjectMapper;
-// import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import com.todaylunch.common.event.contract.EventEnvelope;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
@@ -29,11 +26,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.support.SendResult;
+import tools.jackson.databind.ObjectMapper;
 
 @ExtendWith(MockitoExtension.class)
 class MemberEventKafkaProducerTest {
 
     @Mock
+    // Matches the Jackson 3 ObjectMapper used by the member runtime configuration.
     private ObjectMapper objectMapper;
 
     @Mock

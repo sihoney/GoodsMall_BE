@@ -31,6 +31,8 @@ import com.example.notification.infrastructure.messaging.kafka.handler.OrderCanc
 import com.example.notification.infrastructure.messaging.kafka.handler.OrderPaymentResultNotificationEventHandler;
 import com.example.notification.infrastructure.messaging.kafka.handler.SellerSettlementPayoutResultNotificationEventHandler;
 import com.todaylunch.common.event.contract.EventEnvelope;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -42,8 +44,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 @ExtendWith(MockitoExtension.class)
 class NotificationEventConsumerTest {
@@ -62,6 +62,7 @@ class NotificationEventConsumerTest {
 
     @BeforeEach
     void setUp() {
+        // Matches the Jackson 3 ObjectMapper used by the notification runtime configuration.
         objectMapper = JsonMapper.builder().findAndAddModules().build();
 
         NotificationEventHandlerRegistry registry = new NotificationEventHandlerRegistry(List.of(
