@@ -11,13 +11,13 @@ import com.example.payment.domain.service.TimeProvider;
 import com.example.payment.infrastructure.messaging.kafka.contract.BidFeeChargeFailedMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.BidFeeChargeRequestMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.BidFeeChargeSucceededMessage;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.ZoneId;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * auction -> payment 경매 입찰 보증금 처리 요청 이벤트를 소비한다.
