@@ -63,50 +63,38 @@ public class OrderCreatedNotificationEventHandler implements NotificationEventHa
 
     private void validateOrderCreatedEvent(EventEnvelope<OrderCreatedMessage> event) {
         if (event == null) {
-            throw new InvalidEventPayloadException("orderCreated event is required.");
+            throw new InvalidEventPayloadException("주문 생성 이벤트는 필수입니다.");
         }
         if (!ORDER_CREATED_EVENT_TYPE.equals(event.eventType())) {
-            throw new InvalidEventPayloadException("Unsupported eventType: " + event.eventType());
-        }
-        if (event.eventId() == null) {
-            throw new InvalidEventPayloadException("eventId is required.");
-        }
-        if (event.source() == null || event.source().isBlank()) {
-            throw new InvalidEventPayloadException("source is required.");
-        }
-        if (event.occurredAt() == null && (event.payload() == null || event.payload().orderCreatedAt() == null)) {
-            throw new InvalidEventPayloadException("occurredAt is required.");
-        }
-        if (event.traceId() == null || event.traceId().isBlank()) {
-            throw new InvalidEventPayloadException("traceId is required.");
+            throw new InvalidEventPayloadException("지원하지 않는 eventType입니다: " + event.eventType());
         }
         if (event.payload() == null) {
-            throw new InvalidEventPayloadException("payload is required.");
+            throw new InvalidEventPayloadException("payload는 필수입니다.");
         }
         if (event.payload().eventId() != null && !Objects.equals(event.eventId(), event.payload().eventId())) {
-            throw new InvalidEventPayloadException("eventId and payload.eventId must match.");
+            throw new InvalidEventPayloadException("eventId와 payload.eventId가 일치해야 합니다.");
         }
         if (event.payload().eventType() != null && !ORDER_CREATED_EVENT_TYPE.equals(event.payload().eventType())) {
-            throw new InvalidEventPayloadException("payload.eventType must be ORDER_CREATED.");
+            throw new InvalidEventPayloadException("payload.eventType은 ORDER_CREATED여야 합니다.");
         }
         if (event.payload().orderId() == null) {
-            throw new InvalidEventPayloadException("payload.orderId is required.");
+            throw new InvalidEventPayloadException("payload.orderId는 필수입니다.");
         }
         if (event.payload().buyerId() == null) {
-            throw new InvalidEventPayloadException("payload.buyerId is required.");
+            throw new InvalidEventPayloadException("payload.buyerId는 필수입니다.");
         }
         if (event.aggregateId() != null && !Objects.equals(event.aggregateId(), event.payload().orderId())) {
-            throw new InvalidEventPayloadException("aggregateId and payload.orderId must match.");
+            throw new InvalidEventPayloadException("aggregateId와 payload.orderId가 일치해야 합니다.");
         }
         if (event.payload().totalPrice() == null) {
-            throw new InvalidEventPayloadException("payload.totalPrice is required.");
+            throw new InvalidEventPayloadException("payload.totalPrice는 필수입니다.");
         }
         if (event.payload().orderLines() == null || event.payload().orderLines().isEmpty()) {
-            throw new InvalidEventPayloadException("payload.orderLines is required.");
+            throw new InvalidEventPayloadException("payload.orderLines는 필수입니다.");
         }
         boolean hasMissingSeller = event.payload().orderLines().stream().anyMatch(line -> line == null || line.sellerId() == null);
         if (hasMissingSeller) {
-            throw new InvalidEventPayloadException("payload.orderLines[].sellerId is required.");
+            throw new InvalidEventPayloadException("payload.orderLines[].sellerId는 필수입니다.");
         }
     }
 
@@ -125,7 +113,7 @@ public class OrderCreatedNotificationEventHandler implements NotificationEventHa
         try {
             return amount.longValueExact();
         } catch (ArithmeticException e) {
-            throw new InvalidEventPayloadException("payload.totalPrice must be a whole number.", e);
+            throw new InvalidEventPayloadException("payload.totalPrice는 정수 금액이어야 합니다.", e);
         }
     }
 }

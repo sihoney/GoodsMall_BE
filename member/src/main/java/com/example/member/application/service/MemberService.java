@@ -124,20 +124,20 @@ public class MemberService implements MemberUsecase {
 
     private void validateCreateRequest(CreateMemberRequest request) {
         if (request == null) {
-            throw new IllegalArgumentException("Create member request body is required.");
+            throw new IllegalArgumentException("회원 생성 요청 본문은 필수입니다.");
         }
     }
 
     private void validateUpdateRequest(UpdateMemberRequest request) {
         if (request == null) {
-            throw new IllegalArgumentException("Update member request body is required.");
+            throw new IllegalArgumentException("회원 수정 요청 본문은 필수입니다.");
         }
     }
 
     private String normalizeRequired(String value, String fieldName) {
         String normalized = normalizeNullable(value);
         if (normalized == null) {
-            throw new IllegalArgumentException(fieldName + " is required.");
+            throw new IllegalArgumentException(fieldName + "은(는) 필수입니다.");
         }
         return normalized;
     }
@@ -156,7 +156,7 @@ public class MemberService implements MemberUsecase {
             return null;
         }
         if (!profileImageUrlResolver.isSupportedKey(normalized)) {
-            throw new IllegalArgumentException("profileImageKey is invalid.");
+            throw new IllegalArgumentException("profileImageKey가 올바르지 않습니다.");
         }
         return normalized;
     }

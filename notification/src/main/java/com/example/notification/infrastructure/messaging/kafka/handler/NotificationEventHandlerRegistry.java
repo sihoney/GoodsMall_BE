@@ -17,7 +17,7 @@ public class NotificationEventHandlerRegistry {
         for (NotificationEventHandler handler : handlers) {
             String eventType = handler.supportsEventType();
             if (handlersByEventType.containsKey(eventType)) {
-                throw new IllegalStateException("Duplicate notification event handler registration. eventType=" + eventType);
+                throw new IllegalStateException("중복된 알림 이벤트 핸들러 등록입니다. eventType=" + eventType);
             }
             handlersByEventType.put(eventType, handler);
         }

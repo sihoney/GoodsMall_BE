@@ -115,4 +115,41 @@ public interface NotificationUsecase {
             PayoutFailureReason failureReason,
             LocalDateTime processedAt
     );
+
+    void createAuctionOutbidNotification(
+            UUID eventId,
+            String traceId,
+            UUID auctionId,
+            UUID outbidBidderId,
+            LocalDateTime occurredAt
+    );
+
+    void createAuctionWonNotification(
+            UUID eventId,
+            String traceId,
+            UUID auctionId,
+            UUID winnerMemberId,
+            String auctionTitle,
+            Long finalPrice,
+            LocalDateTime occurredAt
+    );
+
+    void createAuctionClosedSoldNotification(
+            UUID eventId,
+            String traceId,
+            UUID auctionId,
+            UUID sellerMemberId,
+            String auctionTitle,
+            Long finalPrice,
+            LocalDateTime occurredAt
+    );
+
+    void createAuctionClosedUnsoldNotification(
+            UUID eventId,
+            String traceId,
+            UUID auctionId,
+            UUID sellerMemberId,
+            String auctionTitle,
+            LocalDateTime occurredAt
+    );
 }

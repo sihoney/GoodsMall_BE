@@ -142,12 +142,12 @@ public class AccountVerificationService implements AccountVerificationUsecase {
             }
 
             if (!session.canConfirm()) {
-                throw new AccountVerificationNotAllowedException("Account verification session cannot be confirmed.");
+                throw new AccountVerificationNotAllowedException("계좌 인증 세션을 확인 처리할 수 없습니다.");
             }
 
             String normalizedCode = normalizeRequired(request.code(), "code");
             if (!session.getCodeHash().equals(hashCode(normalizedCode))) {
-                session.markFailed("Account verification code mismatch.");
+                session.markFailed("계좌 인증 코드가 일치하지 않습니다.");
                 if (session.getAttemptCount() >= properties.maxAttempts()) {
                     session.markExpired("ATTEMPT_LIMIT_EXCEEDED");
                     sessionStore.saveSession(session, Duration.ZERO);
@@ -209,7 +209,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
                 throw new ExpiredAccountVerificationException();
             }
             if (!session.canResend()) {
-                throw new AccountVerificationNotAllowedException("Account verification session cannot be resent.");
+                throw new AccountVerificationNotAllowedException("계좌 인증 세션을 재전송할 수 없습니다.");
             }
             if (session.getResendCount() >= properties.maxResendCount()) {
                 throw new AccountVerificationResendLimitExceededException();
@@ -277,14 +277,14 @@ public class AccountVerificationService implements AccountVerificationUsecase {
         AccountVerificationSession session = sessionStore.findSession(sessionId)
                 .orElseThrow(AccountVerificationNotFoundException::new);
         if (!session.belongsTo(memberId)) {
-            throw new AccountVerificationNotAllowedException("Account verification session does not belong to current member.");
+            throw new AccountVerificationNotAllowedException("계좌 인증 세션이 현재 회원에게 속하지 않습니다.");
         }
         return session;
     }
 
     private Member getMember(UUID memberId) {
         return memberRepository.findById(memberId)
-                .orElseThrow(() -> new IllegalArgumentException("Member was not found."));
+                .orElseThrow(() -> new IllegalArgumentException("회원을 찾을 수 없습니다."));
     }
 
     private AccountVerificationCurrentResponse emptyCurrentResponse() {
@@ -359,14 +359,14 @@ public class AccountVerificationService implements AccountVerificationUsecase {
 
     private void validateCreateRequest(AccountVerificationCreateRequest request) {
         if (request == null) {
-            throw new IllegalArgumentException("Account verification request body is required.");
+            throw new IllegalArgumentException("계좌 인증 요청 본문은 필수입니다.");
         }
     }
 
     private void validateConfirmRequest(String sessionId, AccountVerificationConfirmRequest request) {
         normalizeRequired(sessionId, "sessionId");
         if (request == null) {
-            throw new IllegalArgumentException("Confirm request body is required.");
+            throw new IllegalArgumentException("확인 요청 본문은 필수입니다.");
         }
     }
 
@@ -388,19 +388,19 @@ public class AccountVerificationService implements AccountVerificationUsecase {
             byte[] hashed = digest.digest(value.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(hashed);
         } catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException("SHA-256 algorithm is not available.", exception);
+            throw new IllegalStateException("SHA-256 알고리즘을 사용할 수 없습니다.", exception);
         }
     }
 
     private void acquireLockOrThrow(String sessionId) {
         if (!sessionStore.acquireLock(sessionId, LOCK_TTL)) {
-            throw new AccountVerificationNotAllowedException("Another account verification request is already in progress.");
+            throw new AccountVerificationNotAllowedException("다른 계좌 인증 요청이 이미 진행 중입니다.");
         }
     }
 
     private String normalizeRequired(String value, String fieldName) {
         if (value == null || value.trim().isEmpty()) {
-            throw new IllegalArgumentException(fieldName + " is required.");
+            throw new IllegalArgumentException(fieldName + "은(는) 필수입니다.");
         }
         return value.trim();
     }
@@ -408,7 +408,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
     private String normalizeAccountNumber(String accountNumber) {
         String normalized = normalizeRequired(accountNumber, "accountNumber").replace("-", "").replace(" ", "");
         if (!normalized.matches("\\d{6,20}")) {
-            throw new IllegalArgumentException("accountNumber must contain only digits and be between 6 and 20 characters.");
+            throw new IllegalArgumentException("accountNumber는 숫자만 포함해야 하며 6자 이상 20자 이하여야 합니다.");
         }
         return normalized;
     }

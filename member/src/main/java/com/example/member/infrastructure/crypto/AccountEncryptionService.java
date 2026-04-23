@@ -34,7 +34,7 @@ public class AccountEncryptionService {
 
             return Base64.getEncoder().encodeToString(iv) + ":" + Base64.getEncoder().encodeToString(encrypted);
         } catch (Exception exception) {
-            throw new IllegalStateException("Failed to encrypt account number.", exception);
+            throw new IllegalStateException("계좌번호 암호화에 실패했습니다.", exception);
         }
     }
 
@@ -42,7 +42,7 @@ public class AccountEncryptionService {
         try {
             String[] parts = encryptedValue.split(":", 2);
             if (parts.length != 2) {
-                throw new IllegalArgumentException("Invalid encrypted account number format.");
+                throw new IllegalArgumentException("암호화된 계좌번호 형식이 올바르지 않습니다.");
             }
 
             byte[] iv = Base64.getDecoder().decode(parts[0]);
@@ -53,7 +53,7 @@ public class AccountEncryptionService {
             byte[] decrypted = cipher.doFinal(encrypted);
             return new String(decrypted, StandardCharsets.UTF_8);
         } catch (Exception exception) {
-            throw new IllegalStateException("Failed to decrypt account number.", exception);
+            throw new IllegalStateException("계좌번호 복호화에 실패했습니다.", exception);
         }
     }
 

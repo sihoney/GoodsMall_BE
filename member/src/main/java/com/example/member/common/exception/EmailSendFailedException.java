@@ -3,7 +3,7 @@ package com.example.member.common.exception;
 public class EmailSendFailedException extends RuntimeException {
 
     public EmailSendFailedException() {
-        super("Failed to send email.");
+        super("이메일 전송에 실패했습니다.");
     }
 
     public EmailSendFailedException(String message) {

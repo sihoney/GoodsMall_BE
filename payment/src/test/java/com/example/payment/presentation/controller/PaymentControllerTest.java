@@ -17,10 +17,10 @@ import com.example.payment.presentation.dto.response.ApiResponse;
 import com.example.payment.presentation.dto.response.ChargeCreateResponse;
 import com.example.payment.presentation.dto.response.OrderPaymentApiResponse;
 import com.example.payment.presentation.dto.response.WalletSummaryResponse;
-import java.math.BigDecimal;
-import java.time.Instant;
 import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
 import com.todaylunch.common.security.auth.enumtype.MemberRole;
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -55,7 +55,7 @@ class PaymentControllerTest {
     @Test
     void createChargeReturnsCreatedApiResponse() {
         UUID memberId = UUID.randomUUID();
-        AuthenticatedMember authenticatedMember = new AuthenticatedMember(memberId, MemberRole.USER);
+        AuthenticatedMember authenticatedMember = new AuthenticatedMember(memberId, MemberRole.USER, UUID.randomUUID());
         UUID chargeId = UUID.randomUUID();
         UUID walletId = UUID.randomUUID();
 
@@ -87,7 +87,7 @@ class PaymentControllerTest {
     @Test
     void findWalletSummaryReturnsOkApiResponse() {
         UUID memberId = UUID.randomUUID();
-        AuthenticatedMember authenticatedMember = new AuthenticatedMember(memberId, MemberRole.USER);
+        AuthenticatedMember authenticatedMember = new AuthenticatedMember(memberId, MemberRole.USER,UUID.randomUUID());
         UUID walletId = UUID.randomUUID();
 
         given(paymentSearchUseCase.findWalletSummary(memberId)).willReturn(new WalletSummaryResult(

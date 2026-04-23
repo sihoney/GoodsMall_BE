@@ -3,6 +3,6 @@ package com.example.member.common.exception;
 public class ExpiredEmailVerificationException extends RuntimeException {
 
     public ExpiredEmailVerificationException() {
-        super("Email verification token has expired.");
+        super("이메일 인증 토큰이 만료되었습니다.");
     }
 }

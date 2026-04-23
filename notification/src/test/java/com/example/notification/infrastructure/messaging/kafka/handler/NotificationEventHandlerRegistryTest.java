@@ -25,7 +25,7 @@ class NotificationEventHandlerRegistryTest {
                 new FakeHandler("MEMBER_SIGNED_UP")
         )))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessage("Duplicate notification event handler registration. eventType=MEMBER_SIGNED_UP");
+                .hasMessage("중복된 알림 이벤트 핸들러 등록입니다. eventType=MEMBER_SIGNED_UP");
     }
 
     @Test
@@ -36,7 +36,7 @@ class NotificationEventHandlerRegistryTest {
 
         assertThatThrownBy(() -> registry.get("UNKNOWN"))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Unsupported eventType: UNKNOWN");
+                .hasMessage("지원하지 않는 eventType입니다: UNKNOWN");
     }
 
     private record FakeHandler(String eventType) implements NotificationEventHandler {
