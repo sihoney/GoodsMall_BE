@@ -28,7 +28,7 @@ public enum NotificationType {
 
     NotificationType(NotificationChannel... channels) {
         if (channels == null || channels.length == 0) {
-            throw new IllegalArgumentException("NotificationType must define at least one channel.");
+            throw new IllegalArgumentException("NotificationType은 최소 하나 이상의 채널을 정의해야 합니다.");
         }
         this.channels = Collections.unmodifiableSet(EnumSet.of(channels[0], channels));
     }

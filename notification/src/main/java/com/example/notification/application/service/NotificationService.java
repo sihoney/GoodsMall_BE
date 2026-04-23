@@ -177,7 +177,7 @@ public class NotificationService implements NotificationUsecase {
     ) {
         validateCommonArguments(eventId, memberId, occurredAt);
         if (provider == null || provider.isBlank()) {
-            throw new IllegalArgumentException("provider is required.");
+            throw new IllegalArgumentException("provider는 필수입니다.");
         }
 
         saveNotification(
@@ -248,7 +248,7 @@ public class NotificationService implements NotificationUsecase {
     ) {
         validateCommonArguments(eventId, buyerMemberId, occurredAt);
         if (orderId == null) {
-            throw new IllegalArgumentException("orderId is required.");
+            throw new IllegalArgumentException("orderId는 필수입니다.");
         }
 
         Set<UUID> distinctSellerMemberIds = validateAndDistinctSellerMemberIds(sellerMemberIds);
@@ -291,7 +291,7 @@ public class NotificationService implements NotificationUsecase {
     ) {
         validateCommonArguments(eventId, buyerMemberId, confirmedAt);
         if (orderId == null) {
-            throw new IllegalArgumentException("orderId is required.");
+            throw new IllegalArgumentException("orderId는 필수입니다.");
         }
 
         saveNotification(
@@ -345,10 +345,10 @@ public class NotificationService implements NotificationUsecase {
     ) {
         validateCommonArguments(eventId, buyerMemberId, occurredAt);
         if (orderId == null) {
-            throw new IllegalArgumentException("orderId is required.");
+            throw new IllegalArgumentException("orderId는 필수입니다.");
         }
         if (failureReason == null) {
-            throw new IllegalArgumentException("failureReason is required.");
+            throw new IllegalArgumentException("failureReason은 필수입니다.");
         }
 
         saveNotification(
@@ -376,10 +376,10 @@ public class NotificationService implements NotificationUsecase {
     ) {
         validateCommonArguments(eventId, sellerMemberId, processedAt);
         if (settlementId == null) {
-            throw new IllegalArgumentException("settlementId is required.");
+            throw new IllegalArgumentException("settlementId는 필수입니다.");
         }
         if (payoutAmount == null || payoutAmount <= 0) {
-            throw new IllegalArgumentException("payoutAmount must be positive.");
+            throw new IllegalArgumentException("payoutAmount는 양수여야 합니다.");
         }
 
         saveNotification(
@@ -407,10 +407,10 @@ public class NotificationService implements NotificationUsecase {
     ) {
         validateCommonArguments(eventId, sellerMemberId, processedAt);
         if (settlementId == null) {
-            throw new IllegalArgumentException("settlementId is required.");
+            throw new IllegalArgumentException("settlementId는 필수입니다.");
         }
         if (failureReason == null) {
-            throw new IllegalArgumentException("failureReason is required.");
+            throw new IllegalArgumentException("failureReason은 필수입니다.");
         }
 
         saveNotification(
@@ -437,7 +437,7 @@ public class NotificationService implements NotificationUsecase {
     ) {
         validateCommonArguments(eventId, outbidBidderId, occurredAt);
         if (auctionId == null) {
-            throw new IllegalArgumentException("auctionId is required.");
+            throw new IllegalArgumentException("auctionId는 필수입니다.");
         }
 
         saveNotification(
@@ -547,7 +547,7 @@ public class NotificationService implements NotificationUsecase {
             LocalDateTime occurredAt
     ) {
         if (!type.supportsChannel(NotificationChannel.INBOX)) {
-            throw new IllegalStateException("NotificationType must support INBOX to be persisted. type=" + type);
+            throw new IllegalStateException("저장하려는 NotificationType은 INBOX 채널을 지원해야 합니다. type=" + type);
         }
 
         notificationMetricsRecorder.recordEventReceived(type);
@@ -601,47 +601,47 @@ public class NotificationService implements NotificationUsecase {
 
     private void validateCommonArguments(UUID eventId, UUID memberId, LocalDateTime occurredAt) {
         if (eventId == null) {
-            throw new IllegalArgumentException("eventId is required.");
+            throw new IllegalArgumentException("eventId는 필수입니다.");
         }
         if (memberId == null) {
-            throw new IllegalArgumentException("memberId is required.");
+            throw new IllegalArgumentException("memberId는 필수입니다.");
         }
         if (occurredAt == null) {
-            throw new IllegalArgumentException("occurredAt is required.");
+            throw new IllegalArgumentException("occurredAt은 필수입니다.");
         }
     }
 
     private void validateOrderArguments(UUID orderId, Long paidAmount) {
         if (orderId == null) {
-            throw new IllegalArgumentException("orderId is required.");
+            throw new IllegalArgumentException("orderId는 필수입니다.");
         }
         validatePositiveAmount(paidAmount, "paidAmount");
     }
 
     private void validateAuctionArguments(UUID auctionId, String auctionTitle) {
         if (auctionId == null) {
-            throw new IllegalArgumentException("auctionId is required.");
+            throw new IllegalArgumentException("auctionId는 필수입니다.");
         }
         if (auctionTitle == null || auctionTitle.isBlank()) {
-            throw new IllegalArgumentException("auctionTitle is required.");
+            throw new IllegalArgumentException("auctionTitle은 필수입니다.");
         }
     }
 
     private void validatePositiveAmount(Long amount, String fieldName) {
         if (amount == null || amount <= 0) {
-            throw new IllegalArgumentException(fieldName + " must be positive.");
+            throw new IllegalArgumentException(fieldName + "은(는) 양수여야 합니다.");
         }
     }
 
     private Set<UUID> validateAndDistinctSellerMemberIds(List<UUID> sellerMemberIds) {
         if (sellerMemberIds == null || sellerMemberIds.isEmpty()) {
-            throw new IllegalArgumentException("sellerMemberIds is required.");
+            throw new IllegalArgumentException("sellerMemberIds는 필수입니다.");
         }
 
         LinkedHashSet<UUID> distinctSellerMemberIds = new LinkedHashSet<>();
         for (UUID sellerMemberId : sellerMemberIds) {
             if (sellerMemberId == null) {
-                throw new IllegalArgumentException("sellerMemberIds must not contain null.");
+                throw new IllegalArgumentException("sellerMemberIds에는 null을 포함할 수 없습니다.");
             }
             distinctSellerMemberIds.add(sellerMemberId);
         }

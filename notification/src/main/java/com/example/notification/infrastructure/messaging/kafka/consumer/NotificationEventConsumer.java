@@ -88,31 +88,31 @@ public class NotificationEventConsumer {
         try {
             return objectMapper.readValue(message, GENERIC_EVENT_ENVELOPE_TYPE);
         } catch (JacksonException e) {
-            throw new EventParseException("Failed to parse notification event envelope.", e);
+            throw new EventParseException("알림 이벤트 envelope 파싱에 실패했습니다.", e);
         }
     }
 
     private void validateEnvelope(EventEnvelope<JsonNode> envelope) {
         if (envelope == null) {
-            throw new InvalidEventPayloadException("event envelope is required.");
+            throw new InvalidEventPayloadException("이벤트 envelope는 필수입니다.");
         }
         if (envelope.eventId() == null) {
-            throw new InvalidEventPayloadException("eventId is required.");
+            throw new InvalidEventPayloadException("eventId는 필수입니다.");
         }
         if (envelope.eventType() == null || envelope.eventType().isBlank()) {
-            throw new InvalidEventPayloadException("eventType is required.");
+            throw new InvalidEventPayloadException("eventType은 필수입니다.");
         }
         if (envelope.source() == null || envelope.source().isBlank()) {
-            throw new InvalidEventPayloadException("source is required.");
+            throw new InvalidEventPayloadException("source는 필수입니다.");
         }
         if (envelope.aggregateId() == null) {
-            throw new InvalidEventPayloadException("aggregateId is required.");
+            throw new InvalidEventPayloadException("aggregateId는 필수입니다.");
         }
         if (envelope.occurredAt() == null) {
-            throw new InvalidEventPayloadException("occurredAt is required.");
+            throw new InvalidEventPayloadException("occurredAt은 필수입니다.");
         }
         if (envelope.traceId() == null || envelope.traceId().isBlank()) {
-            throw new InvalidEventPayloadException("traceId is required.");
+            throw new InvalidEventPayloadException("traceId는 필수입니다.");
         }
     }
 }
