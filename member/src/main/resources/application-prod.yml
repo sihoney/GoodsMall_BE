@@ -55,14 +55,15 @@ jwt:
   access-expiration: ${JWT_ACCESS_EXPIRATION:3600000}
   refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
 
-eureka:
-  instance:
-    prefer-ip-address: true
-    ip-address: ${EUREKA_INSTANCE_IP:127.0.0.1}
-    instance-id: ${spring.application.name}:${server.port}
-  client:
-    service-url:
-      defaultZone: ${EUREKA_DEFAULT_ZONE}
+# Eureka discovery is disabled in Kubernetes. Service discovery is handled by K8s Service DNS.
+# eureka:
+#   instance:
+#     prefer-ip-address: true
+#     ip-address: ${EUREKA_INSTANCE_IP:127.0.0.1}
+#     instance-id: ${spring.application.name}:${server.port}
+#   client:
+#     service-url:
+#       defaultZone: ${EUREKA_DEFAULT_ZONE}
 
 aws:
   s3:
