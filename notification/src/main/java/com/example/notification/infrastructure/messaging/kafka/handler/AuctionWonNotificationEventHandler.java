@@ -56,19 +56,19 @@ public class AuctionWonNotificationEventHandler implements NotificationEventHand
 
     private void validateAuctionWonEvent(EventEnvelope<AuctionWonPayload> event) {
         if (event == null) {
-            throw new InvalidEventPayloadException("auctionWon event is required.");
+            throw new InvalidEventPayloadException("경매 낙찰 이벤트는 필수입니다.");
         }
         if (!EVENT_TYPE.equals(event.eventType())) {
-            throw new InvalidEventPayloadException("Unsupported eventType: " + event.eventType());
+            throw new InvalidEventPayloadException("지원하지 않는 eventType입니다: " + event.eventType());
         }
         if (event.payload() == null) {
-            throw new InvalidEventPayloadException("payload is required.");
+            throw new InvalidEventPayloadException("payload는 필수입니다.");
         }
         if (event.payload().auctionTitle() == null || event.payload().auctionTitle().isBlank()) {
-            throw new InvalidEventPayloadException("payload.auctionTitle is required.");
+            throw new InvalidEventPayloadException("payload.auctionTitle은 필수입니다.");
         }
         if (event.payload().finalPrice() == null) {
-            throw new InvalidEventPayloadException("payload.finalPrice is required.");
+            throw new InvalidEventPayloadException("payload.finalPrice는 필수입니다.");
         }
     }
 
@@ -80,7 +80,7 @@ public class AuctionWonNotificationEventHandler implements NotificationEventHand
         try {
             return amount.longValueExact();
         } catch (ArithmeticException e) {
-            throw new InvalidEventPayloadException("payload.finalPrice must be a whole number.", e);
+            throw new InvalidEventPayloadException("payload.finalPrice는 정수 금액이어야 합니다.", e);
         }
     }
 }

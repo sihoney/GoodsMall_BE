@@ -54,16 +54,16 @@ public class AuctionClosedUnsoldNotificationEventHandler implements Notification
 
     private void validateAuctionClosedUnsoldEvent(EventEnvelope<AuctionClosedUnsoldPayload> event) {
         if (event == null) {
-            throw new InvalidEventPayloadException("auctionClosedUnsold event is required.");
+            throw new InvalidEventPayloadException("경매 종료 유찰 이벤트는 필수입니다.");
         }
         if (!EVENT_TYPE.equals(event.eventType())) {
-            throw new InvalidEventPayloadException("Unsupported eventType: " + event.eventType());
+            throw new InvalidEventPayloadException("지원하지 않는 eventType입니다: " + event.eventType());
         }
         if (event.payload() == null) {
-            throw new InvalidEventPayloadException("payload is required.");
+            throw new InvalidEventPayloadException("payload는 필수입니다.");
         }
         if (event.payload().auctionTitle() == null || event.payload().auctionTitle().isBlank()) {
-            throw new InvalidEventPayloadException("payload.auctionTitle is required.");
+            throw new InvalidEventPayloadException("payload.auctionTitle은 필수입니다.");
         }
     }
 

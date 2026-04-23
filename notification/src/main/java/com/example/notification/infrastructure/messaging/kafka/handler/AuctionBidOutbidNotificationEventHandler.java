@@ -39,10 +39,10 @@ public class AuctionBidOutbidNotificationEventHandler implements NotificationEve
 
     private void validateAuctionBidOutbidEvent(EventEnvelope<JsonNode> event) {
         if (event == null) {
-            throw new InvalidEventPayloadException("auctionBidOutbid event is required.");
+            throw new InvalidEventPayloadException("입찰 밀림 이벤트는 필수입니다.");
         }
         if (!EVENT_TYPE.equals(event.eventType())) {
-            throw new InvalidEventPayloadException("Unsupported eventType: " + event.eventType());
+            throw new InvalidEventPayloadException("지원하지 않는 eventType입니다: " + event.eventType());
         }
     }
 

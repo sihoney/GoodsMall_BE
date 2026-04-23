@@ -51,19 +51,19 @@ public class SellerPromotedNotificationEventHandler implements NotificationEvent
 
     private void validate(EventEnvelope<SellerPromotedPayload> event) {
         if (event == null || event.payload() == null) {
-            throw new InvalidEventPayloadException("sellerPromoted payload is required.");
+            throw new InvalidEventPayloadException("판매자 전환 payload는 필수입니다.");
         }
         if (!EVENT_TYPE.equals(event.eventType())) {
-            throw new InvalidEventPayloadException("Unsupported eventType: " + event.eventType());
+            throw new InvalidEventPayloadException("지원하지 않는 eventType입니다: " + event.eventType());
         }
         if (event.recipientId() == null) {
-            throw new InvalidEventPayloadException("recipientId is required.");
+            throw new InvalidEventPayloadException("recipientId는 필수입니다.");
         }
         if (event.payload().memberId() == null || event.payload().sellerId() == null) {
-            throw new InvalidEventPayloadException("payload.memberId and payload.sellerId are required.");
+            throw new InvalidEventPayloadException("payload.memberId와 payload.sellerId는 필수입니다.");
         }
         if (!Objects.equals(event.recipientId(), event.payload().memberId())) {
-            throw new InvalidEventPayloadException("recipientId and payload.memberId must match.");
+            throw new InvalidEventPayloadException("recipientId와 payload.memberId가 일치해야 합니다.");
         }
     }
 }

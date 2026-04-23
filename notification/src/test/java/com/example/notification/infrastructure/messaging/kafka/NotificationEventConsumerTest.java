@@ -685,7 +685,7 @@ class NotificationEventConsumerTest {
 
         assertThatThrownBy(() -> consumer.listen(message))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("payload.amount is required.");
+                .hasMessage("payload.amount는 필수입니다.");
 
         verify(exceptionClassifier).classify(any(IllegalArgumentException.class));
         verifyNoInteractions(notificationDlqPublisher);

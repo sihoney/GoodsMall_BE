@@ -52,22 +52,22 @@ public class MemberOauthLinkedNotificationEventHandler implements NotificationEv
 
     private void validate(EventEnvelope<MemberOauthLinkedPayload> event) {
         if (event == null || event.payload() == null) {
-            throw new InvalidEventPayloadException("memberOauthLinked payload is required.");
+            throw new InvalidEventPayloadException("소셜 계정 연동 payload는 필수입니다.");
         }
         if (!EVENT_TYPE.equals(event.eventType())) {
-            throw new InvalidEventPayloadException("Unsupported eventType: " + event.eventType());
+            throw new InvalidEventPayloadException("지원하지 않는 eventType입니다: " + event.eventType());
         }
         if (event.recipientId() == null) {
-            throw new InvalidEventPayloadException("recipientId is required.");
+            throw new InvalidEventPayloadException("recipientId는 필수입니다.");
         }
         if (event.payload().memberId() == null || event.payload().provider() == null || event.payload().provider().isBlank()) {
-            throw new InvalidEventPayloadException("payload.memberId and payload.provider are required.");
+            throw new InvalidEventPayloadException("payload.memberId와 payload.provider는 필수입니다.");
         }
         if (event.payload().providerUserId() == null || event.payload().providerUserId().isBlank()) {
-            throw new InvalidEventPayloadException("payload.providerUserId is required.");
+            throw new InvalidEventPayloadException("payload.providerUserId는 필수입니다.");
         }
         if (!Objects.equals(event.recipientId(), event.payload().memberId())) {
-            throw new InvalidEventPayloadException("recipientId and payload.memberId must match.");
+            throw new InvalidEventPayloadException("recipientId와 payload.memberId가 일치해야 합니다.");
         }
     }
 }

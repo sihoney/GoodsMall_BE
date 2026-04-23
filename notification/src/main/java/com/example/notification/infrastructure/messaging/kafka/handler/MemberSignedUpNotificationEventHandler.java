@@ -52,25 +52,25 @@ public class MemberSignedUpNotificationEventHandler implements NotificationEvent
 
     private void validateMemberSignedUpEvent(EventEnvelope<MemberSignedUpPayload> event) {
         if (event == null) {
-            throw new InvalidEventPayloadException("memberSignedUp event is required.");
+            throw new InvalidEventPayloadException("회원가입 이벤트는 필수입니다.");
         }
         if (!MEMBER_SIGNED_UP_EVENT_TYPE.equals(event.eventType())) {
-            throw new InvalidEventPayloadException("Unsupported eventType: " + event.eventType());
+            throw new InvalidEventPayloadException("지원하지 않는 eventType입니다: " + event.eventType());
         }
         if (event.recipientId() == null) {
-            throw new InvalidEventPayloadException("recipientId is required.");
+            throw new InvalidEventPayloadException("recipientId는 필수입니다.");
         }
         if (event.payload() == null) {
-            throw new InvalidEventPayloadException("payload is required.");
+            throw new InvalidEventPayloadException("payload는 필수입니다.");
         }
         if (event.payload().memberId() == null) {
-            throw new InvalidEventPayloadException("payload.memberId is required.");
+            throw new InvalidEventPayloadException("payload.memberId는 필수입니다.");
         }
         if (event.payload().email() == null || event.payload().email().isBlank()) {
-            throw new InvalidEventPayloadException("payload.email is required.");
+            throw new InvalidEventPayloadException("payload.email은 필수입니다.");
         }
         if (!Objects.equals(event.recipientId(), event.payload().memberId())) {
-            throw new InvalidEventPayloadException("recipientId and payload.memberId must match.");
+            throw new InvalidEventPayloadException("recipientId와 payload.memberId가 일치해야 합니다.");
         }
     }
 }

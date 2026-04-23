@@ -54,28 +54,28 @@ public class AutoPurchaseConfirmedNotificationEventHandler implements Notificati
 
     private void validateAutoPurchaseConfirmedEvent(EventEnvelope<AutoPurchaseConfirmedMessage> event) {
         if (event == null) {
-            throw new InvalidEventPayloadException("autoPurchaseConfirmed event is required.");
+            throw new InvalidEventPayloadException("자동 구매 확정 이벤트는 필수입니다.");
         }
         if (!AUTO_PURCHASE_CONFIRMED_EVENT_TYPE.equals(event.eventType())) {
-            throw new InvalidEventPayloadException("Unsupported eventType: " + event.eventType());
+            throw new InvalidEventPayloadException("지원하지 않는 eventType입니다: " + event.eventType());
         }
         if (event.recipientId() == null) {
-            throw new InvalidEventPayloadException("recipientId is required.");
+            throw new InvalidEventPayloadException("recipientId는 필수입니다.");
         }
         if (event.payload() == null) {
-            throw new InvalidEventPayloadException("payload is required.");
+            throw new InvalidEventPayloadException("payload는 필수입니다.");
         }
         if (event.payload().orderId() == null) {
-            throw new InvalidEventPayloadException("payload.orderId is required.");
+            throw new InvalidEventPayloadException("payload.orderId는 필수입니다.");
         }
         if (event.payload().buyerMemberId() == null) {
-            throw new InvalidEventPayloadException("payload.buyerMemberId is required.");
+            throw new InvalidEventPayloadException("payload.buyerMemberId는 필수입니다.");
         }
         if (event.payload().confirmedAt() == null) {
-            throw new InvalidEventPayloadException("payload.confirmedAt is required.");
+            throw new InvalidEventPayloadException("payload.confirmedAt은 필수입니다.");
         }
         if (!Objects.equals(event.recipientId(), event.payload().buyerMemberId())) {
-            throw new InvalidEventPayloadException("recipientId and payload.buyerMemberId must match.");
+            throw new InvalidEventPayloadException("recipientId와 payload.buyerMemberId가 일치해야 합니다.");
         }
     }
 

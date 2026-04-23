@@ -275,7 +275,7 @@ class NotificationServiceTest {
         assertThatThrownBy(() ->
                 notificationService.createAutoPurchaseConfirmedNotification(eventId, null, orderId, null, confirmedAt))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("memberId is required.");
+                .hasMessage("memberId는 필수입니다.");
     }
 
     @Test
