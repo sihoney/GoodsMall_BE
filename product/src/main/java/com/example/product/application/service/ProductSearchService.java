@@ -82,7 +82,10 @@ public class ProductSearchService implements ProductSearchUseCase {
     @Override
     public Page<ProductResponse> findBySellerId(String sellerId, Pageable pageable) {
         Page<Product> products = productRepository.findBySellerId(UUID.fromString(sellerId), pageable);
-        return products.map(ProductResponse::from);
+        return products.map(product -> {
+            List<ProductImage> images = productImageRepository.findByProductId(product.getProductId());
+            return buildProductResponse(product, images);
+        });
     }
 
     @Override
