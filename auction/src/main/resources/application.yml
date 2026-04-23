@@ -15,6 +15,7 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        default_schema: auction
 
   # --- Kafka 설정 (로컬 기본값) ---
   kafka:
@@ -58,3 +59,6 @@ auction:
   kafka:
     topic:
       auction-changed: auction.changed
+      bid-fee-charge-requested: auction.bid-fee.charge.requested
+      bid-fee-charge-completed: auction.bid-fee.charge.completed
+      bid-fee-charge-failed: auction.bid-fee.charge.failed
