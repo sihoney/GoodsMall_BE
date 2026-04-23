@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cart
+  namespace: goods-mall
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cart
+  template:
+    metadata:
+      labels:
+        app: cart
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: cart
+          image: ghcr.io/prgrms-be-adv-devcourse/beadv5_2_todaylunchmenu_be/cart:latest
+          ports:
+            - containerPort: 8086
+          envFrom:
+            - configMapRef:
+                name: common-config
+            - secretRef:
+                name: common-secret
+          startupProbe:
+            tcpSocket:
+              port: 8086
+            failureThreshold: 20
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 8086
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            tcpSocket:
+              port: 8086
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3

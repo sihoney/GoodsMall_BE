@@ -87,10 +87,9 @@ http://localhost:8080
 | Kafka | `SPRING_KAFKA_BOOTSTRAP_SERVERS` |
 | Eureka | `EUREKA_DEFAULT_ZONE` |
 | Toss | `TOSS_PAYMENTS_BASE_URL`, `TOSS_PAYMENTS_CLIENT_KEY`, `TOSS_PAYMENTS_SECRET_KEY`, `TOSS_PAYMENTS_SUCCESS_URL`, `TOSS_PAYMENTS_FAIL_URL`, `TOSS_PAYMENTS_WIDGET_ENABLED` |
-| Payment Kafka | `PAYMENT_KAFKA_TOPIC_*`, `PAYMENT_KAFKA_CONSUMER_GROUP_*`, `PAYMENT_KAFKA_RETRY_*` |
 | Withdraw Crypto | `PAYMENT_WITHDRAW_CRYPTO_SECRET_KEY` |
 
-로컬 Docker Compose 예시 성격의 값은 루트 `.env.example`과 `payment/.env`에 포함되어 있습니다.
+Payment Kafka 토픽, 컨슈머 그룹, retry 값은 서비스 설정값으로 고정합니다.
 
 출금 계좌정보 암호화 기능을 사용하는 경우 `PAYMENT_WITHDRAW_CRYPTO_SECRET_KEY` 설정이 필요합니다.
 

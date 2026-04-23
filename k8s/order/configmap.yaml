@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: order-config
+  namespace: goods-mall
+data:
+  SERVICES_PAYMENT_URL: "http://payment:8082"
+  SERVICES_PRODUCT_URL: "http://product:8081"
+  SWEET_TRACKER_API_BASE_URL: "https://info.sweettracker.co.kr"

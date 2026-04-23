@@ -11,7 +11,7 @@ import com.example.ai.infrastructure.client.dto.request.OpenAiChatCompletionRequ
 import com.example.ai.infrastructure.client.dto.response.AuctionPriceRecommendationAiResponse;
 import com.example.ai.infrastructure.client.dto.response.OpenAiChatCompletionResponse;
 import com.example.ai.infrastructure.config.AuctionPriceRecommendationProperties;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;

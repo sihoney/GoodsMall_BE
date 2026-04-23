@@ -8,10 +8,10 @@ import com.example.notification.infrastructure.messaging.kafka.dlq.NotificationD
 import com.example.notification.infrastructure.messaging.kafka.dlq.EventParseException;
 import com.example.notification.infrastructure.messaging.kafka.handler.NotificationEventHandler;
 import com.example.notification.infrastructure.messaging.kafka.handler.NotificationEventHandlerRegistry;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.todaylunch.common.event.contract.EventEnvelope;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -82,7 +82,7 @@ public class NotificationEventConsumer {
     private EventEnvelope<JsonNode> parseEnvelope(String message) {
         try {
             return objectMapper.readValue(message, GENERIC_EVENT_ENVELOPE_TYPE);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new EventParseException("Failed to parse notification event envelope.", e);
         }
     }

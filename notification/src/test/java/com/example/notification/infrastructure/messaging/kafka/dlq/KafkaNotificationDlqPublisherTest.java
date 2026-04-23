@@ -5,7 +5,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 
 import com.example.notification.infrastructure.messaging.kafka.KafkaTopics;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,7 +23,7 @@ class KafkaNotificationDlqPublisherTest {
 
     @BeforeEach
     void setUp() {
-        publisher = new KafkaNotificationDlqPublisher(kafkaTemplate, new ObjectMapper().findAndRegisterModules());
+        publisher = new KafkaNotificationDlqPublisher(kafkaTemplate, JsonMapper.builder().findAndAddModules().build());
     }
 
     @Test

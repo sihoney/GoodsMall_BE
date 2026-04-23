@@ -6,10 +6,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.todaylunch.auction.application.event.BidPlacedEvent;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.todaylunch.auction.domain.entity.Auction;
 import com.todaylunch.auction.domain.entity.Bid;
 import com.todaylunch.auction.domain.enumtype.BidStatus;
@@ -26,6 +23,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import com.todaylunch.auction.infrastructure.messaging.kafka.publisher.KafkaBidOutbidEventPublisher;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 @ExtendWith(MockitoExtension.class)
 class BidFeeChargeCompletedConsumerTest {
@@ -34,6 +34,8 @@ class BidFeeChargeCompletedConsumerTest {
     BidRepository bidRepository;
     @Mock
     ApplicationEventPublisher applicationEventPublisher;
+    @Mock
+    KafkaBidOutbidEventPublisher bidOutbidEventPublisher;
 
     BidFeeChargeCompletedConsumer consumer;
     ObjectMapper objectMapper;
@@ -42,16 +44,17 @@ class BidFeeChargeCompletedConsumerTest {
 
     @BeforeEach
     void setUp() {
-        objectMapper = new ObjectMapper().registerModule(new JavaTimeModule())
-                                         .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        objectMapper = JsonMapper.builder().build();
 
         consumer = new BidFeeChargeCompletedConsumer(bidRepository,
                                                      applicationEventPublisher,
+                                                     bidOutbidEventPublisher,
                                                      objectMapper);
 
         LocalDateTime now = LocalDateTime.now();
 
         auction = Auction.create(UUID.randomUUID(),
+                                 "테스트 상품",
                                  UUID.randomUUID(),
                                  new BigDecimal("10000"),
                                  new BigDecimal("1000"),

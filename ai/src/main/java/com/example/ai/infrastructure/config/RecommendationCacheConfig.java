@@ -2,9 +2,9 @@ package com.example.ai.infrastructure.config;
 
 import com.example.ai.application.dto.RecommendedProductResult;
 import com.example.ai.application.service.RecommendationLimitPolicy;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JavaType;
+import tools.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
@@ -72,7 +72,7 @@ public class RecommendationCacheConfig {
             }
             try {
                 return objectMapper.writeValueAsBytes(value);
-            } catch (JsonProcessingException e) {
+            } catch (JacksonException e) {
                 throw new SerializationException("추천 결과 캐시 직렬화에 실패했습니다.", e);
             }
         }
@@ -82,12 +82,7 @@ public class RecommendationCacheConfig {
             if (bytes == null || bytes.length == 0) {
                 return null;
             }
-            try {
-                return objectMapper.readValue(bytes, valueType);
-            } catch (IOException e) {
-                String cachedValue = new String(bytes, StandardCharsets.UTF_8);
-                throw new SerializationException("추천 결과 캐시 역직렬화에 실패했습니다. value=" + cachedValue, e);
-            }
+            return objectMapper.readValue(bytes, valueType);
         }
     }
 

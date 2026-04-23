@@ -1,6 +1,6 @@
 package com.todaylunch.auction.infrastructure.messaging.kafka.consumer;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.todaylunch.auction.common.exception.application.BidNotFoundException;
 import com.todaylunch.auction.domain.entity.Bid;
 import com.todaylunch.auction.domain.enumtype.BidStatus;
@@ -13,6 +13,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +28,7 @@ public class BidFeeChargeFailedConsumer {
 
     private final BidRepository bidRepository;
     private final AuctionRepository auctionRepository;
+    private final SimpMessagingTemplate messagingTemplate;
     private final ObjectMapper objectMapper;
 
     @KafkaListener(topics = KafkaTopics.BID_FEE_CHARGE_FAILED)
@@ -59,6 +61,9 @@ public class BidFeeChargeFailedConsumer {
         log.warn("Bid canceled via kafka: bidId={}, errorCode={}, errorMessage={}",
                 bid.getBidId(), message.errorCode(), message.errorMessage());
 
-        // TODO: 사용자 개인 채널 WebSocket 메시지 전송 (개인 채널 구현 시 추가)
+        messagingTemplate.convertAndSend(
+                "/topic/users/" + bid.getBidderId(),
+                "입찰에 실패했습니다. 잔액을 확인해주세요."
+        );
     }
 }

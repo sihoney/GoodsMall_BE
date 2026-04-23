@@ -4,6 +4,7 @@ import com.todaylunch.auction.domain.entity.OutboxEvent;
 import com.todaylunch.auction.domain.enumtype.OutboxEventStatus;
 import com.todaylunch.auction.domain.repository.OutboxEventRepository;
 import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -21,5 +22,10 @@ public class OutboxEventRepositoryImpl implements OutboxEventRepository {
     @Override
     public List<OutboxEvent> findAllByStatus(OutboxEventStatus status) {
         return jpaRepository.findAllByStatusOrderByCreatedAtAsc(status);
+    }
+
+    @Override
+    public int changeToPublishedIfPending(UUID id) {
+        return jpaRepository.changeToPublishedIfPending(id);
     }
 }

@@ -6,7 +6,8 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.times;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import com.todaylunch.auction.application.port.dto.request.BidFeeChargeRequest;
 import com.todaylunch.auction.domain.entity.Auction;
 import com.todaylunch.auction.domain.entity.Bid;
@@ -43,7 +44,7 @@ class BidCreateServiceTest {
     @Mock
     ApplicationEventPublisher applicationEventPublisher;
     @Spy
-    ObjectMapper objectMapper = new ObjectMapper();
+    ObjectMapper objectMapper = JsonMapper.builder().build();
 
     @InjectMocks
     BidCreateService bidCreateService;
@@ -56,6 +57,7 @@ class BidCreateServiceTest {
     void setUp() {
         LocalDateTime now = LocalDateTime.now();
         auction = Auction.create(UUID.randomUUID(),
+                                 "테스트 상품",
                                  UUID.randomUUID(),
                                  new BigDecimal("10000"),
                                  new BigDecimal("1000"),

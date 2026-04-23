@@ -1,8 +1,8 @@
 package com.example.notification.infrastructure.messaging.kafka.dlq;
 
 import com.example.notification.infrastructure.messaging.kafka.KafkaTopics;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +36,7 @@ public class KafkaNotificationDlqPublisher implements NotificationDlqPublisher {
         try {
             String payload = objectMapper.writeValueAsString(dlqMessage);
             kafkaTemplate.send(KafkaTopics.NOTIFICATION_DLQ, payload);
-        } catch (JsonProcessingException publishPayloadException) {
+        } catch (JacksonException publishPayloadException) {
             log.error(
                     "Failed to serialize DLQ message. listener={} reason={} rawMessage={}",
                     listenerName,

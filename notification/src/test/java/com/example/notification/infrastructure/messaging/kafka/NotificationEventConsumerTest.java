@@ -30,7 +30,6 @@ import com.example.notification.infrastructure.messaging.kafka.handler.OrderCrea
 import com.example.notification.infrastructure.messaging.kafka.handler.OrderCanceledNotificationEventHandler;
 import com.example.notification.infrastructure.messaging.kafka.handler.OrderPaymentResultNotificationEventHandler;
 import com.example.notification.infrastructure.messaging.kafka.handler.SellerSettlementPayoutResultNotificationEventHandler;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.todaylunch.common.event.contract.EventEnvelope;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -43,6 +42,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 @ExtendWith(MockitoExtension.class)
 class NotificationEventConsumerTest {
@@ -61,7 +62,7 @@ class NotificationEventConsumerTest {
 
     @BeforeEach
     void setUp() {
-        objectMapper = new ObjectMapper().findAndRegisterModules();
+        objectMapper = JsonMapper.builder().findAndAddModules().build();
 
         NotificationEventHandlerRegistry registry = new NotificationEventHandlerRegistry(List.of(
                 new MemberSignedUpNotificationEventHandler(

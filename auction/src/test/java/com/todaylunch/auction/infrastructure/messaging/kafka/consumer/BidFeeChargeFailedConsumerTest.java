@@ -3,9 +3,8 @@ package com.todaylunch.auction.infrastructure.messaging.kafka.consumer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import com.todaylunch.auction.domain.entity.Auction;
 import com.todaylunch.auction.domain.entity.Bid;
 import com.todaylunch.auction.domain.enumtype.BidStatus;
@@ -22,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 @ExtendWith(MockitoExtension.class)
 class BidFeeChargeFailedConsumerTest {
@@ -30,6 +30,8 @@ class BidFeeChargeFailedConsumerTest {
     BidRepository bidRepository;
     @Mock
     AuctionRepository auctionRepository;
+    @Mock
+    SimpMessagingTemplate messagingTemplate;
 
     BidFeeChargeFailedConsumer consumer;
     ObjectMapper objectMapper;
@@ -38,15 +40,14 @@ class BidFeeChargeFailedConsumerTest {
 
     @BeforeEach
     void setUp() {
-        // 객체 직렬화
-        objectMapper = new ObjectMapper().registerModule(new JavaTimeModule())
-                                         .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        objectMapper = JsonMapper.builder().build();
 
-        consumer = new BidFeeChargeFailedConsumer(bidRepository, auctionRepository, objectMapper);
+        consumer = new BidFeeChargeFailedConsumer(bidRepository, auctionRepository, messagingTemplate, objectMapper);
 
         LocalDateTime now = LocalDateTime.now();
 
         auction = Auction.create(UUID.randomUUID(),
+                                 "테스트 상품",
                                  UUID.randomUUID(),
                                  new BigDecimal("10000"),
                                  new BigDecimal("1000"),

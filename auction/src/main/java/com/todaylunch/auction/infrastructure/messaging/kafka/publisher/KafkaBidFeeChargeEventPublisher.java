@@ -1,7 +1,7 @@
 package com.todaylunch.auction.infrastructure.messaging.kafka.publisher;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import com.todaylunch.auction.application.port.BidFeeChargeEventPublisher;
 import com.todaylunch.auction.application.port.dto.request.BidFeeChargeRequest;
 import com.todaylunch.auction.infrastructure.messaging.kafka.KafkaTopics;
@@ -28,7 +28,7 @@ public class KafkaBidFeeChargeEventPublisher implements BidFeeChargeEventPublish
             kafkaTemplate.send(KafkaTopics.BID_FEE_CHARGE_REQUESTED, String.valueOf(request.auctionId()), payload);
             log.debug("bid-fee-charge-requested published: auctionId={}, highestBidderId={}",
                     request.auctionId(), request.highestBidderId());
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             log.error("bid-fee-charge-requested 직렬화 실패: auctionId={}", request.auctionId(), e);
             throw new IllegalStateException("BidFeeChargeRequest 직렬화 실패", e);
         }

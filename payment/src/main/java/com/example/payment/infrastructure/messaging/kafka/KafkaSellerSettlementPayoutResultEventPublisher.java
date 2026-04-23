@@ -3,7 +3,6 @@ package com.example.payment.infrastructure.messaging.kafka;
 import com.example.payment.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
@@ -16,16 +15,13 @@ public class KafkaSellerSettlementPayoutResultEventPublisher {
 
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
-    private final String topic;
 
     public KafkaSellerSettlementPayoutResultEventPublisher(
             KafkaTemplate<String, String> kafkaTemplate,
-            ObjectMapper objectMapper,
-            @Value("${payment.kafka.topics.settlement-payout-result:payment.seller-payout-result}") String topic
+            ObjectMapper objectMapper
     ) {
         this.kafkaTemplate = kafkaTemplate;
         this.objectMapper = objectMapper;
-        this.topic = topic;
     }
 
     /**
@@ -35,7 +31,7 @@ public class KafkaSellerSettlementPayoutResultEventPublisher {
     public void publish(SellerSettlementPayoutResultMessage event) {
         try {
             String message = objectMapper.writeValueAsString(event);
-            kafkaTemplate.send(topic, String.valueOf(event.settlementId()), message);
+            kafkaTemplate.send(KafkaTopics.SETTLEMENT_PAYOUT_RESULT, String.valueOf(event.settlementId()), message);
         } catch (Exception e) {
             log.error("Failed to serialize SellerSettlementPayoutResultMessage. settlementId={}", event.settlementId(), e);
             throw new RuntimeException("Failed to serialize SellerSettlementPayoutResultMessage", e);

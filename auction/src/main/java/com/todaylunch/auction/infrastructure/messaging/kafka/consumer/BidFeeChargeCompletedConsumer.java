@@ -1,6 +1,6 @@
 package com.todaylunch.auction.infrastructure.messaging.kafka.consumer;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.todaylunch.auction.application.event.BidPlacedEvent;
 import com.todaylunch.auction.common.exception.application.BidNotFoundException;
 import com.todaylunch.auction.domain.entity.Bid;
@@ -8,6 +8,7 @@ import com.todaylunch.auction.domain.enumtype.BidStatus;
 import com.todaylunch.auction.domain.repository.BidRepository;
 import com.todaylunch.auction.infrastructure.messaging.kafka.KafkaTopics;
 import com.todaylunch.auction.infrastructure.messaging.kafka.message.BidFeeChargeCompletedMessage;
+import com.todaylunch.auction.infrastructure.messaging.kafka.publisher.KafkaBidOutbidEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -26,6 +27,7 @@ public class BidFeeChargeCompletedConsumer {
 
     private final BidRepository bidRepository;
     private final ApplicationEventPublisher applicationEventPublisher;
+    private final KafkaBidOutbidEventPublisher bidOutbidEventPublisher;
     private final ObjectMapper objectMapper;
 
     @KafkaListener(topics = KafkaTopics.BID_FEE_CHARGE_COMPLETED)
@@ -47,7 +49,10 @@ public class BidFeeChargeCompletedConsumer {
 
         bidRepository.findActiveByAuctionId(bid.getAuction().getAuctionId())
                 .filter(active -> !active.getBidId().equals(bid.getBidId()))
-                .ifPresent(Bid::outbid);
+                .ifPresent(previousBid -> {
+                    previousBid.outbid();
+                    bidOutbidEventPublisher.publish(bid.getAuction().getAuctionId(), previousBid.getBidderId());
+                });
 
         applicationEventPublisher.publishEvent(new BidPlacedEvent(
                 bid.getAuction().getAuctionId(),
