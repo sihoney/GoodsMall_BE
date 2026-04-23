@@ -44,7 +44,7 @@ class MemberRestrictionServiceTest {
     @Test
     void createRestriction_success_savesRestriction() {
         UUID memberId = UUID.randomUUID();
-        AuthenticatedMember admin = new AuthenticatedMember(UUID.randomUUID(), MemberRole.ADMIN);
+        AuthenticatedMember admin = new AuthenticatedMember(UUID.randomUUID(), MemberRole.ADMIN, UUID.randomUUID());
         CreateMemberRestrictionRequest request = new CreateMemberRestrictionRequest(
                 memberId,
                 "abuse",
@@ -72,7 +72,7 @@ class MemberRestrictionServiceTest {
     @Test
     void createRestriction_duplicateActiveRestriction_throwsException() {
         UUID memberId = UUID.randomUUID();
-        AuthenticatedMember admin = new AuthenticatedMember(UUID.randomUUID(), MemberRole.ADMIN);
+        AuthenticatedMember admin = new AuthenticatedMember(UUID.randomUUID(), MemberRole.ADMIN, UUID.randomUUID());
         CreateMemberRestrictionRequest request = new CreateMemberRestrictionRequest(
                 memberId,
                 "abuse",
@@ -91,7 +91,7 @@ class MemberRestrictionServiceTest {
 
     @Test
     void createRestriction_nonAdmin_throwsAccessDenied() {
-        AuthenticatedMember user = new AuthenticatedMember(UUID.randomUUID(), MemberRole.USER);
+        AuthenticatedMember user = new AuthenticatedMember(UUID.randomUUID(), MemberRole.USER, UUID.randomUUID());
         CreateMemberRestrictionRequest request = new CreateMemberRestrictionRequest(
                 UUID.randomUUID(),
                 "abuse",

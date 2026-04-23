@@ -5,6 +5,7 @@ import java.util.UUID;
 
 public record AuthenticatedMember(
         UUID memberId,
-        MemberRole role
+        MemberRole role,
+        UUID sessionId
 ) {
 }

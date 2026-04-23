@@ -58,7 +58,12 @@ public class AccountVerificationController {
             @RequestBody AccountVerificationConfirmRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.success(
-                accountVerificationUsecase.confirmAccountVerification(authenticatedMember.memberId(), sessionId, request)
+                accountVerificationUsecase.confirmAccountVerification(
+                        authenticatedMember.memberId(),
+                        authenticatedMember.sessionId(),
+                        sessionId,
+                        request
+                )
         ));
     }
 
