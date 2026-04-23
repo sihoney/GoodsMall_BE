@@ -275,7 +275,7 @@ class NotificationServiceTest {
         assertThatThrownBy(() ->
                 notificationService.createAutoPurchaseConfirmedNotification(eventId, null, orderId, null, confirmedAt))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("memberId is required.");
+                .hasMessage("memberId는 필수입니다.");
     }
 
     @Test
@@ -408,6 +408,135 @@ class NotificationServiceTest {
         assertThat(saved.getContent()).isNotBlank();
         verify(notificationMetricsRecorder).recordEventReceived(NotificationType.SELLER_SETTLEMENT_PAYOUT_FAILED);
         verify(notificationMetricsRecorder).recordSaved(NotificationType.SELLER_SETTLEMENT_PAYOUT_FAILED);
+        verify(notificationPushService).push(any());
+    }
+
+    @Test
+    void createAuctionWonNotification_savesNotification() {
+        UUID eventId = UUID.randomUUID();
+        UUID auctionId = UUID.randomUUID();
+        UUID winnerMemberId = UUID.randomUUID();
+        LocalDateTime occurredAt = LocalDateTime.of(2026, 4, 23, 12, 0, 0);
+
+        when(notificationJpaRepository.save(any(Notification.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        notificationService.createAuctionWonNotification(
+                eventId,
+                "trace-id",
+                auctionId,
+                winnerMemberId,
+                "봄 도시락 세트",
+                150_000L,
+                occurredAt
+        );
+
+        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationJpaRepository).save(captor.capture());
+
+        Notification saved = captor.getValue();
+        assertThat(saved.getMemberId()).isEqualTo(winnerMemberId);
+        assertThat(saved.getType()).isEqualTo(NotificationType.BUYER_AUCTION_WON);
+        assertThat(saved.getReferenceId()).isEqualTo(auctionId);
+        assertThat(saved.getReferenceType()).isEqualTo(NotificationReferenceType.AUCTION);
+        assertThat(saved.getContent()).contains("봄 도시락 세트", "150000원");
+        verify(notificationMetricsRecorder).recordSaved(NotificationType.BUYER_AUCTION_WON);
+        verify(notificationPushService).push(any());
+    }
+
+    @Test
+    void createAuctionOutbidNotification_savesNotification() {
+        UUID eventId = UUID.randomUUID();
+        UUID auctionId = UUID.randomUUID();
+        UUID outbidBidderId = UUID.randomUUID();
+        LocalDateTime occurredAt = LocalDateTime.of(2026, 4, 23, 11, 55, 0);
+
+        when(notificationJpaRepository.save(any(Notification.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        notificationService.createAuctionOutbidNotification(
+                eventId,
+                "trace-id",
+                auctionId,
+                outbidBidderId,
+                occurredAt
+        );
+
+        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationJpaRepository).save(captor.capture());
+
+        Notification saved = captor.getValue();
+        assertThat(saved.getMemberId()).isEqualTo(outbidBidderId);
+        assertThat(saved.getType()).isEqualTo(NotificationType.BUYER_AUCTION_OUTBID);
+        assertThat(saved.getReferenceId()).isEqualTo(auctionId);
+        assertThat(saved.getReferenceType()).isEqualTo(NotificationReferenceType.AUCTION);
+        assertThat(saved.getContent()).contains("더 높은 금액");
+        verify(notificationMetricsRecorder).recordSaved(NotificationType.BUYER_AUCTION_OUTBID);
+        verify(notificationPushService).push(any());
+    }
+
+    @Test
+    void createAuctionClosedSoldNotification_savesNotification() {
+        UUID eventId = UUID.randomUUID();
+        UUID auctionId = UUID.randomUUID();
+        UUID sellerMemberId = UUID.randomUUID();
+        LocalDateTime occurredAt = LocalDateTime.of(2026, 4, 23, 12, 5, 0);
+
+        when(notificationJpaRepository.save(any(Notification.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        notificationService.createAuctionClosedSoldNotification(
+                eventId,
+                "trace-id",
+                auctionId,
+                sellerMemberId,
+                "프리미엄 샐러드",
+                90_000L,
+                occurredAt
+        );
+
+        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationJpaRepository).save(captor.capture());
+
+        Notification saved = captor.getValue();
+        assertThat(saved.getMemberId()).isEqualTo(sellerMemberId);
+        assertThat(saved.getType()).isEqualTo(NotificationType.SELLER_AUCTION_CLOSED_SOLD);
+        assertThat(saved.getReferenceId()).isEqualTo(auctionId);
+        assertThat(saved.getReferenceType()).isEqualTo(NotificationReferenceType.AUCTION);
+        assertThat(saved.getContent()).contains("프리미엄 샐러드", "90000원");
+        verify(notificationMetricsRecorder).recordSaved(NotificationType.SELLER_AUCTION_CLOSED_SOLD);
+        verify(notificationPushService).push(any());
+    }
+
+    @Test
+    void createAuctionClosedUnsoldNotification_savesNotificationWithoutBidCount() {
+        UUID eventId = UUID.randomUUID();
+        UUID auctionId = UUID.randomUUID();
+        UUID sellerMemberId = UUID.randomUUID();
+        LocalDateTime occurredAt = LocalDateTime.of(2026, 4, 23, 12, 10, 0);
+
+        when(notificationJpaRepository.save(any(Notification.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        notificationService.createAuctionClosedUnsoldNotification(
+                eventId,
+                "trace-id",
+                auctionId,
+                sellerMemberId,
+                "마감 특가 도시락",
+                occurredAt
+        );
+
+        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationJpaRepository).save(captor.capture());
+
+        Notification saved = captor.getValue();
+        assertThat(saved.getMemberId()).isEqualTo(sellerMemberId);
+        assertThat(saved.getType()).isEqualTo(NotificationType.SELLER_AUCTION_CLOSED_UNSOLD);
+        assertThat(saved.getReferenceId()).isEqualTo(auctionId);
+        assertThat(saved.getReferenceType()).isEqualTo(NotificationReferenceType.AUCTION);
+        assertThat(saved.getContent()).contains("마감 특가 도시락", "입찰 없이 종료");
+        verify(notificationMetricsRecorder).recordSaved(NotificationType.SELLER_AUCTION_CLOSED_UNSOLD);
         verify(notificationPushService).push(any());
     }
 }

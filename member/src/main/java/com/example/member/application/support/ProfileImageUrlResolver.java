@@ -34,7 +34,7 @@ public class ProfileImageUrlResolver { // S3에 저장된 회원 프로필 이�
             return null;
         }
         if (!isSupportedKey(objectKey)) {
-            throw new IllegalArgumentException("profileImageKey is invalid.");
+            throw new IllegalArgumentException("profileImageKey가 올바르지 않습니다.");
         }
 
         // 2. "이 key 파일을 읽는 S3 GET 요청" 생성

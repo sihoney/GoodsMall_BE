@@ -69,6 +69,10 @@ public record NotificationResponse(
                  SELLER_ORDER_CANCELED -> "주문번호 " + notification.getReferenceId();
             case SELLER_SETTLEMENT_PAYOUT_SUCCEEDED,
                  SELLER_SETTLEMENT_PAYOUT_FAILED -> "정산번호 " + notification.getReferenceId();
+            case BUYER_AUCTION_OUTBID,
+                 BUYER_AUCTION_WON,
+                 SELLER_AUCTION_CLOSED_SOLD,
+                 SELLER_AUCTION_CLOSED_UNSOLD -> "경매번호 " + notification.getReferenceId();
         };
     }
 
@@ -128,6 +132,22 @@ public record NotificationResponse(
             case SELLER_SETTLEMENT_PAYOUT_FAILED -> List.of(
                     createNavigateAction("다시 요청", "SETTLEMENT_DETAIL", referenceId, "primary"),
                     new NotificationAction("고객센터 문의", "callback", "SUPPORT_CONTACT", null, "secondary")
+            );
+            case BUYER_AUCTION_OUTBID -> List.of(
+                    createNavigateAction("다시 입찰", "AUCTION_DETAIL", referenceId, "primary"),
+                    createNavigateAction("경매 목록", "AUCTION_LIST", null, "secondary")
+            );
+            case BUYER_AUCTION_WON -> List.of(
+                    createNavigateAction("경매 상세", "AUCTION_DETAIL", referenceId, "primary"),
+                    createNavigateAction("결제 진행", "AUCTION_PAYMENT", referenceId, "secondary")
+            );
+            case SELLER_AUCTION_CLOSED_SOLD -> List.of(
+                    createNavigateAction("경매 상세", "AUCTION_DETAIL", referenceId, "primary"),
+                    createNavigateAction("판매 관리", "SELLER_AUCTION_MANAGEMENT", null, "secondary")
+            );
+            case SELLER_AUCTION_CLOSED_UNSOLD -> List.of(
+                    createNavigateAction("경매 상세", "AUCTION_DETAIL", referenceId, "primary"),
+                    createNavigateAction("다시 등록", "SELLER_AUCTION_CREATE", null, "secondary")
             );
         };
     }

@@ -71,13 +71,13 @@ public class ProfileImageService {
     // 요청 유효성 검사: 요청 객체, 파일 이름, 콘텐츠 타입이 모두 유효한지 확인
     private void validateRequest(ProfileImagePresignRequest request) {
         if (request == null) {
-            throw new IllegalArgumentException("Profile image presign request body is required.");
+            throw new IllegalArgumentException("프로필 이미지 presign 요청 본문은 필수입니다.");
         }
         if (request.fileName() == null || request.fileName().isBlank()) {
-            throw new IllegalArgumentException("fileName is required.");
+            throw new IllegalArgumentException("fileName은 필수입니다.");
         }
         if (request.contentType() == null || request.contentType().isBlank()) {
-            throw new IllegalArgumentException("contentType is required.");
+            throw new IllegalArgumentException("contentType은 필수입니다.");
         }
     }
 
@@ -85,11 +85,11 @@ public class ProfileImageService {
     private String extractExtension(String fileName) {
         int dotIndex = fileName.lastIndexOf('.');
         if (dotIndex < 0 || dotIndex == fileName.length() - 1) {
-            throw new IllegalArgumentException("fileName must include a supported extension.");
+            throw new IllegalArgumentException("fileName에는 지원되는 확장자가 포함되어야 합니다.");
         }
         String extension = fileName.substring(dotIndex + 1).toLowerCase(Locale.ROOT);
         if (!EXTENSION_TO_CONTENT_TYPE.containsKey(extension)) {
-            throw new IllegalArgumentException("Unsupported file extension.");
+            throw new IllegalArgumentException("지원하지 않는 파일 확장자입니다.");
         }
         return extension;
     }
@@ -98,11 +98,11 @@ public class ProfileImageService {
     private void validateContentType(String extension, String contentType) {
         Set<String> allowedContentTypes = new HashSet<>(EXTENSION_TO_CONTENT_TYPE.values());
         if (!allowedContentTypes.contains(contentType)) {
-            throw new IllegalArgumentException("Unsupported contentType.");
+            throw new IllegalArgumentException("지원하지 않는 contentType입니다.");
         }
         String expectedContentType = EXTENSION_TO_CONTENT_TYPE.get(extension);
         if (!expectedContentType.equals(contentType)) {
-            throw new IllegalArgumentException("fileName extension and contentType do not match.");
+            throw new IllegalArgumentException("fileName 확장자와 contentType이 일치하지 않습니다.");
         }
     }
 
@@ -122,7 +122,7 @@ public class ProfileImageService {
             trimmed = trimmed.substring(0, trimmed.length() - 1);
         }
         if (trimmed.isBlank()) {
-            throw new IllegalArgumentException("aws.s3.profile-image-prefix is required.");
+            throw new IllegalArgumentException("aws.s3.profile-image-prefix는 필수입니다.");
         }
         return trimmed;
     }

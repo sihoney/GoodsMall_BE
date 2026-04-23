@@ -51,19 +51,19 @@ public class AccountVerificationFailedNotificationEventHandler implements Notifi
 
     private void validate(EventEnvelope<AccountVerificationFailedPayload> event) {
         if (event == null || event.payload() == null) {
-            throw new InvalidEventPayloadException("accountVerificationFailed payload is required.");
+            throw new InvalidEventPayloadException("계좌 인증 실패 payload는 필수입니다.");
         }
         if (!EVENT_TYPE.equals(event.eventType())) {
-            throw new InvalidEventPayloadException("Unsupported eventType: " + event.eventType());
+            throw new InvalidEventPayloadException("지원하지 않는 eventType입니다: " + event.eventType());
         }
-        if (event.eventId() == null || event.recipientId() == null || event.occurredAt() == null) {
-            throw new InvalidEventPayloadException("eventId, recipientId, occurredAt are required.");
+        if (event.recipientId() == null) {
+            throw new InvalidEventPayloadException("recipientId는 필수입니다.");
         }
         if (event.payload().memberId() == null || event.payload().sessionId() == null || event.payload().sessionId().isBlank()) {
-            throw new InvalidEventPayloadException("payload.memberId and payload.sessionId are required.");
+            throw new InvalidEventPayloadException("payload.memberId와 payload.sessionId는 필수입니다.");
         }
         if (!Objects.equals(event.recipientId(), event.payload().memberId())) {
-            throw new InvalidEventPayloadException("recipientId and payload.memberId must match.");
+            throw new InvalidEventPayloadException("recipientId와 payload.memberId가 일치해야 합니다.");
         }
     }
 }

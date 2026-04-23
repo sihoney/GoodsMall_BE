@@ -95,13 +95,13 @@ public class MemberRestrictionService implements MemberRestrictionUsecase {
 
     private void validateCreateRequest(CreateMemberRestrictionRequest request) {
         if (request == null) {
-            throw new IllegalArgumentException("Create member restriction request body is required.");
+            throw new IllegalArgumentException("회원 제재 생성 요청 본문은 필수입니다.");
         }
         if (request.memberId() == null) {
-            throw new IllegalArgumentException("memberId is required.");
+            throw new IllegalArgumentException("memberId는 필수입니다.");
         }
         if (request.restrictionType() == null) {
-            throw new IllegalArgumentException("restrictionType is required.");
+            throw new IllegalArgumentException("restrictionType은 필수입니다.");
         }
     }
 }

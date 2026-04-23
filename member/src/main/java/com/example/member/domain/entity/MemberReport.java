@@ -127,13 +127,13 @@ public class MemberReport {
 
     private void validatePending() {
         if (status != ReportStatus.PENDING) {
-            throw new IllegalStateException("Only pending reports can be reviewed.");
+            throw new IllegalStateException("대기 중인 신고만 검토할 수 있습니다.");
         }
     }
 
     private static String validateReason(String reason) {
         if (reason == null || reason.trim().isEmpty()) {
-            throw new IllegalArgumentException("reason is required.");
+            throw new IllegalArgumentException("reason은 필수입니다.");
         }
         return reason.trim();
     }

@@ -7,8 +7,8 @@ public record NotificationConsumerFailureDecision(
         NotificationDlqReason reason
 ) {
     public NotificationConsumerFailureDecision {
-        Objects.requireNonNull(action, "action is required.");
-        Objects.requireNonNull(reason, "reason is required.");
+        Objects.requireNonNull(action, "action은 필수입니다.");
+        Objects.requireNonNull(reason, "reason은 필수입니다.");
     }
 
     public static NotificationConsumerFailureDecision dlq(NotificationDlqReason reason) {

@@ -181,7 +181,7 @@ public class AccountVerificationSession {
     private static String stringValue(Map<Object, Object> entries, String fieldName) {
         Object value = entries.get(fieldName);
         if (value == null || value.toString().isBlank()) {
-            throw new IllegalArgumentException("Missing redis field: " + fieldName);
+            throw new IllegalArgumentException("Redis 필드가 누락되었습니다: " + fieldName);
         }
         return value.toString();
     }
