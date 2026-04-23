@@ -57,8 +57,8 @@ public class MemberOauthLinkedNotificationEventHandler implements NotificationEv
         if (!EVENT_TYPE.equals(event.eventType())) {
             throw new InvalidEventPayloadException("Unsupported eventType: " + event.eventType());
         }
-        if (event.eventId() == null || event.recipientId() == null || event.occurredAt() == null) {
-            throw new InvalidEventPayloadException("eventId, recipientId, occurredAt are required.");
+        if (event.recipientId() == null) {
+            throw new InvalidEventPayloadException("recipientId is required.");
         }
         if (event.payload().memberId() == null || event.payload().provider() == null || event.payload().provider().isBlank()) {
             throw new InvalidEventPayloadException("payload.memberId and payload.provider are required.");

@@ -56,8 +56,8 @@ public class AccountVerificationFailedNotificationEventHandler implements Notifi
         if (!EVENT_TYPE.equals(event.eventType())) {
             throw new InvalidEventPayloadException("Unsupported eventType: " + event.eventType());
         }
-        if (event.eventId() == null || event.recipientId() == null || event.occurredAt() == null) {
-            throw new InvalidEventPayloadException("eventId, recipientId, occurredAt are required.");
+        if (event.recipientId() == null) {
+            throw new InvalidEventPayloadException("recipientId is required.");
         }
         if (event.payload().memberId() == null || event.payload().sessionId() == null || event.payload().sessionId().isBlank()) {
             throw new InvalidEventPayloadException("payload.memberId and payload.sessionId are required.");

@@ -64,18 +64,6 @@ public class OrderCanceledNotificationEventHandler implements NotificationEventH
         if (!ORDER_CANCELED_EVENT_TYPE.equals(event.eventType())) {
             throw new InvalidEventPayloadException("Unsupported eventType: " + event.eventType());
         }
-        if (event.eventId() == null) {
-            throw new InvalidEventPayloadException("eventId is required.");
-        }
-        if (event.source() == null || event.source().isBlank()) {
-            throw new InvalidEventPayloadException("source is required.");
-        }
-        if (event.occurredAt() == null && (event.payload() == null || event.payload().canceledAt() == null)) {
-            throw new InvalidEventPayloadException("occurredAt is required.");
-        }
-        if (event.traceId() == null || event.traceId().isBlank()) {
-            throw new InvalidEventPayloadException("traceId is required.");
-        }
         if (event.payload() == null) {
             throw new InvalidEventPayloadException("payload is required.");
         }
