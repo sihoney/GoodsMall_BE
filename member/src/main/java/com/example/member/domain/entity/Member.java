@@ -175,7 +175,7 @@ public class Member {
         };
 
         if (!allowed) {
-            throw new IllegalStateException("Invalid member status transition: " + status + " -> " + nextStatus);
+            throw new IllegalStateException("허용되지 않는 회원 상태 전이입니다: " + status + " -> " + nextStatus);
         }
     }
 }

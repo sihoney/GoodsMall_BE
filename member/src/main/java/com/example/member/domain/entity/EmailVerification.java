@@ -90,7 +90,7 @@ public class EmailVerification {
         LocalDateTime normalizedCreatedAt = Objects.requireNonNull(createdAt);
         LocalDateTime normalizedExpiresAt = Objects.requireNonNull(expiresAt);
         if (!normalizedExpiresAt.isAfter(normalizedCreatedAt)) {
-            throw new IllegalArgumentException("expiresAt must be after createdAt.");
+            throw new IllegalArgumentException("expiresAt은 createdAt 이후여야 합니다.");
         }
 
         return new EmailVerification(
@@ -110,16 +110,16 @@ public class EmailVerification {
     public void verify(LocalDateTime verifiedAt) {
         LocalDateTime now = Objects.requireNonNull(verifiedAt);
         if (status == EmailVerificationStatus.CANCELLED) {
-            throw new IllegalStateException("Cancelled verification cannot be verified.");
+            throw new IllegalStateException("취소된 인증은 완료 처리할 수 없습니다.");
         }
         if (status == EmailVerificationStatus.EXPIRED) {
-            throw new IllegalStateException("Expired verification cannot be verified.");
+            throw new IllegalStateException("만료된 인증은 완료 처리할 수 없습니다.");
         }
         if (status == EmailVerificationStatus.VERIFIED) {
             return;
         }
         if (!expiresAt.isAfter(now)) {
-            throw new IllegalStateException("Verification token has expired.");
+            throw new IllegalStateException("인증 토큰이 만료되었습니다.");
         }
 
         this.status = EmailVerificationStatus.VERIFIED;
@@ -150,7 +150,7 @@ public class EmailVerification {
     private void validateTerminalTransition(LocalDateTime updatedAt) {
         Objects.requireNonNull(updatedAt);
         if (status == EmailVerificationStatus.VERIFIED) {
-            throw new IllegalStateException("Verified verification cannot change to another terminal status.");
+            throw new IllegalStateException("완료된 인증은 다른 종료 상태로 변경할 수 없습니다.");
         }
         if (status == EmailVerificationStatus.CANCELLED || status == EmailVerificationStatus.EXPIRED) {
             return;
@@ -159,7 +159,7 @@ public class EmailVerification {
 
     private static String validateRequired(String value, String fieldName) {
         if (value == null || value.trim().isEmpty()) {
-            throw new IllegalArgumentException(fieldName + " is required.");
+            throw new IllegalArgumentException(fieldName + "은(는) 필수입니다.");
         }
         return value.trim();
     }

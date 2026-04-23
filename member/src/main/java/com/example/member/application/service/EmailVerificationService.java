@@ -78,13 +78,13 @@ public class EmailVerificationService {
         }
 
         Member member = memberRepository.findById(emailVerification.getMemberId())
-                .orElseThrow(() -> new IllegalArgumentException("Member for email verification was not found."));
+                .orElseThrow(() -> new IllegalArgumentException("이메일 인증 대상 회원을 찾을 수 없습니다."));
 
         if (member.getStatus() == MemberStatus.PENDING_VERIFICATION) {
             member.changeStatus(MemberStatus.ACTIVE, now);
         } else if (member.getStatus() != MemberStatus.ACTIVE) {
             throw new EmailVerificationNotAllowedException(
-                    "Current member status cannot be activated by email verification."
+                    "현재 회원 상태에서는 이메일 인증으로 활성화할 수 없습니다."
             );
         }
 
@@ -101,7 +101,7 @@ public class EmailVerificationService {
     public EmailVerification resendSignupVerification(String email) {
         String normalizedEmail = normalizeRequired(email, "email");
         Member member = memberRepository.findByEmail(normalizedEmail)
-                .orElseThrow(() -> new IllegalArgumentException("Member not found for the email."));
+                .orElseThrow(() -> new IllegalArgumentException("해당 이메일의 회원을 찾을 수 없습니다."));
 
         if (member.isActive()) {
             throw new EmailVerificationNotAllowedException(
@@ -110,7 +110,7 @@ public class EmailVerificationService {
         }
         if (member.getStatus() != MemberStatus.PENDING_VERIFICATION) {
             throw new EmailVerificationNotAllowedException(
-                    "Current member status cannot request signup email verification."
+                    "현재 회원 상태에서는 가입 이메일 인증을 요청할 수 없습니다."
             );
         }
 
@@ -129,11 +129,11 @@ public class EmailVerificationService {
 
     private Member validateSignupTarget(Member member) {
         if (member == null) {
-            throw new IllegalArgumentException("member is required.");
+            throw new IllegalArgumentException("member는 필수입니다.");
         }
         if (member.getStatus() != MemberStatus.PENDING_VERIFICATION) {
             throw new EmailVerificationNotAllowedException(
-                    "Signup email verification target must be PENDING_VERIFICATION."
+                    "가입 이메일 인증 대상은 PENDING_VERIFICATION 상태여야 합니다."
             );
         }
         return member;
@@ -212,7 +212,7 @@ public class EmailVerificationService {
 
     private String normalizeRequired(String value, String fieldName) {
         if (value == null || value.trim().isEmpty()) {
-            throw new IllegalArgumentException(fieldName + " is required.");
+            throw new IllegalArgumentException(fieldName + "은(는) 필수입니다.");
         }
         return value.trim();
     }

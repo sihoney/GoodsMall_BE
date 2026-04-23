@@ -3,6 +3,6 @@ package com.example.member.common.exception;
 public class InvalidLoginException extends RuntimeException {
 
     public InvalidLoginException() {
-        super("Invalid email or password.");
+        super("이메일 또는 비밀번호가 올바르지 않습니다.");
     }
 }

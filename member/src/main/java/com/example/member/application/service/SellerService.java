@@ -56,7 +56,7 @@ public class SellerService implements SellerUsecase {
 
     private void validateRegisterRequest(SellerRegisterRequest request) {
         if (request == null) {
-            throw new IllegalArgumentException("Seller register request body is required.");
+            throw new IllegalArgumentException("판매자 등록 요청 본문은 필수입니다.");
         }
     }
 
@@ -67,7 +67,7 @@ public class SellerService implements SellerUsecase {
 
     private String normalizeRequired(String value, String fieldName) {
         if (value == null || value.trim().isEmpty()) {
-            throw new IllegalArgumentException(fieldName + " is required.");
+            throw new IllegalArgumentException(fieldName + "은(는) 필수입니다.");
         }
         return value.trim();
     }
