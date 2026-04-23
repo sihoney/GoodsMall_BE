@@ -1,13 +1,13 @@
 package com.example.payment.infrastructure.messaging.kafka;
 
 import com.example.payment.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultMessage;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.todaylunch.common.event.contract.EventEnvelope;
 import java.time.ZoneId;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * payment -> settlement 정산 지급 결과 이벤트를 발행하는 Kafka publisher(발행기)다.

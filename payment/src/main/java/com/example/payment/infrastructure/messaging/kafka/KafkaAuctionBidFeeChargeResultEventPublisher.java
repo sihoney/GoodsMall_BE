@@ -2,12 +2,12 @@ package com.example.payment.infrastructure.messaging.kafka;
 
 import com.example.payment.infrastructure.messaging.kafka.contract.BidFeeChargeFailedMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.BidFeeChargeSucceededMessage;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.todaylunch.common.event.contract.EventEnvelope;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * payment -> auction 경매 입찰 보증금 처리 결과 이벤트를 발행하는 Kafka publisher다.

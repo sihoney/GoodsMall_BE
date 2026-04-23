@@ -4,13 +4,13 @@ import com.example.payment.common.exception.InvalidOrderPaymentRequestException;
 import com.example.payment.application.dto.EscrowReleaseCommand;
 import com.example.payment.application.usecase.EscrowReleaseUseCase;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPurchaseConfirmedMessage;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.todaylunch.common.event.contract.EventEnvelope;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 @Slf4j
 @Component
