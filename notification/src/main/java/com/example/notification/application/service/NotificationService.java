@@ -426,6 +426,115 @@ public class NotificationService implements NotificationUsecase {
         );
     }
 
+    @Override
+    @Transactional
+    public void createAuctionOutbidNotification(
+            UUID eventId,
+            String traceId,
+            UUID auctionId,
+            UUID outbidBidderId,
+            LocalDateTime occurredAt
+    ) {
+        validateCommonArguments(eventId, outbidBidderId, occurredAt);
+        if (auctionId == null) {
+            throw new IllegalArgumentException("auctionId is required.");
+        }
+
+        saveNotification(
+                eventId,
+                traceId,
+                outbidBidderId,
+                NotificationType.BUYER_AUCTION_OUTBID,
+                "최고 입찰가가 갱신되었어요",
+                "참여 중인 경매에서 다른 입찰자가 더 높은 금액을 제시했어요.",
+                auctionId,
+                NotificationReferenceType.AUCTION,
+                occurredAt
+        );
+    }
+
+    @Override
+    @Transactional
+    public void createAuctionWonNotification(
+            UUID eventId,
+            String traceId,
+            UUID auctionId,
+            UUID winnerMemberId,
+            String auctionTitle,
+            Long finalPrice,
+            LocalDateTime occurredAt
+    ) {
+        validateCommonArguments(eventId, winnerMemberId, occurredAt);
+        validateAuctionArguments(auctionId, auctionTitle);
+        validatePositiveAmount(finalPrice, "finalPrice");
+
+        saveNotification(
+                eventId,
+                traceId,
+                winnerMemberId,
+                NotificationType.BUYER_AUCTION_WON,
+                "경매에 낙찰되었어요",
+                auctionTitle + " 경매가 " + finalPrice + "원에 낙찰되었어요.",
+                auctionId,
+                NotificationReferenceType.AUCTION,
+                occurredAt
+        );
+    }
+
+    @Override
+    @Transactional
+    public void createAuctionClosedSoldNotification(
+            UUID eventId,
+            String traceId,
+            UUID auctionId,
+            UUID sellerMemberId,
+            String auctionTitle,
+            Long finalPrice,
+            LocalDateTime occurredAt
+    ) {
+        validateCommonArguments(eventId, sellerMemberId, occurredAt);
+        validateAuctionArguments(auctionId, auctionTitle);
+        validatePositiveAmount(finalPrice, "finalPrice");
+
+        saveNotification(
+                eventId,
+                traceId,
+                sellerMemberId,
+                NotificationType.SELLER_AUCTION_CLOSED_SOLD,
+                "경매가 낙찰로 종료되었어요",
+                auctionTitle + " 경매가 " + finalPrice + "원에 낙찰되었어요.",
+                auctionId,
+                NotificationReferenceType.AUCTION,
+                occurredAt
+        );
+    }
+
+    @Override
+    @Transactional
+    public void createAuctionClosedUnsoldNotification(
+            UUID eventId,
+            String traceId,
+            UUID auctionId,
+            UUID sellerMemberId,
+            String auctionTitle,
+            LocalDateTime occurredAt
+    ) {
+        validateCommonArguments(eventId, sellerMemberId, occurredAt);
+        validateAuctionArguments(auctionId, auctionTitle);
+
+        saveNotification(
+                eventId,
+                traceId,
+                sellerMemberId,
+                NotificationType.SELLER_AUCTION_CLOSED_UNSOLD,
+                "경매가 유찰되었어요",
+                auctionTitle + " 경매가 입찰 없이 종료되었어요.",
+                auctionId,
+                NotificationReferenceType.AUCTION,
+                occurredAt
+        );
+    }
+
     private void saveNotification(
             UUID eventId,
             String traceId,
@@ -506,8 +615,21 @@ public class NotificationService implements NotificationUsecase {
         if (orderId == null) {
             throw new IllegalArgumentException("orderId is required.");
         }
-        if (paidAmount == null || paidAmount <= 0) {
-            throw new IllegalArgumentException("paidAmount must be positive.");
+        validatePositiveAmount(paidAmount, "paidAmount");
+    }
+
+    private void validateAuctionArguments(UUID auctionId, String auctionTitle) {
+        if (auctionId == null) {
+            throw new IllegalArgumentException("auctionId is required.");
+        }
+        if (auctionTitle == null || auctionTitle.isBlank()) {
+            throw new IllegalArgumentException("auctionTitle is required.");
+        }
+    }
+
+    private void validatePositiveAmount(Long amount, String fieldName) {
+        if (amount == null || amount <= 0) {
+            throw new IllegalArgumentException(fieldName + " must be positive.");
         }
     }
 

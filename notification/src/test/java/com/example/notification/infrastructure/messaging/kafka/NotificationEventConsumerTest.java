@@ -9,6 +9,9 @@ import static org.mockito.Mockito.when;
 
 import com.example.notification.application.usecase.NotificationUsecase;
 import com.example.notification.infrastructure.messaging.kafka.consumer.NotificationEventConsumer;
+import com.example.notification.infrastructure.messaging.kafka.contract.AuctionClosedSoldPayload;
+import com.example.notification.infrastructure.messaging.kafka.contract.AuctionClosedUnsoldPayload;
+import com.example.notification.infrastructure.messaging.kafka.contract.AuctionWonPayload;
 import com.example.notification.infrastructure.messaging.kafka.contract.AutoPurchaseConfirmedMessage;
 import com.example.notification.infrastructure.messaging.kafka.contract.MemberSignedUpPayload;
 import com.example.notification.infrastructure.messaging.kafka.contract.OrderCreatedMessage;
@@ -24,6 +27,10 @@ import com.example.notification.infrastructure.messaging.kafka.dlq.NotificationC
 import com.example.notification.infrastructure.messaging.kafka.dlq.NotificationDlqReason;
 import com.example.notification.infrastructure.messaging.kafka.dlq.NotificationDlqPublisher;
 import com.example.notification.infrastructure.messaging.kafka.handler.AutoPurchaseConfirmedNotificationEventHandler;
+import com.example.notification.infrastructure.messaging.kafka.handler.AuctionBidOutbidNotificationEventHandler;
+import com.example.notification.infrastructure.messaging.kafka.handler.AuctionClosedSoldNotificationEventHandler;
+import com.example.notification.infrastructure.messaging.kafka.handler.AuctionClosedUnsoldNotificationEventHandler;
+import com.example.notification.infrastructure.messaging.kafka.handler.AuctionWonNotificationEventHandler;
 import com.example.notification.infrastructure.messaging.kafka.handler.MemberSignedUpNotificationEventHandler;
 import com.example.notification.infrastructure.messaging.kafka.handler.NotificationEventHandlerRegistry;
 import com.example.notification.infrastructure.messaging.kafka.handler.OrderCreatedNotificationEventHandler;
@@ -87,6 +94,21 @@ class NotificationEventConsumerTest {
                         objectMapper
                 ),
                 new SellerSettlementPayoutResultNotificationEventHandler(
+                        notificationUsecase,
+                        objectMapper
+                ),
+                new AuctionBidOutbidNotificationEventHandler(
+                        notificationUsecase
+                ),
+                new AuctionWonNotificationEventHandler(
+                        notificationUsecase,
+                        objectMapper
+                ),
+                new AuctionClosedSoldNotificationEventHandler(
+                        notificationUsecase,
+                        objectMapper
+                ),
+                new AuctionClosedUnsoldNotificationEventHandler(
                         notificationUsecase,
                         objectMapper
                 )
@@ -458,6 +480,127 @@ class NotificationEventConsumerTest {
     }
 
     @Test
+    void listen_dispatchesAuctionWonEvent() throws Exception {
+        UUID eventId = UUID.randomUUID();
+        UUID auctionId = UUID.randomUUID();
+        UUID winnerMemberId = UUID.randomUUID();
+        Instant occurredAt = Instant.parse("2026-04-23T03:00:00Z");
+        EventEnvelope<AuctionWonPayload> envelope = new EventEnvelope<>(
+                eventId,
+                "AUCTION_WON",
+                "auction-service",
+                auctionId,
+                winnerMemberId,
+                occurredAt,
+                "mock-trace-id",
+                new AuctionWonPayload("봄 도시락 세트", BigDecimal.valueOf(150_000L))
+        );
+        String message = objectMapper.writeValueAsString(envelope);
+
+        consumer.listen(message);
+
+        verify(notificationUsecase).createAuctionWonNotification(
+                eventId,
+                "mock-trace-id",
+                auctionId,
+                winnerMemberId,
+                "봄 도시락 세트",
+                150_000L,
+                LocalDateTime.of(2026, 4, 23, 12, 0, 0)
+        );
+    }
+
+    @Test
+    void listen_dispatchesAuctionBidOutbidEventWithNullPayload() throws Exception {
+        UUID eventId = UUID.randomUUID();
+        UUID auctionId = UUID.randomUUID();
+        UUID outbidBidderId = UUID.randomUUID();
+        Instant occurredAt = Instant.parse("2026-04-23T02:55:00Z");
+        EventEnvelope<Void> envelope = new EventEnvelope<>(
+                eventId,
+                "AUCTION_BID_OUTBID",
+                "auction-service",
+                auctionId,
+                outbidBidderId,
+                occurredAt,
+                "mock-trace-id",
+                null
+        );
+        String message = objectMapper.writeValueAsString(envelope);
+
+        consumer.listen(message);
+
+        verify(notificationUsecase).createAuctionOutbidNotification(
+                eventId,
+                "mock-trace-id",
+                auctionId,
+                outbidBidderId,
+                LocalDateTime.of(2026, 4, 23, 11, 55, 0)
+        );
+    }
+
+    @Test
+    void listen_dispatchesAuctionClosedSoldEvent() throws Exception {
+        UUID eventId = UUID.randomUUID();
+        UUID auctionId = UUID.randomUUID();
+        UUID sellerMemberId = UUID.randomUUID();
+        Instant occurredAt = Instant.parse("2026-04-23T03:05:00Z");
+        EventEnvelope<AuctionClosedSoldPayload> envelope = new EventEnvelope<>(
+                eventId,
+                "AUCTION_CLOSED_SOLD",
+                "auction-service",
+                auctionId,
+                sellerMemberId,
+                occurredAt,
+                "mock-trace-id",
+                new AuctionClosedSoldPayload("프리미엄 샐러드", BigDecimal.valueOf(90_000L))
+        );
+        String message = objectMapper.writeValueAsString(envelope);
+
+        consumer.listen(message);
+
+        verify(notificationUsecase).createAuctionClosedSoldNotification(
+                eventId,
+                "mock-trace-id",
+                auctionId,
+                sellerMemberId,
+                "프리미엄 샐러드",
+                90_000L,
+                LocalDateTime.of(2026, 4, 23, 12, 5, 0)
+        );
+    }
+
+    @Test
+    void listen_dispatchesAuctionClosedUnsoldEventWithCurrentAuctionPayload() throws Exception {
+        UUID eventId = UUID.randomUUID();
+        UUID auctionId = UUID.randomUUID();
+        UUID sellerMemberId = UUID.randomUUID();
+        Instant occurredAt = Instant.parse("2026-04-23T03:10:00Z");
+        EventEnvelope<AuctionClosedUnsoldPayload> envelope = new EventEnvelope<>(
+                eventId,
+                "AUCTION_CLOSED_UNSOLD",
+                "auction-service",
+                auctionId,
+                sellerMemberId,
+                occurredAt,
+                "mock-trace-id",
+                new AuctionClosedUnsoldPayload("마감 특가 도시락")
+        );
+        String message = objectMapper.writeValueAsString(envelope);
+
+        consumer.listen(message);
+
+        verify(notificationUsecase).createAuctionClosedUnsoldNotification(
+                eventId,
+                "mock-trace-id",
+                auctionId,
+                sellerMemberId,
+                "마감 특가 도시락",
+                LocalDateTime.of(2026, 4, 23, 12, 10, 0)
+        );
+    }
+
+    @Test
     void listen_publishesToDlqWhenEventTypeIsUnsupported() throws Exception {
         EventEnvelope<Object> envelope = new EventEnvelope<>(
                 UUID.randomUUID(),
@@ -482,6 +625,34 @@ class NotificationEventConsumerTest {
                 any(IllegalArgumentException.class),
                 eq(decision)
         );
+    }
+
+    @Test
+    void listen_publishesToDlqWhenEnvelopeCommonFieldIsMissing() throws Exception {
+        EventEnvelope<Object> envelope = new EventEnvelope<>(
+                UUID.randomUUID(),
+                null,
+                "auction-service",
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                Instant.parse("2026-04-23T02:55:00Z"),
+                "mock-trace-id",
+                null
+        );
+        String message = objectMapper.writeValueAsString(envelope);
+        NotificationConsumerFailureDecision decision =
+                NotificationConsumerFailureDecision.dlq(NotificationDlqReason.INVALID_EVENT_PAYLOAD);
+        when(exceptionClassifier.classify(any(IllegalArgumentException.class))).thenReturn(decision);
+
+        consumer.listen(message);
+
+        verify(notificationDlqPublisher).publish(
+                eq("listenNotificationEvent"),
+                eq(message),
+                any(IllegalArgumentException.class),
+                eq(decision)
+        );
+        verifyNoInteractions(notificationUsecase);
     }
 
     @Test

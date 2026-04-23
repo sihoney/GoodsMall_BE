@@ -18,7 +18,11 @@ public enum NotificationType {
     SELLER_ORDER_RECEIVED(NotificationChannel.INBOX, NotificationChannel.PUSH),
     SELLER_ORDER_CANCELED(NotificationChannel.INBOX, NotificationChannel.PUSH),
     SELLER_SETTLEMENT_PAYOUT_SUCCEEDED(NotificationChannel.INBOX, NotificationChannel.PUSH),
-    SELLER_SETTLEMENT_PAYOUT_FAILED(NotificationChannel.INBOX, NotificationChannel.PUSH);
+    SELLER_SETTLEMENT_PAYOUT_FAILED(NotificationChannel.INBOX, NotificationChannel.PUSH),
+    BUYER_AUCTION_OUTBID(NotificationChannel.INBOX, NotificationChannel.PUSH),
+    BUYER_AUCTION_WON(NotificationChannel.INBOX, NotificationChannel.PUSH),
+    SELLER_AUCTION_CLOSED_SOLD(NotificationChannel.INBOX, NotificationChannel.PUSH),
+    SELLER_AUCTION_CLOSED_UNSOLD(NotificationChannel.INBOX, NotificationChannel.PUSH);
 
     private final Set<NotificationChannel> channels;
 
