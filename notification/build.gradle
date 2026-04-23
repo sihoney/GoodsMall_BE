@@ -41,10 +41,10 @@ dependencies {
     // Swagger
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8'
     // Eureka Client
-    // Config Server
-    implementation 'org.springframework.cloud:spring-cloud-starter-config'
-    // Config Server retry
-    implementation 'org.springframework.retry:spring-retry'
+    // Config Server - disabled for Kubernetes-managed configuration.
+    // implementation 'org.springframework.cloud:spring-cloud-starter-config'
+    // Config Server retry - disabled with Config Client.
+    // implementation 'org.springframework.retry:spring-retry'
     // Test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
