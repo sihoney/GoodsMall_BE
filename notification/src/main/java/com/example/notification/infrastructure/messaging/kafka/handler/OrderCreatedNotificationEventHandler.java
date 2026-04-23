@@ -3,8 +3,6 @@ package com.example.notification.infrastructure.messaging.kafka.handler;
 import com.example.notification.application.usecase.NotificationUsecase;
 import com.example.notification.infrastructure.messaging.kafka.contract.OrderCreatedMessage;
 import com.example.notification.infrastructure.messaging.kafka.dlq.InvalidEventPayloadException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.todaylunch.common.event.contract.EventEnvelope;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -15,6 +13,8 @@ import java.util.Objects;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 @Component
 @RequiredArgsConstructor
