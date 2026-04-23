@@ -1,5 +1,6 @@
 package com.example.member.application.service;
 
+import com.example.member.application.event.MemberEventPublisher;
 import com.example.member.common.exception.InvalidLoginException;
 import com.example.member.config.KakaoOAuthProperties;
 import com.example.member.domain.entity.Member;
@@ -35,6 +36,7 @@ public class KakaoOAuthService {
     private final MemberRepository memberRepository;
     private final MemberOauthAccountRepository memberOauthAccountRepository;
     private final AuthService authService;
+    private final MemberEventPublisher memberEventPublisher;
 
     public String createLoginAuthorizeState() {
         String state = UUID.randomUUID().toString();
@@ -155,16 +157,13 @@ public class KakaoOAuthService {
         memberRepository.findById(memberId).orElseThrow(InvalidLoginException::new);
 
         LocalDateTime now = LocalDateTime.now();
-        memberOauthAccountRepository.save(MemberOauthAccount.create(
-                UUID.randomUUID(),
+        saveLinkedAccount(
                 memberId,
-                PROVIDER,
                 pendingLink.providerUserId(),
                 pendingLink.email(),
                 pendingLink.nickname(),
-                now,
                 now
-        ));
+        );
 
         return new KakaoOAuthLinkResponse(true, PROVIDER.name(), pendingLink.providerUserId());
     }
@@ -233,16 +232,7 @@ public class KakaoOAuthService {
         }
 
         LocalDateTime now = LocalDateTime.now();
-        memberOauthAccountRepository.save(MemberOauthAccount.create(
-                UUID.randomUUID(),
-                memberId,
-                PROVIDER,
-                providerUserId,
-                email,
-                nickname,
-                now,
-                now
-        ));
+        saveLinkedAccount(memberId, providerUserId, email, nickname, now);
 
         return KakaoOAuthResultResponse.success(
                 PROVIDER.name(),
@@ -291,6 +281,34 @@ public class KakaoOAuthService {
                 providerUserId,
                 pendingLink.email(),
                 pendingLink.nickname()
+        );
+    }
+
+    private void saveLinkedAccount(
+            UUID memberId,
+            String providerUserId,
+            String email,
+            String nickname,
+            LocalDateTime linkedAt
+    ) {
+        memberOauthAccountRepository.save(MemberOauthAccount.create(
+                UUID.randomUUID(),
+                memberId,
+                PROVIDER,
+                providerUserId,
+                email,
+                nickname,
+                linkedAt,
+                linkedAt
+        ));
+
+        memberEventPublisher.publishMemberOauthLinked(
+                memberId,
+                PROVIDER.name(),
+                providerUserId,
+                email,
+                nickname,
+                linkedAt
         );
     }
 

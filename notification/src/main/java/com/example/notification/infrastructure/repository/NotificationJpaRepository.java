@@ -10,7 +10,7 @@ public interface NotificationJpaRepository extends JpaRepository<Notification, U
 
     Page<Notification> findAllByMemberIdOrderByCreatedAtDesc(UUID memberId, Pageable pageable);
 
-    boolean existsByEventId(UUID eventId);
+    boolean existsByEventIdAndMemberIdAndType(UUID eventId, UUID memberId, com.example.notification.domain.enumtype.NotificationType type);
 
     long countByMemberIdAndReadFalse(UUID memberId);
 }

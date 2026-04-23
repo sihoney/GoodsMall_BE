@@ -14,6 +14,7 @@ public interface AccountVerificationUsecase {
 
     AccountVerificationConfirmResponse confirmAccountVerification(
             UUID memberId,
+            UUID authSessionId,
             String sessionId,
             AccountVerificationConfirmRequest request
     );

@@ -1,5 +1,6 @@
 package com.example.member.application.service;
 
+import com.example.member.application.event.MemberEventPublisher;
 import com.example.member.common.exception.AccountVerificationNotAllowedException;
 import com.example.member.common.exception.AccountVerificationNotFoundException;
 import com.example.member.common.exception.MemberNotFoundException;
@@ -28,6 +29,7 @@ public class SellerPromotionService {
     private final SellerRepository sellerRepository;
     private final MemberRepository memberRepository;
     private final AccountEncryptionService accountEncryptionService;
+    private final MemberEventPublisher memberEventPublisher;
 
     @Transactional
     public void promoteAfterAccountVerified(UUID memberId, String sessionId) {
@@ -64,6 +66,7 @@ public class SellerPromotionService {
 
         sellerRepository.save(seller);
         member.changeRole(MemberRole.SELLER, now);
+        memberEventPublisher.publishSellerPromoted(member, seller);
 
         sellerDraftStore.deleteDraft(draft.getDraftId());
         sellerDraftStore.deleteCurrentDraft(memberId);
