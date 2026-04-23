@@ -13,6 +13,8 @@ spec:
       labels:
         app: postgres          # Pod에 붙는 라벨
     spec:
+      nodeSelector:
+        role: infra
       containers:
         - name: postgres
           image: pgvector/pgvector:pg18

@@ -16,6 +16,8 @@ spec:
         app: kafka
     spec:
       enableServiceLinks: false
+      nodeSelector:
+        role: infra
       containers:
         - name: kafka
           image: confluentinc/cp-kafka:7.5.0
