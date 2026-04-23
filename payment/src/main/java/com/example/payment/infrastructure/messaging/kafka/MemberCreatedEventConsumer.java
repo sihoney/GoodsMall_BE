@@ -4,8 +4,6 @@ import com.example.payment.application.dto.CreateWalletCommand;
 import com.example.payment.application.usecase.CreateWalletUseCase;
 import com.example.payment.common.exception.InvalidChargeRequestException;
 import com.example.payment.infrastructure.messaging.kafka.contract.MemberSignedUpPayload;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.todaylunch.common.event.contract.EventEnvelope;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -13,6 +11,8 @@ import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 @Slf4j
 @Component

@@ -3,12 +3,12 @@ package com.example.settlement.infrastructure.messaging.kafka;
 import com.example.settlement.application.dto.SettlementItemCreateCommand;
 import com.example.settlement.application.usecase.MonthlySettlementUseCase;
 import com.example.settlement.infrastructure.messaging.kafka.contract.SettlementCandidateCreatedMessage;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * payment -> settlement 정산 후보 알림 이벤트를 소비해 settlement item으로 적재한다.

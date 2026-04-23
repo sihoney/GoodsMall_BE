@@ -2,10 +2,10 @@ package com.example.settlement.infrastructure.messaging.kafka;
 
 import com.example.settlement.application.usecase.SettlementPayoutUseCase;
 import com.example.settlement.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultMessage;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * payment -> settlement 정산 지급 결과 이벤트를 소비하는 Kafka consumer(소비기)다.

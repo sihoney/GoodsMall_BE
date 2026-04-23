@@ -11,13 +11,16 @@ import com.example.payment.domain.service.TimeProvider;
 import com.example.payment.infrastructure.messaging.kafka.contract.BidFeeChargeFailedMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.BidFeeChargeRequestMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.BidFeeChargeSucceededMessage;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.todaylunch.common.event.contract.EventEnvelope;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * auction -> payment 경매 입찰 보증금 처리 요청 이벤트를 소비한다.
@@ -27,6 +30,10 @@ import org.springframework.stereotype.Component;
 public class AuctionBidFeeChargeRequestedEventConsumer {
 
     private static final ZoneId KOREA_ZONE_ID = ZoneId.of("Asia/Seoul");
+    private static final String BID_FEE_CHARGE_REQUESTED_EVENT_TYPE = "BID_FEE_CHARGE_REQUESTED";
+    private static final TypeReference<EventEnvelope<BidFeeChargeRequestMessage>> BID_FEE_CHARGE_REQUESTED_ENVELOPE_TYPE =
+            new TypeReference<>() {
+            };
 
     private final AuctionDepositUseCase auctionDepositUseCase;
     private final KafkaAuctionBidFeeChargeResultEventPublisher resultEventPublisher;
@@ -54,7 +61,9 @@ public class AuctionBidFeeChargeRequestedEventConsumer {
             containerFactory = "auctionBidFeeChargeRequestedKafkaListenerContainerFactory"
     )
     public void listen(String eventJson) {
-        BidFeeChargeRequestMessage event = readEvent(eventJson);
+        EventEnvelope<BidFeeChargeRequestMessage> envelope = readEnvelope(eventJson);
+        validateEnvelope(envelope);
+        BidFeeChargeRequestMessage event = envelope.payload();
 
         try {
             validateEvent(event);
@@ -74,12 +83,46 @@ public class AuctionBidFeeChargeRequestedEventConsumer {
         }
     }
 
-    private BidFeeChargeRequestMessage readEvent(String eventJson) {
+    private EventEnvelope<BidFeeChargeRequestMessage> readEnvelope(String eventJson) {
         try {
-            return objectMapper.readValue(eventJson, BidFeeChargeRequestMessage.class);
+            return objectMapper.readValue(eventJson, BID_FEE_CHARGE_REQUESTED_ENVELOPE_TYPE);
         } catch (Exception e) {
             log.error("경매 입찰 보증금 처리 요청 이벤트 역직렬화에 실패했습니다.", e);
             throw new RuntimeException("경매 입찰 보증금 처리 요청 이벤트 역직렬화에 실패했습니다.", e);
+        }
+    }
+
+    private void validateEnvelope(EventEnvelope<BidFeeChargeRequestMessage> envelope) {
+        if (envelope == null) {
+            throw new AuctionBidFeeEventValidationException(ErrorCode.AUCTION_BID_FEE_EVENT_REQUIRED);
+        }
+        if (envelope.eventId() == null) {
+            throw new AuctionBidFeeEventValidationException(ErrorCode.AUCTION_BID_FEE_EVENT_REQUIRED);
+        }
+        if (!BID_FEE_CHARGE_REQUESTED_EVENT_TYPE.equals(envelope.eventType())) {
+            throw new AuctionBidFeeEventValidationException(ErrorCode.AUCTION_BID_FEE_EVENT_REQUIRED);
+        }
+        if (envelope.source() == null || envelope.source().isBlank()) {
+            throw new AuctionBidFeeEventValidationException(ErrorCode.AUCTION_BID_FEE_EVENT_REQUIRED);
+        }
+        if (envelope.aggregateId() == null) {
+            throw new AuctionBidFeeEventValidationException(ErrorCode.AUCTION_BID_FEE_AUCTION_ID_REQUIRED);
+        }
+        if (envelope.occurredAt() == null) {
+            throw new AuctionBidFeeEventValidationException(ErrorCode.AUCTION_BID_FEE_EVENT_REQUIRED);
+        }
+        if (envelope.traceId() == null || envelope.traceId().isBlank()) {
+            throw new AuctionBidFeeEventValidationException(ErrorCode.AUCTION_BID_FEE_EVENT_REQUIRED);
+        }
+        if (envelope.payload() == null) {
+            throw new AuctionBidFeeEventValidationException(ErrorCode.AUCTION_BID_FEE_EVENT_REQUIRED);
+        }
+        if (!Objects.equals(envelope.aggregateId(), envelope.payload().auctionId())) {
+            throw new AuctionBidFeeEventValidationException(ErrorCode.AUCTION_BID_FEE_AUCTION_ID_REQUIRED);
+        }
+        if (envelope.recipientId() != null
+                && !Objects.equals(envelope.recipientId(), envelope.payload().highestBidderId())) {
+            throw new AuctionBidFeeEventValidationException(ErrorCode.AUCTION_BID_FEE_HIGHEST_BIDDER_REQUIRED);
         }
     }
 
