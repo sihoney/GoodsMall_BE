@@ -21,9 +21,9 @@ import com.example.notification.infrastructure.messaging.kafka.dlq.NotificationD
 import com.example.notification.infrastructure.messaging.kafka.handler.MemberSignedUpNotificationEventHandler;
 import com.example.notification.infrastructure.messaging.kafka.handler.NotificationEventHandlerRegistry;
 import com.example.notification.infrastructure.messaging.kafka.handler.OrderPaymentResultNotificationEventHandler;
+import com.todaylunch.common.event.contract.EventEnvelope;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
-import com.todaylunch.common.event.contract.EventEnvelope;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -53,6 +53,7 @@ class NotificationEventConsumerTest {
 
     @BeforeEach
     void setUp() {
+        // Matches the Jackson 3 ObjectMapper used by the notification runtime configuration.
         objectMapper = JsonMapper.builder().findAndAddModules().build();
 
         NotificationEventHandlerRegistry registry = new NotificationEventHandlerRegistry(List.of(
