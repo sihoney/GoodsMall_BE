@@ -9,11 +9,13 @@ import com.example.member.common.exception.AccountVerificationResendLimitExceede
 import com.example.member.common.exception.ExpiredAccountVerificationException;
 import com.example.member.common.exception.InvalidAccountVerificationCodeException;
 import com.example.member.config.AccountVerificationProperties;
-import com.example.member.infrastructure.crypto.AccountEncryptionService;
 import com.example.member.domain.entity.Member;
 import com.example.member.domain.enumtype.AccountVerificationStatus;
+import com.example.member.infrastructure.crypto.AccountEncryptionService;
 import com.example.member.infrastructure.redis.AccountVerificationSession;
 import com.example.member.infrastructure.redis.AccountVerificationSessionStore;
+import com.example.member.infrastructure.redis.ParsedRefreshToken;
+import com.example.member.infrastructure.redis.RefreshTokenStore;
 import com.example.member.infrastructure.redis.SellerDraft;
 import com.example.member.infrastructure.redis.SellerDraftStore;
 import com.example.member.infrastructure.repository.MemberRepository;
@@ -23,6 +25,7 @@ import com.example.member.presentation.dto.AccountVerificationConfirmResponse;
 import com.example.member.presentation.dto.AccountVerificationCreateRequest;
 import com.example.member.presentation.dto.AccountVerificationCurrentResponse;
 import com.example.member.presentation.dto.AccountVerificationSendResponse;
+import com.example.member.security.JwtTokenProvider;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -48,6 +51,8 @@ public class AccountVerificationService implements AccountVerificationUsecase {
     private final SellerDraftStore sellerDraftStore;
     private final AccountEncryptionService accountEncryptionService;
     private final SellerPromotionService sellerPromotionService;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final RefreshTokenStore refreshTokenStore;
     private final AccountVerificationProperties properties;
     private final MemberEventPublisher memberEventPublisher;
 
@@ -115,6 +120,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
     @Transactional
     public AccountVerificationConfirmResponse confirmAccountVerification(
             UUID memberId,
+            UUID authSessionId,
             String sessionId,
             AccountVerificationConfirmRequest request
     ) {
@@ -132,7 +138,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
 
             if (session.isVerified()) {
                 sellerPromotionService.promoteAfterAccountVerified(memberId, sessionId);
-                return buildConfirmResponse(session);
+                return buildConfirmResponse(session, issuePromotedTokens(memberId, authSessionId));
             }
 
             if (!session.canConfirm()) {
@@ -159,7 +165,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
             session.markVerified(now);
             sessionStore.saveSession(session, properties.expiration());
             sellerPromotionService.promoteAfterAccountVerified(memberId, sessionId);
-            return buildConfirmResponse(session);
+            return buildConfirmResponse(session, issuePromotedTokens(memberId, authSessionId));
         } finally {
             sessionStore.releaseLock(sessionId);
         }
@@ -306,13 +312,40 @@ public class AccountVerificationService implements AccountVerificationUsecase {
         );
     }
 
-    private AccountVerificationConfirmResponse buildConfirmResponse(AccountVerificationSession session) {
+    private AccountVerificationConfirmResponse buildConfirmResponse(
+            AccountVerificationSession session,
+            AccountVerificationConfirmResponse.AuthTokens authTokens
+    ) {
         return new AccountVerificationConfirmResponse(
                 session.getSessionId(),
                 true,
                 session.getStatus().name(),
                 session.getVerifiedAt(),
-                session.getAttemptCount()
+                session.getAttemptCount(),
+                authTokens
+        );
+    }
+
+    private AccountVerificationConfirmResponse.AuthTokens issuePromotedTokens(UUID memberId, UUID authSessionId) {
+        Member member = getMember(memberId);
+        String accessToken = jwtTokenProvider.createAccessToken(member, authSessionId);
+        String refreshToken = jwtTokenProvider.createRefreshToken(member, authSessionId);
+        ParsedRefreshToken parsedRefreshToken = jwtTokenProvider.parseRefreshToken(refreshToken);
+        Duration refreshTtl = Duration.ofMillis(jwtTokenProvider.getRefreshExpiration());
+
+        if (refreshTokenStore.findBySessionId(authSessionId).isPresent()) {
+            refreshTokenStore.updateRefreshTokenId(authSessionId, parsedRefreshToken.refreshTokenId(), refreshTtl);
+        } else {
+            refreshTokenStore.createSession(memberId, authSessionId, parsedRefreshToken.refreshTokenId(), refreshTtl);
+        }
+
+        return new AccountVerificationConfirmResponse.AuthTokens(
+                accessToken,
+                refreshToken,
+                "Bearer",
+                jwtTokenProvider.getAccessExpiration(),
+                jwtTokenProvider.getRefreshExpiration(),
+                authSessionId
         );
     }
 
