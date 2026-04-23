@@ -1,10 +1,10 @@
 package com.example.settlement.infrastructure.messaging.kafka;
 
 import com.example.settlement.infrastructure.messaging.kafka.contract.SellerSettlementPayoutRequestedMessage;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * settlement -> payment 정산 지급 요청 이벤트를 발행하는 Kafka publisher(발행기)다.
