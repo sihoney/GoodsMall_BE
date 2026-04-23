@@ -57,7 +57,7 @@ class NotificationPushServiceTest {
                 UUID.randomUUID(),
                 "trace-id",
                 memberId,
-                NotificationType.MEMBER_SIGNED_UP,
+                NotificationType.BUYER_SIGNUP_COMPLETED,
                 "Welcome",
                 "Hello",
                 null,
@@ -73,8 +73,8 @@ class NotificationPushServiceTest {
         notificationPushService.push(response);
 
         verify(emitter).send(any(SseEmitter.SseEventBuilder.class));
-        verify(notificationMetricsRecorder).recordPushAttempt(NotificationType.MEMBER_SIGNED_UP);
-        verify(notificationMetricsRecorder).recordPushSuccess(NotificationType.MEMBER_SIGNED_UP);
+        verify(notificationMetricsRecorder).recordPushAttempt(NotificationType.BUYER_SIGNUP_COMPLETED);
+        verify(notificationMetricsRecorder).recordPushSuccess(NotificationType.BUYER_SIGNUP_COMPLETED);
         assertThat(notification.getStatus()).isEqualTo(NotificationStatus.PUSHED);
     }
 
@@ -87,7 +87,7 @@ class NotificationPushServiceTest {
                 UUID.randomUUID(),
                 "trace-id",
                 memberId,
-                NotificationType.MEMBER_SIGNED_UP,
+                NotificationType.BUYER_SIGNUP_COMPLETED,
                 "Welcome",
                 "Hello",
                 null,
@@ -102,8 +102,8 @@ class NotificationPushServiceTest {
 
         notificationPushService.push(response);
 
-        verify(notificationMetricsRecorder).recordPushAttempt(NotificationType.MEMBER_SIGNED_UP);
-        verify(notificationMetricsRecorder).recordEmitterMissing(NotificationType.MEMBER_SIGNED_UP);
+        verify(notificationMetricsRecorder).recordPushAttempt(NotificationType.BUYER_SIGNUP_COMPLETED);
+        verify(notificationMetricsRecorder).recordEmitterMissing(NotificationType.BUYER_SIGNUP_COMPLETED);
         assertThat(notification.getStatus()).isEqualTo(NotificationStatus.STORED);
     }
 
@@ -116,7 +116,7 @@ class NotificationPushServiceTest {
                 UUID.randomUUID(),
                 "trace-id",
                 memberId,
-                NotificationType.MEMBER_SIGNED_UP,
+                NotificationType.BUYER_SIGNUP_COMPLETED,
                 "Welcome",
                 "Hello",
                 null,
@@ -130,8 +130,8 @@ class NotificationPushServiceTest {
 
         notificationPushService.push(response);
 
-        verify(notificationMetricsRecorder).recordPushAttempt(NotificationType.MEMBER_SIGNED_UP);
-        verify(notificationMetricsRecorder).recordPushSkippedAlreadyPushed(NotificationType.MEMBER_SIGNED_UP);
+        verify(notificationMetricsRecorder).recordPushAttempt(NotificationType.BUYER_SIGNUP_COMPLETED);
+        verify(notificationMetricsRecorder).recordPushSkippedAlreadyPushed(NotificationType.BUYER_SIGNUP_COMPLETED);
         verify(emitterRegistry, never()).find(memberId);
         verify(notificationJpaRepository, never()).saveAndFlush(any());
         assertThat(notification.getStatus()).isEqualTo(NotificationStatus.PUSHED);

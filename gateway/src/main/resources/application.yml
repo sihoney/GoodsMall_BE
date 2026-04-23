@@ -213,6 +213,9 @@ gateway:
       - methods: [GET, PUT]
         pattern: /api/members/me
         allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [GET, POST]
+        pattern: /api/members/me/account-verifications/**
+        allowed-roles: [USER, SELLER, ADMIN]
       - methods: [GET, DELETE]
         pattern: /api/members/me/oauth-accounts/**
         allowed-roles: [USER, SELLER, ADMIN]

@@ -1,13 +1,13 @@
 package com.example.notification.infrastructure.messaging.kafka.handler;
 
-import com.example.notification.application.dto.NotificationCommand;
-import com.example.notification.application.mapper.NotificationEventMapper;
 import com.example.notification.application.usecase.NotificationUsecase;
 import com.example.notification.infrastructure.messaging.kafka.contract.MemberSignedUpPayload;
 import com.example.notification.infrastructure.messaging.kafka.dlq.InvalidEventPayloadException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import com.todaylunch.common.event.contract.EventEnvelope;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -16,9 +16,9 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class MemberSignedUpNotificationEventHandler implements NotificationEventHandler {
 
+    private static final ZoneId KOREA_ZONE_ID = ZoneId.of("Asia/Seoul");
     private static final String MEMBER_SIGNED_UP_EVENT_TYPE = "MEMBER_SIGNED_UP";
 
-    private final NotificationEventMapper notificationEventMapper;
     private final NotificationUsecase notificationUsecase;
     private final ObjectMapper objectMapper;
 
@@ -42,8 +42,12 @@ public class MemberSignedUpNotificationEventHandler implements NotificationEvent
 
         validateMemberSignedUpEvent(typedEvent);
 
-        NotificationCommand command = notificationEventMapper.toCommand(typedEvent);
-        notificationUsecase.createNotification(command);
+        notificationUsecase.createMemberSignedUpNotification(
+                typedEvent.eventId(),
+                typedEvent.traceId(),
+                typedEvent.recipientId(),
+                LocalDateTime.ofInstant(typedEvent.occurredAt(), KOREA_ZONE_ID)
+        );
     }
 
     private void validateMemberSignedUpEvent(EventEnvelope<MemberSignedUpPayload> event) {

@@ -53,7 +53,7 @@ class MemberReportServiceTest {
     void createReport_success_savesReport() {
         UUID reporterId = UUID.randomUUID();
         UUID reportedMemberId = UUID.randomUUID();
-        AuthenticatedMember reporter = new AuthenticatedMember(reporterId, MemberRole.USER);
+        AuthenticatedMember reporter = new AuthenticatedMember(reporterId, MemberRole.USER, UUID.randomUUID());
         CreateMemberReportRequest request = new CreateMemberReportRequest(
                 reportedMemberId,
                 "spam messages",
@@ -77,7 +77,7 @@ class MemberReportServiceTest {
     @Test
     void createReport_selfReport_throwsException() {
         UUID memberId = UUID.randomUUID();
-        AuthenticatedMember reporter = new AuthenticatedMember(memberId, MemberRole.USER);
+        AuthenticatedMember reporter = new AuthenticatedMember(memberId, MemberRole.USER, UUID.randomUUID());
         CreateMemberReportRequest request = new CreateMemberReportRequest(
                 memberId,
                 "self report",
@@ -91,7 +91,7 @@ class MemberReportServiceTest {
     void createReport_duplicatePendingReport_throwsException() {
         UUID reporterId = UUID.randomUUID();
         UUID reportedMemberId = UUID.randomUUID();
-        AuthenticatedMember reporter = new AuthenticatedMember(reporterId, MemberRole.USER);
+        AuthenticatedMember reporter = new AuthenticatedMember(reporterId, MemberRole.USER, UUID.randomUUID());
         CreateMemberReportRequest request = new CreateMemberReportRequest(
                 reportedMemberId,
                 "fraud",
@@ -110,7 +110,7 @@ class MemberReportServiceTest {
     void approveReport_withRestriction_createsRestriction() {
         UUID adminId = UUID.randomUUID();
         UUID reportedMemberId = UUID.randomUUID();
-        AuthenticatedMember admin = new AuthenticatedMember(adminId, MemberRole.ADMIN);
+        AuthenticatedMember admin = new AuthenticatedMember(adminId, MemberRole.ADMIN, UUID.randomUUID());
         MemberReport memberReport = MemberReport.create(
                 UUID.randomUUID(),
                 UUID.randomUUID(),
@@ -136,7 +136,7 @@ class MemberReportServiceTest {
 
     @Test
     void getReportDetail_success_returnsReport() {
-        AuthenticatedMember admin = new AuthenticatedMember(UUID.randomUUID(), MemberRole.ADMIN);
+        AuthenticatedMember admin = new AuthenticatedMember(UUID.randomUUID(), MemberRole.ADMIN, UUID.randomUUID());
         MemberReport memberReport = MemberReport.create(
                 UUID.randomUUID(),
                 UUID.randomUUID(),
@@ -156,7 +156,7 @@ class MemberReportServiceTest {
 
     @Test
     void getReportDetail_missingReport_throwsException() {
-        AuthenticatedMember admin = new AuthenticatedMember(UUID.randomUUID(), MemberRole.ADMIN);
+        AuthenticatedMember admin = new AuthenticatedMember(UUID.randomUUID(), MemberRole.ADMIN, UUID.randomUUID());
         UUID reportId = UUID.randomUUID();
 
         when(memberReportRepository.findById(reportId)).thenReturn(Optional.empty());
