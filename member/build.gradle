@@ -51,10 +51,10 @@ dependencies {
     // password hashing only
     implementation 'org.springframework.security:spring-security-crypto'
     // Eureka Client
-    // Config Server
-    implementation 'org.springframework.cloud:spring-cloud-starter-config'
-    // Config Server retry
-    implementation 'org.springframework.retry:spring-retry'
+    // Config Server - disabled for Kubernetes-managed configuration.
+    // implementation 'org.springframework.cloud:spring-cloud-starter-config'
+    // Config Server retry - disabled with Config Client.
+    // implementation 'org.springframework.retry:spring-retry'
     // AWS S3 presigned URL
     implementation 'software.amazon.awssdk:s3:2.31.57'
     implementation 'software.amazon.awssdk:auth:2.31.57'
