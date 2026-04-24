@@ -26,15 +26,15 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/members/me/account-verifications")
-@Tag(name = "Account Verification", description = "계좌 인증 API")
+@Tag(name = "Account Verification", description = "계정 인증 API")
 public class AccountVerificationController {
 
     private final AccountVerificationUsecase accountVerificationUsecase;
 
     @PostMapping
     @Operation(
-            summary = "계좌 인증 요청 생성",
-            description = "회원의 계좌 인증 세션과 seller draft 를 생성하고 인증 코드를 반환합니다."
+            summary = "계정 인증 요청 생성",
+            description = "회원의 계정 인증 세션과 seller draft 를 생성하고 인증 코드를 반환합니다."
     )
     public ResponseEntity<ApiResponse<AccountVerificationSendResponse>> createAccountVerification(
             @CurrentMember AuthenticatedMember authenticatedMember,
@@ -48,13 +48,13 @@ public class AccountVerificationController {
 
     @PostMapping("/{sessionId}/confirm")
     @Operation(
-            summary = "계좌 인증 확인",
-            description = "입력한 인증 코드를 검증하고 세션을 VERIFIED 로 변경한 뒤, 판매자 전환을 진행합니다."
+            summary = "계정 인증 확인",
+            description = "입력된 인증 코드를 검증하고 세션을 VERIFIED 로 변경한 뒤, 인증을 완료합니다."
     )
     public ResponseEntity<ApiResponse<AccountVerificationConfirmResponse>> confirmAccountVerification(
             @CurrentMember AuthenticatedMember authenticatedMember,
-            @Parameter(description = "계좌 인증 세션 ID", example = "av_01J4XYZ")
-            @PathVariable String sessionId,
+            @Parameter(description = "계정 인증 세션 ID", example = "av_01J4XYZ")
+            @PathVariable(name = "sessionId") String sessionId,
             @RequestBody AccountVerificationConfirmRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.success(
@@ -69,8 +69,8 @@ public class AccountVerificationController {
 
     @GetMapping("/current")
     @Operation(
-            summary = "현재 계좌 인증 상태 조회",
-            description = "현재 진행 중인 계좌 인증 세션과 draft 정보를 조회합니다."
+            summary = "현재 계정 인증 상태 조회",
+            description = "현재 진행 중인 계정 인증 세션과 draft 정보를 조회합니다."
     )
     public ResponseEntity<ApiResponse<AccountVerificationCurrentResponse>> getCurrentAccountVerification(
             @CurrentMember AuthenticatedMember authenticatedMember
@@ -82,13 +82,13 @@ public class AccountVerificationController {
 
     @PostMapping("/{sessionId}/resend")
     @Operation(
-            summary = "계좌 인증 코드 재전송",
-            description = "기존 인증 코드를 무효화하고 새 인증 코드를 발급합니다."
+            summary = "계정 인증 코드 재전송",
+            description = "기존 인증 코드를 무효화하고 새 인증 코드를 발송합니다."
     )
     public ResponseEntity<ApiResponse<AccountVerificationSendResponse>> resendAccountVerification(
             @CurrentMember AuthenticatedMember authenticatedMember,
-            @Parameter(description = "계좌 인증 세션 ID", example = "av_01J4XYZ")
-            @PathVariable String sessionId
+            @Parameter(description = "계정 인증 세션 ID", example = "av_01J4XYZ")
+            @PathVariable(name = "sessionId") String sessionId
     ) {
         return ResponseEntity.ok(ApiResponse.success(
                 accountVerificationUsecase.resendAccountVerification(authenticatedMember.memberId(), sessionId)
@@ -97,13 +97,13 @@ public class AccountVerificationController {
 
     @PostMapping("/{sessionId}/cancel")
     @Operation(
-            summary = "계좌 인증 취소",
-            description = "진행 중인 계좌 인증 세션을 취소합니다."
+            summary = "계정 인증 취소",
+            description = "진행 중인 계정 인증 세션을 취소합니다."
     )
     public ResponseEntity<ApiResponse<AccountVerificationCancelResponse>> cancelAccountVerification(
             @CurrentMember AuthenticatedMember authenticatedMember,
-            @Parameter(description = "계좌 인증 세션 ID", example = "av_01J4XYZ")
-            @PathVariable String sessionId
+            @Parameter(description = "계정 인증 세션 ID", example = "av_01J4XYZ")
+            @PathVariable(name = "sessionId") String sessionId
     ) {
         return ResponseEntity.ok(ApiResponse.success(
                 accountVerificationUsecase.cancelAccountVerification(authenticatedMember.memberId(), sessionId)

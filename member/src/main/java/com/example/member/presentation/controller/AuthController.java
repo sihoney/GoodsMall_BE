@@ -108,9 +108,9 @@ public class AuthController {
     @GetMapping("/oauth/kakao/callback")
     @Operation(summary = "카카오 OAuth 콜백", description = "카카오 인증 결과를 resultKey로 저장하고 프론트로 리다이렉트합니다.")
     public ResponseEntity<Void> kakaoCallback(
-            @RequestParam(required = false) String code,
-            @RequestParam(required = false) String state,
-            @RequestParam(required = false) String error,
+            @RequestParam(name = "code", required = false) String code,
+            @RequestParam(name = "state", required = false) String state,
+            @RequestParam(name = "error", required = false) String error,
             @RequestParam(name = "error_description", required = false) String errorDescription
     ) {
         KakaoOAuthFlowType flowType = KakaoOAuthFlowType.LOGIN;
@@ -150,7 +150,7 @@ public class AuthController {
     @GetMapping("/oauth/kakao/result")
     @Operation(summary = "카카오 OAuth 결과 조회", description = "1회용 resultKey로 카카오 OAuth 결과를 조회합니다.")
     public ResponseEntity<ApiResponse<KakaoOAuthResultResponse>> getKakaoOAuthResult(
-            @RequestParam String resultKey
+            @RequestParam(name = "resultKey") String resultKey
     ) {
         return ResponseEntity.ok(ApiResponse.success(
                 kakaoOAuthService.consumeOAuthResult(resultKey)
@@ -170,7 +170,7 @@ public class AuthController {
 
     @PostMapping("/logout/{memberId}")
     @Operation(summary = "로그아웃", description = "회원의 모든 리프레시 세션을 삭제합니다.")
-    public ResponseEntity<ApiResponse<Void>> logout(@PathVariable UUID memberId) {
+    public ResponseEntity<ApiResponse<Void>> logout(@PathVariable(name = "memberId") UUID memberId) {
         authUsecase.logout(memberId);
         return ResponseEntity.ok(ApiResponse.success(null));
     }
