@@ -51,11 +51,7 @@ dependencies {
     testCompileOnly 'org.projectlombok:lombok'
     testAnnotationProcessor 'org.projectlombok:lombok'
 
-    // Eureka 서버 등록
-    // Config Server에서 설정을 가져오기 위한 클라이언트
-    implementation 'org.springframework.cloud:spring-cloud-starter-config'
-    // Config Server retry
-    implementation 'org.springframework.retry:spring-retry'
+
 
     implementation 'org.springframework.boot:spring-boot-starter-data-elasticsearch'
     implementation 'org.springframework.kafka:spring-kafka'
