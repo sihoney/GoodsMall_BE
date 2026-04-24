@@ -3,6 +3,7 @@ package com.example.ai.presentation.dto.request;
 import com.example.ai.application.dto.AuctionPriceRecommendationCommand;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import java.math.BigDecimal;
@@ -18,7 +19,7 @@ public record AuctionPriceRecommendationRequest(
         UUID productId,
 
         @Schema(description = "상품명", example = "한정판 콜라보 후드 (경매)")
-        @NotNull
+        @NotBlank
         String productName,
 
         @Schema(description = "현재 최고 입찰가", example = "72000")
@@ -52,7 +53,7 @@ public record AuctionPriceRecommendationRequest(
         Long remainingSeconds,
 
         @Schema(description = "경매 상태", example = "ACTIVE")
-        @NotNull
+        @NotBlank
         String auctionStatus,
 
         @Schema(description = "현재 입찰 존재 여부", example = "true")
@@ -63,28 +64,20 @@ public record AuctionPriceRecommendationRequest(
         return new AuctionPriceRecommendationCommand(
                 auctionId,
                 productId,
-                normalizeRequiredText(productName, "productName"),
+                normalizeText(productName),
                 currentBidPrice,
                 startPrice,
                 bidUnit,
                 nextMinimumBidPrice,
                 bidCount,
                 remainingSeconds,
-                normalizeRequiredText(auctionStatus, "auctionStatus"),
+                normalizeText(auctionStatus),
                 hasBid
         );
     }
 
-    private String normalizeRequiredText(String value, String fieldName) {
-        if (value == null) {
-            throw new IllegalArgumentException(fieldName + "는 필수입니다.");
-        }
-
-        String trimmedValue = value.trim();
-        if (trimmedValue.isEmpty()) {
-            throw new IllegalArgumentException(fieldName + "는 비어 있을 수 없습니다.");
-        }
-        return trimmedValue;
+    private String normalizeText(String value) {
+        return value == null ? null : value.trim();
     }
 }
 

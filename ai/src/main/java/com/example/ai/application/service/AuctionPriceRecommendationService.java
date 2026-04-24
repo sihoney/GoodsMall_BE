@@ -113,12 +113,6 @@ public class AuctionPriceRecommendationService implements AuctionPriceRecommenda
         if (command.remainingSeconds() != null && command.remainingSeconds() < 0L) {
             throw new AuctionPriceRecommendationRequestInvalidException("remainingSeconds는 0 이상이어야 합니다.");
         }
-        if (command.productName() == null || command.productName().isBlank()) {
-            throw new AuctionPriceRecommendationRequestInvalidException("productName은 비어 있을 수 없습니다.");
-        }
-        if (command.auctionStatus() == null || command.auctionStatus().isBlank()) {
-            throw new AuctionPriceRecommendationRequestInvalidException("auctionStatus는 비어 있을 수 없습니다.");
-        }
     }
 }
 
