@@ -41,9 +41,9 @@ public class BidCreateService implements BidCreateUseCase {
     public BidResponse place(UUID auctionId, UUID bidderId, BidPlaceRequest request) {
 
         Auction auction = auctionRepository.findByIdWithLock(auctionId);
-        auction.applyConfirmedBid(bidderId,
-                                  request.bidPrice(),
-                                  LocalDateTime.now());
+        auction.validatePendingBid(bidderId,
+                                   request.bidPrice(),
+                                   LocalDateTime.now());
 
         Optional<Bid> previousBid = bidRepository.findActiveByAuctionId(auctionId);
 
