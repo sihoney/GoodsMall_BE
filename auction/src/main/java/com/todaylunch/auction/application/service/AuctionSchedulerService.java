@@ -26,7 +26,6 @@ public class AuctionSchedulerService {
 
     @Transactional
     @Scheduled(fixedRate = 1000 * 10)
-    @Transactional
     public void startWaitingAuctions() {
         List<Auction> auctions = auctionRepository.findStartable(LocalDateTime.now());
         auctions.forEach(Auction::start);
@@ -34,7 +33,6 @@ public class AuctionSchedulerService {
 
     @Transactional
     @Scheduled(fixedRate = 1000 * 10)
-    @Transactional
     public void endExpiredAuctions() {
         List<Auction> auctions = auctionRepository.findEndable(LocalDateTime.now());
         auctions.forEach(this::closeExpiredAuction);
