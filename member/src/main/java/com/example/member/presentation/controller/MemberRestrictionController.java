@@ -28,9 +28,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class MemberRestrictionController {
 
     private final MemberRestrictionUsecase memberRestrictionUsecase;
-    
+
     @PostMapping
-    @Operation(summary = "회원 제제 활성화", description = "회원 제제를 생성하는 API입니다.")
+    @Operation(summary = "회원 제재 생성", description = "회원 제재를 생성하는 API입니다.")
     public ResponseEntity<ApiResponse<MemberRestrictionResponse>> createRestriction(
             @CurrentMember AuthenticatedMember authenticatedMember,
             @RequestBody CreateMemberRestrictionRequest request
@@ -40,10 +40,10 @@ public class MemberRestrictionController {
     }
 
     @PatchMapping("/{restrictionId}/deactivate")
-    @Operation(summary = "회원 제제 비활성화", description = "기존 회원 제제를 비활성화하는 API입니다.")
+    @Operation(summary = "회원 제재 비활성화", description = "기존 회원 제재를 비활성화하는 API입니다.")
     public ResponseEntity<ApiResponse<MemberRestrictionResponse>> deactivateRestriction(
             @CurrentMember AuthenticatedMember authenticatedMember,
-            @PathVariable UUID restrictionId
+            @PathVariable(name = "restrictionId") UUID restrictionId
     ) {
         return ResponseEntity.ok(ApiResponse.success(
                 memberRestrictionUsecase.deactivateRestriction(authenticatedMember, restrictionId)
@@ -51,10 +51,10 @@ public class MemberRestrictionController {
     }
 
     @GetMapping("/members/{memberId}")
-    @Operation(summary = "회원 제제 조회", description = "특정 회원의 모든 제제를 조회하는 API입니다.")
+    @Operation(summary = "회원 제재 조회", description = "특정 회원의 모든 제재를 조회하는 API입니다.")
     public ResponseEntity<ApiResponse<List<MemberRestrictionResponse>>> getMemberRestrictions(
             @CurrentMember AuthenticatedMember authenticatedMember,
-            @PathVariable UUID memberId
+            @PathVariable(name = "memberId") UUID memberId
     ) {
         return ResponseEntity.ok(ApiResponse.success(
                 memberRestrictionUsecase.getMemberRestrictions(authenticatedMember, memberId)
