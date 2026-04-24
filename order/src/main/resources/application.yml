@@ -45,6 +45,9 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      retries: 3
+      properties:
+        retry.backoff.ms: 1000
 
 # --- 서버 포트 ---
 server:
