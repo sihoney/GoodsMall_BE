@@ -74,7 +74,8 @@ flowchart TD
 | Seed | `DB_SEED_ENABLED`, `DB_SEED_LOCATIONS` |
 
 기본 예시는 [db-migration/.env.example](C:/Dev/beadv5_2_TodayLunchMenu_BE/db-migration/.env.example)에 있고, 실제 Docker Compose 기준 값은 루트 `.env`에서 주입됩니다.
-AWS 운영 기준으로는 `SPRING_PROFILES_ACTIVE=prod`, `DB_SEED_ENABLED=false`를 명시적으로 주입하는 것을 권장합니다.
+현재 `prod` 프로필 기본값은 배포용 additive seed를 실행하도록 설정되어 있습니다.
+운영 환경에서 seed를 끄려면 `DB_SEED_ENABLED=false`를 명시적으로 주입하면 됩니다.
 
 ## 4. 현재 코드 구조
 
@@ -86,7 +87,7 @@ AWS 운영 기준으로는 `SPRING_PROFILES_ACTIVE=prod`, `DB_SEED_ENABLED=false
 | [SeedProperties.java](C:/Dev/beadv5_2_TodayLunchMenu_BE/db-migration/src/main/java/com/todaylunch/dbmigration/config/SeedProperties.java:1) | `app.seed.*` 설정 바인딩 |
 | [application-prod.yml](C:/Dev/beadv5_2_TodayLunchMenu_BE/db-migration/src/main/resources/application-prod.yml:1) | Docker/배포 환경에서 사용하는 기본 설정 |
 | `src/main/resources/db/migration/*.sql` | 버전 관리되는 migration SQL |
-| `src/main/resources/db/seed/*.sql` | 개발/검증용 seed SQL |
+| `src/main/resources/db/seed/*.sql` | 배포용 additive seed 및 개발/검증용 seed SQL |
 
 ## 5. 동작 흐름
 
@@ -110,8 +111,8 @@ AWS 운영 기준으로는 `SPRING_PROFILES_ACTIVE=prod`, `DB_SEED_ENABLED=false
 3. **seed는 migration 이후에만 실행한다.**
    seed는 초기 구조가 완성된 뒤에만 적용된다.
 
-4. **seed는 운영 기본값이 아니다.**
-   `DB_SEED_ENABLED=false`가 기본이고, 개발/검증에서만 켠다.
+4. **prod 프로필은 기본 seed를 실행하되, 항상 additive/idempotent 해야 한다.**
+   기본값은 회원/지갑/카테고리/상품의 배포용 seed를 실행하고, 필요 시 `DB_SEED_ENABLED=false`로 끌 수 있다.
 
 ## 6. 설정 상세
 
