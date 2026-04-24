@@ -211,9 +211,10 @@ public class Auction {
     }
 
     private boolean meetsMinimumIncrement(BigDecimal bidPrice) {
-        BigDecimal reference = this.currentHighestPrice != null ? this.currentHighestPrice : this.startPrice;
-        BigDecimal minAllowed = reference.add(this.bidUnit);
-        return bidPrice.compareTo(minAllowed) >= 0;
+        if (this.currentHighestPrice == null) {
+            return bidPrice.compareTo(this.startPrice) >= 0;
+        }
+        return bidPrice.compareTo(this.currentHighestPrice.add(this.bidUnit)) >= 0;
     }
 
     private void extendTimeIfNearEnd(LocalDateTime now) {
