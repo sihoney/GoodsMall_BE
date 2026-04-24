@@ -8,18 +8,27 @@ import com.example.order.application.usecase.OrderCreateUseCase;
 import com.example.order.common.exception.CustomException;
 import com.example.order.common.exception.ErrorCode;
 import com.example.order.domain.entity.Order;
+import com.example.order.domain.entity.OutboxEvent;
 import com.example.order.domain.repository.OrderRepository;
+import com.example.order.domain.repository.OutboxRepository;
+import com.example.order.infrastructure.kafka.KafkaTopics;
+import com.example.order.infrastructure.kafka.OutboxEventSaver;
+import com.example.order.infrastructure.kafka.event.OrderCreatedEvent;
+import com.example.order.infrastructure.kafka.event.PaymentFailedEvent;
 import com.example.order.presentation.dto.request.OrderCreateRequest;
 import com.example.order.presentation.dto.request.OrderItemCreateRequest;
 import com.example.order.presentation.dto.response.OrderCreateResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class OrderCreateService implements OrderCreateUseCase {
@@ -28,24 +37,53 @@ public class OrderCreateService implements OrderCreateUseCase {
     private final ProductProcessor productProcessor;
     private final PaymentProcessor paymentProcessor;
     private final DeliveryCreateService deliveryCreateService;
+    private final OutboxRepository outboxRepository;
+    private final OutboxEventSaver outboxEventSaver;
+    private final ObjectMapper objectMapper;
 
     @Transactional
     @Override
     public OrderCreateResponse createByDeposit(UUID memberId, OrderCreateRequest request) {
         Order order = createOrder(memberId, request);
 
-        paymentProcessor.process(order);
-        order.confirm();
+        try {
+            paymentProcessor.process(order);
+        } catch (CustomException e) {
+            log.warn("결제 실패. orderId={}", order.getOrderId());
+            savePaymentFailedOutbox(order);
+            throw e;
+        }
 
+        order.confirm();
         deliveryCreateService.create(order);
+        saveOrderCreatedOutbox(order);
 
         return OrderCreateResponse.from(order);
+    }
+
+    private void saveOrderCreatedOutbox(Order order) {
+        try {
+            String payload = objectMapper.writeValueAsString(OrderCreatedEvent.envelopeOf(order));
+            outboxRepository.save(OutboxEvent.create(KafkaTopics.ORDER_CREATED, order.getOrderId().toString(), payload));
+        } catch (Exception e) {
+            log.error("OrderCreatedEvent Outbox 저장 실패. orderId={}", order.getOrderId(), e);
+        }
+    }
+
+    private void savePaymentFailedOutbox(Order order) {
+        try {
+            String payload = objectMapper.writeValueAsString(PaymentFailedEvent.envelopeOf(order));
+            outboxEventSaver.save(OutboxEvent.create(KafkaTopics.PAYMENT_FAILED, order.getOrderId().toString(), payload));
+        } catch (Exception e) {
+            log.error("PaymentFailedEvent Outbox 저장 실패. orderId={}", order.getOrderId(), e);
+        }
     }
 
     @Transactional
     @Override
     public OrderCreateResponse createByPg(UUID memberId, OrderCreateRequest request) {
         Order order = createOrder(memberId, request);
+        saveOrderCreatedOutbox(order);
 
         return OrderCreateResponse.from(order);
     }
