@@ -6,7 +6,6 @@ import com.example.payment.infrastructure.messaging.kafka.KafkaRetryPolicy;
 import com.example.payment.infrastructure.messaging.kafka.KafkaTopics;
 import com.example.payment.infrastructure.messaging.kafka.contract.MemberCreatedMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPurchaseConfirmedMessage;
-import com.example.payment.infrastructure.messaging.kafka.contract.SellerSettlementPayoutRequestedMessage;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -129,10 +128,10 @@ public class KafkaConsumerConfig {
      * 별도 ListenerContainerFactory에서 에러 핸들러까지 연결한다.
      */
     @Bean
-    public ConsumerFactory<String, SellerSettlementPayoutRequestedMessage> sellerSettlementPayoutRequestedConsumerFactory(
+    public ConsumerFactory<String, String> sellerSettlementPayoutRequestedConsumerFactory(
             @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers
     ) {
-        return createConsumerFactory(bootstrapServers, KafkaConsumerGroups.PAYMENT_SERVICE, SellerSettlementPayoutRequestedMessage.class);
+        return createConsumerFactory(bootstrapServers, KafkaConsumerGroups.PAYMENT_SERVICE, String.class);
     }
 
     /**
@@ -149,13 +148,13 @@ public class KafkaConsumerConfig {
      * 을 담당한다.
      */
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, SellerSettlementPayoutRequestedMessage>
+    public ConcurrentKafkaListenerContainerFactory<String, String>
         sellerSettlementPayoutRequestedKafkaListenerContainerFactory(
-            ConsumerFactory<String, SellerSettlementPayoutRequestedMessage> sellerSettlementPayoutRequestedConsumerFactory,
+            ConsumerFactory<String, String> sellerSettlementPayoutRequestedConsumerFactory,
             // DLQ로 메시지를 다시 발행할 때 사용할 KafkaTemplate
             KafkaTemplate<String, String> kafkaTemplate
     ) {
-        ConcurrentKafkaListenerContainerFactory<String, SellerSettlementPayoutRequestedMessage> factory =
+        ConcurrentKafkaListenerContainerFactory<String, String> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         // 이 Listener가 사용할 ConsumerFactory 설정
         factory.setConsumerFactory(sellerSettlementPayoutRequestedConsumerFactory);

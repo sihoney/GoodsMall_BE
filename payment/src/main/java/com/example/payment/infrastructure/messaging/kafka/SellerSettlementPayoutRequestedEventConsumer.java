@@ -13,6 +13,7 @@ import com.example.payment.infrastructure.messaging.kafka.contract.SellerSettlem
 import com.example.payment.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultStatus;
 import com.example.payment.infrastructure.messaging.kafka.contract.SettlementPayoutType;
+import com.todaylunch.common.event.contract.EventEnvelope;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import org.slf4j.Logger;
@@ -20,6 +21,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * settlement -> payment 정산 지급 요청 이벤트를 소비하고 wallet 적립을 처리하는 Kafka consumer(소비기)다.
@@ -29,24 +32,32 @@ import org.springframework.transaction.annotation.Transactional;
 public class SellerSettlementPayoutRequestedEventConsumer {
 
     private static final Logger log = LoggerFactory.getLogger(SellerSettlementPayoutRequestedEventConsumer.class);
+    private static final String SELLER_SETTLEMENT_PAYOUT_REQUESTED_EVENT_TYPE = "SELLER_SETTLEMENT_PAYOUT_REQUESTED";
+    private static final TypeReference<EventEnvelope<SellerSettlementPayoutRequestedMessage>>
+            SELLER_SETTLEMENT_PAYOUT_REQUESTED_ENVELOPE_TYPE = new TypeReference<>() {
+    };
+
     private final WalletRepository walletRepository;
     private final WalletTransactionRepository walletTransactionRepository;
     private final IdentifierGenerator identifierGenerator;
     private final TimeProvider timeProvider;
     private final KafkaSellerSettlementPayoutResultEventPublisher payoutResultEventPublisher;
+    private final ObjectMapper objectMapper;
 
     public SellerSettlementPayoutRequestedEventConsumer(
             WalletRepository walletRepository,
             WalletTransactionRepository walletTransactionRepository,
             IdentifierGenerator identifierGenerator,
             TimeProvider timeProvider,
-            KafkaSellerSettlementPayoutResultEventPublisher payoutResultEventPublisher
+            KafkaSellerSettlementPayoutResultEventPublisher payoutResultEventPublisher,
+            ObjectMapper objectMapper
     ) {
         this.walletRepository = walletRepository;
         this.walletTransactionRepository = walletTransactionRepository;
         this.identifierGenerator = identifierGenerator;
         this.timeProvider = timeProvider;
         this.payoutResultEventPublisher = payoutResultEventPublisher;
+        this.objectMapper = objectMapper;
     }
 
     /**
@@ -60,7 +71,11 @@ public class SellerSettlementPayoutRequestedEventConsumer {
             groupId = KafkaConsumerGroups.PAYMENT_SERVICE,
             containerFactory = "sellerSettlementPayoutRequestedKafkaListenerContainerFactory"
     )
-    public void listen(SellerSettlementPayoutRequestedMessage event) {
+    public void listen(String eventJson) {
+        EventEnvelope<SellerSettlementPayoutRequestedMessage> envelope = readEnvelope(eventJson);
+        validateEnvelope(envelope);
+        SellerSettlementPayoutRequestedMessage event = envelope.payload();
+
         // 이벤트 검증
         validateEvent(event);
 
@@ -108,6 +123,47 @@ public class SellerSettlementPayoutRequestedEventConsumer {
             // RETRYABLE 오류는 Kafka 에러 처리기에서 재시도/백오프를 수행하도록 전파한다.
             log.warn("[PayoutRetryDelegated] settlementId={} message={}", event.settlementId(), e.getMessage(), e);
             throw e;
+        }
+    }
+
+    private EventEnvelope<SellerSettlementPayoutRequestedMessage> readEnvelope(String eventJson) {
+        try {
+            return objectMapper.readValue(eventJson, SELLER_SETTLEMENT_PAYOUT_REQUESTED_ENVELOPE_TYPE);
+        } catch (Exception e) {
+            log.error("Failed to deserialize SellerSettlementPayoutRequested event envelope", e);
+            throw new RuntimeException("Failed to deserialize SellerSettlementPayoutRequested event envelope", e);
+        }
+    }
+
+    private void validateEnvelope(EventEnvelope<SellerSettlementPayoutRequestedMessage> envelope) {
+        Objects.requireNonNull(envelope, "sellerSettlementPayoutRequested envelope is required.");
+        if (envelope.eventId() == null) {
+            throw new IllegalArgumentException("eventId is required.");
+        }
+        if (!SELLER_SETTLEMENT_PAYOUT_REQUESTED_EVENT_TYPE.equals(envelope.eventType())) {
+            throw new IllegalArgumentException("Unsupported eventType: " + envelope.eventType());
+        }
+        if (envelope.source() == null || envelope.source().isBlank()) {
+            throw new IllegalArgumentException("source is required.");
+        }
+        if (envelope.aggregateId() == null) {
+            throw new IllegalArgumentException("aggregateId is required.");
+        }
+        if (envelope.occurredAt() == null) {
+            throw new IllegalArgumentException("occurredAt is required.");
+        }
+        if (envelope.traceId() == null || envelope.traceId().isBlank()) {
+            throw new IllegalArgumentException("traceId is required.");
+        }
+        if (envelope.payload() == null) {
+            throw new IllegalArgumentException("payload is required.");
+        }
+        if (!Objects.equals(envelope.aggregateId(), envelope.payload().settlementId())) {
+            throw new IllegalArgumentException("aggregateId and payload.settlementId must match.");
+        }
+        if (envelope.recipientId() != null
+                && !Objects.equals(envelope.recipientId(), envelope.payload().sellerMemberId())) {
+            throw new IllegalArgumentException("recipientId and payload.sellerMemberId must match.");
         }
     }
 

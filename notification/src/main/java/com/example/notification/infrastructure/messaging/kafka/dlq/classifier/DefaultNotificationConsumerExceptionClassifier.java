@@ -1,5 +1,10 @@
-package com.example.notification.infrastructure.messaging.kafka.dlq;
+package com.example.notification.infrastructure.messaging.kafka.dlq.classifier;
 
+import com.example.notification.infrastructure.messaging.kafka.dlq.exception.EventParseException;
+import com.example.notification.infrastructure.messaging.kafka.dlq.exception.InvalidEventPayloadException;
+import com.example.notification.infrastructure.messaging.kafka.dlq.exception.UnsupportedEventTypeException;
+import com.example.notification.infrastructure.messaging.kafka.dlq.model.NotificationConsumerFailureDecision;
+import com.example.notification.infrastructure.messaging.kafka.dlq.model.NotificationDlqReason;
 import org.springframework.stereotype.Component;
 
 @Component

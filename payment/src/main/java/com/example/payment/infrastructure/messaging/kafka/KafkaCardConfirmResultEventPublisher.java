@@ -2,14 +2,19 @@ package com.example.payment.infrastructure.messaging.kafka;
 
 import com.example.payment.domain.service.CardConfirmResultEventPublisher;
 import com.example.payment.infrastructure.messaging.kafka.contract.CardConfirmResultMessage;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.todaylunch.common.event.contract.EventEnvelope;
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.ObjectMapper;
 
 @Slf4j
 @Component
 public class KafkaCardConfirmResultEventPublisher implements CardConfirmResultEventPublisher {
+
+    private static final String CARD_CONFIRM_RESULT_EVENT_TYPE = "CARD_CONFIRM_RESULT";
+    private static final String PAYMENT_SOURCE = "payment-service";
 
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
@@ -25,11 +30,29 @@ public class KafkaCardConfirmResultEventPublisher implements CardConfirmResultEv
     @Override
     public void publish(CardConfirmResultMessage event) {
         try {
-            String message = objectMapper.writeValueAsString(event);
+            EventEnvelope<CardConfirmResultMessage> envelope = new EventEnvelope<>(
+                    event.eventId(),
+                    CARD_CONFIRM_RESULT_EVENT_TYPE,
+                    PAYMENT_SOURCE,
+                    event.orderId(),
+                    null,
+                    event.occurredAt(),
+                    resolveTraceId(event),
+                    event
+            );
+            String message = objectMapper.writeValueAsString(envelope);
             kafkaTemplate.send(KafkaTopics.CARD_CONFIRM_RESULT, String.valueOf(event.orderId()), message);
         } catch (Exception e) {
             log.error("Failed to serialize CardConfirmResultMessage. orderId={}", event.orderId(), e);
             throw new RuntimeException("Failed to serialize CardConfirmResultMessage", e);
         }
+    }
+
+    private String resolveTraceId(CardConfirmResultMessage event) {
+        UUID eventId = event.eventId();
+        if (eventId == null) {
+            return "payment-card-confirm-result";
+        }
+        return eventId.toString();
     }
 }

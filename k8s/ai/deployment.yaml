@@ -13,6 +13,8 @@ spec:
       labels:
         app: ai
     spec:
+      nodeSelector:
+        role: infra
       imagePullSecrets:
         - name: ghcr-secret
       containers:

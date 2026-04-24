@@ -47,6 +47,9 @@ notification:
       auto-purchase-confirmed: notification-service
       order-payment-result: notification-service
       seller-settlement-payout-result: notification-service
+    retry:
+      initial-interval-ms: 1000
+      max-attempts: 3
 
 logging:
   level:

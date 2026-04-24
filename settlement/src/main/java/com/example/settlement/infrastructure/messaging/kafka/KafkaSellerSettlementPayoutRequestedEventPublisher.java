@@ -1,10 +1,13 @@
 package com.example.settlement.infrastructure.messaging.kafka;
 
 import com.example.settlement.infrastructure.messaging.kafka.contract.SellerSettlementPayoutRequestedMessage;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.todaylunch.common.event.contract.EventEnvelope;
+import java.time.ZoneId;
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * settlement -> payment 정산 지급 요청 이벤트를 발행하는 Kafka publisher(발행기)다.
@@ -12,6 +15,10 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 public class KafkaSellerSettlementPayoutRequestedEventPublisher {
+
+    private static final String SELLER_SETTLEMENT_PAYOUT_REQUESTED_EVENT_TYPE = "SELLER_SETTLEMENT_PAYOUT_REQUESTED";
+    private static final String SETTLEMENT_SOURCE = "settlement-service";
+    private static final ZoneId KOREA_ZONE_ID = ZoneId.of("Asia/Seoul");
 
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
@@ -30,12 +37,30 @@ public class KafkaSellerSettlementPayoutRequestedEventPublisher {
      */
     public void publish(SellerSettlementPayoutRequestedMessage message) {
         try {
-            String json = objectMapper.writeValueAsString(message);
+            EventEnvelope<SellerSettlementPayoutRequestedMessage> envelope = new EventEnvelope<>(
+                    message.eventId(),
+                    SELLER_SETTLEMENT_PAYOUT_REQUESTED_EVENT_TYPE,
+                    SETTLEMENT_SOURCE,
+                    message.settlementId(),
+                    message.sellerMemberId(),
+                    message.requestedAt().atZone(KOREA_ZONE_ID).toInstant(),
+                    resolveTraceId(message),
+                    message
+            );
+            String json = objectMapper.writeValueAsString(envelope);
             kafkaTemplate.send(KafkaTopics.SETTLEMENT_PAYOUT_REQUESTED, String.valueOf(message.settlementId()), json);
         } catch (Exception e) {
             log.error("Failed to serialize SellerSettlementPayoutRequestedMessage. settlementId={}", message.settlementId(), e);
             throw new RuntimeException("Failed to serialize SellerSettlementPayoutRequestedMessage", e);
         }
+    }
+
+    private String resolveTraceId(SellerSettlementPayoutRequestedMessage message) {
+        UUID eventId = message.eventId();
+        if (eventId != null) {
+            return eventId.toString();
+        }
+        return "settlement-seller-settlement-payout-requested";
     }
 }
 

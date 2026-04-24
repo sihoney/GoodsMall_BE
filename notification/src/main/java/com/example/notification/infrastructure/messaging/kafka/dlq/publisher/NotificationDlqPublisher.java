@@ -1,4 +1,6 @@
-package com.example.notification.infrastructure.messaging.kafka.dlq;
+package com.example.notification.infrastructure.messaging.kafka.dlq.publisher;
+
+import com.example.notification.infrastructure.messaging.kafka.dlq.model.NotificationConsumerFailureDecision;
 
 public interface NotificationDlqPublisher {
 

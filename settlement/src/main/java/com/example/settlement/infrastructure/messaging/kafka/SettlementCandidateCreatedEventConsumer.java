@@ -3,12 +3,14 @@ package com.example.settlement.infrastructure.messaging.kafka;
 import com.example.settlement.application.dto.SettlementItemCreateCommand;
 import com.example.settlement.application.usecase.MonthlySettlementUseCase;
 import com.example.settlement.infrastructure.messaging.kafka.contract.SettlementCandidateCreatedMessage;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.todaylunch.common.event.contract.EventEnvelope;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * payment -> settlement 정산 후보 알림 이벤트를 소비해 settlement item으로 적재한다.
@@ -18,6 +20,11 @@ import org.springframework.stereotype.Component;
 public class SettlementCandidateCreatedEventConsumer {
 
     private static final ZoneId KOREA_ZONE_ID = ZoneId.of("Asia/Seoul");
+    private static final String SETTLEMENT_CANDIDATE_CREATED_EVENT_TYPE = "SETTLEMENT_CANDIDATE_CREATED";
+    private static final TypeReference<EventEnvelope<SettlementCandidateCreatedMessage>>
+            SETTLEMENT_CANDIDATE_CREATED_ENVELOPE_TYPE =
+            new TypeReference<>() {
+            };
 
     private final MonthlySettlementUseCase monthlySettlementService;
     private final ObjectMapper objectMapper;
@@ -34,9 +41,9 @@ public class SettlementCandidateCreatedEventConsumer {
     )
     public void listen(String eventJson) {
         try {
-            // objectMapper를 활용해 JSON 문자열을 SettlementCandidateCreatedMessage 객체로 변환한다.
-            SettlementCandidateCreatedMessage event = objectMapper.readValue(eventJson, SettlementCandidateCreatedMessage.class);
-            validateEvent(event);
+            EventEnvelope<SettlementCandidateCreatedMessage> envelope = readEnvelope(eventJson);
+            validateEnvelope(envelope);
+            SettlementCandidateCreatedMessage event = envelope.payload();
             monthlySettlementService.registerSettlementItem(new SettlementItemCreateCommand(
                     event.orderId(),
                     event.escrowId(),
@@ -45,14 +52,44 @@ public class SettlementCandidateCreatedEventConsumer {
                     toKoreaLocalDateTime(event.releasedAt())
             ));
         } catch (Exception e) {
-            log.error("Failed to process SettlementCandidateCreatedMessage", e);
-            throw new RuntimeException("Failed to deserialize SettlementCandidateCreatedMessage", e);
+            log.error("Failed to process settlement candidate created envelope", e);
+            throw new RuntimeException("Failed to deserialize settlement candidate created envelope", e);
         }
     }
 
-    private void validateEvent(SettlementCandidateCreatedMessage event) {
+    private EventEnvelope<SettlementCandidateCreatedMessage> readEnvelope(String eventJson) throws Exception {
+        return objectMapper.readValue(eventJson, SETTLEMENT_CANDIDATE_CREATED_ENVELOPE_TYPE);
+    }
+
+    private void validateEnvelope(EventEnvelope<SettlementCandidateCreatedMessage> envelope) {
+        if (envelope == null) {
+            throw new IllegalArgumentException("settlementCandidateCreated envelope is required.");
+        }
+        if (envelope.eventId() == null) {
+            throw new IllegalArgumentException("eventId is required.");
+        }
+        if (envelope.eventType() == null || envelope.eventType().isBlank()) {
+            throw new IllegalArgumentException("eventType is required.");
+        }
+        if (!SETTLEMENT_CANDIDATE_CREATED_EVENT_TYPE.equals(envelope.eventType())) {
+            throw new IllegalArgumentException("eventType is invalid.");
+        }
+        if (envelope.source() == null || envelope.source().isBlank()) {
+            throw new IllegalArgumentException("source is required.");
+        }
+        if (envelope.aggregateId() == null) {
+            throw new IllegalArgumentException("aggregateId is required.");
+        }
+        if (envelope.occurredAt() == null) {
+            throw new IllegalArgumentException("occurredAt is required.");
+        }
+        if (envelope.traceId() == null || envelope.traceId().isBlank()) {
+            throw new IllegalArgumentException("traceId is required.");
+        }
+
+        SettlementCandidateCreatedMessage event = envelope.payload();
         if (event == null) {
-            throw new IllegalArgumentException("settlementCandidateCreated event is required.");
+            throw new IllegalArgumentException("payload is required.");
         }
         if (event.orderId() == null) {
             throw new IllegalArgumentException("orderId is required.");
@@ -68,6 +105,12 @@ public class SettlementCandidateCreatedEventConsumer {
         }
         if (event.releasedAt() == null) {
             throw new IllegalArgumentException("releasedAt is required.");
+        }
+        if (!envelope.aggregateId().equals(event.escrowId())) {
+            throw new IllegalArgumentException("aggregateId must match escrowId.");
+        }
+        if (envelope.recipientId() != null && !envelope.recipientId().equals(event.sellerMemberId())) {
+            throw new IllegalArgumentException("recipientId must match sellerMemberId.");
         }
     }
 

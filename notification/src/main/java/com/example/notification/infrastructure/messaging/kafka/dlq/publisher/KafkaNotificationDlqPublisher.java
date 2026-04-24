@@ -1,6 +1,8 @@
-package com.example.notification.infrastructure.messaging.kafka.dlq;
+package com.example.notification.infrastructure.messaging.kafka.dlq.publisher;
 
 import com.example.notification.infrastructure.messaging.kafka.KafkaTopics;
+import com.example.notification.infrastructure.messaging.kafka.dlq.model.NotificationConsumerFailureDecision;
+import com.example.notification.infrastructure.messaging.kafka.dlq.model.NotificationDlqMessage;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 import java.time.Instant;

@@ -24,6 +24,7 @@ public class AuctionSchedulerService {
     private final KafkaAuctionClosedSoldEventPublisher auctionClosedSoldEventPublisher;
     private final KafkaAuctionClosedUnsoldEventPublisher auctionClosedUnsoldEventPublisher;
 
+    @Transactional
     @Scheduled(fixedRate = 1000 * 10)
     @Transactional
     public void startWaitingAuctions() {
@@ -31,6 +32,7 @@ public class AuctionSchedulerService {
         auctions.forEach(Auction::start);
     }
 
+    @Transactional
     @Scheduled(fixedRate = 1000 * 10)
     @Transactional
     public void endExpiredAuctions() {
