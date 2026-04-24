@@ -1,5 +1,6 @@
 package com.todaylunch.auction.infrastructure.messaging.kafka.consumer;
 
+import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 import com.todaylunch.auction.application.event.BidPlacedEvent;
 import com.todaylunch.auction.common.exception.application.BidNotFoundException;
@@ -11,6 +12,7 @@ import com.todaylunch.auction.domain.repository.BidRepository;
 import com.todaylunch.auction.infrastructure.messaging.kafka.KafkaTopics;
 import com.todaylunch.auction.infrastructure.messaging.kafka.message.BidFeeChargeCompletedMessage;
 import com.todaylunch.auction.infrastructure.messaging.kafka.publisher.KafkaBidOutbidEventPublisher;
+import com.todaylunch.common.event.contract.EventEnvelope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -36,8 +38,9 @@ public class BidFeeChargeCompletedConsumer {
     @KafkaListener(topics = KafkaTopics.BID_FEE_CHARGE_COMPLETED)
     @Transactional
     public void handle(String payload) throws Exception {
-        BidFeeChargeCompletedMessage message
-                = objectMapper.readValue(payload, BidFeeChargeCompletedMessage.class);
+        EventEnvelope<BidFeeChargeCompletedMessage> envelope
+                = objectMapper.readValue(payload, new TypeReference<>() {});
+        BidFeeChargeCompletedMessage message = envelope.payload();
 
         Bid bid = bidRepository.findById(message.bidId())
                 .orElseThrow(BidNotFoundException::new);
