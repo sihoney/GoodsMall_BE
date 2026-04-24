@@ -14,7 +14,11 @@ public class AuctionPriceReasonGenerator {
     public String generate(AuctionPriceRecommendationCommand command) {
         String reason;
 
-        if (isLongRemainingTime(command.remainingSeconds()) && hasCompetitiveBids(command.bidCount())) {
+        if (isClosedAuction(command.auctionStatus())) {
+            reason = "종료된 경매 상태를 기준으로 마지막 입찰 흐름을 참고해 가격을 정리했습니다.";
+        } else if (!hasAnyBid(command.hasBid(), command.bidCount())) {
+            reason = "아직 입찰이 많지 않아 시작가와 최소 입찰가 기준으로 보수적으로 추천했습니다.";
+        } else if (isLongRemainingTime(command.remainingSeconds()) && hasCompetitiveBids(command.bidCount())) {
             reason = "입찰 경쟁과 남은 시간을 함께 반영해 현재가 대비 추가 상승 여지를 고려했습니다.";
         } else if (isLongRemainingTime(command.remainingSeconds())) {
             reason = "남은 경매 시간이 충분해 현재가보다 추가 상승 가능성을 반영했습니다.";
@@ -25,6 +29,17 @@ public class AuctionPriceReasonGenerator {
         }
 
         return sanitize(reason);
+    }
+
+    private boolean isClosedAuction(String auctionStatus) {
+        return auctionStatus != null && "CLOSED".equalsIgnoreCase(auctionStatus.trim());
+    }
+
+    private boolean hasAnyBid(Boolean hasBid, Integer bidCount) {
+        if (hasBid != null) {
+            return hasBid;
+        }
+        return bidCount != null && bidCount > 0;
     }
 
     private boolean isLongRemainingTime(Long remainingSeconds) {

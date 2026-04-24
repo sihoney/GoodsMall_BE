@@ -28,7 +28,9 @@ public class AuctionPriceCalculator {
      */
     public BigDecimal calculateRecommendedBidPrice(AuctionPriceRecommendationCommand command) {
         BigDecimal totalRate = BASE_RATE.add(resolveBidBonus(command.bidCount()));
-        return applyRate(command.currentBidPrice(), totalRate);
+        BigDecimal rawRecommendedPrice = applyRate(command.currentBidPrice(), totalRate);
+        BigDecimal candidatePrice = rawRecommendedPrice.max(command.nextMinimumBidPrice());
+        return alignToBidUnit(candidatePrice, command.bidUnit());
     }
 
     /**
@@ -39,7 +41,8 @@ public class AuctionPriceCalculator {
         BigDecimal totalRate = BASE_RATE
                 .add(resolveBidBonus(command.bidCount()))
                 .add(resolveTimeBonus(command.remainingSeconds()));
-        return applyRate(command.currentBidPrice(), totalRate);
+        BigDecimal expectedFinalPrice = applyRate(command.currentBidPrice(), totalRate);
+        return alignToBidUnit(expectedFinalPrice.max(command.nextMinimumBidPrice()), command.bidUnit());
     }
 
     private BigDecimal resolveBidBonus(Integer bidCount) {
@@ -67,6 +70,18 @@ public class AuctionPriceCalculator {
         return basePrice
                 .multiply(BigDecimal.ONE.add(rate))
                 .setScale(PRICE_SCALE, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal alignToBidUnit(BigDecimal price, BigDecimal bidUnit) {
+        BigDecimal normalizedBidUnit = bidUnit.setScale(PRICE_SCALE, RoundingMode.HALF_UP);
+        BigDecimal normalizedPrice = price.setScale(PRICE_SCALE, RoundingMode.HALF_UP);
+        BigDecimal remainder = normalizedPrice.remainder(normalizedBidUnit);
+        if (remainder.compareTo(BigDecimal.ZERO) == 0) {
+            return normalizedPrice;
+        }
+        return normalizedPrice
+                .subtract(remainder)
+                .add(normalizedBidUnit);
     }
 }
 
