@@ -29,11 +29,12 @@ public class AuctionPriceRecommendationService implements AuctionPriceRecommenda
         validateCommand(command);
 
         log.info(
-                "경매 가격 추천 요청. auctionId={}, productId={}, currentBidPrice={}, startPrice={}",
+                "경매 가격 추천 요청. auctionId={}, productId={}, currentBidPrice={}, startPrice={}, nextMinimumBidPrice={}",
                 command.auctionId(),
                 command.productId(),
                 command.currentBidPrice(),
-                command.startPrice()
+                command.startPrice(),
+                command.nextMinimumBidPrice()
         );
 
         try {
@@ -92,14 +93,31 @@ public class AuctionPriceRecommendationService implements AuctionPriceRecommenda
         if (command.startPrice() == null || command.startPrice().compareTo(BigDecimal.ZERO) <= 0) {
             throw new AuctionPriceRecommendationRequestInvalidException("startPrice는 0보다 커야 합니다.");
         }
+        if (command.bidUnit() == null || command.bidUnit().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new AuctionPriceRecommendationRequestInvalidException("bidUnit은 0보다 커야 합니다.");
+        }
+        if (command.nextMinimumBidPrice() == null || command.nextMinimumBidPrice().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new AuctionPriceRecommendationRequestInvalidException("nextMinimumBidPrice는 0보다 커야 합니다.");
+        }
         if (command.currentBidPrice().compareTo(command.startPrice()) < 0) {
             throw new AuctionPriceRecommendationRequestInvalidException("currentBidPrice는 startPrice보다 작을 수 없습니다.");
+        }
+        if (command.nextMinimumBidPrice().compareTo(command.currentBidPrice()) < 0) {
+            throw new AuctionPriceRecommendationRequestInvalidException(
+                    "nextMinimumBidPrice는 currentBidPrice보다 작을 수 없습니다."
+            );
         }
         if (command.bidCount() != null && command.bidCount() < 0) {
             throw new AuctionPriceRecommendationRequestInvalidException("bidCount는 0 이상이어야 합니다.");
         }
         if (command.remainingSeconds() != null && command.remainingSeconds() < 0L) {
             throw new AuctionPriceRecommendationRequestInvalidException("remainingSeconds는 0 이상이어야 합니다.");
+        }
+        if (command.productName() == null || command.productName().isBlank()) {
+            throw new AuctionPriceRecommendationRequestInvalidException("productName은 비어 있을 수 없습니다.");
+        }
+        if (command.auctionStatus() == null || command.auctionStatus().isBlank()) {
+            throw new AuctionPriceRecommendationRequestInvalidException("auctionStatus는 비어 있을 수 없습니다.");
         }
     }
 }

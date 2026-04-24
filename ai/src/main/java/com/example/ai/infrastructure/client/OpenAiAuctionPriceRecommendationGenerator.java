@@ -206,8 +206,12 @@ public class OpenAiAuctionPriceRecommendationGenerator {
                 productName=%s
                 currentBidPrice=%s
                 startPrice=%s
+                bidUnit=%s
+                nextMinimumBidPrice=%s
                 bidCount=%s
                 remainingSeconds=%s
+                auctionStatus=%s
+                hasBid=%s
 
                 참고용 규칙 기반 값:
                 expectedFinalPrice=%s
@@ -218,11 +222,15 @@ public class OpenAiAuctionPriceRecommendationGenerator {
                 """.formatted(
                 command.auctionId(),
                 command.productId(),
-                nullable(command.productName()),
+                command.productName(),
                 command.currentBidPrice(),
                 command.startPrice(),
+                command.bidUnit(),
+                command.nextMinimumBidPrice(),
                 nullable(command.bidCount()),
                 nullable(command.remainingSeconds()),
+                command.auctionStatus(),
+                nullable(command.hasBid()),
                 fallbackResult.expectedFinalPrice(),
                 fallbackResult.recommendedBidPrice(),
                 fallbackResult.priceReason()

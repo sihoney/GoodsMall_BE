@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/ai")
-@Tag(name = "AI Auction Price Recommendation", description = "경매 가격 추천 AI 내부 API (auction 서비스 전용)")
+@Tag(name = "AI Auction Price Recommendation", description = "경매 가격 추천 AI API")
 public class AuctionPriceRecommendationController {
 
     private final AuctionPriceRecommendationUseCase auctionPriceRecommendationUseCase;
@@ -29,10 +29,11 @@ public class AuctionPriceRecommendationController {
     @Operation(
             summary = "경매 가격 추천",
             description = """
-                    auction 서비스에서 내부적으로 호출하는 경매 가격 추천 API입니다.
-                    경매 정보를 기반으로 예상 형성 가격과 추천 입찰가를 생성합니다.
-                    필수 입력: auctionId, productId, currentBidPrice, startPrice
-                    선택 입력: productName, bidCount, remainingSeconds (있으면 추천 품질 향상)
+                    프론트엔드가 직접 호출하는 경매 가격 추천 API입니다.
+                    경매 화면 정보를 기반으로 예상 형성 가격과 추천 입찰가를 생성합니다.
+                    필수 입력: auctionId, productId, productName, currentBidPrice, startPrice,
+                    bidUnit, nextMinimumBidPrice, bidCount, remainingSeconds, auctionStatus
+                    선택 입력: hasBid
                     """
     )
     @ApiResponses(value = {
@@ -100,11 +101,15 @@ public class AuctionPriceRecommendationController {
                                     {
                                       "auctionId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa010",
                                       "productId": "dddddddd-dddd-dddd-dddd-ddddddddd010",
+                                      "productName": "한정판 콜라보 후드 (경매)",
                                       "currentBidPrice": 72000,
                                       "startPrice": 50000,
-                                      "productName": "한정판 콜라보 후드 (경매)",
+                                      "bidUnit": 1000,
+                                      "nextMinimumBidPrice": 73000,
                                       "bidCount": 8,
-                                      "remainingSeconds": 3600
+                                      "remainingSeconds": 3600,
+                                      "auctionStatus": "ACTIVE",
+                                      "hasBid": true
                                     }
                                     """)
                     )
