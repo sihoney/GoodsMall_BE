@@ -1,5 +1,6 @@
 package com.todaylunch.auction.infrastructure.messaging.kafka.publisher;
 
+import com.todaylunch.auction.infrastructure.messaging.kafka.AuctionEventTypes;
 import com.todaylunch.auction.infrastructure.messaging.kafka.KafkaTopics;
 import com.todaylunch.auction.infrastructure.messaging.kafka.message.AuctionClosedUnsoldPayload;
 import com.todaylunch.common.event.contract.EventEnvelope;
@@ -24,7 +25,7 @@ public class KafkaAuctionClosedUnsoldEventPublisher {
         try {
             EventEnvelope<AuctionClosedUnsoldPayload> envelope = new EventEnvelope<>(
                     UUID.randomUUID(),
-                    "AUCTION_CLOSED_UNSOLD",
+                    AuctionEventTypes.AUCTION_CLOSED_UNSOLD,
                     "auction-service",
                     auctionId,
                     sellerId,
