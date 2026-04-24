@@ -6,7 +6,7 @@ INSERT INTO payment.wallet (wallet_id, member_id, balance, updated_at, created_a
 VALUES
     ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1',
      '11111111-1111-1111-1111-111111111101',
-     100000.00,
+     500000.00,
      NOW(), NOW()),
     ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb2',
      '22222222-2222-2222-2222-222222222202',
