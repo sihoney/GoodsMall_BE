@@ -39,7 +39,7 @@ public class AdminMemberReportController {
     @Operation(summary = "회원 신고 상세 조회", description = "특정 신고 건의 상세 정보를 조회하는 API입니다.")
     public ResponseEntity<ApiResponse<MemberReportResponse>> getReportDetail(
             @CurrentMember AuthenticatedMember authenticatedMember,
-            @PathVariable UUID reportId
+            @PathVariable(name = "reportId") UUID reportId
     ) {
         return ResponseEntity.ok(ApiResponse.success(
                 memberReportUsecase.getReportDetail(authenticatedMember, reportId)
@@ -47,10 +47,10 @@ public class AdminMemberReportController {
     }
 
     @GetMapping("/members/{memberId}")
-    @Operation(summary = "회원 신고 조회", description = "특정 회원에 대한 신고를 조회하는 API입니다.")
+    @Operation(summary = "회원 신고 목록 조회", description = "특정 회원에 대한 신고를 조회하는 API입니다.")
     public ResponseEntity<ApiResponse<List<MemberReportResponse>>> getReportsForMember(
             @CurrentMember AuthenticatedMember authenticatedMember,
-            @PathVariable UUID memberId
+            @PathVariable(name = "memberId") UUID memberId
     ) {
         return ResponseEntity.ok(ApiResponse.success(
                 memberReportUsecase.getReportsForMember(authenticatedMember, memberId)
@@ -58,10 +58,10 @@ public class AdminMemberReportController {
     }
 
     @PatchMapping("/{reportId}/approve")
-    @Operation(summary = "회원 신고 승인", description = "신고를 승인하고 선택적으로 제제를 생성합니다.")
+    @Operation(summary = "회원 신고 승인", description = "신고를 승인하고 제재를 생성합니다.")
     public ResponseEntity<ApiResponse<MemberReportResponse>> approveReport(
             @CurrentMember AuthenticatedMember authenticatedMember,
-            @PathVariable UUID reportId,
+            @PathVariable(name = "reportId") UUID reportId,
             @RequestBody ReviewMemberReportRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.success(
@@ -70,10 +70,10 @@ public class AdminMemberReportController {
     }
 
     @PatchMapping("/{reportId}/reject")
-    @Operation(summary = "회원 신고 거부", description = "신고를 거부합니다.")
+    @Operation(summary = "회원 신고 거절", description = "신고를 거절합니다.")
     public ResponseEntity<ApiResponse<MemberReportResponse>> rejectReport(
             @CurrentMember AuthenticatedMember authenticatedMember,
-            @PathVariable UUID reportId,
+            @PathVariable(name = "reportId") UUID reportId,
             @RequestBody ReviewMemberReportRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.success(
