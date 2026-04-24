@@ -70,16 +70,6 @@ spring:
             - id: category-service
               uri: http://product:8081
               predicates:
-                - Path=/api/category/**
-
-            - id: cart-service
-              uri: http://cart:8086
-              predicates:
-                - Path=/api/carts/**
-
-            - id: category-service
-              uri: http://product:8081
-              predicates:
                 - Path=/api/categories/**
 
             - id: cart-service
@@ -267,6 +257,18 @@ gateway:
       - methods: [POST, PUT, PATCH, DELETE]
         pattern: /api/products/**
         allowed-roles: [SELLER, ADMIN]
+      - methods: [POST]
+        pattern: /api/categories/admin
+        allowed-roles: [ADMIN]
+      - methods: [PUT]
+        pattern: /api/categories/admin/**
+        allowed-roles: [ADMIN]
+      - methods: [POST, PUT]
+        pattern: /api/categories/**
+        allowed-roles: [SELLER, ADMIN]
+      - methods: [DELETE]
+        pattern: /api/categories/**
+        allowed-roles: [ADMIN]
       - methods: [POST, GET]
         pattern: /api/settlements/**
         allowed-roles: [SELLER, ADMIN]
