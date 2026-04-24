@@ -7,6 +7,9 @@ spring:
     url: "${DB_URL:jdbc:postgresql://localhost:5432/goods_mall}?currentSchema=product"
     username: ${DB_USER_NAME:postgres}
     password: ${DB_USER_PASSWORD:postgres}
+    hikari:
+      minimum-idle: 2
+      maximum-pool-size: 5
 
   jpa:
     hibernate:
