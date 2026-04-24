@@ -22,8 +22,8 @@ spring:
 
 app:
   seed:
-    enabled: ${DB_SEED_ENABLED:false}
-    locations: ${DB_SEED_LOCATIONS:}
+    enabled: ${DB_SEED_ENABLED:true}
+    locations: ${DB_SEED_LOCATIONS:classpath:db/seed/prod_seed_member.sql,classpath:db/seed/prod_seed_category.sql,classpath:db/seed/prod_seed_product.sql}
 
 logging:
   level:
