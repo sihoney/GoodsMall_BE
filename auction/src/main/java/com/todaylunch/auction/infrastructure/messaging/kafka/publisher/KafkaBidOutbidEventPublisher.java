@@ -2,6 +2,7 @@ package com.todaylunch.auction.infrastructure.messaging.kafka.publisher;
 
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
+import com.todaylunch.auction.infrastructure.messaging.kafka.AuctionEventTypes;
 import com.todaylunch.auction.infrastructure.messaging.kafka.KafkaTopics;
 import com.todaylunch.common.event.contract.EventEnvelope;
 import java.time.Instant;
@@ -23,7 +24,7 @@ public class KafkaBidOutbidEventPublisher {
         try {
             EventEnvelope<Void> envelope = new EventEnvelope<>(
                     UUID.randomUUID(),
-                    "AUCTION_BID_OUTBID",
+                    AuctionEventTypes.AUCTION_BID_OUTBID,
                     "auction-service",
                     auctionId,
                     outbidBidderId,
