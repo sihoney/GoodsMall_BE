@@ -12,9 +12,9 @@ import com.example.member.presentation.dto.CreateMemberRequest;
 import com.example.member.presentation.dto.CreateMemberResponse;
 import com.example.member.presentation.dto.EmailVerificationConfirmResponse;
 import com.example.member.presentation.dto.EmailVerificationSendResponse;
+import com.example.member.presentation.dto.KakaoOAuthAuthorizeUrlResponse;
 import com.example.member.presentation.dto.KakaoOAuthLinkRequest;
 import com.example.member.presentation.dto.KakaoOAuthLinkResponse;
-import com.example.member.presentation.dto.KakaoOAuthAuthorizeUrlResponse;
 import com.example.member.presentation.dto.KakaoOAuthResultResponse;
 import com.example.member.presentation.dto.LoginRequest;
 import com.example.member.presentation.dto.LoginResponse;
@@ -25,8 +25,6 @@ import com.todaylunch.common.security.auth.annotation.CurrentMember;
 import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
 import java.net.URI;
 import java.util.Locale;
 import java.util.UUID;
@@ -47,7 +45,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
-@Tag(name = "인증", description = "인증(로그인/로그아웃/토큰 재발급) API")
+@Tag(name = "인증", description = "회원 인증, 로그인, OAuth 연동 관련 API")
 public class AuthController {
 
     private final AuthUsecase authUsecase;
@@ -57,7 +55,7 @@ public class AuthController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "사용자 생성", description = "사용자를 생성합니다.")
+    @Operation(summary = "회원 생성", description = "새 회원을 생성합니다.")
     public ResponseEntity<ApiResponse<CreateMemberResponse>> createMember(
             @Validated @RequestBody CreateMemberRequest request
     ) {
@@ -65,36 +63,39 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    @Operation(summary = "로그인", description = "액세스 토큰과 리프레시 토큰을 발급합니다.")
+    @Operation(summary = "로그인", description = "이메일과 비밀번호로 로그인합니다.")
     public ResponseEntity<ApiResponse<LoginResponse>> login(@RequestBody LoginRequest request) {
         return ResponseEntity.ok(ApiResponse.success(authUsecase.login(request)));
     }
 
     @PostMapping("/refresh")
-    @Operation(summary = "토큰 재발급", description = "리프레시 토큰으로 새 액세스 토큰 쌍을 발급합니다.")
+    @Operation(summary = "토큰 갱신", description = "리프레시 토큰으로 액세스 토큰을 갱신합니다.")
     public ResponseEntity<ApiResponse<TokenRefreshResponse>> refresh(@RequestBody TokenRefreshRequest request) {
         return ResponseEntity.ok(ApiResponse.success(authUsecase.refresh(request)));
     }
 
     @GetMapping("/oauth/kakao/authorize")
-    @Operation(summary = "카카오 로그인 시작", description = "카카오 로그인 페이지로 이동합니다.")
-    public void authorizeKakaoLogin(HttpServletResponse response) throws IOException {
+    @Operation(summary = "카카오 로그인 시작", description = "카카오 로그인용 authorize URL을 반환합니다.")
+    public ResponseEntity<ApiResponse<KakaoOAuthAuthorizeUrlResponse>> authorizeKakaoLogin() {
         String state = kakaoOAuthService.createLoginAuthorizeState();
-        response.sendRedirect(kakaoOAuthService.buildAuthorizeUrl(state));
+        String authorizeUrl = kakaoOAuthService.buildAuthorizeUrl(state);
+
+        return ResponseEntity.ok(ApiResponse.success(new KakaoOAuthAuthorizeUrlResponse(authorizeUrl)));
     }
 
     @GetMapping("/oauth/kakao/link/authorize")
-    @Operation(summary = "카카오 계정 연동 시작", description = "현재 로그인한 계정에 카카오 연동을 시작합니다.")
-    public void authorizeKakaoLink(
-            @CurrentMember AuthenticatedMember authenticatedMember,
-            HttpServletResponse response
-    ) throws IOException {
+    @Operation(summary = "카카오 계정 연동 시작", description = "현재 로그인된 회원의 카카오 계정 연동용 authorize URL을 반환합니다.")
+    public ResponseEntity<ApiResponse<KakaoOAuthAuthorizeUrlResponse>> authorizeKakaoLink(
+            @CurrentMember AuthenticatedMember authenticatedMember
+    ) {
         String state = kakaoOAuthService.createLinkAuthorizeState(authenticatedMember.memberId());
-        response.sendRedirect(kakaoOAuthService.buildAuthorizeUrl(state));
+        String authorizeUrl = kakaoOAuthService.buildAuthorizeUrl(state);
+
+        return ResponseEntity.ok(ApiResponse.success(new KakaoOAuthAuthorizeUrlResponse(authorizeUrl)));
     }
 
     @GetMapping("/oauth/kakao/link/authorize-url")
-    @Operation(summary = "카카오 계정 연동 URL 조회", description = "로그인된 사용자의 카카오 계정 연동용 authorize URL을 반환합니다.")
+    @Operation(summary = "카카오 계정 연동 URL 조회", description = "로그인된 사용자의 카카오 계정 연동 authorize URL을 조회합니다.")
     public ResponseEntity<ApiResponse<KakaoOAuthAuthorizeUrlResponse>> getKakaoLinkAuthorizeUrl(
             @CurrentMember AuthenticatedMember authenticatedMember
     ) {
@@ -157,7 +158,7 @@ public class AuthController {
     }
 
     @PostMapping("/oauth/kakao/link")
-    @Operation(summary = "카카오 계정 연결", description = "로그인한 회원과 카카오 계정을 연결합니다.")
+    @Operation(summary = "카카오 계정 연동", description = "로그인된 회원과 카카오 계정을 연동합니다.")
     public ResponseEntity<ApiResponse<KakaoOAuthLinkResponse>> linkKakaoAccount(
             @CurrentMember AuthenticatedMember authenticatedMember,
             @RequestBody KakaoOAuthLinkRequest request
@@ -168,14 +169,14 @@ public class AuthController {
     }
 
     @PostMapping("/logout/{memberId}")
-    @Operation(summary = "로그아웃", description = "회원의 모든 리프레시 세션을 제거합니다.")
+    @Operation(summary = "로그아웃", description = "회원의 모든 리프레시 세션을 삭제합니다.")
     public ResponseEntity<ApiResponse<Void>> logout(@PathVariable UUID memberId) {
         authUsecase.logout(memberId);
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 
     @PostMapping("/email-verifications")
-    @Operation(summary = "이메일 인증 재발급", description = "회원 가입용 이메일 인증 토큰을 재발급하고 전송합니다.")
+    @Operation(summary = "이메일 인증 발송", description = "회원 가입용 이메일 인증 코드를 발송합니다.")
     public ResponseEntity<ApiResponse<EmailVerificationSendResponse>> sendEmailVerification(
             @RequestBody SendEmailVerificationRequest request
     ) {
@@ -189,7 +190,7 @@ public class AuthController {
     }
 
     @PostMapping("/email-verifications/confirm")
-    @Operation(summary = "이메일 인증 확인", description = "이메일 인증 토큰을 검증하고 회원을 활성화합니다.")
+    @Operation(summary = "이메일 인증 확인", description = "이메일 인증 코드를 검증하고 회원을 활성화합니다.")
     public ResponseEntity<ApiResponse<EmailVerificationConfirmResponse>> confirmEmailVerification(
             @RequestBody ConfirmEmailVerificationRequest request
     ) {
