@@ -38,7 +38,7 @@ public class KafkaBidFeeChargeEventPublisher implements BidFeeChargeEventPublish
                     request.auctionId(),
                     request.highestBidderId(),
                     Instant.now(),
-                    null,
+                    "mock-trace-id",
                     request
             );
             String payload = objectMapper.writeValueAsString(envelope);
