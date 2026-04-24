@@ -13,6 +13,7 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -24,12 +25,14 @@ public class AuctionSchedulerService {
     private final KafkaAuctionClosedUnsoldEventPublisher auctionClosedUnsoldEventPublisher;
 
     @Scheduled(fixedRate = 1000 * 10)
+    @Transactional
     public void startWaitingAuctions() {
         List<Auction> auctions = auctionRepository.findStartable(LocalDateTime.now());
         auctions.forEach(Auction::start);
     }
 
     @Scheduled(fixedRate = 1000 * 10)
+    @Transactional
     public void endExpiredAuctions() {
         List<Auction> auctions = auctionRepository.findEndable(LocalDateTime.now());
         auctions.forEach(this::closeExpiredAuction);
