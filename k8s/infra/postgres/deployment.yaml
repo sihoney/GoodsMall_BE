@@ -18,7 +18,7 @@ spec:
       containers:
         - name: postgres
           image: pgvector/pgvector:pg18
-          command: ["postgres", "-c", "max_connections=150"]
+          args: ["-c", "max_connections=150"]
           ports:
             - containerPort: 5432
           envFrom:
