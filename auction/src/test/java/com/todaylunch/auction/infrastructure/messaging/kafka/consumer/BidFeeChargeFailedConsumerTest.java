@@ -11,6 +11,7 @@ import com.todaylunch.auction.domain.enumtype.BidStatus;
 import com.todaylunch.auction.domain.repository.AuctionRepository;
 import com.todaylunch.auction.domain.repository.BidRepository;
 import com.todaylunch.auction.infrastructure.messaging.kafka.message.BidFeeChargeFailedMessage;
+import com.todaylunch.common.event.contract.EventEnvelope;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -74,7 +75,7 @@ class BidFeeChargeFailedConsumerTest {
         given(bidRepository.findActiveByAuctionId(auction.getAuctionId())).willReturn(Optional.empty());
         given(auctionRepository.findByIdWithLock(auction.getAuctionId())).willReturn(auction);
 
-        consumer.handle(objectMapper.writeValueAsString(message));
+        consumer.handle(toEnvelopeJson(message));
 
         assertThat(bid.getStatus()).isEqualTo(BidStatus.CANCELED);
     }
@@ -94,8 +95,22 @@ class BidFeeChargeFailedConsumerTest {
 
         given(bidRepository.findById(bid.getBidId())).willReturn(Optional.of(bid));
 
-        consumer.handle(objectMapper.writeValueAsString(message));
+        consumer.handle(toEnvelopeJson(message));
 
         assertThat(bid.getStatus()).isEqualTo(BidStatus.ACTIVE);
+    }
+
+    private String toEnvelopeJson(BidFeeChargeFailedMessage message) throws Exception {
+        EventEnvelope<BidFeeChargeFailedMessage> envelope = new EventEnvelope<>(
+                UUID.randomUUID(),
+                "BID_FEE_CHARGE_FAILED",
+                "payment-service",
+                message.auctionId(),
+                null,
+                Instant.now(),
+                "mock-trace-id",
+                message
+        );
+        return objectMapper.writeValueAsString(envelope);
     }
 }

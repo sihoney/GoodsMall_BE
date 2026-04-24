@@ -3,6 +3,7 @@ package com.example.ai.presentation.dto.request;
 import com.example.ai.application.dto.AuctionPriceRecommendationCommand;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import java.math.BigDecimal;
@@ -17,6 +18,10 @@ public record AuctionPriceRecommendationRequest(
         @NotNull
         UUID productId,
 
+        @Schema(description = "상품명", example = "한정판 콜라보 후드 (경매)")
+        @NotBlank
+        String productName,
+
         @Schema(description = "현재 최고 입찰가", example = "72000")
         @NotNull
         @DecimalMin(value = "0", inclusive = false)
@@ -27,40 +32,52 @@ public record AuctionPriceRecommendationRequest(
         @DecimalMin(value = "0", inclusive = false)
         BigDecimal startPrice,
 
-        @Schema(description = "상품명", example = "한정판 콜라보 후드 (경매)")
-        String productName,
+        @Schema(description = "입찰 단위", example = "1000")
+        @NotNull
+        @DecimalMin(value = "0", inclusive = false)
+        BigDecimal bidUnit,
+
+        @Schema(description = "다음 최소 입찰가", example = "73000")
+        @NotNull
+        @DecimalMin(value = "0", inclusive = false)
+        BigDecimal nextMinimumBidPrice,
 
         @Schema(description = "현재 입찰 횟수", example = "8")
+        @NotNull
         @PositiveOrZero
         Integer bidCount,
 
         @Schema(description = "남은 시간(초)", example = "3600")
+        @NotNull
         @PositiveOrZero
-        Long remainingSeconds
+        Long remainingSeconds,
+
+        @Schema(description = "경매 상태", example = "ACTIVE")
+        @NotBlank
+        String auctionStatus,
+
+        @Schema(description = "현재 입찰 존재 여부", example = "true")
+        Boolean hasBid
 ) {
 
     public AuctionPriceRecommendationCommand toCommand() {
         return new AuctionPriceRecommendationCommand(
                 auctionId,
                 productId,
+                normalizeText(productName),
                 currentBidPrice,
                 startPrice,
-                normalizeOptionalText(productName),
+                bidUnit,
+                nextMinimumBidPrice,
                 bidCount,
-                remainingSeconds
+                remainingSeconds,
+                normalizeText(auctionStatus),
+                hasBid
         );
     }
 
-    private String normalizeOptionalText(String value) {
-        if (value == null) {
-            return null;
-        }
-
-        String trimmedValue = value.trim();
-        if (trimmedValue.isEmpty()) {
-            return null;
-        }
-        return trimmedValue;
+    private String normalizeText(String value) {
+        return value == null ? null : value.trim();
     }
 }
 

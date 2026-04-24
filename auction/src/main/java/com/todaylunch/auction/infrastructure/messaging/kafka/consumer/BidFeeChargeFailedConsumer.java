@@ -1,5 +1,6 @@
 package com.todaylunch.auction.infrastructure.messaging.kafka.consumer;
 
+import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 import com.todaylunch.auction.common.exception.application.BidNotFoundException;
 import com.todaylunch.auction.domain.entity.Bid;
@@ -8,6 +9,7 @@ import com.todaylunch.auction.domain.repository.AuctionRepository;
 import com.todaylunch.auction.domain.repository.BidRepository;
 import com.todaylunch.auction.infrastructure.messaging.kafka.KafkaTopics;
 import com.todaylunch.auction.infrastructure.messaging.kafka.message.BidFeeChargeFailedMessage;
+import com.todaylunch.common.event.contract.EventEnvelope;
 import java.math.BigDecimal;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +36,9 @@ public class BidFeeChargeFailedConsumer {
     @KafkaListener(topics = KafkaTopics.BID_FEE_CHARGE_FAILED)
     @Transactional
     public void handle(String payload) throws Exception {
-        BidFeeChargeFailedMessage message = objectMapper.readValue(payload, BidFeeChargeFailedMessage.class);
+        EventEnvelope<BidFeeChargeFailedMessage> envelope
+                = objectMapper.readValue(payload, new TypeReference<>() {});
+        BidFeeChargeFailedMessage message = envelope.payload();
 
         Bid bid = bidRepository.findById(message.bidId()).orElseThrow(BidNotFoundException::new);
 

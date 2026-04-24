@@ -1,14 +1,18 @@
 package com.todaylunch.auction.infrastructure.messaging.kafka.consumer;
 
+import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 import com.todaylunch.auction.application.event.BidPlacedEvent;
 import com.todaylunch.auction.common.exception.application.BidNotFoundException;
+import com.todaylunch.auction.domain.entity.Auction;
 import com.todaylunch.auction.domain.entity.Bid;
 import com.todaylunch.auction.domain.enumtype.BidStatus;
+import com.todaylunch.auction.domain.repository.AuctionRepository;
 import com.todaylunch.auction.domain.repository.BidRepository;
 import com.todaylunch.auction.infrastructure.messaging.kafka.KafkaTopics;
 import com.todaylunch.auction.infrastructure.messaging.kafka.message.BidFeeChargeCompletedMessage;
 import com.todaylunch.auction.infrastructure.messaging.kafka.publisher.KafkaBidOutbidEventPublisher;
+import com.todaylunch.common.event.contract.EventEnvelope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -26,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class BidFeeChargeCompletedConsumer {
 
     private final BidRepository bidRepository;
+    private final AuctionRepository auctionRepository;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final KafkaBidOutbidEventPublisher bidOutbidEventPublisher;
     private final ObjectMapper objectMapper;
@@ -33,8 +38,9 @@ public class BidFeeChargeCompletedConsumer {
     @KafkaListener(topics = KafkaTopics.BID_FEE_CHARGE_COMPLETED)
     @Transactional
     public void handle(String payload) throws Exception {
-        BidFeeChargeCompletedMessage message
-                = objectMapper.readValue(payload, BidFeeChargeCompletedMessage.class);
+        EventEnvelope<BidFeeChargeCompletedMessage> envelope
+                = objectMapper.readValue(payload, new TypeReference<>() {});
+        BidFeeChargeCompletedMessage message = envelope.payload();
 
         Bid bid = bidRepository.findById(message.bidId())
                 .orElseThrow(BidNotFoundException::new);
@@ -46,6 +52,9 @@ public class BidFeeChargeCompletedConsumer {
         }
 
         bid.confirm();
+
+        Auction auction = auctionRepository.findByIdWithLock(bid.getAuction().getAuctionId());
+        auction.updateHighestPrice(bid.getBidPrice());
 
         bidRepository.findActiveByAuctionId(bid.getAuction().getAuctionId())
                 .filter(active -> !active.getBidId().equals(bid.getBidId()))

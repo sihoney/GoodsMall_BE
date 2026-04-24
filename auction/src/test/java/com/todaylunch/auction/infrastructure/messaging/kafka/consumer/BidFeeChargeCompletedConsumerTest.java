@@ -10,8 +10,11 @@ import com.todaylunch.auction.application.event.BidPlacedEvent;
 import com.todaylunch.auction.domain.entity.Auction;
 import com.todaylunch.auction.domain.entity.Bid;
 import com.todaylunch.auction.domain.enumtype.BidStatus;
+import com.todaylunch.auction.domain.repository.AuctionRepository;
 import com.todaylunch.auction.domain.repository.BidRepository;
 import com.todaylunch.auction.infrastructure.messaging.kafka.message.BidFeeChargeCompletedMessage;
+import com.todaylunch.auction.infrastructure.messaging.kafka.publisher.KafkaBidOutbidEventPublisher;
+import com.todaylunch.common.event.contract.EventEnvelope;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -23,7 +26,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
-import com.todaylunch.auction.infrastructure.messaging.kafka.publisher.KafkaBidOutbidEventPublisher;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -32,6 +34,8 @@ class BidFeeChargeCompletedConsumerTest {
 
     @Mock
     BidRepository bidRepository;
+    @Mock
+    AuctionRepository auctionRepository;
     @Mock
     ApplicationEventPublisher applicationEventPublisher;
     @Mock
@@ -47,6 +51,7 @@ class BidFeeChargeCompletedConsumerTest {
         objectMapper = JsonMapper.builder().build();
 
         consumer = new BidFeeChargeCompletedConsumer(bidRepository,
+                                                     auctionRepository,
                                                      applicationEventPublisher,
                                                      bidOutbidEventPublisher,
                                                      objectMapper);
@@ -69,19 +74,13 @@ class BidFeeChargeCompletedConsumerTest {
                                    UUID.randomUUID(),
                                    new BigDecimal("11000"));
 
-        BidFeeChargeCompletedMessage message = new BidFeeChargeCompletedMessage(UUID.randomUUID(),
-                                                                                bid.getBidId(),
-                                                                                auction.getAuctionId(),
-                                                                                Instant.now());
-
         given(bidRepository.findById(bid.getBidId())).willReturn(Optional.of(bid));
-
+        given(auctionRepository.findByIdWithLock(auction.getAuctionId())).willReturn(auction);
         given(bidRepository.findActiveByAuctionId(auction.getAuctionId())).willReturn(Optional.empty());
 
-        consumer.handle(objectMapper.writeValueAsString(message));
+        consumer.handle(toEnvelopeJson(bid.getBidId(), auction.getAuctionId()));
 
         assertThat(bid.getStatus()).isEqualTo(BidStatus.ACTIVE);
-
         then(applicationEventPublisher).should().publishEvent(any(BidPlacedEvent.class));
     }
 
@@ -95,16 +94,11 @@ class BidFeeChargeCompletedConsumerTest {
                                       UUID.randomUUID(),
                                       new BigDecimal("12000"));
 
-        BidFeeChargeCompletedMessage message = new BidFeeChargeCompletedMessage(UUID.randomUUID(),
-                                                                                newBid.getBidId(),
-                                                                                auction.getAuctionId(),
-                                                                                Instant.now());
-
         given(bidRepository.findById(newBid.getBidId())).willReturn(Optional.of(newBid));
-
+        given(auctionRepository.findByIdWithLock(auction.getAuctionId())).willReturn(auction);
         given(bidRepository.findActiveByAuctionId(auction.getAuctionId())).willReturn(Optional.of(previousBid));
 
-        consumer.handle(objectMapper.writeValueAsString(message));
+        consumer.handle(toEnvelopeJson(newBid.getBidId(), auction.getAuctionId()));
 
         assertThat(newBid.getStatus()).isEqualTo(BidStatus.ACTIVE);
         assertThat(previousBid.getStatus()).isEqualTo(BidStatus.OUTBID);
@@ -115,15 +109,28 @@ class BidFeeChargeCompletedConsumerTest {
         Bid bid = Bid.place(auction,
                             UUID.randomUUID(),
                             new BigDecimal("11000"));
-        BidFeeChargeCompletedMessage message = new BidFeeChargeCompletedMessage(UUID.randomUUID(),
-                                                                                bid.getBidId(),
-                                                                                auction.getAuctionId(),
-                                                                                Instant.now());
+
         given(bidRepository.findById(bid.getBidId())).willReturn(Optional.of(bid));
 
-        consumer.handle(objectMapper.writeValueAsString(message));
+        consumer.handle(toEnvelopeJson(bid.getBidId(), auction.getAuctionId()));
 
         assertThat(bid.getStatus()).isEqualTo(BidStatus.ACTIVE);
         then(applicationEventPublisher).should(never()).publishEvent(any(BidPlacedEvent.class));
+    }
+
+    private String toEnvelopeJson(UUID bidId, UUID auctionId) throws Exception {
+        BidFeeChargeCompletedMessage message = new BidFeeChargeCompletedMessage(
+                UUID.randomUUID(), bidId, auctionId, Instant.now());
+        EventEnvelope<BidFeeChargeCompletedMessage> envelope = new EventEnvelope<>(
+                UUID.randomUUID(),
+                "BID_FEE_CHARGE_SUCCEEDED",
+                "payment-service",
+                auctionId,
+                null,
+                Instant.now(),
+                "mock-trace-id",
+                message
+        );
+        return objectMapper.writeValueAsString(envelope);
     }
 }
