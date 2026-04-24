@@ -160,6 +160,11 @@ public class Order {
         );
     }
 
+    public void cancelByPaymentFailure() {
+        this.status = OrderStatus.CANCELED;
+        this.updatedAt = LocalDateTime.now();
+    }
+
     public void cancel(boolean hasReturnItems) {
         this.status = hasReturnItems ? OrderStatus.PARTIAL_CANCELED : OrderStatus.CANCELED;
         this.updatedAt = LocalDateTime.now();
