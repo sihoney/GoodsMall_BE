@@ -1,14 +1,18 @@
 package com.todaylunch.auction.infrastructure.messaging.kafka.publisher;
 
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
 import com.todaylunch.auction.application.port.BidFeeChargeEventPublisher;
 import com.todaylunch.auction.application.port.dto.request.BidFeeChargeRequest;
+import com.todaylunch.auction.infrastructure.messaging.kafka.AuctionEventTypes;
 import com.todaylunch.auction.infrastructure.messaging.kafka.KafkaTopics;
+import com.todaylunch.common.event.contract.EventEnvelope;
+import java.time.Instant;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * 입찰 수수료 차감 요청 이벤트를 Kafka로 발행한다.
@@ -18,13 +22,26 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class KafkaBidFeeChargeEventPublisher implements BidFeeChargeEventPublisher {
+
+    private static final String SOURCE = "auction-service";
+
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
 
     @Override
     public void publish(BidFeeChargeRequest request) {
         try {
-            String payload = objectMapper.writeValueAsString(request);
+            EventEnvelope<BidFeeChargeRequest> envelope = new EventEnvelope<>(
+                    UUID.randomUUID(),
+                    AuctionEventTypes.AUCTION_BID_FEE_CHARGE_REQUESTED,
+                    SOURCE,
+                    request.auctionId(),
+                    request.highestBidderId(),
+                    Instant.now(),
+                    null,
+                    request
+            );
+            String payload = objectMapper.writeValueAsString(envelope);
             kafkaTemplate.send(KafkaTopics.BID_FEE_CHARGE_REQUESTED, String.valueOf(request.auctionId()), payload);
             log.debug("bid-fee-charge-requested published: auctionId={}, highestBidderId={}",
                     request.auctionId(), request.highestBidderId());
