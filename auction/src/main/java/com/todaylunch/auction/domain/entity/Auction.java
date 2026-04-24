@@ -163,7 +163,7 @@ public class Auction {
         this.currentHighestPrice = previousHighestPrice;
     }
 
-    public void applyConfirmedBid(UUID bidderId, BigDecimal bidPrice, LocalDateTime now) {
+    public void validatePendingBid(UUID bidderId, BigDecimal bidPrice, LocalDateTime now) {
         if (this.sellerId.equals(bidderId)) {
             throw new SelfBidNotAllowedException();
         }
@@ -176,9 +176,13 @@ public class Auction {
         if (!meetsMinimumIncrement(bidPrice)) {
             throw new BidIncrementNotMetException();
         }
-        this.currentHighestPrice = bidPrice;
         extendTimeIfNearEnd(now);
         this.updatedAt = now;
+    }
+
+    public void updateHighestPrice(BigDecimal bidPrice) {
+        this.currentHighestPrice = bidPrice;
+        this.updatedAt = LocalDateTime.now();
     }
 
     public void changeToPendingPayment() {
@@ -207,9 +211,10 @@ public class Auction {
     }
 
     private boolean meetsMinimumIncrement(BigDecimal bidPrice) {
-        BigDecimal reference = this.currentHighestPrice != null ? this.currentHighestPrice : this.startPrice;
-        BigDecimal minAllowed = reference.add(this.bidUnit);
-        return bidPrice.compareTo(minAllowed) >= 0;
+        if (this.currentHighestPrice == null) {
+            return bidPrice.compareTo(this.startPrice) >= 0;
+        }
+        return bidPrice.compareTo(this.currentHighestPrice.add(this.bidUnit)) >= 0;
     }
 
     private void extendTimeIfNearEnd(LocalDateTime now) {

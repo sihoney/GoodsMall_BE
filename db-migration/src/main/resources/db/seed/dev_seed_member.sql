@@ -50,6 +50,32 @@ VALUES
         'ACTIVE',
         NOW(),
         NOW()
+    ),
+    (
+        '11111111-1111-1111-1111-111111111102',
+        'buyer2@test.local',
+        '$2b$10$yXUMG19nj3DhnhHmlM8hqOOlfnN7zPJkEn9zoKFdIVExwazLwwr0u',
+        '박입찰',
+        '010-1111-1112',
+        '서울시 서초구 강남대로 2',
+        NULL,
+        'USER',
+        'ACTIVE',
+        NOW(),
+        NOW()
+    ),
+    (
+        '11111111-1111-1111-1111-111111111103',
+        'buyer3@test.local',
+        '$2b$10$yXUMG19nj3DhnhHmlM8hqOOlfnN7zPJkEn9zoKFdIVExwazLwwr0u',
+        '최경매',
+        '010-1111-1113',
+        '서울시 송파구 올림픽로 3',
+        NULL,
+        'USER',
+        'ACTIVE',
+        NOW(),
+        NOW()
     )
 ON CONFLICT (member_id) DO NOTHING;
 

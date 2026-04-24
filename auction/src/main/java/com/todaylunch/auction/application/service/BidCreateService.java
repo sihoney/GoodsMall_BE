@@ -10,10 +10,13 @@ import com.todaylunch.auction.domain.entity.OutboxEvent;
 import com.todaylunch.auction.domain.repository.AuctionRepository;
 import com.todaylunch.auction.domain.repository.BidRepository;
 import com.todaylunch.auction.domain.repository.OutboxEventRepository;
+import com.todaylunch.auction.infrastructure.messaging.kafka.AuctionEventTypes;
 import com.todaylunch.auction.infrastructure.messaging.kafka.KafkaTopics;
 import com.todaylunch.auction.presentation.dto.request.BidPlaceRequest;
 import com.todaylunch.auction.presentation.dto.response.BidResponse;
+import com.todaylunch.common.event.contract.EventEnvelope;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -41,9 +44,9 @@ public class BidCreateService implements BidCreateUseCase {
     public BidResponse place(UUID auctionId, UUID bidderId, BidPlaceRequest request) {
 
         Auction auction = auctionRepository.findByIdWithLock(auctionId);
-        auction.applyConfirmedBid(bidderId,
-                                  request.bidPrice(),
-                                  LocalDateTime.now());
+        auction.validatePendingBid(bidderId,
+                                   request.bidPrice(),
+                                   LocalDateTime.now());
 
         Optional<Bid> previousBid = bidRepository.findActiveByAuctionId(auctionId);
 
@@ -66,12 +69,23 @@ public class BidCreateService implements BidCreateUseCase {
                                                             currentBidFee
         );
 
+        EventEnvelope<BidFeeChargeRequest> envelope = new EventEnvelope<>(
+                UUID.randomUUID(),
+                AuctionEventTypes.AUCTION_BID_FEE_CHARGE_REQUESTED,
+                "auction-service",
+                event.auctionId(),
+                event.highestBidderId(),
+                Instant.now(),
+                "mock-trace-id",
+                event
+        );
+
         outboxEventRepository.save(OutboxEvent.create(saved.getBidId(),
                                                       "BID",
                                                       "BID_FEE_CHARGE_REQUESTED",
                                                       KafkaTopics.BID_FEE_CHARGE_REQUESTED,
                                                       auction.getAuctionId().toString(),
-                                                      serialize(event)
+                                                      serialize(envelope)
         ));
 
         eventPublisher.publishEvent(new OutboxEventPendingTrigger());
