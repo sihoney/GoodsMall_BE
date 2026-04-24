@@ -25,8 +25,6 @@ import com.todaylunch.common.security.auth.annotation.CurrentMember;
 import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
 import java.net.URI;
 import java.util.Locale;
 import java.util.UUID;
@@ -77,20 +75,21 @@ public class AuthController {
     }
 
     @GetMapping("/oauth/kakao/authorize")
-    @Operation(summary = "카카오 로그인 시작", description = "카카오 로그인 페이지로 이동합니다.")
-    public void authorizeKakaoLogin(HttpServletResponse response) throws IOException {
+    @Operation(summary = "카카오 로그인 시작", description = "카카오 로그인 페이지 URL을 반환합니다.")
+    public ResponseEntity<ApiResponse<KakaoOAuthAuthorizeUrlResponse>> authorizeKakaoLogin() {
         String state = kakaoOAuthService.createLoginAuthorizeState();
-        response.sendRedirect(kakaoOAuthService.buildAuthorizeUrl(state));
+        String authorizeUrl = kakaoOAuthService.buildAuthorizeUrl(state);
+        return ResponseEntity.ok(ApiResponse.success(new KakaoOAuthAuthorizeUrlResponse(authorizeUrl)));
     }
 
     @GetMapping("/oauth/kakao/link/authorize")
-    @Operation(summary = "카카오 계정 연동 시작", description = "현재 로그인한 계정에 카카오 연동을 시작합니다.")
-    public void authorizeKakaoLink(
-            @CurrentMember AuthenticatedMember authenticatedMember,
-            HttpServletResponse response
-    ) throws IOException {
+    @Operation(summary = "카카오 계정 연동 시작", description = "카카오 계정 연동 페이지 URL을 반환합니다.")
+    public ResponseEntity<ApiResponse<KakaoOAuthAuthorizeUrlResponse>> authorizeKakaoLink(
+            @CurrentMember AuthenticatedMember authenticatedMember
+    ) {
         String state = kakaoOAuthService.createLinkAuthorizeState(authenticatedMember.memberId());
-        response.sendRedirect(kakaoOAuthService.buildAuthorizeUrl(state));
+        String authorizeUrl = kakaoOAuthService.buildAuthorizeUrl(state);
+        return ResponseEntity.ok(ApiResponse.success(new KakaoOAuthAuthorizeUrlResponse(authorizeUrl)));
     }
 
     @GetMapping("/oauth/kakao/link/authorize-url")

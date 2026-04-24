@@ -2,9 +2,11 @@ package com.example.settlement.infrastructure.messaging.kafka;
 
 import com.example.settlement.application.usecase.SettlementPayoutUseCase;
 import com.example.settlement.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultMessage;
+import com.todaylunch.common.event.contract.EventEnvelope;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
 /**
@@ -13,6 +15,12 @@ import tools.jackson.databind.ObjectMapper;
 @Slf4j
 @Component
 public class SellerSettlementPayoutResultEventConsumer {
+
+    private static final String SELLER_SETTLEMENT_PAYOUT_RESULT_EVENT_TYPE = "SELLER_SETTLEMENT_PAYOUT_RESULT";
+    private static final TypeReference<EventEnvelope<SellerSettlementPayoutResultMessage>>
+            SELLER_SETTLEMENT_PAYOUT_RESULT_ENVELOPE_TYPE =
+            new TypeReference<>() {
+            };
 
     private final SettlementPayoutUseCase settlementPayoutService;
     private final ObjectMapper objectMapper;
@@ -34,11 +42,61 @@ public class SellerSettlementPayoutResultEventConsumer {
     )
     public void listen(String eventJson) {
         try {
-            SellerSettlementPayoutResultMessage event = objectMapper.readValue(eventJson, SellerSettlementPayoutResultMessage.class);
+            EventEnvelope<SellerSettlementPayoutResultMessage> envelope = readEnvelope(eventJson);
+            validateEnvelope(envelope);
+            SellerSettlementPayoutResultMessage event = envelope.payload();
             settlementPayoutService.applyPayoutResult(event);
         } catch (Exception e) {
-            log.error("Failed to process SellerSettlementPayoutResultMessage", e);
-            throw new RuntimeException("Failed to deserialize SellerSettlementPayoutResultMessage", e);
+            log.error("Failed to process seller settlement payout result envelope", e);
+            throw new RuntimeException("Failed to deserialize seller settlement payout result envelope", e);
+        }
+    }
+
+    private EventEnvelope<SellerSettlementPayoutResultMessage> readEnvelope(String eventJson) throws Exception {
+        return objectMapper.readValue(eventJson, SELLER_SETTLEMENT_PAYOUT_RESULT_ENVELOPE_TYPE);
+    }
+
+    private void validateEnvelope(EventEnvelope<SellerSettlementPayoutResultMessage> envelope) {
+        if (envelope == null) {
+            throw new IllegalArgumentException("sellerSettlementPayoutResult envelope is required.");
+        }
+        if (envelope.eventId() == null) {
+            throw new IllegalArgumentException("eventId is required.");
+        }
+        if (envelope.eventType() == null || envelope.eventType().isBlank()) {
+            throw new IllegalArgumentException("eventType is required.");
+        }
+        if (!SELLER_SETTLEMENT_PAYOUT_RESULT_EVENT_TYPE.equals(envelope.eventType())) {
+            throw new IllegalArgumentException("eventType is invalid.");
+        }
+        if (envelope.source() == null || envelope.source().isBlank()) {
+            throw new IllegalArgumentException("source is required.");
+        }
+        if (envelope.aggregateId() == null) {
+            throw new IllegalArgumentException("aggregateId is required.");
+        }
+        if (envelope.occurredAt() == null) {
+            throw new IllegalArgumentException("occurredAt is required.");
+        }
+        if (envelope.traceId() == null || envelope.traceId().isBlank()) {
+            throw new IllegalArgumentException("traceId is required.");
+        }
+
+        SellerSettlementPayoutResultMessage event = envelope.payload();
+        if (event == null) {
+            throw new IllegalArgumentException("payload is required.");
+        }
+        if (event.settlementId() == null) {
+            throw new IllegalArgumentException("settlementId is required.");
+        }
+        if (event.sellerMemberId() == null) {
+            throw new IllegalArgumentException("sellerMemberId is required.");
+        }
+        if (!envelope.aggregateId().equals(event.settlementId())) {
+            throw new IllegalArgumentException("aggregateId must match settlementId.");
+        }
+        if (envelope.recipientId() != null && !envelope.recipientId().equals(event.sellerMemberId())) {
+            throw new IllegalArgumentException("recipientId must match sellerMemberId.");
         }
     }
 }
