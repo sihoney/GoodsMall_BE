@@ -2,18 +2,17 @@ package com.example.order.infrastructure.kafka.event;
 
 import com.example.order.domain.entity.Order;
 import com.example.order.domain.entity.OrderItem;
+import com.example.order.domain.enumtype.OrderEventType;
+import com.todaylunch.common.event.contract.EventEnvelope;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
 public record OrderCanceledEvent(
-        UUID eventId,
-        String eventType,
         UUID orderId,
         UUID buyerId,
         Instant canceledAt,
-        Instant eventCreatedAt,
         List<CanceledOrderLine> canceledLines
 ) {
     public record CanceledOrderLine(
@@ -24,14 +23,11 @@ public record OrderCanceledEvent(
     ) {
     }
 
-    public static OrderCanceledEvent of(Order order, List<OrderItem> canceledItems, Instant canceledAt) {
-        return new OrderCanceledEvent(
-                UUID.randomUUID(),
-                "ORDER_CANCELED",
+    public static EventEnvelope<OrderCanceledEvent> envelopeOf(Order order, List<OrderItem> canceledItems, Instant canceledAt) {
+        OrderCanceledEvent payload = new OrderCanceledEvent(
                 order.getOrderId(),
                 order.getBuyerId(),
                 canceledAt,
-                Instant.now(),
                 canceledItems.stream()
                         .map(item -> new CanceledOrderLine(
                                 item.getOrderItemId(),
@@ -40,6 +36,16 @@ public record OrderCanceledEvent(
                                 item.getQuantity()
                         ))
                         .toList()
+        );
+        return new EventEnvelope<>(
+                UUID.randomUUID(),
+                OrderEventType.ORDER_CANCELED.name(),
+                "order-service",
+                order.getOrderId(),
+                order.getBuyerId(),
+                Instant.now(),
+                null,
+                payload
         );
     }
 }

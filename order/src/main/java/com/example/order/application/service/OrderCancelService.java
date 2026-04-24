@@ -8,18 +8,22 @@ import com.example.order.common.exception.ErrorCode;
 import com.example.order.domain.entity.Claim;
 import com.example.order.domain.entity.Order;
 import com.example.order.domain.entity.OrderItem;
+import com.example.order.domain.entity.OutboxEvent;
 import com.example.order.domain.enumtype.ClaimType;
 import com.example.order.domain.enumtype.PaymentStatus;
 import com.example.order.domain.repository.ClaimRepository;
 import com.example.order.domain.repository.OrderRepository;
+import com.example.order.domain.repository.OutboxRepository;
+import com.example.order.infrastructure.kafka.KafkaTopics;
 import com.example.order.infrastructure.kafka.event.OrderCanceledEvent;
 import com.example.order.infrastructure.kafka.event.OrderReturnRequestedEvent;
-import com.example.order.infrastructure.kafka.producer.OrderEventProducer;
 import com.example.order.presentation.dto.request.OrderCancelRequest;
 import com.example.order.presentation.dto.response.OrderCancelResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -30,6 +34,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
@@ -38,7 +43,8 @@ public class OrderCancelService implements OrderCancelUseCase {
     private final OrderRepository orderRepository;
     private final ClaimRepository claimRepository;
     private final PaymentProcessor paymentProcessor;
-    private final OrderEventProducer orderEventProducer;
+    private final OutboxRepository outboxRepository;
+    private final ObjectMapper objectMapper;
 
     @Override
     @Transactional
@@ -114,12 +120,20 @@ public class OrderCancelService implements OrderCancelUseCase {
     }
 
     private void publishCanceledEvent(Order order, List<OrderItem> canceledItems, PaymentRefundResult refundResult) {
-        OrderCanceledEvent event = OrderCanceledEvent.of(order, canceledItems, refundResult.canceledAt());
-        orderEventProducer.sendOrderCanceled(event);
+        try {
+            String payload = objectMapper.writeValueAsString(OrderCanceledEvent.envelopeOf(order, canceledItems, refundResult.canceledAt()));
+            outboxRepository.save(OutboxEvent.create(KafkaTopics.ORDER_CANCELED, order.getOrderId().toString(), payload));
+        } catch (Exception e) {
+            log.error("OrderCanceledEvent Outbox 저장 실패. orderId={}", order.getOrderId(), e);
+        }
     }
 
     private void publishReturnRequestedEvent(Order order, List<OrderItem> returnItems) {
-        OrderReturnRequestedEvent event = OrderReturnRequestedEvent.of(order, returnItems);
-        orderEventProducer.sendOrderReturnRequested(event);
+        try {
+            String payload = objectMapper.writeValueAsString(OrderReturnRequestedEvent.envelopeOf(order, returnItems));
+            outboxRepository.save(OutboxEvent.create(KafkaTopics.ORDER_RETURN_REQUESTED, order.getOrderId().toString(), payload));
+        } catch (Exception e) {
+            log.error("OrderReturnRequestedEvent Outbox 저장 실패. orderId={}", order.getOrderId(), e);
+        }
     }
 }
