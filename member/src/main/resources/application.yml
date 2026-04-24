@@ -67,8 +67,8 @@ oauth:
     authorize-uri: ${KAKAO_AUTHORIZE_URI:https://kauth.kakao.com/oauth/authorize}
     token-uri: ${KAKAO_TOKEN_URI:https://kauth.kakao.com/oauth/token}
     user-info-uri: ${KAKAO_USER_INFO_URI:https://kapi.kakao.com/v2/user/me}
-    redirect-uri: ${KAKAO_REDIRECT_URI:http://64.29.17.67:443/api/auth/oauth/kakao/callback}
-    frontend-callback-url: ${KAKAO_FRONTEND_CALLBACK_URL:http://goodsmall.vercel.app/auth/kakao/callback}
+    redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:8083/api/auth/oauth/kakao/callback}
+    frontend-callback-url: ${KAKAO_FRONTEND_CALLBACK_URL:http://localhost:5173/auth/kakao/callback}
     state-ttl: ${KAKAO_OAUTH_STATE_TTL:10m}
     pending-link-ttl: ${KAKAO_OAUTH_PENDING_LINK_TTL:10m}
     result-ttl: ${KAKAO_OAUTH_RESULT_TTL:3m}
