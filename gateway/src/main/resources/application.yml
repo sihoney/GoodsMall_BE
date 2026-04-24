@@ -279,6 +279,12 @@ gateway:
       - methods: [POST]
         pattern: /api/ai/admin/**
         allowed-roles: [ADMIN]
+      - methods: [POST]
+        pattern: /api/ai/assist/**
+        allowed-roles: [SELLER, ADMIN]
+      - methods: [POST]
+        pattern: /api/ai/auction-price-recommendation
+        allowed-roles: [USER, ADMIN]
 
 logging:
   level:
