@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -76,6 +77,18 @@ public class AiExceptionHandler {
                 ));
     }
 
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiResponse<Object>> handleMaxUploadSizeExceeded(
+            MaxUploadSizeExceededException exception,
+            HttpServletRequest request
+    ) {
+        ErrorCode errorCode = resolveUploadSizeErrorCode(exception);
+        log.warn("AI multipart size exception. path={}, code={}, message={}",
+                request.getRequestURI(), errorCode.name(), exception.getMessage());
+        return ResponseEntity.status(errorCode.getHttpStatus())
+                .body(ApiResponse.fail(errorCode.name(), errorCode.getMessage()));
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<Object>> handleIllegalArgument(IllegalArgumentException e, HttpServletRequest request) {
         return handleInvalidInputException(e, request);
@@ -96,6 +109,21 @@ public class AiExceptionHandler {
         log.error("Unexpected AI exception. path={}", request.getRequestURI(), e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new ApiResponse<>(false, null, ApiErrorResponse.of("INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다.")));
+    }
+
+    private ErrorCode resolveUploadSizeErrorCode(Throwable exception) {
+        Throwable current = exception;
+        while (current != null) {
+            String className = current.getClass().getSimpleName();
+            if ("FileSizeLimitExceededException".equals(className)) {
+                return ErrorCode.AI_ASSIST_IMAGE_TOO_LARGE;
+            }
+            if ("SizeLimitExceededException".equals(className)) {
+                return ErrorCode.AI_ASSIST_IMAGE_REQUEST_TOO_LARGE;
+            }
+            current = current.getCause();
+        }
+        return ErrorCode.AI_ASSIST_IMAGE_REQUEST_TOO_LARGE;
     }
 
     private ResponseEntity<ApiResponse<Object>> handleInvalidInputException(
