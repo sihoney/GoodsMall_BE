@@ -3,6 +3,8 @@ package com.example.member.application.usecase;
 import java.util.UUID;
 
 import com.example.member.presentation.dto.CreateMemberResponse;
+import com.example.member.presentation.dto.ChangePasswordRequest;
+import com.example.member.presentation.dto.ChangePasswordResponse;
 import com.example.member.presentation.dto.CreateMemberRequest;
 import com.example.member.presentation.dto.MemberResponse;
 import com.example.member.presentation.dto.UpdateMemberRequest;
@@ -17,4 +19,6 @@ public interface MemberUsecase {
 	MemberResponse updateCurrentMember(UUID memberId, UpdateMemberRequest request);
 
 	MemberResponse getMember(UUID memberId);
+
+	ChangePasswordResponse changeCurrentMemberPassword(UUID memberId, ChangePasswordRequest request);
 }

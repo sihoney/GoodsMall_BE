@@ -200,8 +200,11 @@ gateway:
       - methods: [GET]
         pattern: /api/auctions/**
     role-rules:
-      - methods: [GET, PUT]
+      - methods: [GET, PUT, PATCH]
         pattern: /api/members/me
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [PATCH]
+        pattern: /api/members/me/password
         allowed-roles: [USER, SELLER, ADMIN]
       - methods: [GET, POST]
         pattern: /api/members/me/account-verifications/**
