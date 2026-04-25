@@ -44,6 +44,7 @@ bin/
 ### Env ###
 .env
 product/.env
+docker-compose.dev.yml
 
 ### K8s Secrets ###
 k8s/**/secret.yaml
