@@ -1,7 +1,6 @@
 package com.example.settlement.presentation.controller;
 
 import com.example.settlement.application.usecase.SettlementPayoutUseCase;
-import com.example.settlement.common.exception.CustomException;
 import com.example.settlement.common.exception.ErrorCode;
 import com.example.settlement.presentation.dto.request.FailedPayoutReplayRequest;
 import com.example.settlement.presentation.dto.request.ManualFailedPayoutRequest;
@@ -15,7 +14,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -67,21 +65,13 @@ public class SettlementOpsController {
             return ResponseEntity.badRequest().body(ApiResponse.fail(ErrorCode.INVALID_INPUT_VALUE, "settlementId must be UUID format."));
         }
 
-        try {
-            boolean requested = settlementPayoutService.requestManualFailedPayout(settlementId);
-            if (!requested) {
-                return ResponseEntity.status(ErrorCode.MANUAL_RETRY_NOT_ALLOWED.getHttpStatus())
-                        .body(ApiResponse.fail(ErrorCode.MANUAL_RETRY_NOT_ALLOWED));
-            }
-
-            return ResponseEntity.ok(ApiResponse.success(ManualFailedPayoutResponse.requested(settlementId)));
-        } catch (CustomException exception) {
-            return ResponseEntity.status(exception.getErrorCode().getHttpStatus())
-                    .body(ApiResponse.fail(
-                            exception.getErrorCode(),
-                            Objects.requireNonNullElse(exception.getMessage(), exception.getErrorCode().getMessage())
-                    ));
+        boolean requested = settlementPayoutService.requestManualFailedPayout(settlementId);
+        if (!requested) {
+            return ResponseEntity.status(ErrorCode.MANUAL_RETRY_NOT_ALLOWED.getHttpStatus())
+                    .body(ApiResponse.fail(ErrorCode.MANUAL_RETRY_NOT_ALLOWED));
         }
+
+        return ResponseEntity.ok(ApiResponse.success(ManualFailedPayoutResponse.requested(settlementId)));
     }
 
     /**
