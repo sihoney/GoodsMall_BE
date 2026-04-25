@@ -1,7 +1,9 @@
 package com.example.ai.infrastructure.config;
 
+import com.example.ai.infrastructure.messaging.kafka.InvalidProductEventPayloadException;
 import com.example.ai.infrastructure.messaging.kafka.KafkaConsumerGroups;
 import com.example.ai.infrastructure.messaging.kafka.KafkaTopics;
+import com.example.ai.infrastructure.messaging.kafka.ProductEventParseException;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.common.TopicPartition;
@@ -58,7 +60,12 @@ public class KafkaConsumerConfig {
                 (record, exception) -> new TopicPartition(KafkaTopics.PRODUCT_EVENT_DLQ, record.partition())
         );
 
-        return new DefaultErrorHandler(recoverer, backOff);
+        DefaultErrorHandler errorHandler = new DefaultErrorHandler(recoverer, backOff);
+        errorHandler.addNotRetryableExceptions(
+                ProductEventParseException.class,
+                InvalidProductEventPayloadException.class
+        );
+        return errorHandler;
     }
 
     @Bean(name = "productEventKafkaListenerContainerFactory")
