@@ -5,11 +5,14 @@ import com.example.member.application.event.MemberEventPublisher;
 import com.example.member.application.support.ProfileImageUrlResolver;
 import com.example.member.application.usecase.MemberUsecase;
 import com.example.member.common.exception.DuplicateMemberEmailException;
+import com.example.member.common.exception.InvalidCurrentPasswordException;
 import com.example.member.common.exception.MemberNotFoundException;
 import com.example.member.config.MemberSignupProperties;
 import com.example.member.domain.entity.Member;
 import com.example.member.domain.enumtype.MemberStatus;
 import com.example.member.infrastructure.repository.MemberRepository;
+import com.example.member.presentation.dto.ChangePasswordRequest;
+import com.example.member.presentation.dto.ChangePasswordResponse;
 import com.example.member.presentation.dto.CreateMemberRequest;
 import com.example.member.presentation.dto.CreateMemberResponse;
 import com.example.member.presentation.dto.MemberResponse;
@@ -91,21 +94,19 @@ public class MemberService implements MemberUsecase {
         validateUpdateRequest(request);
 
         Member member = getMemberEntity(memberId);
-        String email = normalizeRequired(request.email(), "email");
-        if (memberRepository.existsByEmailAndMemberIdNot(email, memberId)) {
-            throw new DuplicateMemberEmailException();
-        }
+        LocalDateTime now = LocalDateTime.now();
 
-        member.updateAccount(
-                email,
-                passwordEncoder.encode(normalizeRequired(request.password(), "password")),
+        member.changeNickname(
                 normalizeRequired(request.nickname(), "nickname"),
+                now
+        );
+        member.updateProfile(
                 normalizeNullable(request.phone()),
                 normalizeNullable(request.address()),
                 request.profileImageKey() == null
                         ? member.getProfileImageKey()
                         : normalizeProfileImageKey(request.profileImageKey()),
-                LocalDateTime.now()
+                now
         );
 
         return MemberResponse.from(member, resolveProfileImageUrl(member));
@@ -115,6 +116,26 @@ public class MemberService implements MemberUsecase {
     @Override
     public MemberResponse updateCurrentMember(UUID memberId, UpdateMemberRequest request) {
         return updateMember(memberId, request);
+    }
+
+    @Transactional
+    @Override
+    public ChangePasswordResponse changeCurrentMemberPassword(UUID memberId, ChangePasswordRequest request) {
+        validateChangePasswordRequest(request);
+
+        Member member = getMemberEntity(memberId);
+        String currentPassword = normalizeRequired(request.currentPassword(), "currentPassword");
+        if (!passwordEncoder.matches(currentPassword, member.getPassword())) {
+            throw new InvalidCurrentPasswordException();
+        }
+
+        String newPassword = normalizeRequired(request.newPassword(), "newPassword");
+        if (newPassword.length() < 8) {
+            throw new IllegalArgumentException("새 비밀번호는 8자 이상이어야 합니다.");
+        }
+
+        member.changePassword(passwordEncoder.encode(newPassword), LocalDateTime.now());
+        return ChangePasswordResponse.success();
     }
 
     private Member getMemberEntity(UUID memberId) {
@@ -131,6 +152,12 @@ public class MemberService implements MemberUsecase {
     private void validateUpdateRequest(UpdateMemberRequest request) {
         if (request == null) {
             throw new IllegalArgumentException("회원 수정 요청 본문은 필수입니다.");
+        }
+    }
+
+    private void validateChangePasswordRequest(ChangePasswordRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("비밀번호 변경 요청 본문은 필수입니다.");
         }
     }
 
