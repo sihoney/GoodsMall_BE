@@ -22,7 +22,7 @@ public class CartDeleteService implements CartDeleteUseCase {
 
     @Override
     public CartResponse deleteCartItems(UUID memberId, DeleteCartItemsRequest request) {
-        cartRepository.deleteAllByMemberIdAndCartIdIn(memberId, request.getCartItemIds());
+        cartRepository.deleteAllByMemberIdAndCartIdIn(memberId, request.getCartIds());
 
         return getCartResponse(memberId);
     }

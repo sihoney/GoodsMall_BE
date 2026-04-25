@@ -13,5 +13,5 @@ import lombok.NoArgsConstructor;
 public class DeleteCartItemsRequest {
 
     @NotEmpty(message = "장바구니 아이템 ID 목록은 필수입니다")
-    private List<UUID> cartItemIds;
+    private List<UUID> cartIds;
 }
