@@ -38,7 +38,8 @@ public class ProductEventConsumer {
 
     @KafkaListener(
             topics = KafkaTopics.PRODUCT_CREATED,
-            groupId = KafkaConsumerGroups.AI_PRODUCT_EMBEDDING_GROUP
+            groupId = KafkaConsumerGroups.AI_PRODUCT_EMBEDDING_GROUP,
+            containerFactory = "productEventKafkaListenerContainerFactory"
     )
     public void consumeProductCreated(String payload) {
         ProductCreatedMessage message = parse(payload, ProductCreatedMessage.class);
@@ -57,7 +58,8 @@ public class ProductEventConsumer {
 
     @KafkaListener(
             topics = KafkaTopics.PRODUCT_UPDATED,
-            groupId = KafkaConsumerGroups.AI_PRODUCT_EMBEDDING_GROUP
+            groupId = KafkaConsumerGroups.AI_PRODUCT_EMBEDDING_GROUP,
+            containerFactory = "productEventKafkaListenerContainerFactory"
     )
     public void consumeProductUpdated(String payload) {
         ProductUpdatedMessage message = parse(payload, ProductUpdatedMessage.class);
@@ -76,7 +78,8 @@ public class ProductEventConsumer {
 
     @KafkaListener(
             topics = KafkaTopics.PRODUCT_DELETED,
-            groupId = KafkaConsumerGroups.AI_PRODUCT_EMBEDDING_GROUP
+            groupId = KafkaConsumerGroups.AI_PRODUCT_EMBEDDING_GROUP,
+            containerFactory = "productEventKafkaListenerContainerFactory"
     )
     public void consumeProductDeleted(String payload) {
         ProductDeletedMessage message = parse(payload, ProductDeletedMessage.class);

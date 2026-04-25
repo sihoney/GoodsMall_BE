@@ -1,8 +1,10 @@
 package com.example.ai.infrastructure.config;
 
 import com.example.ai.infrastructure.messaging.kafka.KafkaConsumerGroups;
+import com.example.ai.infrastructure.messaging.kafka.KafkaTopics;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,6 +13,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.listener.DefaultErrorHandler;
+import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
+import org.springframework.kafka.support.ExponentialBackOffWithMaxRetries;
 
 /**
  * AI 모듈 Kafka consumer 설정.
@@ -34,14 +40,43 @@ public class KafkaConsumerConfig {
         return new DefaultKafkaConsumerFactory<>(props);
     }
 
-    @Bean(name = "kafkaListenerContainerFactory")
-    public ConcurrentKafkaListenerContainerFactory<String, String> kafkaListenerContainerFactory(
-            ConsumerFactory<String, String> productEventConsumerFactory
+    @Bean
+    public DefaultErrorHandler productEventKafkaErrorHandler(
+            KafkaTemplate<String, String> kafkaTemplate,
+            @Value("${ai.kafka.retry.initial-interval-ms:1000}") long initialIntervalMs,
+            @Value("${ai.kafka.retry.max-attempts:3}") int maxAttempts,
+            @Value("${ai.kafka.retry.multiplier:2.0}") double multiplier,
+            @Value("${ai.kafka.retry.max-interval-ms:5000}") long maxIntervalMs
     ) {
-        // @KafkaListener가 containerFactory를 지정하지 않을 때 사용하는 기본 bean 이름이다.
+        ExponentialBackOffWithMaxRetries backOff = new ExponentialBackOffWithMaxRetries(maxAttempts);
+        backOff.setInitialInterval(initialIntervalMs);
+        backOff.setMultiplier(multiplier);
+        backOff.setMaxInterval(maxIntervalMs);
+
+        DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(
+                kafkaTemplate,
+                (record, exception) -> new TopicPartition(KafkaTopics.PRODUCT_EVENT_DLQ, record.partition())
+        );
+
+        return new DefaultErrorHandler(recoverer, backOff);
+    }
+
+    @Bean(name = "productEventKafkaListenerContainerFactory")
+    public ConcurrentKafkaListenerContainerFactory<String, String> productEventKafkaListenerContainerFactory(
+            ConsumerFactory<String, String> productEventConsumerFactory,
+            DefaultErrorHandler productEventKafkaErrorHandler
+    ) {
         ConcurrentKafkaListenerContainerFactory<String, String> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(productEventConsumerFactory);
+        factory.setCommonErrorHandler(productEventKafkaErrorHandler);
         return factory;
+    }
+
+    @Bean(name = "kafkaListenerContainerFactory")
+    public ConcurrentKafkaListenerContainerFactory<String, String> kafkaListenerContainerFactory(
+            ConcurrentKafkaListenerContainerFactory<String, String> productEventKafkaListenerContainerFactory
+    ) {
+        return productEventKafkaListenerContainerFactory;
     }
 }
