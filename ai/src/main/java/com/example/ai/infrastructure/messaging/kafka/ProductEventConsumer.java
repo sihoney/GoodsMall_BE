@@ -3,7 +3,6 @@ package com.example.ai.infrastructure.messaging.kafka;
 import com.example.ai.application.dto.ProductDeactivateCommand;
 import com.example.ai.application.dto.ProductEmbeddingCommand;
 import com.example.ai.application.usecase.ProductEmbeddingUseCase;
-import com.example.ai.common.exception.AiEmbeddingException;
 import com.example.ai.infrastructure.embedding.EventIdempotencyRepository;
 import com.example.ai.infrastructure.messaging.kafka.contract.ProductCreatedMessage;
 import com.example.ai.infrastructure.messaging.kafka.contract.ProductDeletedMessage;
@@ -28,6 +27,8 @@ public class ProductEventConsumer {
 
     // TODO: 토픽 이름과 내용은 발행에 따라 변경이 될 수 있습니다.
     private static final String IDEMPOTENCY_PREFIX = "ai:event:product:";
+    private static final String UPSERT_ACTION = "upsert";
+    private static final String DEACTIVATE_ACTION = "deactivate";
 
     private final ProductEmbeddingUseCase productEmbeddingUseCase;
     private final EventIdempotencyRepository eventIdempotencyRepository;
@@ -38,10 +39,20 @@ public class ProductEventConsumer {
 
     @KafkaListener(
             topics = KafkaTopics.PRODUCT_CREATED,
-            groupId = KafkaConsumerGroups.AI_PRODUCT_EMBEDDING_GROUP
+            groupId = KafkaConsumerGroups.AI_PRODUCT_EMBEDDING_GROUP,
+            containerFactory = "productEventKafkaListenerContainerFactory"
     )
     public void consumeProductCreated(String payload) {
         ProductCreatedMessage message = parse(payload, ProductCreatedMessage.class);
+        validateUpsertPayload(
+                message.productId(),
+                message.sourceUpdatedAt(),
+                message.updatedAt(),
+                message.occurredAt(),
+                firstNonBlank(message.productName(), message.title()),
+                message.categoryName(),
+                message.description()
+        );
         processUpsertEvent(
                 message.eventId(),
                 message.productId(),
@@ -57,10 +68,20 @@ public class ProductEventConsumer {
 
     @KafkaListener(
             topics = KafkaTopics.PRODUCT_UPDATED,
-            groupId = KafkaConsumerGroups.AI_PRODUCT_EMBEDDING_GROUP
+            groupId = KafkaConsumerGroups.AI_PRODUCT_EMBEDDING_GROUP,
+            containerFactory = "productEventKafkaListenerContainerFactory"
     )
     public void consumeProductUpdated(String payload) {
         ProductUpdatedMessage message = parse(payload, ProductUpdatedMessage.class);
+        validateUpsertPayload(
+                message.productId(),
+                message.sourceUpdatedAt(),
+                message.updatedAt(),
+                message.occurredAt(),
+                firstNonBlank(message.productName(), message.title()),
+                message.categoryName(),
+                message.description()
+        );
         processUpsertEvent(
                 message.eventId(),
                 message.productId(),
@@ -76,10 +97,17 @@ public class ProductEventConsumer {
 
     @KafkaListener(
             topics = KafkaTopics.PRODUCT_DELETED,
-            groupId = KafkaConsumerGroups.AI_PRODUCT_EMBEDDING_GROUP
+            groupId = KafkaConsumerGroups.AI_PRODUCT_EMBEDDING_GROUP,
+            containerFactory = "productEventKafkaListenerContainerFactory"
     )
     public void consumeProductDeleted(String payload) {
         ProductDeletedMessage message = parse(payload, ProductDeletedMessage.class);
+        validateDeactivatePayload(
+                message.productId(),
+                message.sourceUpdatedAt(),
+                message.updatedAt(),
+                message.occurredAt()
+        );
         processDeactivateEvent(
                 message.eventId(),
                 message.productId(),
@@ -102,10 +130,17 @@ public class ProductEventConsumer {
     ) {
         UUID productId = parseRequiredUuid(productIdText, "productId");
         LocalDateTime sourceUpdatedAt = parseSourceUpdatedAt(sourceUpdatedAtText, updatedAtText, occurredAtText);
-        String key = buildIdempotencyKey(eventId, productId, sourceUpdatedAt, "upsert");
+        String key = buildIdempotencyKey(eventId, productId, sourceUpdatedAt, UPSERT_ACTION);
 
         if (!eventIdempotencyRepository.reserve(key, Duration.ofSeconds(idempotencyTtlSeconds))) {
-            log.info("Skip duplicated product event: key={}", key);
+            log.info(
+                    "Skip duplicated product event. action={} productId={} eventId={} sourceUpdatedAt={} key={}",
+                    UPSERT_ACTION,
+                    productId,
+                    eventId,
+                    sourceUpdatedAt,
+                    key
+            );
             return;
         }
 
@@ -123,9 +158,23 @@ public class ProductEventConsumer {
                     description,
                     sourceUpdatedAt
             ));
-            log.info("Product upsert event processed: productId={}", productId);
+            log.info(
+                    "Product upsert event processed. action={} productId={} eventId={} sourceUpdatedAt={}",
+                    UPSERT_ACTION,
+                    productId,
+                    eventId,
+                    sourceUpdatedAt
+            );
         } catch (RuntimeException e) {
             eventIdempotencyRepository.release(key);
+            log.warn(
+                    "Product upsert event failed after idempotency reservation. Released key for retry. action={} productId={} eventId={} sourceUpdatedAt={} key={}",
+                    UPSERT_ACTION,
+                    productId,
+                    eventId,
+                    sourceUpdatedAt,
+                    key
+            );
             throw e;
         }
     }
@@ -139,18 +188,39 @@ public class ProductEventConsumer {
     ) {
         UUID productId = parseRequiredUuid(productIdText, "productId");
         LocalDateTime sourceUpdatedAt = parseSourceUpdatedAt(sourceUpdatedAtText, updatedAtText, occurredAtText);
-        String key = buildIdempotencyKey(eventId, productId, sourceUpdatedAt, "deactivate");
+        String key = buildIdempotencyKey(eventId, productId, sourceUpdatedAt, DEACTIVATE_ACTION);
 
         if (!eventIdempotencyRepository.reserve(key, Duration.ofSeconds(idempotencyTtlSeconds))) {
-            log.info("Skip duplicated product delete event: key={}", key);
+            log.info(
+                    "Skip duplicated product deactivate event. action={} productId={} eventId={} sourceUpdatedAt={} key={}",
+                    DEACTIVATE_ACTION,
+                    productId,
+                    eventId,
+                    sourceUpdatedAt,
+                    key
+            );
             return;
         }
 
         try {
             productEmbeddingUseCase.deactivate(new ProductDeactivateCommand(productId, sourceUpdatedAt));
-            log.info("Product delete event processed: productId={}", productId);
+            log.info(
+                    "Product deactivate event processed. action={} productId={} eventId={} sourceUpdatedAt={}",
+                    DEACTIVATE_ACTION,
+                    productId,
+                    eventId,
+                    sourceUpdatedAt
+            );
         } catch (RuntimeException e) {
             eventIdempotencyRepository.release(key);
+            log.warn(
+                    "Product deactivate event failed after idempotency reservation. Released key for retry. action={} productId={} eventId={} sourceUpdatedAt={} key={}",
+                    DEACTIVATE_ACTION,
+                    productId,
+                    eventId,
+                    sourceUpdatedAt,
+                    key
+            );
             throw e;
         }
     }
@@ -159,18 +229,18 @@ public class ProductEventConsumer {
         try {
             return objectMapper.readValue(payload, targetType);
         } catch (Exception e) {
-            throw new AiEmbeddingException("Product 이벤트 역직렬화에 실패했습니다.", e);
+            throw new ProductEventParseException("Product 이벤트 역직렬화에 실패했습니다.", e);
         }
     }
 
     private UUID parseRequiredUuid(String value, String fieldName) {
         if (value == null || value.isBlank()) {
-            throw new AiEmbeddingException(fieldName + "는 필수입니다.");
+            throw new InvalidProductEventPayloadException(fieldName + "는 필수입니다.");
         }
         try {
             return UUID.fromString(value);
         } catch (IllegalArgumentException e) {
-            throw new AiEmbeddingException(fieldName + " 형식이 올바르지 않습니다.", e);
+            throw new InvalidProductEventPayloadException(fieldName + " 형식이 올바르지 않습니다.", e);
         }
     }
 
@@ -187,8 +257,46 @@ public class ProductEventConsumer {
             try {
                 return LocalDateTime.ofInstant(Instant.parse(value), ZoneOffset.UTC);
             } catch (DateTimeParseException e) {
-                throw new AiEmbeddingException("sourceUpdatedAt 파싱에 실패했습니다.", e);
+                throw new InvalidProductEventPayloadException("sourceUpdatedAt 파싱에 실패했습니다.", e);
             }
+        }
+    }
+
+    private void validateUpsertPayload(
+            String productId,
+            String sourceUpdatedAt,
+            String updatedAt,
+            String occurredAt,
+            String productName,
+            String categoryName,
+            String description
+    ) {
+        validateRequiredSourceUpdatedAt(productId, sourceUpdatedAt, updatedAt, occurredAt);
+        if (firstNonBlank(productName, categoryName, description) == null) {
+            throw new InvalidProductEventPayloadException("임베딩 입력 텍스트가 비어 있습니다.");
+        }
+    }
+
+    private void validateDeactivatePayload(
+            String productId,
+            String sourceUpdatedAt,
+            String updatedAt,
+            String occurredAt
+    ) {
+        validateRequiredSourceUpdatedAt(productId, sourceUpdatedAt, updatedAt, occurredAt);
+    }
+
+    private void validateRequiredSourceUpdatedAt(
+            String productId,
+            String sourceUpdatedAt,
+            String updatedAt,
+            String occurredAt
+    ) {
+        if (productId == null || productId.isBlank()) {
+            throw new InvalidProductEventPayloadException("productId는 필수입니다.");
+        }
+        if (firstNonBlank(sourceUpdatedAt, updatedAt, occurredAt) == null) {
+            throw new InvalidProductEventPayloadException("sourceUpdatedAt, updatedAt, occurredAt 중 하나는 필수입니다.");
         }
     }
 
