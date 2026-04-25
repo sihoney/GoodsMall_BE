@@ -6,7 +6,7 @@ import com.example.settlement.domain.entity.Settlement;
 import com.example.settlement.domain.enumtype.SettlementStatus;
 import com.example.settlement.domain.enumtype.SettlementType;
 import com.example.settlement.domain.repository.SettlementRepository;
-import com.example.settlement.infrastructure.messaging.kafka.KafkaSellerSettlementPayoutRequestedEventPublisher;
+import com.example.settlement.infrastructure.messaging.kafka.SettlementPayoutRequestedOutboxEventSaver;
 import com.example.settlement.infrastructure.messaging.kafka.contract.PayoutFailureReason;
 import com.example.settlement.infrastructure.messaging.kafka.contract.SellerSettlementPayoutRequestedMessage;
 import com.example.settlement.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultMessage;
@@ -32,14 +32,14 @@ public class SettlementPayoutService implements SettlementPayoutUseCase {
     private static final Logger log = LoggerFactory.getLogger(SettlementPayoutService.class);
 
     private final SettlementRepository settlementRepository;
-    private final KafkaSellerSettlementPayoutRequestedEventPublisher payoutRequestedEventPublisher;
+    private final SettlementPayoutRequestedOutboxEventSaver settlementPayoutRequestedOutboxEventSaver;
 
     public SettlementPayoutService(
             SettlementRepository settlementRepository,
-            KafkaSellerSettlementPayoutRequestedEventPublisher payoutRequestedEventPublisher
+            SettlementPayoutRequestedOutboxEventSaver settlementPayoutRequestedOutboxEventSaver
     ) {
         this.settlementRepository = settlementRepository;
-        this.payoutRequestedEventPublisher = payoutRequestedEventPublisher;
+        this.settlementPayoutRequestedOutboxEventSaver = settlementPayoutRequestedOutboxEventSaver;
     }
 
     /**
@@ -241,14 +241,14 @@ public class SettlementPayoutService implements SettlementPayoutUseCase {
     }
 
     /**
-     * settlement를 지급 요청 중 상태로 바꾸고 지급 요청 이벤트를 공통 형식으로 발행한다.
+     * settlement를 지급 요청 중 상태로 바꾸고 지급 요청 이벤트를 outbox에 저장한다.
      * <p>
-     * 수동 재지급, 자동 재지급, 월 정산 지급 요청이 모두 같은 이벤트 포맷을 사용하도록 공통화한다.
+     * 수동 재지급, 자동 재지급, 월 정산 지급 요청이 모두 같은 이벤트 포맷으로 outbox에 적재되도록 공통화한다.
      */
     private void markSettlementAsProcessingAndPublishPayoutRequest(Settlement settlement, LocalDateTime requestedAt) {
         settlement.markPayoutRequested(requestedAt);
         settlementRepository.save(settlement);
-        payoutRequestedEventPublisher.publish(new SellerSettlementPayoutRequestedMessage(
+        settlementPayoutRequestedOutboxEventSaver.save(new SellerSettlementPayoutRequestedMessage(
                 UUID.randomUUID(),
                 settlement.getSettlementId(),
                 toSettlementPayoutType(settlement.getSettlementType()),
