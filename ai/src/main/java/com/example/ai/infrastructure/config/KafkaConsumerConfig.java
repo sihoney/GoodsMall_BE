@@ -4,10 +4,12 @@ import com.example.ai.infrastructure.messaging.kafka.InvalidProductEventPayloadE
 import com.example.ai.infrastructure.messaging.kafka.KafkaConsumerGroups;
 import com.example.ai.infrastructure.messaging.kafka.KafkaTopics;
 import com.example.ai.infrastructure.messaging.kafka.ProductEventParseException;
+import com.example.ai.infrastructure.messaging.kafka.dlq.ProductEventDlqPublisher;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -16,8 +18,8 @@ import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.listener.ConsumerRecordRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
-import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.support.ExponentialBackOffWithMaxRetries;
 
 /**
@@ -43,8 +45,20 @@ public class KafkaConsumerConfig {
     }
 
     @Bean
+    public ConsumerRecordRecoverer productEventDlqRecoverer(
+            ProductEventDlqPublisher productEventDlqPublisher
+    ) {
+        return (ConsumerRecord<?, ?> record, Exception exception) -> productEventDlqPublisher.publish(
+                "productEventKafkaListener",
+                record.topic(),
+                record.value() == null ? "" : record.value().toString(),
+                exception
+        );
+    }
+
+    @Bean
     public DefaultErrorHandler productEventKafkaErrorHandler(
-            KafkaTemplate<String, String> kafkaTemplate,
+            ConsumerRecordRecoverer productEventDlqRecoverer,
             @Value("${ai.kafka.retry.initial-interval-ms:1000}") long initialIntervalMs,
             @Value("${ai.kafka.retry.max-attempts:3}") int maxAttempts,
             @Value("${ai.kafka.retry.multiplier:2.0}") double multiplier,
@@ -55,12 +69,7 @@ public class KafkaConsumerConfig {
         backOff.setMultiplier(multiplier);
         backOff.setMaxInterval(maxIntervalMs);
 
-        DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(
-                kafkaTemplate,
-                (record, exception) -> new TopicPartition(KafkaTopics.PRODUCT_EVENT_DLQ, record.partition())
-        );
-
-        DefaultErrorHandler errorHandler = new DefaultErrorHandler(recoverer, backOff);
+        DefaultErrorHandler errorHandler = new DefaultErrorHandler(productEventDlqRecoverer, backOff);
         errorHandler.addNotRetryableExceptions(
                 ProductEventParseException.class,
                 InvalidProductEventPayloadException.class
