@@ -9,6 +9,7 @@ import com.example.payment.infrastructure.messaging.kafka.contract.OrderPurchase
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,6 +22,8 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.support.ExponentialBackOffWithMaxRetries;
+import org.springframework.util.backoff.FixedBackOff;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * payment 모듈 Kafka consumer(소비기) 설정을 담당한다.
@@ -30,6 +33,7 @@ import org.springframework.kafka.support.ExponentialBackOffWithMaxRetries;
  * 2. @KafkaListener가 사용할 ListenerContainerFactory를 만든다.
  * 3. 특정 이벤트에 대해 재시도, 백오프, DLQ 같은 실패 처리 정책을 설정한다.
  */
+@Slf4j
 @Configuration
 public class KafkaConsumerConfig {
 
@@ -118,6 +122,7 @@ public class KafkaConsumerConfig {
         ConcurrentKafkaListenerContainerFactory<String, String> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(auctionBidFeeChargeRequestedConsumerFactory);
+        factory.setCommonErrorHandler(createAuctionBidFeeChargeRequestedErrorHandler());
         return factory;
     }
 
@@ -195,6 +200,13 @@ public class KafkaConsumerConfig {
         return new DefaultKafkaConsumerFactory<>(props);
     }
 
+    private DefaultErrorHandler createAuctionBidFeeChargeRequestedErrorHandler() {
+        return new DefaultErrorHandler((record, exception) ->
+                log.error("경매 입찰 보증금 요청 Kafka 리스너 최종 실패: topic={}, partition={}, offset={}, key={}, payloadSnippet={}",
+                        record.topic(), record.partition(), record.offset(), record.key(), summarizePayload(record), exception),
+                new FixedBackOff(0L, 0L));
+    }
+
     /**
      * 판매자 정산 지급 요청 이벤트 처리 실패 시 사용할 에러 핸들러 생성
      * <p>
@@ -227,5 +239,14 @@ public class KafkaConsumerConfig {
         errorHandler.addNotRetryableExceptions(IllegalArgumentException.class, WalletNotFoundException.class);
 
         return errorHandler;
+    }
+
+    private String summarizePayload(ConsumerRecord<?, ?> record) {
+        Object value = record.value();
+        if (value == null) {
+            return "<empty>";
+        }
+        String normalized = value.toString().replaceAll("\\s+", " ").trim();
+        return normalized.length() <= 300 ? normalized : normalized.substring(0, 300) + "...";
     }
 }
