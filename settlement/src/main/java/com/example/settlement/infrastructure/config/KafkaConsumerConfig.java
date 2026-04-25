@@ -1,8 +1,10 @@
 package com.example.settlement.infrastructure.config;
 
+import com.example.settlement.common.exception.CustomException;
 import com.example.settlement.infrastructure.messaging.kafka.KafkaConsumerGroups;
 import com.example.settlement.infrastructure.messaging.kafka.KafkaRetryPolicy;
 import com.example.settlement.infrastructure.messaging.kafka.KafkaTopics;
+import com.example.settlement.infrastructure.messaging.kafka.exception.SettlementKafkaValidationException;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -118,7 +120,11 @@ public class KafkaConsumerConfig {
         );
 
         DefaultErrorHandler errorHandler = new DefaultErrorHandler(recoverer, backOff);
-        errorHandler.addNotRetryableExceptions(IllegalArgumentException.class);
+        errorHandler.addNotRetryableExceptions(
+                IllegalArgumentException.class,
+                CustomException.class,
+                SettlementKafkaValidationException.class
+        );
         return errorHandler;
     }
 }

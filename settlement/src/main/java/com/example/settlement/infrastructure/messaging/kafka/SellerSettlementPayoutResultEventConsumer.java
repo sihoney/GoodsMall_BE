@@ -2,6 +2,8 @@ package com.example.settlement.infrastructure.messaging.kafka;
 
 import com.example.settlement.application.usecase.SettlementPayoutUseCase;
 import com.example.settlement.infrastructure.messaging.kafka.contract.SellerSettlementPayoutResultMessage;
+import com.example.settlement.infrastructure.messaging.kafka.exception.SettlementKafkaProcessingException;
+import com.example.settlement.infrastructure.messaging.kafka.exception.SettlementKafkaValidationException;
 import com.todaylunch.common.event.contract.EventEnvelope;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -46,57 +48,64 @@ public class SellerSettlementPayoutResultEventConsumer {
             validateEnvelope(envelope);
             SellerSettlementPayoutResultMessage event = envelope.payload();
             settlementPayoutService.applyPayoutResult(event);
-        } catch (Exception e) {
-            log.error("Failed to process seller settlement payout result envelope", e);
-            throw new RuntimeException("Failed to deserialize seller settlement payout result envelope", e);
+        } catch (SettlementKafkaValidationException exception) {
+            log.warn("정산 지급 결과 Kafka 메시지를 DLQ 대상으로 분류합니다. message={}", exception.getMessage(), exception);
+            throw exception;
+        } catch (Exception exception) {
+            log.error("정산 지급 결과 Kafka 메시지 처리 중 재시도 대상 오류가 발생했습니다.", exception);
+            throw new SettlementKafkaProcessingException("정산 지급 결과 Kafka 메시지 처리에 실패했습니다.", exception);
         }
     }
 
-    private EventEnvelope<SellerSettlementPayoutResultMessage> readEnvelope(String eventJson) throws Exception {
-        return objectMapper.readValue(eventJson, SELLER_SETTLEMENT_PAYOUT_RESULT_ENVELOPE_TYPE);
+    private EventEnvelope<SellerSettlementPayoutResultMessage> readEnvelope(String eventJson) {
+        try {
+            return objectMapper.readValue(eventJson, SELLER_SETTLEMENT_PAYOUT_RESULT_ENVELOPE_TYPE);
+        } catch (Exception exception) {
+            throw new SettlementKafkaValidationException("정산 지급 결과 envelope 역직렬화에 실패했습니다.", exception);
+        }
     }
 
     private void validateEnvelope(EventEnvelope<SellerSettlementPayoutResultMessage> envelope) {
         if (envelope == null) {
-            throw new IllegalArgumentException("sellerSettlementPayoutResult envelope is required.");
+            throw new SettlementKafkaValidationException("sellerSettlementPayoutResult envelope는 필수입니다.");
         }
         if (envelope.eventId() == null) {
-            throw new IllegalArgumentException("eventId is required.");
+            throw new SettlementKafkaValidationException("eventId는 필수입니다.");
         }
         if (envelope.eventType() == null || envelope.eventType().isBlank()) {
-            throw new IllegalArgumentException("eventType is required.");
+            throw new SettlementKafkaValidationException("eventType은 필수입니다.");
         }
         if (!SELLER_SETTLEMENT_PAYOUT_RESULT_EVENT_TYPE.equals(envelope.eventType())) {
-            throw new IllegalArgumentException("eventType is invalid.");
+            throw new SettlementKafkaValidationException("eventType이 올바르지 않습니다.");
         }
         if (envelope.source() == null || envelope.source().isBlank()) {
-            throw new IllegalArgumentException("source is required.");
+            throw new SettlementKafkaValidationException("source는 필수입니다.");
         }
         if (envelope.aggregateId() == null) {
-            throw new IllegalArgumentException("aggregateId is required.");
+            throw new SettlementKafkaValidationException("aggregateId는 필수입니다.");
         }
         if (envelope.occurredAt() == null) {
-            throw new IllegalArgumentException("occurredAt is required.");
+            throw new SettlementKafkaValidationException("occurredAt은 필수입니다.");
         }
         if (envelope.traceId() == null || envelope.traceId().isBlank()) {
-            throw new IllegalArgumentException("traceId is required.");
+            throw new SettlementKafkaValidationException("traceId는 필수입니다.");
         }
 
         SellerSettlementPayoutResultMessage event = envelope.payload();
         if (event == null) {
-            throw new IllegalArgumentException("payload is required.");
+            throw new SettlementKafkaValidationException("payload는 필수입니다.");
         }
         if (event.settlementId() == null) {
-            throw new IllegalArgumentException("settlementId is required.");
+            throw new SettlementKafkaValidationException("settlementId는 필수입니다.");
         }
         if (event.sellerMemberId() == null) {
-            throw new IllegalArgumentException("sellerMemberId is required.");
+            throw new SettlementKafkaValidationException("sellerMemberId는 필수입니다.");
         }
         if (!envelope.aggregateId().equals(event.settlementId())) {
-            throw new IllegalArgumentException("aggregateId must match settlementId.");
+            throw new SettlementKafkaValidationException("aggregateId는 settlementId와 같아야 합니다.");
         }
         if (envelope.recipientId() != null && !envelope.recipientId().equals(event.sellerMemberId())) {
-            throw new IllegalArgumentException("recipientId must match sellerMemberId.");
+            throw new SettlementKafkaValidationException("recipientId는 sellerMemberId와 같아야 합니다.");
         }
     }
 }

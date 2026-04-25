@@ -2,6 +2,8 @@ package com.example.settlement.application.service;
 
 import com.example.settlement.application.dto.FailedPayoutReplayResult;
 import com.example.settlement.application.usecase.SettlementPayoutUseCase;
+import com.example.settlement.common.exception.CustomException;
+import com.example.settlement.common.exception.ErrorCode;
 import com.example.settlement.domain.entity.Settlement;
 import com.example.settlement.domain.enumtype.SettlementStatus;
 import com.example.settlement.domain.enumtype.SettlementType;
@@ -58,10 +60,10 @@ public class SettlementPayoutService implements SettlementPayoutUseCase {
     public int requestMonthlyPayouts(int settlementYear, int settlementMonth) {
         // 입력값 검증: 연도는 양수, 월은 1~12 범위로 제한한다. 잘못된 입력은 즉시 예외로 차단한다.
         if (settlementYear <= 0) {
-            throw new IllegalArgumentException("settlementYear must be positive.");
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "settlementYear는 1 이상이어야 합니다.");
         }
         if (settlementMonth < 1 || settlementMonth > 12) {
-            throw new IllegalArgumentException("settlementMonth must be between 1 and 12.");
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "settlementMonth는 1부터 12 사이여야 합니다.");
         }
 
         // pending 상태의 settlement를 조회
@@ -87,19 +89,24 @@ public class SettlementPayoutService implements SettlementPayoutUseCase {
 
     @Override
     public void requestPayoutForPartialSettlement(UUID settlementId) {
-        Objects.requireNonNull(settlementId, "settlementId is required.");
+        if (settlementId == null) {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "settlementId는 필수입니다.");
+        }
 
         Settlement partialSettlement = settlementRepository.findBySettlementId(settlementId)
-                .orElseThrow(() -> new IllegalArgumentException("Settlement not found: " + settlementId));
+                .orElseThrow(() -> new CustomException(
+                        ErrorCode.SETTLEMENT_NOT_FOUND,
+                        "정산 정보를 찾을 수 없습니다. settlementId=" + settlementId
+                ));
 
         if (partialSettlement.getSettlementType() != SettlementType.PARTIAL) {
-            throw new IllegalArgumentException("Only partial settlement payout is allowed.");
+            throw new CustomException(ErrorCode.INVALID_SETTLEMENT_PAYOUT_REQUEST, "부분 정산만 지급 요청할 수 있습니다.");
         }
         if (partialSettlement.getSettlementStatus() != SettlementStatus.PENDING) {
-            throw new IllegalArgumentException("Only pending partial settlement can request payout.");
+            throw new CustomException(ErrorCode.INVALID_SETTLEMENT_PAYOUT_REQUEST, "PENDING 상태의 부분 정산만 지급 요청할 수 있습니다.");
         }
         if (partialSettlement.getFinalSettlementAmount() == null || partialSettlement.getFinalSettlementAmount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("partial settlement payout amount must be positive.");
+            throw new CustomException(ErrorCode.INVALID_SETTLEMENT_PAYOUT_REQUEST, "부분 정산 지급 금액은 0보다 커야 합니다.");
         }
 
         markSettlementAsProcessingAndPublishPayoutRequest(partialSettlement, LocalDateTime.now());
@@ -124,17 +131,14 @@ public class SettlementPayoutService implements SettlementPayoutUseCase {
 
         // 지급 결과를 반영할 실제 정산 엔티티를 조회한다.
         Settlement settlement = settlementRepository.findBySettlementId(event.settlementId())
-                .orElseThrow(() -> new IllegalArgumentException("Settlement not found: " + event.settlementId()));
+                .orElseThrow(() -> new CustomException(
+                        ErrorCode.SETTLEMENT_NOT_FOUND,
+                        "정산 정보를 찾을 수 없습니다. settlementId=" + event.settlementId()
+                ));
 
         // 지급 성공인 경우
         if (event.resultStatus() == SellerSettlementPayoutResultStatus.SUCCESS) {
-            // 이미 COMPLETED 상태면 중복 성공 이벤트로 보고 no-op(아무 작업 없음) 처리한다.
-            if (settlement.getSettlementStatus() == SettlementStatus.COMPLETED) {
-                return;
-            }
-            // 성공 금액, 지급 처리 시각, 상태 변경 시각을 반영해 정산 완료 처리한다.
-            settlement.complete(event.payoutAmount(), event.processedAt(), LocalDateTime.now());
-            settlementRepository.save(settlement);
+            applySuccessPayoutResult(settlement, event);
             return;
         }
 
@@ -152,9 +156,7 @@ public class SettlementPayoutService implements SettlementPayoutUseCase {
             log.error("[PayoutFailed/NON_RETRYABLE] settlementId={} reason={} requestEventId={} — 수동 조치 필요",
                     event.settlementId(), reason, event.requestEventId());
         }
-        // 정산 엔티티에 실패 상태와 실패 사유를 기록한다.
-        settlement.fail(reason.name(), LocalDateTime.now());
-        settlementRepository.save(settlement);
+        applyFailedPayoutResult(settlement, event, reason);
     }
 
     /**
@@ -171,10 +173,10 @@ public class SettlementPayoutService implements SettlementPayoutUseCase {
     @Override
     public int requestRetryableFailedPayouts(int settlementYear, int settlementMonth) {
         if (settlementYear <= 0) {
-            throw new IllegalArgumentException("settlementYear must be positive.");
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "settlementYear는 1 이상이어야 합니다.");
         }
         if (settlementMonth < 1 || settlementMonth > 12) {
-            throw new IllegalArgumentException("settlementMonth must be between 1 and 12.");
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "settlementMonth는 1부터 12 사이여야 합니다.");
         }
 
         // 해당 연월의 Failed 상태 정산 목록을 조회
@@ -213,10 +215,15 @@ public class SettlementPayoutService implements SettlementPayoutUseCase {
      */
     @Override
     public boolean requestManualFailedPayout(UUID settlementId) {
-        Objects.requireNonNull(settlementId, "settlementId is required.");
+        if (settlementId == null) {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "settlementId는 필수입니다.");
+        }
 
         Settlement settlement = settlementRepository.findBySettlementId(settlementId)
-                .orElseThrow(() -> new IllegalArgumentException("Settlement not found: " + settlementId));
+                .orElseThrow(() -> new CustomException(
+                        ErrorCode.SETTLEMENT_NOT_FOUND,
+                        "정산 정보를 찾을 수 없습니다. settlementId=" + settlementId
+                ));
 
         if (settlement.getSettlementStatus() != SettlementStatus.FAILED) {
             log.warn("[ManualPayoutRetrySkipped] settlementId={} status={}",
@@ -265,18 +272,20 @@ public class SettlementPayoutService implements SettlementPayoutUseCase {
      * 잘못된 이벤트는 상태 반영 전에 즉시 예외로 차단한다.
      */
     private void validatePayoutResult(SellerSettlementPayoutResultMessage event) {
-        Objects.requireNonNull(event, "sellerSettlementPayoutResult event is required.");
+        if (event == null) {
+            throw new CustomException(ErrorCode.INVALID_SETTLEMENT_PAYOUT_RESULT, "정산 지급 결과 이벤트가 비어 있습니다.");
+        }
         if (event.settlementId() == null) {
-            throw new IllegalArgumentException("settlementId is required.");
+            throw new CustomException(ErrorCode.INVALID_SETTLEMENT_PAYOUT_RESULT, "settlementId는 필수입니다.");
         }
         if (event.resultStatus() == null) {
-            throw new IllegalArgumentException("resultStatus is required.");
+            throw new CustomException(ErrorCode.INVALID_SETTLEMENT_PAYOUT_RESULT, "resultStatus는 필수입니다.");
         }
         if (event.processedAt() == null) {
-            throw new IllegalArgumentException("processedAt is required.");
+            throw new CustomException(ErrorCode.INVALID_SETTLEMENT_PAYOUT_RESULT, "processedAt은 필수입니다.");
         }
         if (event.payoutAmount() == null || event.payoutAmount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("payoutAmount must be positive.");
+            throw new CustomException(ErrorCode.INVALID_SETTLEMENT_PAYOUT_RESULT, "payoutAmount는 0보다 커야 합니다.");
         }
     }
 
@@ -316,7 +325,9 @@ public class SettlementPayoutService implements SettlementPayoutUseCase {
      */
     @Override
     public FailedPayoutReplayResult replayFailedPayouts(List<UUID> settlementIds) {
-        Objects.requireNonNull(settlementIds, "settlementIds is required.");
+        if (settlementIds == null) {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "settlementIds는 필수입니다.");
+        }
 
         int requestedRetryCount = 0;
         int manualActionRequiredCount = 0;
@@ -376,5 +387,36 @@ public class SettlementPayoutService implements SettlementPayoutUseCase {
                 skippedCount,
                 notFoundCount
         );
+    }
+
+    private void applySuccessPayoutResult(Settlement settlement, SellerSettlementPayoutResultMessage event) {
+        if (settlement.getSettlementStatus() == SettlementStatus.COMPLETED) {
+            log.info("[PayoutSuccessDuplicateIgnored] settlementId={} requestEventId={}",
+                    event.settlementId(), event.requestEventId());
+            return;
+        }
+
+        settlement.complete(event.payoutAmount(), event.processedAt(), LocalDateTime.now());
+        settlementRepository.save(settlement);
+    }
+
+    private void applyFailedPayoutResult(
+            Settlement settlement,
+            SellerSettlementPayoutResultMessage event,
+            PayoutFailureReason reason
+    ) {
+        if (settlement.getSettlementStatus() == SettlementStatus.COMPLETED) {
+            log.warn("[PayoutFailureIgnoredAfterCompleted] settlementId={} reason={} requestEventId={}",
+                    event.settlementId(), reason, event.requestEventId());
+            return;
+        }
+        if (settlement.getSettlementStatus() == SettlementStatus.FAILED) {
+            log.info("[PayoutFailureDuplicateIgnored] settlementId={} reason={} requestEventId={}",
+                    event.settlementId(), reason, event.requestEventId());
+            return;
+        }
+
+        settlement.fail(reason.name(), LocalDateTime.now());
+        settlementRepository.save(settlement);
     }
 }

@@ -1,6 +1,7 @@
 package com.example.settlement.presentation.controller;
 
 import com.example.settlement.application.usecase.SettlementPayoutUseCase;
+import com.example.settlement.common.exception.CustomException;
 import com.example.settlement.common.exception.ErrorCode;
 import com.example.settlement.presentation.dto.request.FailedPayoutReplayRequest;
 import com.example.settlement.presentation.dto.request.ManualFailedPayoutRequest;
@@ -74,13 +75,12 @@ public class SettlementOpsController {
             }
 
             return ResponseEntity.ok(ApiResponse.success(ManualFailedPayoutResponse.requested(settlementId)));
-        } catch (IllegalArgumentException e) {
-            String message = Objects.requireNonNullElse(e.getMessage(), "Invalid request.");
-            if (message.startsWith("Settlement not found:")) {
-                return ResponseEntity.status(ErrorCode.SETTLEMENT_NOT_FOUND.getHttpStatus())
-                        .body(ApiResponse.fail(ErrorCode.SETTLEMENT_NOT_FOUND, message));
-            }
-            return ResponseEntity.badRequest().body(ApiResponse.fail(ErrorCode.INVALID_INPUT_VALUE, message));
+        } catch (CustomException exception) {
+            return ResponseEntity.status(exception.getErrorCode().getHttpStatus())
+                    .body(ApiResponse.fail(
+                            exception.getErrorCode(),
+                            Objects.requireNonNullElse(exception.getMessage(), exception.getErrorCode().getMessage())
+                    ));
         }
     }
 
