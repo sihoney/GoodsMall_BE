@@ -27,6 +27,8 @@ public class ProductEventConsumer {
 
     // TODO: 토픽 이름과 내용은 발행에 따라 변경이 될 수 있습니다.
     private static final String IDEMPOTENCY_PREFIX = "ai:event:product:";
+    private static final String UPSERT_ACTION = "upsert";
+    private static final String DEACTIVATE_ACTION = "deactivate";
 
     private final ProductEmbeddingUseCase productEmbeddingUseCase;
     private final EventIdempotencyRepository eventIdempotencyRepository;
@@ -128,10 +130,17 @@ public class ProductEventConsumer {
     ) {
         UUID productId = parseRequiredUuid(productIdText, "productId");
         LocalDateTime sourceUpdatedAt = parseSourceUpdatedAt(sourceUpdatedAtText, updatedAtText, occurredAtText);
-        String key = buildIdempotencyKey(eventId, productId, sourceUpdatedAt, "upsert");
+        String key = buildIdempotencyKey(eventId, productId, sourceUpdatedAt, UPSERT_ACTION);
 
         if (!eventIdempotencyRepository.reserve(key, Duration.ofSeconds(idempotencyTtlSeconds))) {
-            log.info("Skip duplicated product event: key={}", key);
+            log.info(
+                    "Skip duplicated product event. action={} productId={} eventId={} sourceUpdatedAt={} key={}",
+                    UPSERT_ACTION,
+                    productId,
+                    eventId,
+                    sourceUpdatedAt,
+                    key
+            );
             return;
         }
 
@@ -149,9 +158,23 @@ public class ProductEventConsumer {
                     description,
                     sourceUpdatedAt
             ));
-            log.info("Product upsert event processed: productId={}", productId);
+            log.info(
+                    "Product upsert event processed. action={} productId={} eventId={} sourceUpdatedAt={}",
+                    UPSERT_ACTION,
+                    productId,
+                    eventId,
+                    sourceUpdatedAt
+            );
         } catch (RuntimeException e) {
             eventIdempotencyRepository.release(key);
+            log.warn(
+                    "Product upsert event failed after idempotency reservation. Released key for retry. action={} productId={} eventId={} sourceUpdatedAt={} key={}",
+                    UPSERT_ACTION,
+                    productId,
+                    eventId,
+                    sourceUpdatedAt,
+                    key
+            );
             throw e;
         }
     }
@@ -165,18 +188,39 @@ public class ProductEventConsumer {
     ) {
         UUID productId = parseRequiredUuid(productIdText, "productId");
         LocalDateTime sourceUpdatedAt = parseSourceUpdatedAt(sourceUpdatedAtText, updatedAtText, occurredAtText);
-        String key = buildIdempotencyKey(eventId, productId, sourceUpdatedAt, "deactivate");
+        String key = buildIdempotencyKey(eventId, productId, sourceUpdatedAt, DEACTIVATE_ACTION);
 
         if (!eventIdempotencyRepository.reserve(key, Duration.ofSeconds(idempotencyTtlSeconds))) {
-            log.info("Skip duplicated product delete event: key={}", key);
+            log.info(
+                    "Skip duplicated product deactivate event. action={} productId={} eventId={} sourceUpdatedAt={} key={}",
+                    DEACTIVATE_ACTION,
+                    productId,
+                    eventId,
+                    sourceUpdatedAt,
+                    key
+            );
             return;
         }
 
         try {
             productEmbeddingUseCase.deactivate(new ProductDeactivateCommand(productId, sourceUpdatedAt));
-            log.info("Product delete event processed: productId={}", productId);
+            log.info(
+                    "Product deactivate event processed. action={} productId={} eventId={} sourceUpdatedAt={}",
+                    DEACTIVATE_ACTION,
+                    productId,
+                    eventId,
+                    sourceUpdatedAt
+            );
         } catch (RuntimeException e) {
             eventIdempotencyRepository.release(key);
+            log.warn(
+                    "Product deactivate event failed after idempotency reservation. Released key for retry. action={} productId={} eventId={} sourceUpdatedAt={} key={}",
+                    DEACTIVATE_ACTION,
+                    productId,
+                    eventId,
+                    sourceUpdatedAt,
+                    key
+            );
             throw e;
         }
     }
