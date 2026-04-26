@@ -23,6 +23,10 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 30MB
 
 server:
   port: 8088
@@ -75,6 +79,12 @@ ai:
     recommendation-ttl-seconds: 600
   event:
     idempotency-ttl-seconds: 259200
+  kafka:
+    retry:
+      initial-interval-ms: 1000
+      max-attempts: 3
+      multiplier: 2.0
+      max-interval-ms: 5000
 
 logging:
   level:

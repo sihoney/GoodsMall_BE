@@ -44,6 +44,8 @@ public class ProductDraftAssistController {
                     multipart 요청 파트는 다음 구조를 사용합니다.
                     - images: 업로드할 이미지 파일 목록
                     - request: JSON 요청 객체
+                    이미지 파일은 최대 5장까지 업로드할 수 있고, 각 파일은 5MB 이하만 허용합니다.
+                    요청 전체 크기는 30MB 이하만 허용합니다.
                     request.inputFields.fieldKey 허용값은 TITLE, DESCRIPTION, PRICE 입니다.
                     thumbnailIndex가 없으면 첫 번째 이미지를 대표 이미지로 사용합니다.
                     OpenAI 호출 실패, 응답 파싱 실패, 중복 요청 대기 초과 시에는 fallback 초안을 반환할 수 있습니다.

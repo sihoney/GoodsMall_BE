@@ -38,11 +38,6 @@ dependencies {
     runtimeOnly 'org.postgresql:postgresql'
     // Swagger
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8'
-    // Eureka Client
-    // Config Server
-    implementation 'org.springframework.cloud:spring-cloud-starter-config'
-    // Config Server retry
-    implementation 'org.springframework.retry:spring-retry'
 }
 
 dependencyManagement {

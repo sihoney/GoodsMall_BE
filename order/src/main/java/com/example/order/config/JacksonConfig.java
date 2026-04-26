@@ -10,6 +10,8 @@ public class JacksonConfig {
 
     @Bean
     public ObjectMapper objectMapper() {
-        return JsonMapper.builder().build();
+        return JsonMapper.builder()
+                .findAndAddModules()
+                .build();
     }
 }

@@ -21,8 +21,12 @@ public class RedisEventIdempotencyRepository implements EventIdempotencyReposito
             Boolean reserved = redisTemplate.opsForValue().setIfAbsent(key, PROCESSED_VALUE, ttl);
             return Boolean.TRUE.equals(reserved);
         } catch (RuntimeException e) {
-            // Redis 장애 시 서비스 중단 대신 처리 지속
-            log.warn("Idempotency reserve failed. Continue without Redis key. key={}", key, e);
+            // Redis 장애 시 전체 consumer 중단보다 중복 허용을 선택한다.
+            log.warn(
+                    "Idempotency reserve failed. Continue processing without Redis protection and allow possible duplicates. key={}",
+                    key,
+                    e
+            );
             return true;
         }
     }
