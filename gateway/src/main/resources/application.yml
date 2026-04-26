@@ -277,6 +277,9 @@ gateway:
       - methods: [POST, GET]
         pattern: /api/settlements/**
         allowed-roles: [SELLER, ADMIN]
+      - methods: [POST]
+        pattern: /api/ai/admin/**
+        allowed-roles: [ADMIN]
       - methods: [GET, PATCH]
         pattern: /api/admin/member-reports/**
         allowed-roles: [ADMIN]
