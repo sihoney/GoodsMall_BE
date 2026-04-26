@@ -1,37 +1,43 @@
 package com.example.payment.infrastructure.messaging.kafka;
 
+import com.example.payment.application.event.OutboxEventPendingTrigger;
 import com.example.payment.application.event.SettlementCandidateCreatedEvent;
-import com.example.payment.domain.service.SettlementCandidateCreatedEventPublisher;
+import com.example.payment.domain.entity.OutboxEvent;
+import com.example.payment.domain.repository.OutboxRepository;
 import com.example.payment.infrastructure.messaging.kafka.contract.SettlementCandidateCreatedMessage;
 import com.todaylunch.common.event.contract.EventEnvelope;
 import java.time.ZoneId;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
 
 @Slf4j
 @Component
-public class KafkaSettlementCandidateCreatedEventPublisher implements SettlementCandidateCreatedEventPublisher {
+public class SettlementCandidateCreatedOutboxEventSaver {
 
     private static final ZoneId KOREA_ZONE_ID = ZoneId.of("Asia/Seoul");
     private static final String SETTLEMENT_CANDIDATE_CREATED_EVENT_TYPE = "SETTLEMENT_CANDIDATE_CREATED";
     private static final String PAYMENT_SOURCE = "payment-service";
 
-    private final KafkaTemplate<String, String> kafkaTemplate;
+    private final OutboxRepository outboxRepository;
     private final ObjectMapper objectMapper;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
-    public KafkaSettlementCandidateCreatedEventPublisher(
-            KafkaTemplate<String, String> kafkaTemplate,
-            ObjectMapper objectMapper
+    public SettlementCandidateCreatedOutboxEventSaver(
+            OutboxRepository outboxRepository,
+            ObjectMapper objectMapper,
+            ApplicationEventPublisher applicationEventPublisher
     ) {
-        this.kafkaTemplate = kafkaTemplate;
+        this.outboxRepository = outboxRepository;
         this.objectMapper = objectMapper;
+        this.applicationEventPublisher = applicationEventPublisher;
     }
 
-    @Override
-    public void publish(SettlementCandidateCreatedEvent event) {
+    @Transactional
+    public void save(SettlementCandidateCreatedEvent event) {
         try {
             SettlementCandidateCreatedMessage payload = new SettlementCandidateCreatedMessage(
                     event.eventId(),
@@ -54,7 +60,15 @@ public class KafkaSettlementCandidateCreatedEventPublisher implements Settlement
                     payload
             );
             String message = objectMapper.writeValueAsString(envelope);
-            kafkaTemplate.send(KafkaTopics.SETTLEMENT_CANDIDATE_CREATED, String.valueOf(event.escrowId()), message);
+            OutboxEvent outboxEvent = OutboxEvent.create(
+                    KafkaTopics.SETTLEMENT_CANDIDATE_CREATED,
+                    SETTLEMENT_CANDIDATE_CREATED_EVENT_TYPE,
+                    String.valueOf(event.escrowId()),
+                    resolveTraceId(event),
+                    message
+            );
+            outboxRepository.save(outboxEvent);
+            applicationEventPublisher.publishEvent(new OutboxEventPendingTrigger());
         } catch (Exception e) {
             log.error("Failed to serialize SettlementCandidateCreatedMessage. escrowId={}", event.escrowId(), e);
             throw new RuntimeException("Failed to serialize SettlementCandidateCreatedMessage", e);
