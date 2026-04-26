@@ -13,6 +13,7 @@ public enum ErrorCode {
     AI_ASSIST_IMAGE_COUNT_EXCEEDED(HttpStatus.BAD_REQUEST, "이미지는 최대 5개까지 업로드할 수 있습니다."),
     AI_ASSIST_IMAGE_EMPTY(HttpStatus.BAD_REQUEST, "비어 있는 이미지 파일은 업로드할 수 없습니다."),
     AI_ASSIST_IMAGE_TOO_LARGE(HttpStatus.BAD_REQUEST, "이미지 파일은 각각 5MB 이하여야 합니다."),
+    AI_ASSIST_IMAGE_REQUEST_TOO_LARGE(HttpStatus.BAD_REQUEST, "이미지 업로드 요청 전체 크기는 30MB 이하여야 합니다."),
     AI_ASSIST_UNSUPPORTED_IMAGE_TYPE(HttpStatus.BAD_REQUEST, "JPG, PNG, WEBP, GIF 형식의 이미지만 업로드할 수 있습니다."),
     AI_ASSIST_INPUT_FIELDS_REQUIRED(HttpStatus.BAD_REQUEST, "inputFields는 최소 1개 이상 필요합니다."),
     AI_ASSIST_INPUT_FIELD_INVALID(HttpStatus.BAD_REQUEST, "inputFields 항목이 올바르지 않습니다."),
