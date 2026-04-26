@@ -16,6 +16,7 @@ import com.example.member.common.exception.InvalidLoginException;
 import com.example.member.common.exception.InvalidCurrentPasswordException;
 import com.example.member.common.exception.InvalidAccountVerificationCodeException;
 import com.example.member.common.exception.InvalidEmailVerificationTokenException;
+import com.example.member.common.exception.InvalidPasswordResetTokenException;
 import com.example.member.common.exception.LastLoginMethodRemovalNotAllowedException;
 import com.example.member.common.exception.MemberNotFoundException;
 import com.example.member.common.exception.MemberOauthAccountNotFoundException;
@@ -80,6 +81,14 @@ public class MemberExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleInvalidCurrentPassword(InvalidCurrentPasswordException exception) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.fail("INVALID_CURRENT_PASSWORD", exception.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidPasswordResetTokenException.class)
+    public ResponseEntity<ApiResponse<Object>> handleInvalidPasswordResetToken(
+            InvalidPasswordResetTokenException exception
+    ) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.fail("INVALID_PASSWORD_RESET_TOKEN", exception.getMessage()));
     }
 
     @ExceptionHandler(EmailVerificationRequiredException.class)

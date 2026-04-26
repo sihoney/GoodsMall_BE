@@ -2,6 +2,7 @@ package com.example.member.presentation.controller;
 
 import com.example.member.application.service.EmailVerificationService;
 import com.example.member.application.service.KakaoOAuthService;
+import com.example.member.application.service.PasswordResetService;
 import com.example.member.application.usecase.AuthUsecase;
 import com.example.member.application.usecase.MemberUsecase;
 import com.example.member.infrastructure.redis.KakaoOAuthAuthorizeState;
@@ -18,6 +19,10 @@ import com.example.member.presentation.dto.KakaoOAuthLinkResponse;
 import com.example.member.presentation.dto.KakaoOAuthResultResponse;
 import com.example.member.presentation.dto.LoginRequest;
 import com.example.member.presentation.dto.LoginResponse;
+import com.example.member.presentation.dto.PasswordResetConfirmRequest;
+import com.example.member.presentation.dto.PasswordResetConfirmResponse;
+import com.example.member.presentation.dto.PasswordResetSendRequest;
+import com.example.member.presentation.dto.PasswordResetSendResponse;
 import com.example.member.presentation.dto.SendEmailVerificationRequest;
 import com.example.member.presentation.dto.TokenRefreshRequest;
 import com.example.member.presentation.dto.TokenRefreshResponse;
@@ -52,6 +57,7 @@ public class AuthController {
     private final MemberUsecase memberUsecase;
     private final EmailVerificationService emailVerificationService;
     private final KakaoOAuthService kakaoOAuthService;
+    private final PasswordResetService passwordResetService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -74,8 +80,24 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(authUsecase.refresh(request)));
     }
 
+    @PostMapping("/password-resets")
+    @Operation(summary = "비밀번호 재설정 메일 발송", description = "입력한 이메일로 비밀번호 재설정 링크를 발송합니다.")
+    public ResponseEntity<ApiResponse<PasswordResetSendResponse>> sendPasswordReset(
+            @RequestBody PasswordResetSendRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(passwordResetService.sendPasswordReset(request)));
+    }
+
+    @PostMapping("/password-resets/confirm")
+    @Operation(summary = "비밀번호 재설정 확정", description = "재설정 토큰과 새 비밀번호로 비밀번호를 변경합니다.")
+    public ResponseEntity<ApiResponse<PasswordResetConfirmResponse>> confirmPasswordReset(
+            @RequestBody PasswordResetConfirmRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(passwordResetService.confirmPasswordReset(request)));
+    }
+
     @GetMapping("/oauth/kakao/authorize")
-    @Operation(summary = "카카오 로그인 시작", description = "카카오 로그인용 authorize URL을 반환합니다.")
+    @Operation(summary = "카카오 로그인 시작", description = "카카오 로그인 authorize URL을 반환합니다.")
     public ResponseEntity<ApiResponse<KakaoOAuthAuthorizeUrlResponse>> authorizeKakaoLogin() {
         String state = kakaoOAuthService.createLoginAuthorizeState();
         String authorizeUrl = kakaoOAuthService.buildAuthorizeUrl(state);
@@ -84,7 +106,7 @@ public class AuthController {
     }
 
     @GetMapping("/oauth/kakao/link/authorize")
-    @Operation(summary = "카카오 계정 연동 시작", description = "현재 로그인된 회원의 카카오 계정 연동용 authorize URL을 반환합니다.")
+    @Operation(summary = "카카오 계정 연동 시작", description = "현재 로그인한 회원의 카카오 계정 연동 authorize URL을 반환합니다.")
     public ResponseEntity<ApiResponse<KakaoOAuthAuthorizeUrlResponse>> authorizeKakaoLink(
             @CurrentMember AuthenticatedMember authenticatedMember
     ) {
@@ -95,7 +117,7 @@ public class AuthController {
     }
 
     @GetMapping("/oauth/kakao/link/authorize-url")
-    @Operation(summary = "카카오 계정 연동 URL 조회", description = "로그인된 사용자의 카카오 계정 연동 authorize URL을 조회합니다.")
+    @Operation(summary = "카카오 계정 연동 URL 조회", description = "로그인한 사용자의 카카오 계정 연동 authorize URL을 조회합니다.")
     public ResponseEntity<ApiResponse<KakaoOAuthAuthorizeUrlResponse>> getKakaoLinkAuthorizeUrl(
             @CurrentMember AuthenticatedMember authenticatedMember
     ) {
@@ -106,7 +128,7 @@ public class AuthController {
     }
 
     @GetMapping("/oauth/kakao/callback")
-    @Operation(summary = "카카오 OAuth 콜백", description = "카카오 인증 결과를 resultKey로 저장하고 프론트로 리다이렉트합니다.")
+    @Operation(summary = "카카오 OAuth 콜백", description = "카카오 인증 결과를 resultKey로 저장하고 프론트 콜백으로 리다이렉트합니다.")
     public ResponseEntity<Void> kakaoCallback(
             @RequestParam(name = "code", required = false) String code,
             @RequestParam(name = "state", required = false) String state,
@@ -158,7 +180,7 @@ public class AuthController {
     }
 
     @PostMapping("/oauth/kakao/link")
-    @Operation(summary = "카카오 계정 연동", description = "로그인된 회원과 카카오 계정을 연동합니다.")
+    @Operation(summary = "카카오 계정 연동", description = "로그인한 회원과 카카오 계정을 연동합니다.")
     public ResponseEntity<ApiResponse<KakaoOAuthLinkResponse>> linkKakaoAccount(
             @CurrentMember AuthenticatedMember authenticatedMember,
             @RequestBody KakaoOAuthLinkRequest request
@@ -169,14 +191,14 @@ public class AuthController {
     }
 
     @PostMapping("/logout/{memberId}")
-    @Operation(summary = "로그아웃", description = "회원의 모든 리프레시 세션을 삭제합니다.")
+    @Operation(summary = "로그아웃", description = "회원의 모든 리프레시 세션을 해제합니다.")
     public ResponseEntity<ApiResponse<Void>> logout(@PathVariable(name = "memberId") UUID memberId) {
         authUsecase.logout(memberId);
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 
     @PostMapping("/email-verifications")
-    @Operation(summary = "이메일 인증 발송", description = "회원 가입용 이메일 인증 코드를 발송합니다.")
+    @Operation(summary = "이메일 인증 메일 발송", description = "회원가입용 이메일 인증 코드를 발송합니다.")
     public ResponseEntity<ApiResponse<EmailVerificationSendResponse>> sendEmailVerification(
             @RequestBody SendEmailVerificationRequest request
     ) {

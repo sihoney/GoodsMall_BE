@@ -179,6 +179,8 @@ gateway:
       - /api/auth
       - /api/auth/login
       - /api/auth/refresh
+      - /api/auth/password-resets
+      - /api/auth/password-resets/confirm
       - /api/auth/oauth/kakao/authorize
       - /api/auth/oauth/kakao/callback
       - /api/auth/oauth/kakao/result
