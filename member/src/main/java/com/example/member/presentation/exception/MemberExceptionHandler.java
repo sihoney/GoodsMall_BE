@@ -13,8 +13,10 @@ import com.example.member.common.exception.EmailVerificationRequiredException;
 import com.example.member.common.exception.ExpiredAccountVerificationException;
 import com.example.member.common.exception.ExpiredEmailVerificationException;
 import com.example.member.common.exception.InvalidLoginException;
+import com.example.member.common.exception.InvalidCurrentPasswordException;
 import com.example.member.common.exception.InvalidAccountVerificationCodeException;
 import com.example.member.common.exception.InvalidEmailVerificationTokenException;
+import com.example.member.common.exception.InvalidPasswordResetTokenException;
 import com.example.member.common.exception.LastLoginMethodRemovalNotAllowedException;
 import com.example.member.common.exception.MemberNotFoundException;
 import com.example.member.common.exception.MemberOauthAccountNotFoundException;
@@ -44,9 +46,7 @@ public class MemberExceptionHandler {
     }
 
     @ExceptionHandler(MemberOauthAccountNotFoundException.class)
-    public ResponseEntity<ApiResponse<Object>> handleMemberOauthAccountNotFound(
-            MemberOauthAccountNotFoundException exception
-    ) {
+    public ResponseEntity<ApiResponse<Object>> handleMemberOauthAccountNotFound(MemberOauthAccountNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(ApiResponse.fail("MEMBER_OAUTH_ACCOUNT_NOT_FOUND", exception.getMessage()));
     }
@@ -75,6 +75,20 @@ public class MemberExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleInvalidLogin(InvalidLoginException exception) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(ApiResponse.fail("INVALID_LOGIN", exception.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidCurrentPasswordException.class)
+    public ResponseEntity<ApiResponse<Object>> handleInvalidCurrentPassword(InvalidCurrentPasswordException exception) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.fail("INVALID_CURRENT_PASSWORD", exception.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidPasswordResetTokenException.class)
+    public ResponseEntity<ApiResponse<Object>> handleInvalidPasswordResetToken(
+            InvalidPasswordResetTokenException exception
+    ) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.fail("INVALID_PASSWORD_RESET_TOKEN", exception.getMessage()));
     }
 
     @ExceptionHandler(EmailVerificationRequiredException.class)

@@ -144,6 +144,11 @@ public class Member {
         this.updatedAt = Objects.requireNonNull(updatedAt);
     }
 
+    public void changePassword(String password, LocalDateTime updatedAt) {
+        this.password = Objects.requireNonNull(password);
+        this.updatedAt = Objects.requireNonNull(updatedAt);
+    }
+
     public void changeStatus(MemberStatus status, LocalDateTime updatedAt) {
         MemberStatus nextStatus = Objects.requireNonNull(status);
         validateStatusTransition(nextStatus);
