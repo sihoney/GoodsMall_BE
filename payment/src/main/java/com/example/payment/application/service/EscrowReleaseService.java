@@ -12,8 +12,8 @@ import com.example.payment.domain.enumtype.EscrowStatus;
 import com.example.payment.domain.repository.EscrowRepository;
 import com.example.payment.domain.repository.EscrowTransactionRepository;
 import com.example.payment.domain.service.IdentifierGenerator;
-import com.example.payment.domain.service.SettlementCandidateCreatedEventPublisher;
 import com.example.payment.domain.service.TimeProvider;
+import com.example.payment.infrastructure.messaging.kafka.SettlementCandidateCreatedOutboxEventSaver;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -31,20 +31,20 @@ public class EscrowReleaseService implements EscrowReleaseUseCase {
     private final EscrowRepository escrowRepository;
     private final EscrowTransactionRepository escrowTransactionRepository;
     private final IdentifierGenerator identifierGenerator;
-    private final SettlementCandidateCreatedEventPublisher settlementCandidateCreatedEventPublisher;
+    private final SettlementCandidateCreatedOutboxEventSaver settlementCandidateCreatedOutboxEventSaver;
     private final TimeProvider timeProvider;
 
     public EscrowReleaseService(
             EscrowRepository escrowRepository,
             EscrowTransactionRepository escrowTransactionRepository,
             IdentifierGenerator identifierGenerator,
-            SettlementCandidateCreatedEventPublisher settlementCandidateCreatedEventPublisher,
+            SettlementCandidateCreatedOutboxEventSaver settlementCandidateCreatedOutboxEventSaver,
             TimeProvider timeProvider
     ) {
         this.escrowRepository = escrowRepository;
         this.escrowTransactionRepository = escrowTransactionRepository;
         this.identifierGenerator = identifierGenerator;
-        this.settlementCandidateCreatedEventPublisher = settlementCandidateCreatedEventPublisher;
+        this.settlementCandidateCreatedOutboxEventSaver = settlementCandidateCreatedOutboxEventSaver;
         this.timeProvider = timeProvider;
     }
 
@@ -89,7 +89,7 @@ public class EscrowReleaseService implements EscrowReleaseUseCase {
             releasedAmount = releasedAmount.add(escrow.getAmount());
 
             // settlement는 escrow 단위 원천 항목을 적재하므로, 해제된 escrow별로 후보를 발행한다.
-            settlementCandidateCreatedEventPublisher.publish(new SettlementCandidateCreatedEvent(
+            settlementCandidateCreatedOutboxEventSaver.save(new SettlementCandidateCreatedEvent(
                     identifierGenerator.generateUuid(),
                     escrow.getOrderId(),
                     escrow.getEscrowId(),
