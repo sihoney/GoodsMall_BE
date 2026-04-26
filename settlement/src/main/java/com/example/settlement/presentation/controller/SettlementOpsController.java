@@ -14,7 +14,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -66,22 +65,13 @@ public class SettlementOpsController {
             return ResponseEntity.badRequest().body(ApiResponse.fail(ErrorCode.INVALID_INPUT_VALUE, "settlementId must be UUID format."));
         }
 
-        try {
-            boolean requested = settlementPayoutService.requestManualFailedPayout(settlementId);
-            if (!requested) {
-                return ResponseEntity.status(ErrorCode.MANUAL_RETRY_NOT_ALLOWED.getHttpStatus())
-                        .body(ApiResponse.fail(ErrorCode.MANUAL_RETRY_NOT_ALLOWED));
-            }
-
-            return ResponseEntity.ok(ApiResponse.success(ManualFailedPayoutResponse.requested(settlementId)));
-        } catch (IllegalArgumentException e) {
-            String message = Objects.requireNonNullElse(e.getMessage(), "Invalid request.");
-            if (message.startsWith("Settlement not found:")) {
-                return ResponseEntity.status(ErrorCode.SETTLEMENT_NOT_FOUND.getHttpStatus())
-                        .body(ApiResponse.fail(ErrorCode.SETTLEMENT_NOT_FOUND, message));
-            }
-            return ResponseEntity.badRequest().body(ApiResponse.fail(ErrorCode.INVALID_INPUT_VALUE, message));
+        boolean requested = settlementPayoutService.requestManualFailedPayout(settlementId);
+        if (!requested) {
+            return ResponseEntity.status(ErrorCode.MANUAL_RETRY_NOT_ALLOWED.getHttpStatus())
+                    .body(ApiResponse.fail(ErrorCode.MANUAL_RETRY_NOT_ALLOWED));
         }
+
+        return ResponseEntity.ok(ApiResponse.success(ManualFailedPayoutResponse.requested(settlementId)));
     }
 
     /**

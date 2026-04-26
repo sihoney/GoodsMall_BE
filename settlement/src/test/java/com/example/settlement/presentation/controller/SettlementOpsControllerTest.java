@@ -71,25 +71,6 @@ class SettlementOpsControllerTest {
     }
 
     @Test
-    @DisplayName("대상 settlement가 없으면 404 응답을 반환한다")
-    void requestManualFailedPayout_whenSettlementNotFound_returnsNotFound() {
-        UUID settlementId = UUID.randomUUID();
-        when(settlementPayoutService.requestManualFailedPayout(settlementId))
-                .thenThrow(new IllegalArgumentException("Settlement not found: " + settlementId));
-
-        ResponseEntity<ApiResponse<?>> response = settlementOpsController.requestManualFailedPayout(
-                AUTHENTICATED_MEMBER,
-                new ManualFailedPayoutRequest(settlementId.toString())
-        );
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().success()).isFalse();
-        assertThat(response.getBody().error()).isNotNull();
-        assertThat(response.getBody().error().code()).isEqualTo("SETTLEMENT_NOT_FOUND");
-    }
-
-    @Test
     @DisplayName("수동 재지급이 정책상 불가하면 409 응답을 반환한다")
     void requestManualFailedPayout_whenNotAllowed_returnsConflict() {
         UUID settlementId = UUID.randomUUID();
