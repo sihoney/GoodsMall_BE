@@ -24,6 +24,12 @@ public class SettlementExceptionHandler {
                 ));
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<Object>> handleIllegalArgumentException(IllegalArgumentException exception) {
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.fail("INVALID_INPUT_VALUE", exception.getMessage()));
+    }
+
     /**
      * 인증 헤더 해석 실패를 401 응답과 {@code INVALID_TOKEN} 오류 코드로 변환한다.
      */
