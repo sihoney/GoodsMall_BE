@@ -35,9 +35,9 @@ import com.example.payment.domain.repository.WalletRepository;
 import com.example.payment.domain.repository.WalletTransactionRepository;
 import com.example.payment.domain.service.IdentifierGenerator;
 import com.example.payment.domain.service.OrderRefundNotificationGateway;
-import com.example.payment.domain.service.OrderRefundResultEventPublisher;
 import com.example.payment.domain.service.TimeProvider;
 import com.example.payment.domain.service.TossPaymentGateway;
+import com.example.payment.infrastructure.messaging.kafka.OrderRefundResultOutboxEventSaver;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderRefundResultMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderRefundResultStatus;
 import java.math.BigDecimal;
@@ -76,7 +76,7 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
     private final TimeProvider timeProvider;
     private final OrderPaymentRepository orderPaymentRepository;
     private final OrderRefundNotificationGateway orderRefundNotificationGateway;
-    private final OrderRefundResultEventPublisher orderRefundResultEventPublisher;
+    private final OrderRefundResultOutboxEventSaver orderRefundResultOutboxEventSaver;
 
     public PaymentRefundService(
             PaymentRefundRepository paymentRefundRepository,
@@ -92,7 +92,7 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
             TimeProvider timeProvider,
             OrderPaymentRepository orderPaymentRepository,
             OrderRefundNotificationGateway orderRefundNotificationGateway,
-            OrderRefundResultEventPublisher orderRefundResultEventPublisher
+            OrderRefundResultOutboxEventSaver orderRefundResultOutboxEventSaver
     ) {
         this.paymentRefundRepository = paymentRefundRepository;
         this.paymentRefundAllocationRepository = paymentRefundAllocationRepository;
@@ -107,7 +107,7 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
         this.timeProvider = timeProvider;
         this.orderPaymentRepository = orderPaymentRepository;
         this.orderRefundNotificationGateway = orderRefundNotificationGateway;
-        this.orderRefundResultEventPublisher = orderRefundResultEventPublisher;
+        this.orderRefundResultOutboxEventSaver = orderRefundResultOutboxEventSaver;
     }
 
     @Override
@@ -935,26 +935,17 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
                 .map(PaymentRefundItemCommand::orderItemId)
                 .distinct()
                 .toList();
-        try {
-            orderRefundResultEventPublisher.publish(
-                    new OrderRefundResultMessage(
-                            identifierGenerator.generateUuid(),
-                            paymentRefund.getRefundId(),
-                            paymentRefund.getOrderId(),
-                            orderItemIds,
-                            OrderRefundResultStatus.SUCCESS,
-                            null,
-                            Instant.now()
-                    )
-            );
-        } catch (RuntimeException exception) {
-            log.warn(
-                    "Order refund result event publish failed. refundId={} orderId={}",
-                    paymentRefund.getRefundId(),
-                    paymentRefund.getOrderId(),
-                    exception
-            );
-        }
+        orderRefundResultOutboxEventSaver.save(
+                new OrderRefundResultMessage(
+                        identifierGenerator.generateUuid(),
+                        paymentRefund.getRefundId(),
+                        paymentRefund.getOrderId(),
+                        orderItemIds,
+                        OrderRefundResultStatus.SUCCESS,
+                        null,
+                        Instant.now()
+                )
+        );
     }
 
     private enum CompletionFlow {
