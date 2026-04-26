@@ -56,5 +56,5 @@ notification:
 
 logging:
   level:
-    com.example.notification: DEBUG
-    org.hibernate.SQL: DEBUG
+    com.example.notification: INFO
+    org.hibernate.SQL: INFO
