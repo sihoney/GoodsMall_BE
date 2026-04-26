@@ -13,7 +13,7 @@ public class BidBroadcastListener {
 
     private final SimpMessagingTemplate messagingTemplate;
 
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void bidPlaced(BidPlacedEvent event) {
         messagingTemplate.convertAndSend("/topic/auctions/" + event.auctionId(), event);
     }

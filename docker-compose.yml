@@ -16,7 +16,7 @@ services:
       timeout: 5s
       retries: 10
     volumes:
-      - goods_mall_postgres_data:/var/lib/postgresql/data
+      - goods_mall_postgres_data:/var/lib/postgresql
       # 스키마 기준은 Flyway로 단일화합니다. seed SQL은 로컬 테스트 시 수동 실행용으로만 사용합니다.
       - ./db-migration/src/main/resources/db/seed/dev_seed_payment_settlement.sql:/opt/seed/dev_seed_payment_settlement.sql:ro
 
