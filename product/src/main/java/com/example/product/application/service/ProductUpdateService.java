@@ -9,6 +9,7 @@ import com.example.product.domain.enumtype.ProductOrderStatus;
 import com.example.product.domain.enumtype.ProductStatus;
 import com.example.product.domain.repository.CategoryRepository;
 import com.example.product.domain.repository.ProductRepository;
+import com.example.product.infrastructure.messaging.kafka.ProductOutboxEventService;
 import com.example.product.presentation.dto.request.ProductCheckRequest;
 import com.example.product.presentation.dto.request.ProductUpdateRequest;
 import com.example.product.presentation.dto.response.ProductAvailabilityResponse;
@@ -26,6 +27,7 @@ public class ProductUpdateService implements ProductUpdateUseCase {
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
+    private final ProductOutboxEventService productOutboxEventService;
 
     @Override
     public ProductResponse updateProduct(String sellerId, String productId, ProductUpdateRequest request) {
@@ -39,6 +41,7 @@ public class ProductUpdateService implements ProductUpdateUseCase {
         product.updateStock(request.stockQuantity());
 
         Product saved = saveProduct(product);
+        productOutboxEventService.saveUpdatedEvent(saved);
         return ProductResponse.from(saved);
     }
 
@@ -66,6 +69,7 @@ public class ProductUpdateService implements ProductUpdateUseCase {
         validateSellerAuthorization(product, sellerId);
         product.updateStatus(status);
         Product saved = saveProduct(product);
+        productOutboxEventService.saveUpdatedEvent(saved);
         return ProductResponse.from(saved);
     }
 
@@ -75,6 +79,7 @@ public class ProductUpdateService implements ProductUpdateUseCase {
         validateSellerAuthorization(product, sellerId);
         product.restore();
         Product saved = saveProduct(product);
+        productOutboxEventService.saveUpdatedEvent(saved);
         return ProductResponse.from(saved);
     }
 
