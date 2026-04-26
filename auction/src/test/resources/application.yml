@@ -59,6 +59,9 @@ auction:
     topic:
       auction-changed: auction.changed
 
+websocket:
+  allowed-origins: http://localhost:5173
+
 logging:
   level:
     root: INFO
