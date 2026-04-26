@@ -41,7 +41,7 @@ public class SellerSettlementPayoutRequestedEventConsumer {
     private final WalletTransactionRepository walletTransactionRepository;
     private final IdentifierGenerator identifierGenerator;
     private final TimeProvider timeProvider;
-    private final KafkaSellerSettlementPayoutResultEventPublisher payoutResultEventPublisher;
+    private final SellerSettlementPayoutResultOutboxEventSaver payoutResultOutboxEventSaver;
     private final ObjectMapper objectMapper;
 
     public SellerSettlementPayoutRequestedEventConsumer(
@@ -49,14 +49,14 @@ public class SellerSettlementPayoutRequestedEventConsumer {
             WalletTransactionRepository walletTransactionRepository,
             IdentifierGenerator identifierGenerator,
             TimeProvider timeProvider,
-            KafkaSellerSettlementPayoutResultEventPublisher payoutResultEventPublisher,
+            SellerSettlementPayoutResultOutboxEventSaver payoutResultOutboxEventSaver,
             ObjectMapper objectMapper
     ) {
         this.walletRepository = walletRepository;
         this.walletTransactionRepository = walletTransactionRepository;
         this.identifierGenerator = identifierGenerator;
         this.timeProvider = timeProvider;
-        this.payoutResultEventPublisher = payoutResultEventPublisher;
+        this.payoutResultOutboxEventSaver = payoutResultOutboxEventSaver;
         this.objectMapper = objectMapper;
     }
 
@@ -171,7 +171,7 @@ public class SellerSettlementPayoutRequestedEventConsumer {
      * wallet 반영이 정상 완료된 경우 SUCCESS 결과 이벤트를 settlement로 발행한다.
      */
     private void publishSuccess(SellerSettlementPayoutRequestedMessage event, LocalDateTime processedAt) {
-        payoutResultEventPublisher.publish(new SellerSettlementPayoutResultMessage(
+        payoutResultOutboxEventSaver.save(new SellerSettlementPayoutResultMessage(
                 identifierGenerator.generateUuid(),
                 event.eventId(),
                 event.settlementId(),
@@ -191,7 +191,7 @@ public class SellerSettlementPayoutRequestedEventConsumer {
      * failureReason을 저장한다. NON_RETRYABLE 실패는 수동 조치 대상으로 플래그된다.
      */
     private void publishFailure(SellerSettlementPayoutRequestedMessage event, LocalDateTime processedAt) {
-        payoutResultEventPublisher.publish(new SellerSettlementPayoutResultMessage(
+        payoutResultOutboxEventSaver.save(new SellerSettlementPayoutResultMessage(
                 identifierGenerator.generateUuid(),
                 event.eventId(),
                 event.settlementId(),

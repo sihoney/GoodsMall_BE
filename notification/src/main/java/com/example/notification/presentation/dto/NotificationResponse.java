@@ -50,30 +50,7 @@ public record NotificationResponse(
     }
 
     private static String resolveSubtitle(Notification notification) {
-        if (notification.getReferenceId() == null) {
-            return null;
-        }
-
-        return switch (notification.getType()) {
-            case BUYER_SIGNUP_COMPLETED,
-                 SELLER_PROMOTED,
-                 ACCOUNT_VERIFICATION_EXPIRED,
-                 ACCOUNT_VERIFICATION_FAILED,
-                 MEMBER_OAUTH_LINKED -> null;
-            case BUYER_ORDER_CREATED,
-                 BUYER_ORDER_CANCELED,
-                 BUYER_AUTO_PURCHASE_CONFIRMED,
-                 BUYER_ORDER_PAYMENT_SUCCEEDED,
-                 BUYER_ORDER_PAYMENT_FAILED,
-                 SELLER_ORDER_RECEIVED,
-                 SELLER_ORDER_CANCELED -> "주문번호 " + notification.getReferenceId();
-            case SELLER_SETTLEMENT_PAYOUT_SUCCEEDED,
-                 SELLER_SETTLEMENT_PAYOUT_FAILED -> "정산번호 " + notification.getReferenceId();
-            case BUYER_AUCTION_OUTBID,
-                 BUYER_AUCTION_WON,
-                 SELLER_AUCTION_CLOSED_SOLD,
-                 SELLER_AUCTION_CLOSED_UNSOLD -> "경매번호 " + notification.getReferenceId();
-        };
+        return null;
     }
 
     private static List<NotificationAction> resolveActions(Notification notification) {

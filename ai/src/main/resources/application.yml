@@ -3,7 +3,7 @@ spring:
     name: ai-service
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: "${DB_URL:jdbc:postgresql://localhost:5432/goods_mall}?currentSchema=ai"
+    url: "${DB_URL:jdbc:postgresql://localhost:5432/goods_mall}?currentSchema=ai,public"
     username: ${DB_USER_NAME:postgres}
     password: ${DB_USER_PASSWORD:postgres}
     hikari:

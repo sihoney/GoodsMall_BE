@@ -8,7 +8,7 @@ import java.util.UUID;
 public record ExternalPaymentRefundRequest(
         UUID orderId,
         UUID buyerMemberId,
-        UUID idempotencyKey,
+        UUID orderCancelRequestId,
         PaymentRefundType refundType,
         String reason,
         List<ExternalPaymentRefundLineRequest> items

@@ -32,25 +32,27 @@ public class AuctionBidFeeChargeRequestedEventConsumer {
 
     private static final ZoneId KOREA_ZONE_ID = ZoneId.of("Asia/Seoul");
     private static final String BID_FEE_CHARGE_REQUESTED_EVENT_TYPE = "BID_FEE_CHARGE_REQUESTED";
+    private static final String BID_FEE_CHARGE_SUCCEEDED_EVENT_TYPE = "BID_FEE_CHARGE_SUCCEEDED";
+    private static final String BID_FEE_CHARGE_FAILED_EVENT_TYPE = "BID_FEE_CHARGE_FAILED";
     private static final TypeReference<EventEnvelope<BidFeeChargeRequestMessage>> BID_FEE_CHARGE_REQUESTED_ENVELOPE_TYPE =
             new TypeReference<>() {
             };
 
     private final AuctionDepositUseCase auctionDepositUseCase;
-    private final KafkaAuctionBidFeeChargeResultEventPublisher resultEventPublisher;
+    private final AuctionBidFeeChargeResultOutboxEventSaver resultOutboxEventSaver;
     private final ObjectMapper objectMapper;
     private final IdentifierGenerator identifierGenerator;
     private final TimeProvider timeProvider;
 
     public AuctionBidFeeChargeRequestedEventConsumer(
             AuctionDepositUseCase auctionDepositUseCase,
-            KafkaAuctionBidFeeChargeResultEventPublisher resultEventPublisher,
+            AuctionBidFeeChargeResultOutboxEventSaver resultOutboxEventSaver,
             ObjectMapper objectMapper,
             IdentifierGenerator identifierGenerator,
             TimeProvider timeProvider
     ) {
         this.auctionDepositUseCase = auctionDepositUseCase;
-        this.resultEventPublisher = resultEventPublisher;
+        this.resultOutboxEventSaver = resultOutboxEventSaver;
         this.objectMapper = objectMapper;
         this.identifierGenerator = identifierGenerator;
         this.timeProvider = timeProvider;
@@ -98,11 +100,7 @@ public class AuctionBidFeeChargeRequestedEventConsumer {
             log.error("경매 입찰 보증금 처리 실패: topic={}, partition={}, offset={}, key={}, auctionId={}, payloadSnippet={}",
                     record.topic(), record.partition(), record.offset(), record.key(),
                     event == null ? null : event.auctionId(), summarizePayload(eventJson), e);
-            if (!canPublishFailure(event)) {
-                throw e;
-            }
-            publishFailure(event, ErrorCode.AUCTION_DEPOSIT_PROCESSING_FAILED.name(),
-                    ErrorCode.AUCTION_DEPOSIT_PROCESSING_FAILED.getMessage());
+            throw e;
         }
     }
 
@@ -112,7 +110,10 @@ public class AuctionBidFeeChargeRequestedEventConsumer {
         } catch (Exception e) {
             log.error("경매 입찰 보증금 처리 요청 이벤트 역직렬화 실패: topic={}, partition={}, offset={}, key={}, payloadSnippet={}",
                     record.topic(), record.partition(), record.offset(), record.key(), summarizePayload(eventJson), e);
-            throw new RuntimeException("경매 입찰 보증금 처리 요청 이벤트 역직렬화에 실패했습니다.", e);
+            throw new AuctionBidFeeEventValidationException(
+                    ErrorCode.AUCTION_BID_FEE_EVENT_REQUIRED,
+                    "경매 입찰 보증금 처리 요청 이벤트 역직렬화에 실패했습니다."
+            );
         }
     }
 
@@ -200,7 +201,7 @@ public class AuctionBidFeeChargeRequestedEventConsumer {
     }
 
     private void publishSuccess(AuctionDepositResult result) {
-        resultEventPublisher.publishSuccess(new BidFeeChargeSucceededMessage(
+        resultOutboxEventSaver.saveSuccess(BID_FEE_CHARGE_SUCCEEDED_EVENT_TYPE, new BidFeeChargeSucceededMessage(
                 identifierGenerator.generateUuid(),
                 result.bidId(),
                 result.auctionId(),
@@ -209,7 +210,7 @@ public class AuctionBidFeeChargeRequestedEventConsumer {
     }
 
     private void publishFailure(BidFeeChargeRequestMessage event, String errorCode, String errorMessage) {
-        resultEventPublisher.publishFailure(new BidFeeChargeFailedMessage(
+        resultOutboxEventSaver.saveFailure(BID_FEE_CHARGE_FAILED_EVENT_TYPE, new BidFeeChargeFailedMessage(
                 identifierGenerator.generateUuid(),
                 event.bidId(),
                 event.auctionId(),

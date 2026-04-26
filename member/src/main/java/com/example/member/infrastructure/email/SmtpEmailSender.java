@@ -34,7 +34,9 @@ public class SmtpEmailSender implements EmailSender {
             helper.setSubject(subject);
             helper.setText(body, html);
             helper.setFrom(emailProperties.fromAddress(), emailProperties.fromName());
+            
             javaMailSender.send(mimeMessage);
+            
             log.info("Email sent via SMTP. to={}, subject={}, html={}", to, subject, html);
         } catch (MessagingException | UnsupportedEncodingException | MailException ex) {
             log.error("Failed to send email via SMTP. to={}, subject={}", to, subject, ex);

@@ -179,6 +179,8 @@ gateway:
       - /api/auth
       - /api/auth/login
       - /api/auth/refresh
+      - /api/auth/password-resets
+      - /api/auth/password-resets/confirm
       - /api/auth/oauth/kakao/authorize
       - /api/auth/oauth/kakao/callback
       - /api/auth/oauth/kakao/result
@@ -200,8 +202,11 @@ gateway:
       - methods: [GET]
         pattern: /api/auctions/**
     role-rules:
-      - methods: [GET, PUT]
+      - methods: [GET, PUT, PATCH]
         pattern: /api/members/me
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [PATCH]
+        pattern: /api/members/me/password
         allowed-roles: [USER, SELLER, ADMIN]
       - methods: [GET, POST]
         pattern: /api/members/me/account-verifications/**
@@ -272,6 +277,9 @@ gateway:
       - methods: [POST, GET]
         pattern: /api/settlements/**
         allowed-roles: [SELLER, ADMIN]
+      - methods: [POST]
+        pattern: /api/ai/admin/**
+        allowed-roles: [ADMIN]
       - methods: [GET, PATCH]
         pattern: /api/admin/member-reports/**
         allowed-roles: [ADMIN]

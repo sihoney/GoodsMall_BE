@@ -10,10 +10,12 @@ import static org.mockito.Mockito.when;
 import com.example.member.application.event.MemberEventPublisher;
 import com.example.member.application.support.ProfileImageUrlResolver;
 import com.example.member.common.exception.DuplicateMemberEmailException;
+import com.example.member.common.exception.InvalidCurrentPasswordException;
 import com.example.member.config.MemberSignupProperties;
 import com.example.member.domain.entity.Member;
 import com.example.member.domain.enumtype.MemberStatus;
 import com.example.member.infrastructure.repository.MemberRepository;
+import com.example.member.presentation.dto.ChangePasswordRequest;
 import com.example.member.presentation.dto.CreateMemberRequest;
 import com.example.member.presentation.dto.CreateMemberResponse;
 import com.example.member.presentation.dto.UpdateMemberRequest;
@@ -180,8 +182,6 @@ class MemberServiceTest {
                 LocalDateTime.now().minusDays(1)
         );
         UpdateMemberRequest request = new UpdateMemberRequest(
-                "updated@test.com",
-                "plain-password",
                 "updated-tester",
                 "010-1111-2222",
                 "Seoul",
@@ -189,13 +189,93 @@ class MemberServiceTest {
         );
 
         when(memberRepository.findById(memberId)).thenReturn(java.util.Optional.of(member));
-        when(memberRepository.existsByEmailAndMemberIdNot("updated@test.com", memberId)).thenReturn(false);
-        when(passwordEncoder.encode("plain-password")).thenReturn("new-encoded-password");
         when(profileImageUrlResolver.resolve("members/profile/existing.png"))
                 .thenReturn("https://cdn.test/members/profile/existing.png");
 
         memberService.updateMember(memberId, request);
 
         assertEquals("members/profile/existing.png", member.getProfileImageKey());
+        assertEquals("updated-tester", member.getNickname());
+        assertEquals("010-1111-2222", member.getPhone());
+        assertEquals("Seoul", member.getAddress());
+        assertEquals("member@test.com", member.getEmail());
+        assertEquals("encoded-password", member.getPassword());
+    }
+
+    @Test
+    void changeCurrentMemberPassword_success_updatesEncodedPassword() {
+        UUID memberId = UUID.randomUUID();
+        Member member = Member.create(
+                memberId,
+                "member@test.com",
+                "encoded-current-password",
+                "tester",
+                null,
+                null,
+                null,
+                MemberRole.USER,
+                MemberStatus.ACTIVE,
+                LocalDateTime.now().minusDays(1),
+                LocalDateTime.now().minusDays(1)
+        );
+        ChangePasswordRequest request = new ChangePasswordRequest("current-password", "new-password");
+
+        when(memberRepository.findById(memberId)).thenReturn(java.util.Optional.of(member));
+        when(passwordEncoder.matches("current-password", "encoded-current-password")).thenReturn(true);
+        when(passwordEncoder.encode("new-password")).thenReturn("encoded-new-password");
+
+        memberService.changeCurrentMemberPassword(memberId, request);
+
+        assertEquals("encoded-new-password", member.getPassword());
+    }
+
+    @Test
+    void changeCurrentMemberPassword_invalidCurrentPassword_throwsException() {
+        UUID memberId = UUID.randomUUID();
+        Member member = Member.create(
+                memberId,
+                "member@test.com",
+                "encoded-current-password",
+                "tester",
+                null,
+                null,
+                null,
+                MemberRole.USER,
+                MemberStatus.ACTIVE,
+                LocalDateTime.now().minusDays(1),
+                LocalDateTime.now().minusDays(1)
+        );
+        ChangePasswordRequest request = new ChangePasswordRequest("wrong-password", "new-password");
+
+        when(memberRepository.findById(memberId)).thenReturn(java.util.Optional.of(member));
+        when(passwordEncoder.matches("wrong-password", "encoded-current-password")).thenReturn(false);
+
+        assertThrows(InvalidCurrentPasswordException.class,
+                () -> memberService.changeCurrentMemberPassword(memberId, request));
+    }
+
+    @Test
+    void changeCurrentMemberPassword_shortNewPassword_throwsException() {
+        UUID memberId = UUID.randomUUID();
+        Member member = Member.create(
+                memberId,
+                "member@test.com",
+                "encoded-current-password",
+                "tester",
+                null,
+                null,
+                null,
+                MemberRole.USER,
+                MemberStatus.ACTIVE,
+                LocalDateTime.now().minusDays(1),
+                LocalDateTime.now().minusDays(1)
+        );
+        ChangePasswordRequest request = new ChangePasswordRequest("current-password", "short");
+
+        when(memberRepository.findById(memberId)).thenReturn(java.util.Optional.of(member));
+        when(passwordEncoder.matches("current-password", "encoded-current-password")).thenReturn(true);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> memberService.changeCurrentMemberPassword(memberId, request));
     }
 }
