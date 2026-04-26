@@ -7,10 +7,10 @@ import com.example.payment.application.usecase.OrderPaymentApiUseCase;
 import com.example.payment.application.usecase.OrderPaymentUseCase;
 import com.example.payment.common.exception.InvalidOrderPaymentRequestException;
 import com.example.payment.common.exception.WalletNotFoundException;
-import com.example.payment.domain.service.OrderPaymentResultEventPublisher;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPaymentFailureReason;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPaymentResultMessage;
 import com.example.payment.infrastructure.messaging.kafka.contract.OrderPaymentResultStatus;
+import com.example.payment.infrastructure.messaging.kafka.OrderPaymentResultOutboxEventSaver;
 import com.example.payment.presentation.dto.request.OrderPaymentApiRequest;
 import com.example.payment.presentation.dto.request.OrderPaymentApiOrderLineRequest;
 import com.example.payment.presentation.dto.response.OrderPaymentApiResponse;
@@ -30,14 +30,14 @@ import org.springframework.stereotype.Service;
 public class OrderPaymentApiService implements OrderPaymentApiUseCase {
 
     private final OrderPaymentUseCase orderPaymentUseCase;
-    private final OrderPaymentResultEventPublisher orderPaymentResultEventPublisher;
+    private final OrderPaymentResultOutboxEventSaver orderPaymentResultOutboxEventSaver;
 
     public OrderPaymentApiService(
             OrderPaymentUseCase orderPaymentUseCase,
-            OrderPaymentResultEventPublisher orderPaymentResultEventPublisher
+            OrderPaymentResultOutboxEventSaver orderPaymentResultOutboxEventSaver
     ) {
         this.orderPaymentUseCase = orderPaymentUseCase;
-        this.orderPaymentResultEventPublisher = orderPaymentResultEventPublisher;
+        this.orderPaymentResultOutboxEventSaver = orderPaymentResultOutboxEventSaver;
     }
 
     @Override
@@ -64,7 +64,7 @@ public class OrderPaymentApiService implements OrderPaymentApiUseCase {
     }
 
     private OrderPaymentApiResponse successResponse(OrderPaymentApiRequest request, OrderPaymentResult result) {
-        orderPaymentResultEventPublisher.publish(new OrderPaymentResultMessage(
+        orderPaymentResultOutboxEventSaver.save(new OrderPaymentResultMessage(
                 UUID.randomUUID(),
                 request.orderId(),
                 request.buyerId(),
@@ -87,7 +87,7 @@ public class OrderPaymentApiService implements OrderPaymentApiUseCase {
             OrderPaymentApiRequest request,
             OrderPaymentFailureReason reason
     ) {
-        orderPaymentResultEventPublisher.publish(new OrderPaymentResultMessage(
+        orderPaymentResultOutboxEventSaver.save(new OrderPaymentResultMessage(
                 UUID.randomUUID(),
                 request.orderId(),
                 request.buyerId(),
