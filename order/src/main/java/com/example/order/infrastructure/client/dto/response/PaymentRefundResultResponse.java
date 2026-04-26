@@ -6,9 +6,9 @@ import java.util.UUID;
 
 public record PaymentRefundResultResponse(
         UUID orderId,
-        BigDecimal refundedAmount,
-        String status,
-        Instant canceledAt,
+        BigDecimal totalRefundAmount,
+        String refundStatus,
+        Instant processedAt,
         String failReason
 ) {
 }

@@ -21,6 +21,7 @@ import com.example.order.presentation.dto.request.OrderCancelRequest;
 import com.example.order.presentation.dto.response.OrderCancelResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
@@ -48,6 +49,7 @@ public class OrderCancelService implements OrderCancelUseCase {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = "order:detail", key = "#orderId + ':' + #memberId")
     public OrderCancelResponse cancelOrder(UUID orderId, UUID memberId, OrderCancelRequest request) {
         Order order = findOrder(orderId);
         validateOrderOwner(order, memberId);

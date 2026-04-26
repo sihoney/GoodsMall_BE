@@ -78,11 +78,20 @@ public class PaymentClientAdapter implements PaymentPort {
     private PaymentRefundResult toPaymentRefundResult(PaymentRefundResultResponse response) {
         return new PaymentRefundResult(
                 response.orderId(),
-                response.refundedAmount(),
-                PaymentStatus.from(response.status()),
-                response.canceledAt(),
+                response.totalRefundAmount(),
+                toPaymentStatus(response.refundStatus()),
+                response.processedAt(),
                 response.failReason()
         );
+    }
+
+    private PaymentStatus toPaymentStatus(String refundStatus) {
+        if (refundStatus == null) return PaymentStatus.FAILED;
+        return switch (refundStatus.toUpperCase()) {
+            case "SUCCEEDED" -> PaymentStatus.SUCCESS;
+            case "FAILED" -> PaymentStatus.FAILED;
+            default -> PaymentStatus.FAILED;
+        };
     }
 
     private ExternalPaymentRefundRequest toExternalRefundRequest(PaymentRefundRequest request) {
