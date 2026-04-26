@@ -1,5 +1,6 @@
 package com.example.settlement.infrastructure.messaging.kafka;
 
+import com.example.settlement.application.event.OutboxEventPendingTrigger;
 import com.example.settlement.domain.entity.OutboxEvent;
 import com.example.settlement.domain.repository.OutboxRepository;
 import com.example.settlement.infrastructure.messaging.kafka.contract.SellerSettlementPayoutRequestedMessage;
@@ -7,6 +8,7 @@ import com.todaylunch.common.event.contract.EventEnvelope;
 import java.time.ZoneId;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 
@@ -23,13 +25,16 @@ public class SettlementPayoutRequestedOutboxEventSaver {
 
     private final OutboxRepository outboxRepository;
     private final ObjectMapper objectMapper;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     public SettlementPayoutRequestedOutboxEventSaver(
             OutboxRepository outboxRepository,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            ApplicationEventPublisher applicationEventPublisher
     ) {
         this.outboxRepository = outboxRepository;
         this.objectMapper = objectMapper;
+        this.applicationEventPublisher = applicationEventPublisher;
     }
 
     public void save(SellerSettlementPayoutRequestedMessage message) {
@@ -52,6 +57,7 @@ public class SettlementPayoutRequestedOutboxEventSaver {
                     envelope.traceId(),
                     payload
             ));
+            applicationEventPublisher.publishEvent(new OutboxEventPendingTrigger());
         } catch (Exception exception) {
             log.error("정산 지급 요청 outbox 저장 직렬화에 실패했습니다. settlementId={}", message.settlementId(), exception);
             throw new RuntimeException("정산 지급 요청 outbox 저장에 실패했습니다.", exception);
