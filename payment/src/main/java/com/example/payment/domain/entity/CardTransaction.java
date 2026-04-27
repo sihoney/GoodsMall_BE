@@ -235,7 +235,7 @@ public class CardTransaction {
 
     private void validatePending() {
         if (!isPending()) {
-            throw new IllegalStateException("Only pending card transactions can be changed.");
+            throw new IllegalStateException("대기 상태의 카드 거래만 변경할 수 있습니다.");
         }
     }
 }

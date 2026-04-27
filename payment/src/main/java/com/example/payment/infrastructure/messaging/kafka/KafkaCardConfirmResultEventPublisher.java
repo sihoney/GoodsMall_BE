@@ -43,8 +43,8 @@ public class KafkaCardConfirmResultEventPublisher implements CardConfirmResultEv
             String message = objectMapper.writeValueAsString(envelope);
             kafkaTemplate.send(KafkaTopics.CARD_CONFIRM_RESULT, String.valueOf(event.orderId()), message);
         } catch (Exception e) {
-            log.error("Failed to serialize CardConfirmResultMessage. orderId={}", event.orderId(), e);
-            throw new RuntimeException("Failed to serialize CardConfirmResultMessage", e);
+            log.error("CardConfirmResultMessage 직렬화에 실패했습니다. orderId={}", event.orderId(), e);
+            throw new RuntimeException("CardConfirmResultMessage 직렬화에 실패했습니다.", e);
         }
     }
 

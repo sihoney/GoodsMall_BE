@@ -71,13 +71,13 @@ public class ConfirmChargeService implements ChargeConfirmUseCase {
         }
         // 데이터 무결성 검사를 위하여 PG 승인 응답과 charge 요청 정보를 대조한다.
         if (!Objects.equals(charge.getPgOrderId(), command.pgOrderId())) {
-            throw new InvalidChargeRequestException("pgOrderId does not match charge.");
+            throw new InvalidChargeRequestException("PG 주문 ID가 충전 요청 정보와 일치하지 않습니다.");
         }
         // 금액 검증은 pg 요청에서 온 금액과 기록된 금액을 모두 비교
         if (charge.getRequestedAmount() == null
                 || command.amount() == null
                 || charge.getRequestedAmount().compareTo(command.amount()) != 0) {
-            throw new InvalidChargeRequestException("amount does not match charge.");
+            throw new InvalidChargeRequestException("승인 금액이 충전 요청 금액과 일치하지 않습니다.");
         }
 
         TossPaymentGateway.TossPaymentConfirmation confirmation;
@@ -133,16 +133,16 @@ public class ConfirmChargeService implements ChargeConfirmUseCase {
 
     private void validateCommand(ChargeConfirmCommand command) {
         if (command.chargeId() == null) {
-            throw new InvalidChargeRequestException("chargeId is required.");
+            throw new InvalidChargeRequestException("충전 ID는 필수입니다.");
         }
         if (command.paymentKey() == null || command.paymentKey().isBlank()) {
-            throw new InvalidChargeRequestException("paymentKey is required.");
+            throw new InvalidChargeRequestException("paymentKey는 필수입니다.");
         }
         if (command.pgOrderId() == null || command.pgOrderId().isBlank()) {
-            throw new InvalidChargeRequestException("pgOrderId is required.");
+            throw new InvalidChargeRequestException("PG 주문 ID는 필수입니다.");
         }
         if (command.amount() == null || command.amount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
-            throw new InvalidChargeRequestException("amount must be positive.");
+            throw new InvalidChargeRequestException("금액은 0보다 커야 합니다.");
         }
     }
 
@@ -183,7 +183,7 @@ public class ConfirmChargeService implements ChargeConfirmUseCase {
             return null;
         }
         if (confirmation.transferBankCode() == null || confirmation.transferBankCode().isBlank()) {
-            throw new PaymentGatewayException("Toss transfer response is missing bankCode.");
+            throw new PaymentGatewayException("토스 계좌이체 응답에 bankCode가 없습니다.");
         }
         return confirmation.transferBankCode();
     }

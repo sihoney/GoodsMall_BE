@@ -6,22 +6,22 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.example.member.application.event.MemberEventPublisher;
+import com.example.member.application.port.out.MemberEventPort;
 import com.example.member.common.exception.AccountVerificationNotAllowedException;
 import com.example.member.domain.entity.Member;
 import com.example.member.domain.entity.Seller;
 import com.example.member.domain.enumtype.MemberStatus;
 import com.example.member.infrastructure.crypto.AccountEncryptionService;
+import com.example.member.infrastructure.persistence.jpa.MemberJpaAdapter;
+import com.example.member.infrastructure.persistence.jpa.SellerJpaAdapter;
 import com.example.member.infrastructure.redis.AccountVerificationSession;
 import com.example.member.infrastructure.redis.AccountVerificationSessionStore;
 import com.example.member.infrastructure.redis.SellerDraft;
 import com.example.member.infrastructure.redis.SellerDraftStore;
-import com.example.member.infrastructure.repository.MemberRepository;
-import com.example.member.infrastructure.repository.SellerRepository;
+import com.todaylunch.common.security.auth.enumtype.MemberRole;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
-import com.todaylunch.common.security.auth.enumtype.MemberRole;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -38,26 +38,26 @@ class SellerPromotionServiceTest {
     private SellerDraftStore sellerDraftStore;
 
     @Mock
-    private SellerRepository sellerRepository;
+    private SellerJpaAdapter sellerPersistencePort;
 
     @Mock
-    private MemberRepository memberRepository;
+    private MemberJpaAdapter memberPersistencePort;
 
     @Mock
     private AccountEncryptionService accountEncryptionService;
 
     @Mock
-    private MemberEventPublisher memberEventPublisher;
+    private MemberEventPort memberEventPort;
 
     @Test
     void promoteAfterAccountVerified_success_createsSellerAndUpdatesMemberRole() {
         SellerPromotionService service = new SellerPromotionService(
                 sessionStore,
                 sellerDraftStore,
-                sellerRepository,
-                memberRepository,
+                sellerPersistencePort,
+                memberPersistencePort,
                 accountEncryptionService,
-                memberEventPublisher
+                memberEventPort
         );
 
         UUID memberId = UUID.randomUUID();
@@ -86,21 +86,21 @@ class SellerPromotionServiceTest {
 
         when(sessionStore.findSession(sessionId)).thenReturn(Optional.of(session));
         when(sellerDraftStore.findDraft(draftId)).thenReturn(Optional.of(draft));
-        when(sellerRepository.existsByMemberId(memberId)).thenReturn(false);
-        when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
+        when(sellerPersistencePort.existsByMemberId(memberId)).thenReturn(false);
+        when(memberPersistencePort.findById(memberId)).thenReturn(Optional.of(member));
         when(accountEncryptionService.decrypt("encrypted-account-number")).thenReturn("1234567890123");
-        when(sellerRepository.save(org.mockito.ArgumentMatchers.any(Seller.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(sellerPersistencePort.save(org.mockito.ArgumentMatchers.any(Seller.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         service.promoteAfterAccountVerified(memberId, sessionId);
 
         ArgumentCaptor<Seller> sellerCaptor = ArgumentCaptor.forClass(Seller.class);
-        verify(sellerRepository).save(sellerCaptor.capture());
+        verify(sellerPersistencePort).save(sellerCaptor.capture());
         Seller savedSeller = sellerCaptor.getValue();
         assertEquals(memberId, savedSeller.getMemberId());
         assertEquals("KAKAO", savedSeller.getBankName());
         assertEquals("1234567890123", savedSeller.getAccount());
         assertEquals(MemberRole.SELLER, member.getRole());
-        verify(memberEventPublisher).publishSellerPromoted(member, savedSeller);
+        verify(memberEventPort).publishSellerPromoted(member, savedSeller);
         verify(sellerDraftStore).deleteDraft(draftId);
         verify(sellerDraftStore).deleteCurrentDraft(memberId);
     }
@@ -110,10 +110,10 @@ class SellerPromotionServiceTest {
         SellerPromotionService service = new SellerPromotionService(
                 sessionStore,
                 sellerDraftStore,
-                sellerRepository,
-                memberRepository,
+                sellerPersistencePort,
+                memberPersistencePort,
                 accountEncryptionService,
-                memberEventPublisher
+                memberEventPort
         );
 
         UUID memberId = UUID.randomUUID();
@@ -136,7 +136,7 @@ class SellerPromotionServiceTest {
         );
 
         verify(sellerDraftStore, never()).deleteDraft(org.mockito.ArgumentMatchers.anyString());
-        verify(memberEventPublisher, never()).publishSellerPromoted(org.mockito.ArgumentMatchers.any(Member.class), org.mockito.ArgumentMatchers.any(Seller.class));
+        verify(memberEventPort, never()).publishSellerPromoted(org.mockito.ArgumentMatchers.any(Member.class), org.mockito.ArgumentMatchers.any(Seller.class));
     }
 
     private Member createMember(UUID memberId) {

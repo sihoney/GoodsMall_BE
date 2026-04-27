@@ -7,15 +7,15 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.example.member.application.dto.command.CreateMemberRestrictionCommand;
+import com.example.member.application.dto.result.MemberRestrictionResult;
 import com.example.member.common.exception.DuplicateActiveRestrictionException;
 import com.example.member.domain.entity.Member;
 import com.example.member.domain.entity.MemberRestriction;
 import com.example.member.domain.enumtype.MemberStatus;
 import com.example.member.domain.enumtype.RestrictionType;
-import com.example.member.infrastructure.repository.MemberRepository;
-import com.example.member.infrastructure.repository.MemberRestrictionRepository;
-import com.example.member.presentation.dto.CreateMemberRestrictionRequest;
-import com.example.member.presentation.dto.MemberRestrictionResponse;
+import com.example.member.infrastructure.persistence.jpa.MemberJpaAdapter;
+import com.example.member.infrastructure.persistence.jpa.MemberRestrictionJpaAdapter;
 import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
 import com.todaylunch.common.security.auth.enumtype.MemberRole;
 import com.todaylunch.common.security.exception.AuthorizationDeniedException;
@@ -33,10 +33,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class MemberRestrictionServiceTest {
 
     @Mock
-    private MemberRepository memberRepository;
+    private MemberJpaAdapter memberPersistencePort;
 
     @Mock
-    private MemberRestrictionRepository memberRestrictionRepository;
+    private MemberRestrictionJpaAdapter memberRestrictionPersistencePort;
 
     @InjectMocks
     private MemberRestrictionService memberRestrictionService;
@@ -45,22 +45,22 @@ class MemberRestrictionServiceTest {
     void createRestriction_success_savesRestriction() {
         UUID memberId = UUID.randomUUID();
         AuthenticatedMember admin = new AuthenticatedMember(UUID.randomUUID(), MemberRole.ADMIN, UUID.randomUUID());
-        CreateMemberRestrictionRequest request = new CreateMemberRestrictionRequest(
+        CreateMemberRestrictionCommand command = new CreateMemberRestrictionCommand(
                 memberId,
                 "abuse",
                 RestrictionType.LOGIN_BAN,
                 24
         );
 
-        when(memberRepository.findById(memberId)).thenReturn(Optional.of(createMember(memberId)));
-        when(memberRestrictionRepository.existsActiveRestriction(any(), any(), any())).thenReturn(false);
-        when(memberRestrictionRepository.save(any(MemberRestriction.class)))
+        when(memberPersistencePort.findById(memberId)).thenReturn(Optional.of(createMember(memberId)));
+        when(memberRestrictionPersistencePort.existsActiveRestriction(any(), any(), any())).thenReturn(false);
+        when(memberRestrictionPersistencePort.save(any(MemberRestriction.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        MemberRestrictionResponse response = memberRestrictionService.createRestriction(admin, request);
+        MemberRestrictionResult response = memberRestrictionService.createRestriction(admin, command);
 
         ArgumentCaptor<MemberRestriction> restrictionCaptor = ArgumentCaptor.forClass(MemberRestriction.class);
-        verify(memberRestrictionRepository).save(restrictionCaptor.capture());
+        verify(memberRestrictionPersistencePort).save(restrictionCaptor.capture());
 
         MemberRestriction savedRestriction = restrictionCaptor.getValue();
         assertEquals(memberId, savedRestriction.getMemberId());
@@ -73,26 +73,26 @@ class MemberRestrictionServiceTest {
     void createRestriction_duplicateActiveRestriction_throwsException() {
         UUID memberId = UUID.randomUUID();
         AuthenticatedMember admin = new AuthenticatedMember(UUID.randomUUID(), MemberRole.ADMIN, UUID.randomUUID());
-        CreateMemberRestrictionRequest request = new CreateMemberRestrictionRequest(
+        CreateMemberRestrictionCommand command = new CreateMemberRestrictionCommand(
                 memberId,
                 "abuse",
                 RestrictionType.LOGIN_BAN,
                 24
         );
 
-        when(memberRepository.findById(memberId)).thenReturn(Optional.of(createMember(memberId)));
-        when(memberRestrictionRepository.existsActiveRestriction(any(), any(), any())).thenReturn(true);
+        when(memberPersistencePort.findById(memberId)).thenReturn(Optional.of(createMember(memberId)));
+        when(memberRestrictionPersistencePort.existsActiveRestriction(any(), any(), any())).thenReturn(true);
 
         assertThrows(DuplicateActiveRestrictionException.class,
-                () -> memberRestrictionService.createRestriction(admin, request));
+                () -> memberRestrictionService.createRestriction(admin, command));
 
-        verify(memberRestrictionRepository, never()).save(any(MemberRestriction.class));
+        verify(memberRestrictionPersistencePort, never()).save(any(MemberRestriction.class));
     }
 
     @Test
     void createRestriction_nonAdmin_throwsAccessDenied() {
         AuthenticatedMember user = new AuthenticatedMember(UUID.randomUUID(), MemberRole.USER, UUID.randomUUID());
-        CreateMemberRestrictionRequest request = new CreateMemberRestrictionRequest(
+        CreateMemberRestrictionCommand command = new CreateMemberRestrictionCommand(
                 UUID.randomUUID(),
                 "abuse",
                 RestrictionType.LOGIN_BAN,
@@ -100,7 +100,7 @@ class MemberRestrictionServiceTest {
         );
 
         assertThrows(AuthorizationDeniedException.class,
-                () -> memberRestrictionService.createRestriction(user, request));
+                () -> memberRestrictionService.createRestriction(user, command));
     }
 
     private Member createMember(UUID memberId) {

@@ -7,15 +7,15 @@ import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 
 public record WithdrawCreateRequest(
-        @NotNull(message = "amount is required.")
-        @DecimalMin(value = "0.01", message = "amount must be positive.")
+        @NotNull(message = "금액은 필수입니다.")
+        @DecimalMin(value = "0.01", message = "금액은 0보다 커야 합니다.")
         @Digits(integer = 19, fraction = 2)
         BigDecimal amount,
 
-        @NotBlank(message = "bankAccount is required.")
+        @NotBlank(message = "계좌번호는 필수입니다.")
         String bankAccount,
 
-        @NotBlank(message = "accountHolder is required.")
+        @NotBlank(message = "예금주는 필수입니다.")
         String accountHolder
 ) {
 }

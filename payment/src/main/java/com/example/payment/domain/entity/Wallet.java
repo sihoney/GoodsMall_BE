@@ -70,7 +70,7 @@ public class Wallet {
     public BigDecimal increaseBalance(BigDecimal amount, LocalDateTime updatedAt) {
         Objects.requireNonNull(amount);
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Amount must be positive.");
+            throw new IllegalArgumentException("금액은 0보다 커야 합니다.");
         }
 
         this.balance = balance.add(amount);
@@ -85,10 +85,10 @@ public class Wallet {
     public BigDecimal decreaseBalance(BigDecimal amount, LocalDateTime updatedAt) {
         Objects.requireNonNull(amount);
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Amount must be positive.");
+            throw new IllegalArgumentException("금액은 0보다 커야 합니다.");
         }
         if (balance.compareTo(amount) < 0) {
-            throw new IllegalArgumentException("Balance is insufficient.");
+            throw new IllegalArgumentException("잔액이 부족합니다.");
         }
 
         this.balance = balance.subtract(amount);

@@ -104,7 +104,7 @@ public class WalletTransaction {
             UUID chargeId,
             LocalDateTime createdAt
     ) {
-        validatePositiveAmount(amount, "Charge amount must be positive.");
+        validatePositiveAmount(amount, "충전 금액은 0보다 커야 합니다.");
 
         return create(
                 transactionId,
@@ -127,7 +127,7 @@ public class WalletTransaction {
             UUID chargeId,
             LocalDateTime createdAt
     ) {
-        validatePositiveAmount(amount, "Refund amount must be positive.");
+        validatePositiveAmount(amount, "환불 금액은 0보다 커야 합니다.");
 
         return create(
                 transactionId,
@@ -150,7 +150,7 @@ public class WalletTransaction {
             UUID orderId,
             LocalDateTime createdAt
     ) {
-        validatePositiveAmount(amount, "Purchase amount must be positive.");
+        validatePositiveAmount(amount, "구매 금액은 0보다 커야 합니다.");
 
         return create(
                 transactionId,
@@ -173,7 +173,7 @@ public class WalletTransaction {
             UUID bidId,
             LocalDateTime createdAt
     ) {
-        validatePositiveAmount(amount, "Auction deposit hold amount must be positive.");
+        validatePositiveAmount(amount, "경매 예치금 보관 금액은 0보다 커야 합니다.");
 
         return create(
                 transactionId,
@@ -196,7 +196,7 @@ public class WalletTransaction {
             UUID bidId,
             LocalDateTime createdAt
     ) {
-        validatePositiveAmount(amount, "Auction deposit refund amount must be positive.");
+        validatePositiveAmount(amount, "경매 예치금 환불 금액은 0보다 커야 합니다.");
 
         return create(
                 transactionId,

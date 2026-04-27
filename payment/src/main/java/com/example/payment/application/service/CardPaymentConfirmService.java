@@ -129,19 +129,19 @@ public class CardPaymentConfirmService implements CardPaymentConfirmUseCase {
 
     private void validateCommand(CardPaymentConfirmCommand command) {
         if (command == null) {
-            throw new InvalidCardPaymentRequestException("card payment confirm request is required.");
+            throw new InvalidCardPaymentRequestException("카드 결제 승인 요청이 필요합니다.");
         }
         if (command.buyerId() == null) {
-            throw new InvalidCardPaymentRequestException("buyerId is required.");
+            throw new InvalidCardPaymentRequestException("구매자 ID는 필수입니다.");
         }
         if (command.orderId() == null) {
-            throw new InvalidCardPaymentRequestException("orderId is required.");
+            throw new InvalidCardPaymentRequestException("주문 ID는 필수입니다.");
         }
         if (command.paymentKey() == null || command.paymentKey().isBlank()) {
-            throw new InvalidCardPaymentRequestException("paymentKey is required.");
+            throw new InvalidCardPaymentRequestException("paymentKey는 필수입니다.");
         }
         if (command.amount() == null || command.amount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
-            throw new InvalidCardPaymentRequestException("amount must be positive.");
+            throw new InvalidCardPaymentRequestException("결제 금액은 0보다 커야 합니다.");
         }
 
     }
@@ -151,13 +151,13 @@ public class CardPaymentConfirmService implements CardPaymentConfirmUseCase {
                 new OrderPaymentValidationCommand(command.orderId(), command.buyerId(), command.amount())
         );
         if (validationData == null || validationData.orderItems() == null || validationData.orderItems().isEmpty()) {
-            throw new InvalidCardPaymentRequestException("order validation orderItems must not be empty.");
+            throw new InvalidCardPaymentRequestException("주문 결제 검증 결과에 주문 항목이 없습니다.");
         }
 
         java.math.BigDecimal orderItemsTotalAmount = getOrderItemsTotalAmount(validationData);
 
         if (orderItemsTotalAmount.compareTo(command.amount()) != 0) {
-            throw new InvalidCardPaymentRequestException("order validation lineAmount total must equal amount.");
+            throw new InvalidCardPaymentRequestException("주문 항목 합계와 요청 결제 금액이 일치하지 않습니다.");
         }
         return validationData;
     }
@@ -166,16 +166,16 @@ public class CardPaymentConfirmService implements CardPaymentConfirmUseCase {
         java.math.BigDecimal orderItemsTotalAmount = java.math.BigDecimal.ZERO;
         for (OrderPaymentValidationItemData orderItem : validationData.orderItems()) {
             if (orderItem == null) {
-                throw new InvalidCardPaymentRequestException("order validation orderItems must not contain null.");
+                throw new InvalidCardPaymentRequestException("주문 결제 검증 결과에 비어 있는 주문 항목이 포함되어 있습니다.");
             }
             if (orderItem.orderItemId() == null) {
-                throw new InvalidCardPaymentRequestException("order validation orderItemId is required.");
+                throw new InvalidCardPaymentRequestException("주문 결제 검증 결과에 주문 항목 ID가 없습니다.");
             }
             if (orderItem.sellerId() == null) {
-                throw new InvalidCardPaymentRequestException("order validation sellerId is required.");
+                throw new InvalidCardPaymentRequestException("주문 결제 검증 결과에 판매자 ID가 없습니다.");
             }
             if (orderItem.lineAmount() == null || orderItem.lineAmount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
-                throw new InvalidCardPaymentRequestException("order validation lineAmount must be positive.");
+                throw new InvalidCardPaymentRequestException("주문 결제 검증 결과의 주문 항목 금액이 올바르지 않습니다.");
             }
             orderItemsTotalAmount = orderItemsTotalAmount.add(orderItem.lineAmount());
         }
@@ -225,15 +225,15 @@ public class CardPaymentConfirmService implements CardPaymentConfirmUseCase {
             TossPaymentGateway.TossPaymentConfirmation confirmation
     ) {
         if (!Objects.equals(confirmation.orderId(), command.orderId().toString())) {
-            throw new InvalidCardPaymentRequestException("confirmed orderId does not match request.");
+            throw new InvalidCardPaymentRequestException("승인된 주문 ID가 요청 주문 ID와 일치하지 않습니다.");
         }
         if (confirmation.approvedAmount() == null
                 || command.amount() == null
                 || confirmation.approvedAmount().compareTo(command.amount()) != 0) {
-            throw new InvalidCardPaymentRequestException("confirmed amount does not match request.");
+            throw new InvalidCardPaymentRequestException("승인된 결제 금액이 요청 금액과 일치하지 않습니다.");
         }
         if (!CARD_METHOD.equals(confirmation.method())) {
-            throw new InvalidCardPaymentRequestException("confirmed payment method is not card.");
+            throw new InvalidCardPaymentRequestException("승인된 결제 수단이 카드가 아닙니다.");
         }
     }
 
@@ -248,7 +248,7 @@ public class CardPaymentConfirmService implements CardPaymentConfirmUseCase {
 
     private String resolveFailureReason(String failureReason) {
         if (failureReason == null || failureReason.isBlank()) {
-            return "Card payment confirmation failed.";
+            return "카드 결제 승인 처리에 실패했습니다.";
         }
         return failureReason;
     }
@@ -294,11 +294,11 @@ public class CardPaymentConfirmService implements CardPaymentConfirmUseCase {
 
     private String resolveFailReason(RuntimeException exception) {
         if (exception == null) {
-            return "card confirm failed";
+            return "카드 결제 승인 처리에 실패했습니다.";
         }
         String message = exception.getMessage();
         if (message == null || message.isBlank()) {
-            return "card confirm failed";
+            return "카드 결제 승인 처리에 실패했습니다.";
         }
         return message;
     }

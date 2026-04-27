@@ -10,22 +10,22 @@ import java.util.UUID;
  * Kafka 요청 계약과 최대한 유사하게 유지해 seller 집계 입력으로 사용한다.
  */
 public record OrderPaymentApiOrderLineRequest(
-        @NotNull(message = "orderItemId is required.")
+        @NotNull(message = "주문 항목 ID는 필수입니다.")
         UUID orderItemId,
 
-        @NotNull(message = "sellerId is required.")
+        @NotNull(message = "판매자 ID는 필수입니다.")
         UUID sellerId,
 
-        @NotNull(message = "unitPriceSnapshot is required.")
-        @Positive(message = "unitPriceSnapshot must be positive.")
+        @NotNull(message = "주문 시점 단가는 필수입니다.")
+        @Positive(message = "주문 시점 단가는 0보다 커야 합니다.")
         BigDecimal unitPriceSnapshot,
 
-        @NotNull(message = "quantity is required.")
-        @Positive(message = "quantity must be positive.")
+        @NotNull(message = "수량은 필수입니다.")
+        @Positive(message = "수량은 0보다 커야 합니다.")
         Integer quantity,
 
-        @NotNull(message = "lineTotalPrice is required.")
-        @Positive(message = "lineTotalPrice must be positive.")
+        @NotNull(message = "주문 항목 총액은 필수입니다.")
+        @Positive(message = "주문 항목 총액은 0보다 커야 합니다.")
         BigDecimal lineTotalPrice
 ) {
 }

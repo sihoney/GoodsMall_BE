@@ -24,16 +24,16 @@ public class OrderPaymentValidationService implements OrderPaymentValidationUseC
 
     private void validateCommand(OrderPaymentValidationCommand command) {
         if (command == null) {
-            throw new InvalidCardPaymentRequestException("order payment validation command is required.");
+            throw new InvalidCardPaymentRequestException("주문 결제 검증 요청이 필요합니다.");
         }
         if (command.orderId() == null) {
-            throw new InvalidCardPaymentRequestException("orderId is required for order validation.");
+            throw new InvalidCardPaymentRequestException("주문 결제 검증을 위한 주문 ID는 필수입니다.");
         }
         if (command.buyerId() == null) {
-            throw new InvalidCardPaymentRequestException("buyerId is required for order validation.");
+            throw new InvalidCardPaymentRequestException("주문 결제 검증을 위한 구매자 ID는 필수입니다.");
         }
         if (command.amount() == null || command.amount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
-            throw new InvalidCardPaymentRequestException("amount must be positive for order validation.");
+            throw new InvalidCardPaymentRequestException("주문 결제 검증 금액은 0보다 커야 합니다.");
         }
     }
 }

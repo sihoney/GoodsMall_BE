@@ -7,7 +7,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.example.member.application.event.MemberEventPublisher;
+import com.example.member.application.dto.result.KakaoOAuthLinkResult;
+import com.example.member.application.dto.result.KakaoOAuthResult;
+import com.example.member.application.port.out.MemberEventPort;
 import com.example.member.config.KakaoOAuthProperties;
 import com.example.member.domain.entity.Member;
 import com.example.member.domain.entity.MemberOauthAccount;
@@ -16,12 +18,10 @@ import com.example.member.domain.enumtype.OAuthProvider;
 import com.example.member.infrastructure.kakao.KakaoOAuthClient;
 import com.example.member.infrastructure.kakao.KakaoTokenResponse;
 import com.example.member.infrastructure.kakao.KakaoUserProfileResponse;
+import com.example.member.infrastructure.persistence.jpa.MemberJpaAdapter;
+import com.example.member.infrastructure.persistence.jpa.MemberOauthAccountJpaAdapter;
 import com.example.member.infrastructure.redis.KakaoOAuthAuthorizeStateStore;
 import com.example.member.infrastructure.redis.KakaoOAuthPendingLink;
-import com.example.member.infrastructure.repository.MemberOauthAccountRepository;
-import com.example.member.infrastructure.repository.MemberRepository;
-import com.example.member.presentation.dto.KakaoOAuthLinkResponse;
-import com.example.member.presentation.dto.KakaoOAuthResultResponse;
 import com.todaylunch.common.security.auth.enumtype.MemberRole;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -47,16 +47,16 @@ class KakaoOAuthServiceTest {
     private KakaoOAuthAuthorizeStateStore kakaoOAuthAuthorizeStateStore;
 
     @Mock
-    private MemberRepository memberRepository;
+    private MemberJpaAdapter memberPersistencePort;
 
     @Mock
-    private MemberOauthAccountRepository memberOauthAccountRepository;
+    private MemberOauthAccountJpaAdapter memberOauthAccountPersistencePort;
 
     @Mock
     private AuthService authService;
 
     @Mock
-    private MemberEventPublisher memberEventPublisher;
+    private MemberEventPort memberEventPort;
 
     @InjectMocks
     private KakaoOAuthService kakaoOAuthService;
@@ -75,22 +75,22 @@ class KakaoOAuthServiceTest {
         Member member = createActiveMember(memberId);
 
         when(kakaoOAuthAuthorizeStateStore.consumePendingLink("link-token")).thenReturn(Optional.of(pendingLink));
-        when(memberOauthAccountRepository.existsByProviderAndProviderUserId(OAuthProvider.KAKAO, "provider-user-1")).thenReturn(false);
-        when(memberOauthAccountRepository.existsByMemberIdAndProvider(memberId, OAuthProvider.KAKAO)).thenReturn(false);
-        when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
-        when(memberOauthAccountRepository.save(any(MemberOauthAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(memberOauthAccountPersistencePort.existsByProviderAndProviderUserId(OAuthProvider.KAKAO, "provider-user-1")).thenReturn(false);
+        when(memberOauthAccountPersistencePort.existsByMemberIdAndProvider(memberId, OAuthProvider.KAKAO)).thenReturn(false);
+        when(memberPersistencePort.findById(memberId)).thenReturn(Optional.of(member));
+        when(memberOauthAccountPersistencePort.save(any(MemberOauthAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        KakaoOAuthLinkResponse response = kakaoOAuthService.linkCurrentMember(memberId, "link-token");
+        KakaoOAuthLinkResult response = kakaoOAuthService.linkCurrentMember(memberId, "link-token");
 
         ArgumentCaptor<MemberOauthAccount> accountCaptor = ArgumentCaptor.forClass(MemberOauthAccount.class);
-        verify(memberOauthAccountRepository).save(accountCaptor.capture());
+        verify(memberOauthAccountPersistencePort).save(accountCaptor.capture());
         MemberOauthAccount savedAccount = accountCaptor.getValue();
         assertEquals(memberId, savedAccount.getMemberId());
         assertEquals(OAuthProvider.KAKAO, savedAccount.getProvider());
         assertEquals("provider-user-1", savedAccount.getProviderUserId());
         assertEquals("member@test.com", savedAccount.getProviderEmail());
         assertEquals("tester", savedAccount.getProviderNickname());
-        verify(memberEventPublisher).publishMemberOauthLinked(
+        verify(memberEventPort).publishMemberOauthLinked(
                 memberId,
                 "KAKAO",
                 "provider-user-1",
@@ -117,17 +117,17 @@ class KakaoOAuthServiceTest {
 
         when(kakaoOAuthClient.exchangeCode("valid-code")).thenReturn(new KakaoTokenResponse("access-token", "Bearer", "refresh-token", 3600));
         when(kakaoOAuthClient.fetchUserProfile("access-token")).thenReturn(profile);
-        when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
-        when(memberOauthAccountRepository.findByProviderAndProviderUserId(OAuthProvider.KAKAO, "12345")).thenReturn(Optional.empty());
-        when(memberOauthAccountRepository.existsByMemberIdAndProvider(memberId, OAuthProvider.KAKAO)).thenReturn(false);
-        when(memberOauthAccountRepository.save(any(MemberOauthAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(memberPersistencePort.findById(memberId)).thenReturn(Optional.of(member));
+        when(memberOauthAccountPersistencePort.findByProviderAndProviderUserId(OAuthProvider.KAKAO, "12345")).thenReturn(Optional.empty());
+        when(memberOauthAccountPersistencePort.existsByMemberIdAndProvider(memberId, OAuthProvider.KAKAO)).thenReturn(false);
+        when(memberOauthAccountPersistencePort.save(any(MemberOauthAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        KakaoOAuthResultResponse response = kakaoOAuthService.linkByCode(memberId, "valid-code");
+        KakaoOAuthResult response = kakaoOAuthService.linkByCode(memberId, "valid-code");
 
         ArgumentCaptor<MemberOauthAccount> accountCaptor = ArgumentCaptor.forClass(MemberOauthAccount.class);
-        verify(memberOauthAccountRepository).save(accountCaptor.capture());
+        verify(memberOauthAccountPersistencePort).save(accountCaptor.capture());
         MemberOauthAccount savedAccount = accountCaptor.getValue();
-        verify(memberEventPublisher).publishMemberOauthLinked(
+        verify(memberEventPort).publishMemberOauthLinked(
                 memberId,
                 "KAKAO",
                 "12345",
@@ -164,14 +164,14 @@ class KakaoOAuthServiceTest {
 
         when(kakaoOAuthClient.exchangeCode("valid-code")).thenReturn(new KakaoTokenResponse("access-token", "Bearer", "refresh-token", 3600));
         when(kakaoOAuthClient.fetchUserProfile("access-token")).thenReturn(profile);
-        when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
-        when(memberOauthAccountRepository.findByProviderAndProviderUserId(OAuthProvider.KAKAO, "12345"))
+        when(memberPersistencePort.findById(memberId)).thenReturn(Optional.of(member));
+        when(memberOauthAccountPersistencePort.findByProviderAndProviderUserId(OAuthProvider.KAKAO, "12345"))
                 .thenReturn(Optional.of(existingAccount));
 
-        KakaoOAuthResultResponse response = kakaoOAuthService.linkByCode(memberId, "valid-code");
+        KakaoOAuthResult response = kakaoOAuthService.linkByCode(memberId, "valid-code");
 
-        verify(memberOauthAccountRepository, never()).save(any(MemberOauthAccount.class));
-        verify(memberEventPublisher, never()).publishMemberOauthLinked(
+        verify(memberOauthAccountPersistencePort, never()).save(any(MemberOauthAccount.class));
+        verify(memberEventPort, never()).publishMemberOauthLinked(
                 any(UUID.class),
                 any(String.class),
                 any(String.class),

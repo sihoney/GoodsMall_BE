@@ -92,7 +92,7 @@ public class PaymentRefundItem {
             return;
         }
         if (status == PaymentRefundItemStatus.FAILED) {
-            throw new IllegalStateException("Failed refund item cannot be marked as succeeded.");
+            throw new IllegalStateException("실패한 환불 항목은 성공으로 변경할 수 없습니다.");
         }
         this.status = PaymentRefundItemStatus.SUCCEEDED;
         this.failureReason = null;
@@ -101,7 +101,7 @@ public class PaymentRefundItem {
 
     public void markFailed(String failureReason, LocalDateTime updatedAt) {
         if (status == PaymentRefundItemStatus.SUCCEEDED) {
-            throw new IllegalStateException("Succeeded refund item cannot be marked as failed.");
+            throw new IllegalStateException("성공한 환불 항목은 실패로 변경할 수 없습니다.");
         }
         this.status = PaymentRefundItemStatus.FAILED;
         this.failureReason = Objects.requireNonNull(failureReason);
@@ -111,7 +111,7 @@ public class PaymentRefundItem {
     private static BigDecimal validateNonNegativeAmount(BigDecimal amount) {
         Objects.requireNonNull(amount);
         if (amount.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("Refund amount must not be negative.");
+            throw new IllegalArgumentException("환불 금액은 음수일 수 없습니다.");
         }
         return amount;
     }

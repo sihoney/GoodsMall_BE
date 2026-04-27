@@ -1,7 +1,14 @@
 package com.example.member.application.service;
 
-import com.example.member.application.event.MemberEventPublisher;
-import com.example.member.application.usecase.AccountVerificationUsecase;
+import com.example.member.application.dto.command.AccountVerificationConfirmCommand;
+import com.example.member.application.dto.command.AccountVerificationCreateCommand;
+import com.example.member.application.dto.result.AccountVerificationCancelResult;
+import com.example.member.application.dto.result.AccountVerificationConfirmResult;
+import com.example.member.application.dto.result.AccountVerificationCurrentResult;
+import com.example.member.application.dto.result.AccountVerificationSendResult;
+import com.example.member.application.port.in.AccountVerificationUsecase;
+import com.example.member.application.port.out.MemberEventPort;
+import com.example.member.application.port.out.MemberPersistencePort;
 import com.example.member.common.exception.AccountVerificationAttemptLimitExceededException;
 import com.example.member.common.exception.AccountVerificationNotAllowedException;
 import com.example.member.common.exception.AccountVerificationNotFoundException;
@@ -18,13 +25,6 @@ import com.example.member.infrastructure.redis.ParsedRefreshToken;
 import com.example.member.infrastructure.redis.RefreshTokenStore;
 import com.example.member.infrastructure.redis.SellerDraft;
 import com.example.member.infrastructure.redis.SellerDraftStore;
-import com.example.member.infrastructure.repository.MemberRepository;
-import com.example.member.presentation.dto.AccountVerificationCancelResponse;
-import com.example.member.presentation.dto.AccountVerificationConfirmRequest;
-import com.example.member.presentation.dto.AccountVerificationConfirmResponse;
-import com.example.member.presentation.dto.AccountVerificationCreateRequest;
-import com.example.member.presentation.dto.AccountVerificationCurrentResponse;
-import com.example.member.presentation.dto.AccountVerificationSendResponse;
 import com.example.member.security.JwtTokenProvider;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -46,7 +46,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
 
     private static final Duration LOCK_TTL = Duration.ofSeconds(5);
 
-    private final MemberRepository memberRepository;
+    private final MemberPersistencePort memberPersistencePort;
     private final AccountVerificationSessionStore sessionStore;
     private final SellerDraftStore sellerDraftStore;
     private final AccountEncryptionService accountEncryptionService;
@@ -54,13 +54,16 @@ public class AccountVerificationService implements AccountVerificationUsecase {
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenStore refreshTokenStore;
     private final AccountVerificationProperties properties;
-    private final MemberEventPublisher memberEventPublisher;
+    private final MemberEventPort memberEventPort;
 
     @Override
     @Transactional
-    public AccountVerificationSendResponse createAccountVerification(UUID memberId, AccountVerificationCreateRequest request) {
+    public AccountVerificationSendResult createAccountVerification(
+            UUID memberId,
+            AccountVerificationCreateCommand command
+    ) {
         Member member = getMember(memberId);
-        validateCreateRequest(request);
+        validateCreateRequest(command);
 
         cleanupExistingCurrentSession(memberId);
 
@@ -69,7 +72,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
         String sessionId = generateSessionId();
         String verificationCode = generateVerificationCode();
         String codeHash = hashCode(verificationCode);
-        String normalizedAccount = normalizeAccountNumber(request.accountNumber());
+        String normalizedAccount = normalizeAccountNumber(command.accountNumber());
         String maskedAccountNumber = maskAccountNumber(normalizedAccount);
         LocalDateTime expiresAt = now.plus(properties.expiration());
 
@@ -78,7 +81,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
                 draftId,
                 member.getMemberId(),
                 sessionId,
-                normalizeRequired(request.bankName(), "bankName"),
+                normalizeRequired(command.bankName(), "bankName"),
                 encryptedAccountNumber,
                 maskedAccountNumber,
                 now
@@ -105,7 +108,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
             throw exception;
         }
 
-        return new AccountVerificationSendResponse(
+        return new AccountVerificationSendResult(
                 sessionId,
                 session.getStatus().name(),
                 draft.getAccountNumberMasked(),
@@ -118,13 +121,13 @@ public class AccountVerificationService implements AccountVerificationUsecase {
 
     @Override
     @Transactional
-    public AccountVerificationConfirmResponse confirmAccountVerification(
+    public AccountVerificationConfirmResult confirmAccountVerification(
             UUID memberId,
             UUID authSessionId,
             String sessionId,
-            AccountVerificationConfirmRequest request
+            AccountVerificationConfirmCommand command
     ) {
-        validateConfirmRequest(sessionId, request);
+        validateConfirmRequest(sessionId, command);
         acquireLockOrThrow(sessionId);
         try {
             AccountVerificationSession session = getOwnedSession(memberId, sessionId);
@@ -142,16 +145,16 @@ public class AccountVerificationService implements AccountVerificationUsecase {
             }
 
             if (!session.canConfirm()) {
-                throw new AccountVerificationNotAllowedException("계좌 인증 세션을 확인 처리할 수 없습니다.");
+                throw new AccountVerificationNotAllowedException("계좌 인증 세션은 확인 처리할 수 없습니다.");
             }
 
-            String normalizedCode = normalizeRequired(request.code(), "code");
+            String normalizedCode = normalizeRequired(command.code(), "code");
             if (!session.getCodeHash().equals(hashCode(normalizedCode))) {
                 session.markFailed("계좌 인증 코드가 일치하지 않습니다.");
                 if (session.getAttemptCount() >= properties.maxAttempts()) {
                     session.markExpired("ATTEMPT_LIMIT_EXCEEDED");
                     sessionStore.saveSession(session, Duration.ZERO);
-                    memberEventPublisher.publishAccountVerificationFailed(
+                    memberEventPort.publishAccountVerificationFailed(
                             memberId,
                             session.getSessionId(),
                             "ATTEMPT_LIMIT_EXCEEDED"
@@ -172,7 +175,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
     }
 
     @Override
-    public AccountVerificationCurrentResponse getCurrentAccountVerification(UUID memberId) {
+    public AccountVerificationCurrentResult getCurrentAccountVerification(UUID memberId) {
         getMember(memberId);
         Optional<String> currentSessionId = sessionStore.findCurrentSessionId(memberId);
         if (currentSessionId.isEmpty()) {
@@ -197,7 +200,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
 
     @Override
     @Transactional
-    public AccountVerificationSendResponse resendAccountVerification(UUID memberId, String sessionId) {
+    public AccountVerificationSendResult resendAccountVerification(UUID memberId, String sessionId) {
         acquireLockOrThrow(sessionId);
         try {
             AccountVerificationSession session = getOwnedSession(memberId, sessionId);
@@ -209,7 +212,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
                 throw new ExpiredAccountVerificationException();
             }
             if (!session.canResend()) {
-                throw new AccountVerificationNotAllowedException("계좌 인증 세션을 재전송할 수 없습니다.");
+                throw new AccountVerificationNotAllowedException("계좌 인증 세션은 재전송할 수 없습니다.");
             }
             if (session.getResendCount() >= properties.maxResendCount()) {
                 throw new AccountVerificationResendLimitExceededException();
@@ -223,7 +226,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
             sessionStore.saveSession(session, properties.expiration());
             sessionStore.saveCurrentSession(memberId, sessionId, properties.expiration());
 
-            return new AccountVerificationSendResponse(
+            return new AccountVerificationSendResult(
                     session.getSessionId(),
                     session.getStatus().name(),
                     draft == null ? null : draft.getAccountNumberMasked(),
@@ -239,7 +242,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
 
     @Override
     @Transactional
-    public AccountVerificationCancelResponse cancelAccountVerification(UUID memberId, String sessionId) {
+    public AccountVerificationCancelResult cancelAccountVerification(UUID memberId, String sessionId) {
         acquireLockOrThrow(sessionId);
         try {
             AccountVerificationSession session = getOwnedSession(memberId, sessionId);
@@ -248,7 +251,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
             sessionStore.saveSession(session, properties.expiration());
             sellerDraftStore.deleteDraft(session.getDraftId());
             sellerDraftStore.deleteCurrentDraft(memberId);
-            return new AccountVerificationCancelResponse(
+            return new AccountVerificationCancelResult(
                     session.getSessionId(),
                     session.getStatus().name(),
                     session.getCancelledAt()
@@ -283,12 +286,12 @@ public class AccountVerificationService implements AccountVerificationUsecase {
     }
 
     private Member getMember(UUID memberId) {
-        return memberRepository.findById(memberId)
+        return memberPersistencePort.findById(memberId)
                 .orElseThrow(() -> new IllegalArgumentException("회원을 찾을 수 없습니다."));
     }
 
-    private AccountVerificationCurrentResponse emptyCurrentResponse() {
-        return new AccountVerificationCurrentResponse(
+    private AccountVerificationCurrentResult emptyCurrentResponse() {
+        return new AccountVerificationCurrentResult(
                 null,
                 AccountVerificationStatus.NONE.name(),
                 null,
@@ -299,9 +302,9 @@ public class AccountVerificationService implements AccountVerificationUsecase {
         );
     }
 
-    private AccountVerificationCurrentResponse buildCurrentResponse(AccountVerificationSession session) {
+    private AccountVerificationCurrentResult buildCurrentResponse(AccountVerificationSession session) {
         Optional<SellerDraft> draft = getDraftBySessionOptional(session);
-        return new AccountVerificationCurrentResponse(
+        return new AccountVerificationCurrentResult(
                 session.getSessionId(),
                 session.getStatus().name(),
                 draft.map(SellerDraft::getBankName).orElse(null),
@@ -312,11 +315,11 @@ public class AccountVerificationService implements AccountVerificationUsecase {
         );
     }
 
-    private AccountVerificationConfirmResponse buildConfirmResponse(
+    private AccountVerificationConfirmResult buildConfirmResponse(
             AccountVerificationSession session,
-            AccountVerificationConfirmResponse.AuthTokens authTokens
+            AccountVerificationConfirmResult.AuthTokens authTokens
     ) {
-        return new AccountVerificationConfirmResponse(
+        return new AccountVerificationConfirmResult(
                 session.getSessionId(),
                 true,
                 session.getStatus().name(),
@@ -326,7 +329,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
         );
     }
 
-    private AccountVerificationConfirmResponse.AuthTokens issuePromotedTokens(UUID memberId, UUID authSessionId) {
+    private AccountVerificationConfirmResult.AuthTokens issuePromotedTokens(UUID memberId, UUID authSessionId) {
         Member member = getMember(memberId);
         String accessToken = jwtTokenProvider.createAccessToken(member, authSessionId);
         String refreshToken = jwtTokenProvider.createRefreshToken(member, authSessionId);
@@ -339,7 +342,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
             refreshTokenStore.createSession(memberId, authSessionId, parsedRefreshToken.refreshTokenId(), refreshTtl);
         }
 
-        return new AccountVerificationConfirmResponse.AuthTokens(
+        return new AccountVerificationConfirmResult.AuthTokens(
                 accessToken,
                 refreshToken,
                 "Bearer",
@@ -357,15 +360,15 @@ public class AccountVerificationService implements AccountVerificationUsecase {
         return sellerDraftStore.findDraft(session.getDraftId()).orElse(null);
     }
 
-    private void validateCreateRequest(AccountVerificationCreateRequest request) {
-        if (request == null) {
+    private void validateCreateRequest(AccountVerificationCreateCommand command) {
+        if (command == null) {
             throw new IllegalArgumentException("계좌 인증 요청 본문은 필수입니다.");
         }
     }
 
-    private void validateConfirmRequest(String sessionId, AccountVerificationConfirmRequest request) {
+    private void validateConfirmRequest(String sessionId, AccountVerificationConfirmCommand command) {
         normalizeRequired(sessionId, "sessionId");
-        if (request == null) {
+        if (command == null) {
             throw new IllegalArgumentException("확인 요청 본문은 필수입니다.");
         }
     }
@@ -408,7 +411,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
     private String normalizeAccountNumber(String accountNumber) {
         String normalized = normalizeRequired(accountNumber, "accountNumber").replace("-", "").replace(" ", "");
         if (!normalized.matches("\\d{6,20}")) {
-            throw new IllegalArgumentException("accountNumber는 숫자만 포함해야 하며 6자 이상 20자 이하여야 합니다.");
+            throw new IllegalArgumentException("accountNumber는 숫자만 포함해야 하고 6자 이상 20자 이하여야 합니다.");
         }
         return normalized;
     }
@@ -430,7 +433,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
         }
 
         session.markExpired(reason);
-        memberEventPublisher.publishAccountVerificationExpired(
+        memberEventPort.publishAccountVerificationExpired(
                 session.getMemberId(),
                 session.getSessionId(),
                 reason

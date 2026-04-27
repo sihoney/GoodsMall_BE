@@ -130,40 +130,40 @@ public class SellerSettlementPayoutRequestedEventConsumer {
         try {
             return objectMapper.readValue(eventJson, SELLER_SETTLEMENT_PAYOUT_REQUESTED_ENVELOPE_TYPE);
         } catch (Exception e) {
-            log.error("Failed to deserialize SellerSettlementPayoutRequested event envelope", e);
-            throw new RuntimeException("Failed to deserialize SellerSettlementPayoutRequested event envelope", e);
+            log.error("판매자 정산 지급 요청 이벤트 엔벌로프 역직렬화에 실패했습니다.", e);
+            throw new RuntimeException("판매자 정산 지급 요청 이벤트 엔벌로프 역직렬화에 실패했습니다.", e);
         }
     }
 
     private void validateEnvelope(EventEnvelope<SellerSettlementPayoutRequestedMessage> envelope) {
-        Objects.requireNonNull(envelope, "sellerSettlementPayoutRequested envelope is required.");
+        Objects.requireNonNull(envelope, "판매자 정산 지급 요청 엔벌로프는 필수입니다.");
         if (envelope.eventId() == null) {
-            throw new IllegalArgumentException("eventId is required.");
+            throw new IllegalArgumentException("eventId는 필수입니다.");
         }
         if (!SELLER_SETTLEMENT_PAYOUT_REQUESTED_EVENT_TYPE.equals(envelope.eventType())) {
-            throw new IllegalArgumentException("Unsupported eventType: " + envelope.eventType());
+            throw new IllegalArgumentException("지원하지 않는 eventType입니다. eventType=" + envelope.eventType());
         }
         if (envelope.source() == null || envelope.source().isBlank()) {
-            throw new IllegalArgumentException("source is required.");
+            throw new IllegalArgumentException("source는 필수입니다.");
         }
         if (envelope.aggregateId() == null) {
-            throw new IllegalArgumentException("aggregateId is required.");
+            throw new IllegalArgumentException("aggregateId는 필수입니다.");
         }
         if (envelope.occurredAt() == null) {
-            throw new IllegalArgumentException("occurredAt is required.");
+            throw new IllegalArgumentException("occurredAt은 필수입니다.");
         }
         if (envelope.traceId() == null || envelope.traceId().isBlank()) {
-            throw new IllegalArgumentException("traceId is required.");
+            throw new IllegalArgumentException("traceId는 필수입니다.");
         }
         if (envelope.payload() == null) {
-            throw new IllegalArgumentException("payload is required.");
+            throw new IllegalArgumentException("payload는 필수입니다.");
         }
         if (!Objects.equals(envelope.aggregateId(), envelope.payload().settlementId())) {
-            throw new IllegalArgumentException("aggregateId and payload.settlementId must match.");
+            throw new IllegalArgumentException("aggregateId와 payload.settlementId는 일치해야 합니다.");
         }
         if (envelope.recipientId() != null
                 && !Objects.equals(envelope.recipientId(), envelope.payload().sellerMemberId())) {
-            throw new IllegalArgumentException("recipientId and payload.sellerMemberId must match.");
+            throw new IllegalArgumentException("recipientId와 payload.sellerMemberId는 일치해야 합니다.");
         }
     }
 
@@ -207,24 +207,24 @@ public class SellerSettlementPayoutRequestedEventConsumer {
      * settlement payout 요청 이벤트의 필수 필드와 기본 형식을 검증한다.
      */
     private void validateEvent(SellerSettlementPayoutRequestedMessage event) {
-        Objects.requireNonNull(event, "sellerSettlementPayoutRequested event is required.");
+        Objects.requireNonNull(event, "판매자 정산 지급 요청 이벤트는 필수입니다.");
         if (event.eventId() == null) {
-            throw new IllegalArgumentException("eventId is required.");
+            throw new IllegalArgumentException("eventId는 필수입니다.");
         }
         if (event.settlementId() == null) {
-            throw new IllegalArgumentException("settlementId is required.");
+            throw new IllegalArgumentException("settlementId는 필수입니다.");
         }
         if (event.sellerMemberId() == null) {
-            throw new IllegalArgumentException("sellerMemberId is required.");
+            throw new IllegalArgumentException("sellerMemberId는 필수입니다.");
         }
         if (event.settlementType() == null) {
-            throw new IllegalArgumentException("settlementType is required.");
+            throw new IllegalArgumentException("settlementType은 필수입니다.");
         }
         if (event.payoutAmount() == null || event.payoutAmount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("payoutAmount must be positive.");
+            throw new IllegalArgumentException("지급 금액은 0보다 커야 합니다.");
         }
         if (event.requestedAt() == null) {
-            throw new IllegalArgumentException("requestedAt is required.");
+            throw new IllegalArgumentException("requestedAt은 필수입니다.");
         }
     }
 
@@ -237,8 +237,8 @@ public class SellerSettlementPayoutRequestedEventConsumer {
 
     private String resolveSettlementDescription(SettlementPayoutType settlementPayoutType) {
         return switch (settlementPayoutType) {
-            case MONTHLY -> "monthly settlement payout";
-            case PARTIAL -> "partial settlement payout";
+            case MONTHLY -> "월 정산 지급";
+            case PARTIAL -> "부분 정산 지급";
         };
     }
 }

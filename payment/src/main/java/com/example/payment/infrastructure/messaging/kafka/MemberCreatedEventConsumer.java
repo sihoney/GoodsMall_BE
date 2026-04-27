@@ -51,41 +51,41 @@ public class MemberCreatedEventConsumer {
                     toKoreaLocalDateTime(event.occurredAt())
             ));
         } catch (Exception e) {
-            log.error("Failed to process member signed up event envelope.", e);
-            throw new RuntimeException("Failed to process member signed up event envelope.", e);
+            log.error("회원 가입 이벤트 엔벌로프 처리에 실패했습니다.", e);
+            throw new RuntimeException("회원 가입 이벤트 엔벌로프 처리에 실패했습니다.", e);
         }
     }
 
     private void validateEvent(EventEnvelope<MemberSignedUpPayload> event) {
         if (event == null) {
-            throw new InvalidChargeRequestException("memberSignedUp event is required.");
+            throw new InvalidChargeRequestException("회원 가입 이벤트는 필수입니다.");
         }
         if (event.eventId() == null) {
-            throw new InvalidChargeRequestException("eventId is required.");
+            throw new InvalidChargeRequestException("eventId는 필수입니다.");
         }
         if (!MEMBER_SIGNED_UP_EVENT_TYPE.equals(event.eventType())) {
-            throw new InvalidChargeRequestException("Unsupported eventType: " + event.eventType());
+            throw new InvalidChargeRequestException("지원하지 않는 eventType입니다. eventType=" + event.eventType());
         }
         if (event.source() == null || event.source().isBlank()) {
-            throw new InvalidChargeRequestException("source is required.");
+            throw new InvalidChargeRequestException("source는 필수입니다.");
         }
         if (event.recipientId() == null) {
-            throw new InvalidChargeRequestException("recipientId is required.");
+            throw new InvalidChargeRequestException("recipientId는 필수입니다.");
         }
         if (event.payload() == null) {
-            throw new InvalidChargeRequestException("payload is required.");
+            throw new InvalidChargeRequestException("payload는 필수입니다.");
         }
         if (event.payload().memberId() == null) {
-            throw new InvalidChargeRequestException("payload.memberId is required.");
+            throw new InvalidChargeRequestException("payload.memberId는 필수입니다.");
         }
         if (event.payload().email() == null || event.payload().email().isBlank()) {
-            throw new InvalidChargeRequestException("payload.email is required.");
+            throw new InvalidChargeRequestException("payload.email은 필수입니다.");
         }
         if (event.occurredAt() == null) {
-            throw new InvalidChargeRequestException("occurredAt is required.");
+            throw new InvalidChargeRequestException("occurredAt은 필수입니다.");
         }
         if (!Objects.equals(event.recipientId(), event.payload().memberId())) {
-            throw new InvalidChargeRequestException("recipientId and payload.memberId must match.");
+            throw new InvalidChargeRequestException("recipientId와 payload.memberId는 일치해야 합니다.");
         }
     }
 

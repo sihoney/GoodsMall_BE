@@ -1,6 +1,6 @@
 package com.example.member.infrastructure.redis;
 
-import com.example.member.presentation.dto.KakaoOAuthResultResponse;
+import com.example.member.application.dto.result.KakaoOAuthResult;
 import java.time.Duration;
 import java.util.Optional;
 
@@ -14,7 +14,7 @@ public interface KakaoOAuthAuthorizeStateStore {
 
     Optional<KakaoOAuthPendingLink> consumePendingLink(String linkToken);
 
-    Optional<String> createOAuthResult(KakaoOAuthResultResponse result, Duration ttl);
+    Optional<String> createOAuthResult(KakaoOAuthResult result, Duration ttl);
 
-    Optional<KakaoOAuthResultResponse> consumeOAuthResult(String resultKey);
+    Optional<KakaoOAuthResult> consumeOAuthResult(String resultKey);
 }

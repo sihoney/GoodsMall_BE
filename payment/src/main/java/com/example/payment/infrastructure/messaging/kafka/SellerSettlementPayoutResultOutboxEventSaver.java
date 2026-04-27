@@ -62,8 +62,8 @@ public class SellerSettlementPayoutResultOutboxEventSaver {
             outboxRepository.save(outboxEvent);
             applicationEventPublisher.publishEvent(new OutboxEventPendingTrigger());
         } catch (Exception e) {
-            log.error("Failed to serialize SellerSettlementPayoutResultMessage. settlementId={}", event.settlementId(), e);
-            throw new RuntimeException("Failed to serialize SellerSettlementPayoutResultMessage", e);
+            log.error("SellerSettlementPayoutResultMessage 직렬화에 실패했습니다. settlementId={}", event.settlementId(), e);
+            throw new RuntimeException("SellerSettlementPayoutResultMessage 직렬화에 실패했습니다.", e);
         }
     }
 

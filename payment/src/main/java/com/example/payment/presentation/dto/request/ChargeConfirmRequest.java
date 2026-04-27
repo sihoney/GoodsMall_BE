@@ -12,15 +12,15 @@ import java.util.UUID;
  * PG 확인 결과와 charge 요청 정보를 함께 담는다.
  */
 public record ChargeConfirmRequest(
-        @NotNull(message = "chargeId is required.")
+        @NotNull(message = "충전 ID는 필수입니다.")
         UUID chargeId,
-        @NotBlank(message = "paymentKey is required.")
+        @NotBlank(message = "paymentKey는 필수입니다.")
         String paymentKey,
-        @NotBlank(message = "orderId is required.")
+        @NotBlank(message = "주문 ID는 필수입니다.")
         String orderId,
-        @NotNull(message = "amount is required.")
-        @DecimalMin(value = "1", message = "amount must be at least 1 KRW.")
-        @Digits(integer = 19, fraction = 0, message = "amount must be integer KRW.")
+        @NotNull(message = "금액은 필수입니다.")
+        @DecimalMin(value = "1", message = "금액은 최소 1원 이상이어야 합니다.")
+        @Digits(integer = 19, fraction = 0, message = "금액은 원 단위 정수여야 합니다.")
         BigDecimal amount
 ) {
 }

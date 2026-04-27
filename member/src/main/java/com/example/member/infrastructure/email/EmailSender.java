@@ -1,6 +1,6 @@
 package com.example.member.infrastructure.email;
 
-public interface EmailSender {
+import com.example.member.application.port.out.EmailSenderPort;
 
-    void send(String to, String subject, String body, boolean html);
+public interface EmailSender extends EmailSenderPort {
 }

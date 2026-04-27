@@ -127,7 +127,7 @@ public class PaymentRefund {
 
     public void markProcessing(LocalDateTime updatedAt) {
         if (refundStatus != PaymentRefundStatus.REQUESTED) {
-            throw new IllegalStateException("Only requested refund can be marked as processing.");
+            throw new IllegalStateException("요청 상태의 환불만 처리 중으로 변경할 수 있습니다.");
         }
         this.refundStatus = PaymentRefundStatus.PROCESSING;
         this.updatedAt = Objects.requireNonNull(updatedAt);
@@ -135,7 +135,7 @@ public class PaymentRefund {
 
     public void markSucceeded(LocalDateTime completedAt, LocalDateTime updatedAt) {
         if (refundStatus != PaymentRefundStatus.REQUESTED && refundStatus != PaymentRefundStatus.PROCESSING) {
-            throw new IllegalStateException("Only requested or processing refund can be marked as succeeded.");
+            throw new IllegalStateException("요청 또는 처리 중 상태의 환불만 성공으로 변경할 수 있습니다.");
         }
         this.refundStatus = PaymentRefundStatus.SUCCEEDED;
         this.completedAt = Objects.requireNonNull(completedAt);
@@ -145,7 +145,7 @@ public class PaymentRefund {
 
     public void markFailed(LocalDateTime failedAt, LocalDateTime updatedAt) {
         if (refundStatus == PaymentRefundStatus.SUCCEEDED || refundStatus == PaymentRefundStatus.FAILED) {
-            throw new IllegalStateException("Completed refund cannot be marked as failed.");
+            throw new IllegalStateException("완료된 환불은 실패로 변경할 수 없습니다.");
         }
         this.refundStatus = PaymentRefundStatus.FAILED;
         this.failedAt = Objects.requireNonNull(failedAt);
@@ -156,7 +156,7 @@ public class PaymentRefund {
     private BigDecimal validateNonNegativeAmount(BigDecimal amount) {
         Objects.requireNonNull(amount);
         if (amount.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("Refund amount must not be negative.");
+            throw new IllegalArgumentException("환불 금액은 음수일 수 없습니다.");
         }
         return amount;
     }
