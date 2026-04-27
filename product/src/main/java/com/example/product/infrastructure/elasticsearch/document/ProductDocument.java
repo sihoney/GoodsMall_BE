@@ -28,7 +28,7 @@ public class ProductDocument {
     private String createdAt;
     private String updatedAt;
 
-    protected ProductDocument() {
+    public ProductDocument() {
     }
 
     public ProductDocument(Product product, List<String> allCategoryIds, String thumbnailS3Key) {
