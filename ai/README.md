@@ -32,7 +32,37 @@
 
 관리자 API는 `ADMIN` 권한을 전제로 합니다.
 
-## 3. 기능별 동작
+## 3. 전체 흐름도
+
+```mermaid
+flowchart TD
+    A[Product created/updated/deleted 이벤트] --> B[AI ProductEventConsumer]
+    B --> C{중복 이벤트인가?}
+    C -->|예| D[처리 생략]
+    C -->|아니오| E[임베딩 생성 또는 비활성화]
+    E --> F[(product_embedding / pgvector)]
+    F --> G[연관 상품 추천 API]
+    G --> H[유사 후보 20개 조회]
+    H --> I{rerank 성공 여부}
+    I -->|성공| J[재정렬 Top 5 반환]
+    I -->|실패| K[유사도 Top 5 반환]
+
+    L[상품 등록 보조 요청] --> M[Fingerprint / Lock / Cache 확인]
+    M --> N{캐시 결과 존재?}
+    N -->|예| O[캐시 결과 반환]
+    N -->|아니오| P[OpenAI 상품 초안 생성]
+    P --> Q{호출 성공 여부}
+    Q -->|성공| R[정제 후 캐시 저장]
+    Q -->|실패| S[Fallback 초안 반환]
+
+    T[경매 가격 추천 요청] --> U[규칙 기반 결과 계산]
+    U --> V[OpenAI 추천 시도]
+    V --> W{호출 성공 여부}
+    W -->|성공| X[AI 추천 결과 반환]
+    W -->|실패| Y[규칙 기반 결과 반환]
+```
+
+## 4. 기능별 동작
 
 ### 3.1 연관 상품 추천
 
@@ -192,7 +222,7 @@ Kafka로 다음 Product 이벤트를 소비합니다.
 - `priceReason`
 - `notes`
 
-## 4. 공통 응답 형식
+## 5. 공통 응답 형식
 
 모든 HTTP 응답은 `ApiResponse<T>`를 사용합니다.
 
@@ -221,7 +251,7 @@ Kafka로 다음 Product 이벤트를 소비합니다.
 }
 ```
 
-## 5. 주요 예외 코드
+## 6. 주요 예외 코드
 
 | 코드 | 의미 |
 |---|---|
@@ -248,7 +278,7 @@ Kafka로 다음 Product 이벤트를 소비합니다.
 - `MethodArgumentNotValidException`, 본문 형식 오류 등은 경매 가격 추천 요청 오류 코드로 정리됩니다.
 - 예상하지 못한 예외는 `INTERNAL_SERVER_ERROR`로 응답합니다.
 
-## 6. 외부 의존
+## 7. 외부 의존
 
 | 대상 | 사용 목적 |
 |---|---|
@@ -258,7 +288,7 @@ Kafka로 다음 Product 이벤트를 소비합니다.
 | OpenAI | 임베딩 생성, 추천 rerank, 상품 등록 보조, 경매 가격 추천 |
 | Product 서비스 | 관리자 재색인 대상 상품 목록 조회 |
 
-## 7. 패키지 구조
+## 8. 패키지 구조
 
 ```text
 ai
