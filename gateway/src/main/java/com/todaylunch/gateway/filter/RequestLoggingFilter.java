@@ -11,8 +11,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-// TODO: (개발용, 추후 삭제 필요) API 요청과 응답에 대한 로그를 남기는 필터, 추후 필요에 따라 세부 정보 추가 (예: 요청/응답 헤더, 바디 등)
-
 @Slf4j
 @Component
 public class RequestLoggingFilter implements GlobalFilter, Ordered {

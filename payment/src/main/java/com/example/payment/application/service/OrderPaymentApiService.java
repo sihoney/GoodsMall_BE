@@ -43,7 +43,6 @@ public class OrderPaymentApiService implements OrderPaymentApiUseCase {
     @Override
     public OrderPaymentApiResponse payOrder(OrderPaymentApiRequest request) {
         validateRequest(request);
-        // todo : 요청 기록 시간이 필요한 경우 parsInt 값을 localtime으로 변경해야함
         try {
             OrderPaymentResult result = orderPaymentUseCase.payOrder(new OrderPaymentCommand(
                     request.orderId(),

@@ -72,7 +72,6 @@ public class KafkaConsumerConfig {
     /**
      * 주문 구매 확정 이벤트용 ConsumerFactory
      */
-    // todo: ListenerContainerFactory와 붙여서 보기 편하게 할 것.
     @Bean
     public ConsumerFactory<String, OrderPurchaseConfirmedMessage> orderPurchaseConfirmedConsumerFactory(
             @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers
@@ -189,7 +188,6 @@ public class KafkaConsumerConfig {
         props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
         // 오프셋이 없을 때 가장 처음 메시지부터 읽음
         // 운영 환경에서는 신중하게 선택해야 하는 옵션.
-        // todo : 현재는 개발 편의성을 위해 "earliest"로 설정했지만, 실제 운영에서는 "latest"나 별도의 offset 관리 전략을 고려할 수 있다.
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         // key는 문자열로 역직렬화
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
