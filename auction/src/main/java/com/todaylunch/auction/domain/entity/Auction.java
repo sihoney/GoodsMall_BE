@@ -1,8 +1,10 @@
 package com.todaylunch.auction.domain.entity;
 
 import com.todaylunch.auction.common.exception.domain.AuctionNotOngoingException;
+import com.todaylunch.auction.common.exception.domain.BidBelowStartPriceException;
 import com.todaylunch.auction.common.exception.domain.BidIncrementNotMetException;
 import com.todaylunch.auction.common.exception.domain.BidPriceUnitNotMetException;
+import com.todaylunch.auction.common.exception.domain.HighestBidderRebidNotAllowedException;
 import com.todaylunch.auction.common.exception.domain.SelfBidNotAllowedException;
 import com.todaylunch.auction.domain.enumtype.AuctionStatus;
 import jakarta.persistence.Column;
@@ -28,7 +30,7 @@ public class Auction {
 
     private static final long EXTEND_THRESHOLD_SECONDS = 30L;
     private static final long EXTEND_AMOUNT_SECONDS = 5L;
-    private static final BigDecimal BID_PRICE_UNIT = new BigDecimal("100");
+    private static final BigDecimal MIN_PRICE_UNIT = new BigDecimal("500");
 
     @Id
     @Column(name = "auction_id", nullable = false, updatable = false)
@@ -130,15 +132,21 @@ public class Auction {
         );
     }
 
+    private static void validateBidUnit(BigDecimal bidUnit) {
+        if (bidUnit == null || bidUnit.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("최소 입찰 단위는 0보다 커야 합니다");
+        }
+        if (bidUnit.remainder(MIN_PRICE_UNIT).signum() != 0) {
+            throw new IllegalArgumentException("최소 입찰 단위는 500원 배수여야 합니다");
+        }
+    }
+
     private static void validateStartPrice(BigDecimal startPrice) {
         if (startPrice == null || startPrice.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("시작가는 0보다 커야 합니다");
         }
-    }
-
-    private static void validateBidUnit(BigDecimal bidUnit) {
-        if (bidUnit == null || bidUnit.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("최소 입찰 단위는 0보다 커야 합니다");
+        if (startPrice.remainder(MIN_PRICE_UNIT).signum() != 0) {
+            throw new IllegalArgumentException("시작가는 500원 배수여야 합니다");
         }
     }
 
@@ -163,19 +171,20 @@ public class Auction {
         this.currentHighestPrice = previousHighestPrice;
     }
 
-    public void validatePendingBid(UUID bidderId, BigDecimal bidPrice, LocalDateTime now) {
-        if (this.sellerId.equals(bidderId)) {
-            throw new SelfBidNotAllowedException();
-        }
+    public void validatePendingBid(UUID bidderId, BigDecimal bidPrice, LocalDateTime now, UUID currentHighestBidderId) {
         if (this.status != AuctionStatus.ONGOING) {
             throw new AuctionNotOngoingException();
         }
-        if (bidPrice.remainder(BID_PRICE_UNIT).signum() != 0) {
+        if (this.sellerId.equals(bidderId)) {
+            throw new SelfBidNotAllowedException();
+        }
+        if (currentHighestBidderId != null && currentHighestBidderId.equals(bidderId)) {
+            throw new HighestBidderRebidNotAllowedException();
+        }
+        if (bidPrice.remainder(this.bidUnit).signum() != 0) {
             throw new BidPriceUnitNotMetException();
         }
-        if (!meetsMinimumIncrement(bidPrice)) {
-            throw new BidIncrementNotMetException();
-        }
+        validateBidPriceIncrement(bidPrice);
         extendTimeIfNearEnd(now);
         this.updatedAt = now;
     }
@@ -201,7 +210,6 @@ public class Auction {
         this.updatedAt = LocalDateTime.now();
     }
 
-    /** 결제 완료 시 낙찰 확정. PENDING_PAYMENT에서만 허용되는 비가역 전이. */
     public void complete() {
         if (this.status != AuctionStatus.PENDING_PAYMENT) {
             throw new IllegalStateException("결제 대기 상태의 경매만 낙찰 확정할 수 있습니다");
@@ -210,11 +218,16 @@ public class Auction {
         this.updatedAt = LocalDateTime.now();
     }
 
-    private boolean meetsMinimumIncrement(BigDecimal bidPrice) {
+    private void validateBidPriceIncrement(BigDecimal bidPrice) {
         if (this.currentHighestPrice == null) {
-            return bidPrice.compareTo(this.startPrice) >= 0;
+            if (bidPrice.compareTo(this.startPrice) < 0) {
+                throw new BidBelowStartPriceException();
+            }
+        } else {
+            if (bidPrice.compareTo(this.currentHighestPrice.add(this.bidUnit)) < 0) {
+                throw new BidIncrementNotMetException();
+            }
         }
-        return bidPrice.compareTo(this.currentHighestPrice.add(this.bidUnit)) >= 0;
     }
 
     private void extendTimeIfNearEnd(LocalDateTime now) {

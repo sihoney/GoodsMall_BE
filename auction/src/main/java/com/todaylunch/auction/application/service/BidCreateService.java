@@ -44,11 +44,11 @@ public class BidCreateService implements BidCreateUseCase {
     public BidResponse place(UUID auctionId, UUID bidderId, BidPlaceRequest request) {
 
         Auction auction = auctionRepository.findByIdWithLock(auctionId);
+        Optional<Bid> previousBid = bidRepository.findActiveByAuctionId(auctionId);
         auction.validatePendingBid(bidderId,
                                    request.bidPrice(),
-                                   LocalDateTime.now());
-
-        Optional<Bid> previousBid = bidRepository.findActiveByAuctionId(auctionId);
+                                   LocalDateTime.now(),
+                                   previousBid.map(Bid::getBidderId).orElse(null));
 
         Bid bid = Bid.placePending(auction,
                                    bidderId,
