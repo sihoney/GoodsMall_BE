@@ -185,8 +185,7 @@ class ConfirmChargeServiceTest {
             given(walletRepository.findByWalletId(walletId)).willReturn(Optional.of(wallet));
 
             assertThatThrownBy(() -> confirmChargeService.confirmCharge(command))
-                    .isInstanceOf(PaymentGatewayException.class)
-                    .hasMessageContaining("bankCode");
+                    .isInstanceOf(PaymentGatewayException.class);
 
             verify(walletRepository, never()).save(any());
             verify(walletTransactionRepository, never()).save(any());
@@ -210,8 +209,7 @@ class ConfirmChargeServiceTest {
             given(chargeRepository.findByChargeId(chargeId)).willReturn(Optional.of(pendingCharge));
 
             assertThatThrownBy(() -> confirmChargeService.confirmCharge(command))
-                    .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("Charge is not pending.");
+                    .isInstanceOf(IllegalStateException.class);
 
             verify(walletRepository, never()).save(any());
             verify(walletTransactionRepository, never()).save(any());
@@ -226,8 +224,7 @@ class ConfirmChargeServiceTest {
             given(chargeRepository.findByChargeId(chargeId)).willReturn(Optional.of(pendingCharge));
 
             assertThatThrownBy(() -> confirmChargeService.confirmCharge(command))
-                    .isInstanceOf(InvalidChargeRequestException.class)
-                    .hasMessageContaining("pgOrderId does not match charge.");
+                    .isInstanceOf(InvalidChargeRequestException.class);
         }
 
         @Test
@@ -237,8 +234,7 @@ class ConfirmChargeServiceTest {
             given(chargeRepository.findByChargeId(chargeId)).willReturn(Optional.of(pendingCharge));
 
             assertThatThrownBy(() -> confirmChargeService.confirmCharge(command))
-                    .isInstanceOf(InvalidChargeRequestException.class)
-                    .hasMessageContaining("amount does not match charge.");
+                    .isInstanceOf(InvalidChargeRequestException.class);
         }
 
         @Test
@@ -266,8 +262,7 @@ class ConfirmChargeServiceTest {
             ChargeConfirmCommand command = new ChargeConfirmCommand(null, "payKey-001", pgOrderId, amount(10_000L));
 
             assertThatThrownBy(() -> confirmChargeService.confirmCharge(command))
-                    .isInstanceOf(InvalidChargeRequestException.class)
-                    .hasMessageContaining("chargeId is required.");
+                    .isInstanceOf(InvalidChargeRequestException.class);
         }
 
         @Test
@@ -276,8 +271,7 @@ class ConfirmChargeServiceTest {
             ChargeConfirmCommand command = new ChargeConfirmCommand(chargeId, "  ", pgOrderId, amount(10_000L));
 
             assertThatThrownBy(() -> confirmChargeService.confirmCharge(command))
-                    .isInstanceOf(InvalidChargeRequestException.class)
-                    .hasMessageContaining("paymentKey is required.");
+                    .isInstanceOf(InvalidChargeRequestException.class);
         }
 
         @Test

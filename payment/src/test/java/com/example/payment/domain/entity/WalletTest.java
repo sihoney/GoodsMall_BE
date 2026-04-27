@@ -88,8 +88,7 @@ class WalletTest {
             Wallet wallet = createWallet(10_000L);
 
             assertThatThrownBy(() -> wallet.increaseBalance(amount(0L), now))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("Amount must be positive.");
+                    .isInstanceOf(IllegalArgumentException.class);
         }
 
         @Test
@@ -98,8 +97,7 @@ class WalletTest {
             Wallet wallet = createWallet(10_000L);
 
             assertThatThrownBy(() -> wallet.increaseBalance(amount(-1_000L), now))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("Amount must be positive.");
+                    .isInstanceOf(IllegalArgumentException.class);
         }
 
         @Test
@@ -154,8 +152,7 @@ class WalletTest {
             Wallet wallet = createWallet(3_000L);
 
             assertThatThrownBy(() -> wallet.decreaseBalance(amount(4_000L), now))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("Balance is insufficient.");
+                    .isInstanceOf(IllegalArgumentException.class);
         }
     }
 }

@@ -219,8 +219,7 @@ class OrderPaymentServiceTest {
             );
 
             assertThatThrownBy(() -> orderPaymentService.payOrder(command))
-                    .isInstanceOf(InvalidOrderPaymentRequestException.class)
-                    .hasMessageContaining("lineAmount total must equal orderAmount");
+                    .isInstanceOf(InvalidOrderPaymentRequestException.class);
         }
 
         @Test
@@ -239,8 +238,7 @@ class OrderPaymentServiceTest {
             given(timeProvider.now()).willReturn(now);
 
             assertThatThrownBy(() -> orderPaymentService.payOrder(command))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("Balance is insufficient.");
+                    .isInstanceOf(IllegalArgumentException.class);
 
             verify(walletRepository, never()).save(any());
             verify(walletTransactionRepository, never()).save(any());

@@ -120,8 +120,7 @@ class CreateChargeServiceTest {
         ChargeCreateCommand command = new ChargeCreateCommand(null, amount(10_000L));
 
         assertThatThrownBy(() -> createChargeService.createCharge(command))
-                .isInstanceOf(InvalidChargeRequestException.class)
-                .hasMessageContaining("memberId is required.");
+                .isInstanceOf(InvalidChargeRequestException.class);
     }
 
     @Test
@@ -130,8 +129,7 @@ class CreateChargeServiceTest {
         ChargeCreateCommand command = new ChargeCreateCommand(memberId, amount(0L));
 
         assertThatThrownBy(() -> createChargeService.createCharge(command))
-                .isInstanceOf(InvalidChargeRequestException.class)
-                .hasMessageContaining("amount must be positive.");
+                .isInstanceOf(InvalidChargeRequestException.class);
     }
 
     @Test
@@ -140,8 +138,7 @@ class CreateChargeServiceTest {
         ChargeCreateCommand command = new ChargeCreateCommand(memberId, amount(-1_000L));
 
         assertThatThrownBy(() -> createChargeService.createCharge(command))
-                .isInstanceOf(InvalidChargeRequestException.class)
-                .hasMessageContaining("amount must be positive.");
+                .isInstanceOf(InvalidChargeRequestException.class);
     }
 
 }

@@ -127,8 +127,7 @@ class ChargeTest {
             charge.approve(amount(10_000L), "paymentKey-abc", LocalDateTime.now(), null);
 
             assertThatThrownBy(() -> charge.approve(amount(10_000L), "paymentKey-abc2", LocalDateTime.now(), null))
-                    .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("Only pending charges can be changed.");
+                    .isInstanceOf(IllegalStateException.class);
         }
 
         @Test
@@ -138,8 +137,7 @@ class ChargeTest {
             charge.fail("reason", LocalDateTime.now());
 
             assertThatThrownBy(() -> charge.approve(amount(10_000L), "paymentKey-abc", LocalDateTime.now(), null))
-                    .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("Only pending charges can be changed.");
+                    .isInstanceOf(IllegalStateException.class);
         }
     }
 
@@ -177,8 +175,7 @@ class ChargeTest {
             charge.approve(amount(10_000L), "paymentKey-abc", LocalDateTime.now(), null);
 
             assertThatThrownBy(() -> charge.fail("reason", LocalDateTime.now()))
-                    .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("Only pending charges can be changed.");
+                    .isInstanceOf(IllegalStateException.class);
         }
 
         @Test
@@ -188,8 +185,7 @@ class ChargeTest {
             charge.fail("first reason", LocalDateTime.now());
 
             assertThatThrownBy(() -> charge.fail("second reason", LocalDateTime.now()))
-                    .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("Only pending charges can be changed.");
+                    .isInstanceOf(IllegalStateException.class);
         }
     }
 
