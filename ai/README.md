@@ -40,8 +40,9 @@
 ### 2.3 Kafka 소비 설정 메모
 
 - AI 모듈은 Product 이벤트 payload를 `String`으로 받은 뒤 내부 `ObjectMapper`로 직접 파싱합니다.
-- 이 때문에 JSON 전용 consumer factory 대신 `StringDeserializer` 기반 기본 `kafkaListenerContainerFactory`를 명시적으로 등록합니다.
+- 이 때문에 JSON 전용 consumer factory 대신 `StringDeserializer` 기반 `productEventKafkaListenerContainerFactory`를 명시적으로 등록하고, 기본 `kafkaListenerContainerFactory`도 동일 설정으로 연결합니다.
 - 현재 기본 consumer group은 `ai-product-embedding-group`이며, 기본 토픽은 `product.created`, `product.updated`, `product.deleted`입니다.
+- 재시도 한도를 초과한 이벤트는 `ai.product-event.dlq`로 발행합니다.
 - 이 설정이 없으면 Spring이 기본 listener factory bean을 찾지 못해 AI 서비스가 기동하지 못할 수 있습니다.
 
 ### 2.4 관리자 API
@@ -85,9 +86,13 @@
   - `productId`
   - `currentBidPrice` (`BigDecimal`)
   - `startPrice` (`BigDecimal`)
-  - `productName` (선택)
-  - `bidCount` (선택)
-  - `remainingSeconds` (선택)
+  - `productName`
+  - `bidUnit` (`BigDecimal`)
+  - `nextMinimumBidPrice` (`BigDecimal`)
+  - `bidCount`
+  - `remainingSeconds`
+  - `auctionStatus`
+  - `hasBid` (선택)
 - 주요 응답:
   - `expectedFinalPrice` (`BigDecimal`)
   - `recommendedBidPrice` (`BigDecimal`)
@@ -149,10 +154,11 @@ http://localhost:8080
 
 | 분류 | 환경변수 |
 |---|---|
-| DB | `DB_USER_NAME`, `DB_USER_PASSWORD` |
+| DB | `DB_URL`, `DB_USER_NAME`, `DB_USER_PASSWORD` |
 | Kafka | `KAFKA_BOOTSTRAP_SERVERS` |
 | Redis | `REDIS_HOST`, `REDIS_PORT` |
 | OpenAI | `OPENAI_API_KEY`, `PROJECT_OPENAI_BASE_URL` |
+| 상품 조회 연동 | `AI_PRODUCT_API_BASE_URL`, `AI_PRODUCT_API_PAGE_SIZE` |
 | 임베딩 | `AI_EMBEDDING_MODEL` |
 | 추천 옵션 | `AI_RECOMMENDATION_RERANK_MODEL` |
 | 상품 등록 보조 AI | `AI_PRODUCT_DRAFT_ASSIST_MODEL` |
@@ -181,6 +187,7 @@ ai
 |---|---|
 | [pgvector 기반 AI 연관 상품 추천 기능 문서](./docs/pgvector_기반_AI_연관상품_추천_기능.md) | 현재 구현된 추천 기능의 구조, 데이터 흐름, 운영 포인트를 상세히 설명합니다. |
 | [이미지 기반 상품 등록 보조 AI 기능 문서](./docs/이미지_기반_상품등록보조AI_기능.md) | 상품 등록 보조 AI의 요청 계약, fallback, Redis 전략, 예외 구조, 프론트 연동 포인트를 상세히 설명합니다. |
+| [경매 가격 추천 AI 기능 문서](./docs/경매_가격추천AI_기능.md) | 경매 가격 추천 AI의 처리 흐름, fallback 규칙, 설정 포인트를 상세히 설명합니다. |
 | [경매 가격 추천 AI 인계 가이드](./docs/경매_가격추천AI_인계가이드.md) | auction 담당자가 내부 API를 연결할 때 필요한 계약, 예외 코드, fallback 동작, mock 예시를 정리합니다. |
 
 ## 8. 경매 가격 추천 AI 메모
@@ -193,4 +200,10 @@ ai
 
 - 경매 가격추천 API의 금액 필드 타입을 문서에 `BigDecimal`로 명시했습니다.
 - `remainingSeconds`는 시간(초) 데이터이므로 `long` 유지가 맞다는 점을 문서 기준으로 재확인했습니다.
+
+## 10. 변경 메모 (2026-04-27)
+
+- 경매 가격 추천 API 요청 필드를 실제 DTO 기준으로 정정했습니다.
+- Kafka listener factory 및 DLQ 설명을 현재 구현 기준으로 정정했습니다.
+- AI 모듈 README의 환경변수 목록과 문서 안내를 실제 구성 기준으로 보완했습니다.
 
