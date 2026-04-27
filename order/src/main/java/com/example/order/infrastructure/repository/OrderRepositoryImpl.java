@@ -1,12 +1,15 @@
 package com.example.order.infrastructure.repository;
 
 import com.example.order.domain.entity.Order;
+import com.example.order.domain.enumtype.OrderStatus;
 import com.example.order.domain.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -34,5 +37,10 @@ public class OrderRepositoryImpl implements OrderRepository {
     @Override
     public Optional<Order> findByOrderId(UUID orderId) {
         return orderJpaRepository.findByOrderId(orderId);
+    }
+
+    @Override
+    public List<Order> findByStatusAndDeliveredAtBefore(OrderStatus status, LocalDateTime threshold) {
+        return orderJpaRepository.findByStatusAndDeliveredAtBefore(status, threshold);
     }
 }
