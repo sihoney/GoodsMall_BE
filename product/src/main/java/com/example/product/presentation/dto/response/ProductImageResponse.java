@@ -33,4 +33,8 @@ public record ProductImageResponse(
                 image.getCreatedAt()
         );
     }
+
+    public static ProductImageResponse ofThumbnail(String s3Key, String presignedUrl) {
+        return new ProductImageResponse(null, s3Key, presignedUrl, 0, true, null);
+    }
 }
