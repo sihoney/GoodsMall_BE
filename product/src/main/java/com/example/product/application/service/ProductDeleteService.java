@@ -4,6 +4,7 @@ import com.example.product.application.usecase.ProductDeleteUseCase;
 import com.example.product.common.exception.ProductNotFoundException;
 import com.example.product.domain.entity.Product;
 import com.example.product.domain.repository.ProductRepository;
+import com.example.product.infrastructure.messaging.kafka.ProductOutboxEventService;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProductDeleteService implements ProductDeleteUseCase {
 
     private final ProductRepository productRepository;
+    private final ProductOutboxEventService productOutboxEventService;
 
     @Override
     public void deleteProduct(String sellerId, String productId) {
@@ -24,5 +26,6 @@ public class ProductDeleteService implements ProductDeleteUseCase {
         product.validateSeller(UUID.fromString(sellerId));
 
         product.delete();
+        productOutboxEventService.saveDeletedEvent(product);
     }
 }

@@ -7,6 +7,7 @@ import com.example.product.domain.repository.CategoryRepository;
 import com.example.product.domain.repository.ProductImageRepository;
 import com.example.product.domain.repository.ProductRepository;
 import com.example.product.domain.repository.FileStorageRepository;
+import com.example.product.infrastructure.messaging.kafka.ProductOutboxEventService;
 import com.example.product.presentation.dto.request.ProductCreateRequest;
 import com.example.product.presentation.dto.response.ProductResponse;
 import java.time.LocalDateTime;
@@ -29,6 +30,7 @@ public class ProductCreateService implements ProductCreateUseCase {
     private final CategoryRepository categoryRepository;
     private final ProductImageRepository productImageRepository;
     private final FileStorageRepository fileStorageRepository;
+    private final ProductOutboxEventService productOutboxEventService;
 
     @Override
     public ProductResponse createProduct(
@@ -54,6 +56,8 @@ public class ProductCreateService implements ProductCreateUseCase {
         if (images != null && images.length > 0) {
             savedImages = uploadImages(savedProduct.getProductId(), images, thumbnailIndex);
         }
+
+        productOutboxEventService.saveCreatedEvent(savedProduct);
 
         // Presigned URL 생성하여 응답 생성
         return buildProductResponse(savedProduct, savedImages);
