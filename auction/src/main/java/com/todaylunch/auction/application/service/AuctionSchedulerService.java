@@ -2,6 +2,7 @@ package com.todaylunch.auction.application.service;
 
 import com.todaylunch.auction.domain.entity.Auction;
 import com.todaylunch.auction.domain.entity.Bid;
+import com.todaylunch.auction.domain.enumtype.AuctionStatus;
 import com.todaylunch.auction.domain.repository.AuctionRepository;
 import com.todaylunch.auction.domain.repository.BidRepository;
 import com.todaylunch.auction.infrastructure.messaging.kafka.publisher.KafkaAuctionClosedSoldEventPublisher;
@@ -39,28 +40,34 @@ public class AuctionSchedulerService {
     }
 
     private void closeExpiredAuction(Auction auction) {
-        Optional<Bid> bid = bidRepository.findActiveByAuctionId(auction.getAuctionId());
+        Auction lockedAuction = auctionRepository.findByIdWithLock(auction.getAuctionId());
+
+        if (lockedAuction.getStatus() != AuctionStatus.ONGOING) {
+            return;
+        }
+
+        Optional<Bid> bid = bidRepository.findActiveByAuctionId(lockedAuction.getAuctionId());
         if (bid.isPresent()) {
             Bid winningBid = bid.get();
-            auction.changeToPendingPayment();
+            lockedAuction.changeToPendingPayment();
             auctionWonEventPublisher.publish(
-                    auction.getAuctionId(),
+                    lockedAuction.getAuctionId(),
                     winningBid.getBidderId(),
-                    auction.getProductTitle(),
+                    lockedAuction.getProductTitle(),
                     winningBid.getBidPrice()
             );
             auctionClosedSoldEventPublisher.publish(
-                    auction.getAuctionId(),
-                    auction.getSellerId(),
-                    auction.getProductTitle(),
+                    lockedAuction.getAuctionId(),
+                    lockedAuction.getSellerId(),
+                    lockedAuction.getProductTitle(),
                     winningBid.getBidPrice()
             );
         } else {
-            auction.changeToFailed();
+            lockedAuction.changeToFailed();
             auctionClosedUnsoldEventPublisher.publish(
-                    auction.getAuctionId(),
-                    auction.getSellerId(),
-                    auction.getProductTitle()
+                    lockedAuction.getAuctionId(),
+                    lockedAuction.getSellerId(),
+                    lockedAuction.getProductTitle()
             );
         }
     }
