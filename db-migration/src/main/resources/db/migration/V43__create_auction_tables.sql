@@ -24,11 +24,11 @@ CREATE TABLE IF NOT EXISTS auction.auction
         ))
 );
 
-CREATE INDEX idx_auction_product_id ON auction.auction (product_id);
-CREATE INDEX idx_auction_seller_id  ON auction.auction (seller_id);
-CREATE INDEX idx_auction_status     ON auction.auction (status);
-CREATE INDEX idx_auction_started_at ON auction.auction (started_at);
-CREATE INDEX idx_auction_ended_at   ON auction.auction (ended_at);
+CREATE INDEX IF NOT EXISTS idx_auction_product_id ON auction.auction (product_id);
+CREATE INDEX IF NOT EXISTS idx_auction_seller_id  ON auction.auction (seller_id);
+CREATE INDEX IF NOT EXISTS idx_auction_status     ON auction.auction (status);
+CREATE INDEX IF NOT EXISTS idx_auction_started_at ON auction.auction (started_at);
+CREATE INDEX IF NOT EXISTS idx_auction_ended_at   ON auction.auction (ended_at);
 
 -- 입찰 테이블
 CREATE TABLE IF NOT EXISTS auction.bid
@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS auction.bid
         ))
 );
 
-CREATE INDEX idx_bid_auction_id         ON auction.bid (auction_id);
-CREATE INDEX idx_bid_auction_price_desc ON auction.bid (auction_id, bid_price DESC);
-CREATE INDEX idx_bid_bidder_id          ON auction.bid (bidder_id);
-CREATE INDEX idx_bid_status             ON auction.bid (auction_id, status);
+CREATE INDEX IF NOT EXISTS idx_bid_auction_id         ON auction.bid (auction_id);
+CREATE INDEX IF NOT EXISTS idx_bid_auction_price_desc ON auction.bid (auction_id, bid_price DESC);
+CREATE INDEX IF NOT EXISTS idx_bid_bidder_id          ON auction.bid (bidder_id);
+CREATE INDEX IF NOT EXISTS idx_bid_status             ON auction.bid (auction_id, status);

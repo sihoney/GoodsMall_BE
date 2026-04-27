@@ -18,5 +18,5 @@ CREATE TABLE IF NOT EXISTS auction.outbox_event
         CHECK (status IN ('PENDING', 'PUBLISHED', 'FAILED'))
 );
 
-CREATE INDEX idx_outbox_status_created_at ON auction.outbox_event (status, created_at);
-CREATE INDEX idx_outbox_aggregate_id      ON auction.outbox_event (aggregate_id);
+CREATE INDEX IF NOT EXISTS idx_outbox_status_created_at ON auction.outbox_event (status, created_at);
+CREATE INDEX IF NOT EXISTS idx_outbox_aggregate_id      ON auction.outbox_event (aggregate_id);

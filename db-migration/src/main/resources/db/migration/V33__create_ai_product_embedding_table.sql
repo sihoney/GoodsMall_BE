@@ -11,13 +11,13 @@ CREATE TABLE IF NOT EXISTS ai.product_embedding
     updated_at         TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_ai_product_embedding_active
+CREATE INDEX IF NOT EXISTS idx_ai_product_embedding_active
     ON ai.product_embedding (is_active);
 
-CREATE INDEX idx_ai_product_embedding_source_updated_at
+CREATE INDEX IF NOT EXISTS idx_ai_product_embedding_source_updated_at
     ON ai.product_embedding (source_updated_at DESC);
 
-CREATE INDEX idx_ai_product_embedding_vector_cosine
+CREATE INDEX IF NOT EXISTS idx_ai_product_embedding_vector_cosine
     ON ai.product_embedding
     USING ivfflat (embedding vector_cosine_ops)
     WITH (lists = 100);

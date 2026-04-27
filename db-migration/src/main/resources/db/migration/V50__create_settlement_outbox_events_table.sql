@@ -16,8 +16,8 @@ CREATE TABLE IF NOT EXISTS settlement.outbox_events
         CHECK (status IN ('PENDING', 'PROCESSING', 'PUBLISHED', 'FAILED'))
 );
 
-CREATE INDEX idx_settlement_outbox_status_created_at
+CREATE INDEX IF NOT EXISTS idx_settlement_outbox_status_created_at
     ON settlement.outbox_events (status, created_at);
 
-CREATE INDEX idx_settlement_outbox_aggregate_id
+CREATE INDEX IF NOT EXISTS idx_settlement_outbox_aggregate_id
     ON settlement.outbox_events (aggregate_id);

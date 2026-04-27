@@ -15,10 +15,10 @@ CREATE TABLE IF NOT EXISTS product.category
     FOREIGN KEY (parent_id) REFERENCES product.category (category_id)
 );
 
-CREATE INDEX idx_category_parent_id ON product.category (parent_id);
-CREATE INDEX idx_category_seller_id ON product.category (seller_id);
-CREATE INDEX idx_category_deleted_at ON product.category (deleted_at);
-CREATE INDEX idx_category_depth ON product.category (depth);
+CREATE INDEX IF NOT EXISTS idx_category_parent_id ON product.category (parent_id);
+CREATE INDEX IF NOT EXISTS idx_category_seller_id ON product.category (seller_id);
+CREATE INDEX IF NOT EXISTS idx_category_deleted_at ON product.category (deleted_at);
+CREATE INDEX IF NOT EXISTS idx_category_depth ON product.category (depth);
 
 -- 상품 테이블
 CREATE TABLE IF NOT EXISTS product.product
@@ -39,9 +39,9 @@ CREATE TABLE IF NOT EXISTS product.product
     FOREIGN KEY (category_id) REFERENCES product.category (category_id)
 );
 
-CREATE INDEX idx_product_seller_id ON product.product (seller_id);
-CREATE INDEX idx_product_status ON product.product (status);
-CREATE INDEX idx_product_created_at ON product.product (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_product_seller_id ON product.product (seller_id);
+CREATE INDEX IF NOT EXISTS idx_product_status ON product.product (status);
+CREATE INDEX IF NOT EXISTS idx_product_created_at ON product.product (created_at DESC);
 
 -- 상품 이미지 테이블
 CREATE TABLE IF NOT EXISTS product.product_image
@@ -56,5 +56,5 @@ CREATE TABLE IF NOT EXISTS product.product_image
     FOREIGN KEY (product_id) REFERENCES product.product (product_id)
 );
 
-CREATE INDEX idx_product_image_product_id ON product.product_image (product_id);
-CREATE INDEX idx_product_image_is_thumbnail ON product.product_image (is_thumbnail);
+CREATE INDEX IF NOT EXISTS idx_product_image_product_id ON product.product_image (product_id);
+CREATE INDEX IF NOT EXISTS idx_product_image_is_thumbnail ON product.product_image (is_thumbnail);
