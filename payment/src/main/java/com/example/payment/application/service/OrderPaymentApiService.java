@@ -108,16 +108,16 @@ public class OrderPaymentApiService implements OrderPaymentApiUseCase {
 
     private void validateRequest(OrderPaymentApiRequest request) {
         if (request == null) {
-            throw new InvalidOrderPaymentRequestException("orderPaymentApi request is required.");
+            throw new InvalidOrderPaymentRequestException("주문 결제 API 요청은 필수입니다.");
         }
         if (request.orderId() == null) {
-            throw new InvalidOrderPaymentRequestException("orderId is required.");
+            throw new InvalidOrderPaymentRequestException("주문 ID는 필수입니다.");
         }
         if (request.buyerId() == null) {
-            throw new InvalidOrderPaymentRequestException("buyerId is required.");
+            throw new InvalidOrderPaymentRequestException("구매자 ID는 필수입니다.");
         }
         if (request.totalPrice() == null || request.totalPrice().signum() <= 0) {
-            throw new InvalidOrderPaymentRequestException("totalPrice must be positive.");
+            throw new InvalidOrderPaymentRequestException("총 결제 금액은 0보다 커야 합니다.");
         }
         if (request.orderLines() == null || request.orderLines().isEmpty()) {
             throw new InvalidOrderPaymentRequestException("orderLines must not be empty.");
@@ -130,19 +130,19 @@ public class OrderPaymentApiService implements OrderPaymentApiUseCase {
                 throw new InvalidOrderPaymentRequestException("orderLines must not contain null.");
             }
             if (orderLine.orderItemId() == null) {
-                throw new InvalidOrderPaymentRequestException("orderItemId is required.");
+            throw new InvalidOrderPaymentRequestException("주문 항목 ID는 필수입니다.");
             }
             if (!seenOrderItemIds.add(orderLine.orderItemId())) {
-                throw new InvalidOrderPaymentRequestException("orderItemId must be unique in orderLines.");
+            throw new InvalidOrderPaymentRequestException("주문 라인의 주문 항목 ID는 중복될 수 없습니다.");
             }
             if (orderLine.sellerId() == null) {
-                throw new InvalidOrderPaymentRequestException("sellerId is required.");
+            throw new InvalidOrderPaymentRequestException("판매자 ID는 필수입니다.");
             }
             if (orderLine.quantity() == null || orderLine.quantity() <= 0) {
-                throw new InvalidOrderPaymentRequestException("quantity must be positive.");
+            throw new InvalidOrderPaymentRequestException("수량은 0보다 커야 합니다.");
             }
             if (orderLine.lineTotalPrice() == null || orderLine.lineTotalPrice().signum() <= 0) {
-                throw new InvalidOrderPaymentRequestException("lineTotalPrice must be positive.");
+            throw new InvalidOrderPaymentRequestException("주문 항목 총액은 0보다 커야 합니다.");
             }
             lineTotalAmount = lineTotalAmount.add(orderLine.lineTotalPrice());
         }

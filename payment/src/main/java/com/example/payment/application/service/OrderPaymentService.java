@@ -152,38 +152,38 @@ public class OrderPaymentService implements OrderPaymentUseCase {
      */
     private void validateCommand(OrderPaymentCommand command) {
         if (command.orderId() == null) {
-            throw new InvalidOrderPaymentRequestException("orderId is required.");
+            throw new InvalidOrderPaymentRequestException("주문 ID는 필수입니다.");
         }
         if (command.buyerMemberId() == null) {
-            throw new InvalidOrderPaymentRequestException("buyerMemberId is required.");
+            throw new InvalidOrderPaymentRequestException("구매자 회원 ID는 필수입니다.");
         }
         if (command.orderAmount() == null || command.orderAmount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
-            throw new InvalidOrderPaymentRequestException("orderAmount must be positive.");
+            throw new InvalidOrderPaymentRequestException("주문 금액은 0보다 커야 합니다.");
         }
         if (command.paymentLines() == null || command.paymentLines().isEmpty()) {
-            throw new InvalidOrderPaymentRequestException("paymentLines must not be empty.");
+            throw new InvalidOrderPaymentRequestException("결제 라인은 비어 있을 수 없습니다.");
         }
 
         java.math.BigDecimal totalLineAmount = java.math.BigDecimal.ZERO;
         for (OrderPaymentLineCommand paymentLine : command.paymentLines()) {
             if (paymentLine == null) {
-                throw new InvalidOrderPaymentRequestException("paymentLines must not contain null.");
+                throw new InvalidOrderPaymentRequestException("결제 라인에 비어 있는 항목이 포함될 수 없습니다.");
             }
             if (paymentLine.orderItemId() == null) {
-                throw new InvalidOrderPaymentRequestException("orderItemId is required.");
+                throw new InvalidOrderPaymentRequestException("주문 항목 ID는 필수입니다.");
             }
             if (paymentLine.sellerMemberId() == null) {
-                throw new InvalidOrderPaymentRequestException("sellerMemberId is required.");
+                throw new InvalidOrderPaymentRequestException("판매자 회원 ID는 필수입니다.");
             }
             if (paymentLine.lineAmount() == null || paymentLine.lineAmount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
-                throw new InvalidOrderPaymentRequestException("lineAmount must be positive.");
+                throw new InvalidOrderPaymentRequestException("주문 항목 금액은 0보다 커야 합니다.");
             }
             totalLineAmount = totalLineAmount.add(paymentLine.lineAmount());
         }
 
         // order 이벤트 총액과 orderItem별 집계 총액이 다르면 escrow 분해 기준이 깨진다.
         if (totalLineAmount.compareTo(command.orderAmount()) != 0) {
-            throw new InvalidOrderPaymentRequestException("lineAmount total must equal orderAmount.");
+            throw new InvalidOrderPaymentRequestException("주문 항목 금액 합계와 주문 금액이 일치해야 합니다.");
         }
     }
 
@@ -226,7 +226,7 @@ public class OrderPaymentService implements OrderPaymentUseCase {
                         escrow.getAmount(),
                         escrow.getReferenceId(),
                         escrow.getReferenceType().name(),
-                        "escrow hold",
+                        "에스크로 보관",
                         occurredAt,
                         occurredAt
                 ))

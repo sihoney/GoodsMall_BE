@@ -60,8 +60,8 @@ public class OrderRefundResultOutboxEventSaver {
             outboxRepository.save(outboxEvent);
             applicationEventPublisher.publishEvent(new OutboxEventPendingTrigger());
         } catch (Exception e) {
-            log.error("Failed to serialize OrderRefundResultMessage. orderId={}", event.orderId(), e);
-            throw new RuntimeException("Failed to serialize OrderRefundResultMessage", e);
+            log.error("OrderRefundResultMessage 직렬화에 실패했습니다. orderId={}", event.orderId(), e);
+            throw new RuntimeException("OrderRefundResultMessage 직렬화에 실패했습니다.", e);
         }
     }
 

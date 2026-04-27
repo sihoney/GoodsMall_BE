@@ -8,21 +8,21 @@ import java.util.List;
 import java.util.UUID;
 
 public record PaymentCancellationRequest(
-        @NotNull(message = "orderId is required.")
+        @NotNull(message = "주문 ID는 필수입니다.")
         UUID orderId,
 
-        @NotNull(message = "buyerMemberId is required.")
+        @NotNull(message = "구매자 회원 ID는 필수입니다.")
         UUID buyerMemberId,
 
-        @NotNull(message = "orderCancelRequestId is required.")
+        @NotNull(message = "주문 취소 요청 ID는 필수입니다.")
         UUID orderCancelRequestId,
 
-        @NotNull(message = "refundType is required.")
+        @NotNull(message = "환불 유형은 필수입니다.")
         PaymentRefundType refundType,
 
         String reason,
 
-        @NotEmpty(message = "items must not be empty.")
+        @NotEmpty(message = "항목은 비어 있을 수 없습니다.")
         List<@Valid PaymentRefundItemRequest> items
 ) {
 }

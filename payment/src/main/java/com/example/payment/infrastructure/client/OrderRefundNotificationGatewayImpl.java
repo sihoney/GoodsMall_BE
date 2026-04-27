@@ -26,7 +26,7 @@ public class OrderRefundNotificationGatewayImpl implements OrderRefundNotificati
             );
             return response != null && response.success();
         } catch (RuntimeException exception) {
-            log.warn("Failed to notify order refund completion. orderId={}", orderId, exception);
+            log.warn("주문 환불 완료 알림 전송에 실패했습니다. orderId={}", orderId, exception);
             return false;
         }
     }

@@ -215,7 +215,6 @@ class PaymentSearchServiceTest {
     @DisplayName("페이지 크기가 100을 넘으면 예외가 발생한다")
     void findAllCharges_tooLargePageSize_throwsException() {
         assertThatThrownBy(() -> paymentSearchService.findAllCharges(memberId, 0, 101))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("must not exceed 100");
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }

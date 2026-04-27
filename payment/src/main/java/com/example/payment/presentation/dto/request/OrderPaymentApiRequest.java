@@ -16,20 +16,20 @@ import java.util.UUID;
  */
 public record OrderPaymentApiRequest(
 
-        @NotNull(message = "orderId is required.")
+        @NotNull(message = "주문 ID는 필수입니다.")
         UUID orderId,
 
-        @NotNull(message = "buyerId is required.")
+        @NotNull(message = "구매자 ID는 필수입니다.")
         UUID buyerId,
 
-        @NotNull(message = "totalPrice is required.")
-        @Positive(message = "totalPrice must be positive.")
+        @NotNull(message = "총 결제 금액은 필수입니다.")
+        @Positive(message = "총 결제 금액은 0보다 커야 합니다.")
         BigDecimal totalPrice,
 
-        @NotNull(message = "requestedAt is required.")
+        @NotNull(message = "요청 시각은 필수입니다.")
         Instant requestedAt,
 
-        @NotEmpty(message = "orderLines must not be empty.")
+        @NotEmpty(message = "주문 라인은 비어 있을 수 없습니다.")
         List<@Valid OrderPaymentApiOrderLineRequest> orderLines
 ) {
 }

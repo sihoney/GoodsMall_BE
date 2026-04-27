@@ -34,7 +34,7 @@ public class WithdrawAccountEncryptionService {
 
             return Base64.getEncoder().encodeToString(iv) + ":" + Base64.getEncoder().encodeToString(encrypted);
         } catch (Exception exception) {
-            throw new IllegalStateException("Failed to encrypt withdraw account data.", exception);
+            throw new IllegalStateException("출금 계좌 정보를 암호화하지 못했습니다.", exception);
         }
     }
 
@@ -42,7 +42,7 @@ public class WithdrawAccountEncryptionService {
         try {
             String[] parts = encryptedValue.split(":", 2);
             if (parts.length != 2) {
-                throw new IllegalArgumentException("Invalid encrypted withdraw account format.");
+                throw new IllegalArgumentException("암호화된 출금 계좌 정보 형식이 올바르지 않습니다.");
             }
 
             byte[] iv = Base64.getDecoder().decode(parts[0]);
@@ -53,7 +53,7 @@ public class WithdrawAccountEncryptionService {
             byte[] decrypted = cipher.doFinal(encrypted);
             return new String(decrypted, StandardCharsets.UTF_8);
         } catch (Exception exception) {
-            throw new IllegalStateException("Failed to decrypt withdraw account data.", exception);
+            throw new IllegalStateException("출금 계좌 정보를 복호화하지 못했습니다.", exception);
         }
     }
 

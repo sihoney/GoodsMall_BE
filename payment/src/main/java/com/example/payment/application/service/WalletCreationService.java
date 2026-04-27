@@ -85,10 +85,10 @@ public class WalletCreationService implements CreateWalletUseCase {
      */
     private void validateCommand(CreateWalletCommand command) {
         if (command.memberId() == null) {
-            throw new InvalidChargeRequestException("memberId is required.");
+            throw new InvalidChargeRequestException("회원 ID는 필수입니다.");
         }
         if (command.createdAt() == null) {
-            throw new InvalidChargeRequestException("createdAt is required.");
+            throw new InvalidChargeRequestException("생성 시각은 필수입니다.");
         }
     }
 }

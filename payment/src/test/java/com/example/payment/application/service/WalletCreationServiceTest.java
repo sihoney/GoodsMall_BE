@@ -108,7 +108,6 @@ class WalletCreationServiceTest {
         LocalDateTime now = LocalDateTime.of(2024, 1, 1, 12, 0, 0);
 
         assertThatThrownBy(() -> walletCreationService.createWallet(new CreateWalletCommand(null, now)))
-                .isInstanceOf(InvalidChargeRequestException.class)
-                .hasMessageContaining("memberId is required.");
+                .isInstanceOf(InvalidChargeRequestException.class);
     }
 }

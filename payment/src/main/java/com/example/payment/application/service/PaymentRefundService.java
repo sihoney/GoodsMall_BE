@@ -222,22 +222,22 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
         for (UUID orderItemId : command.orderItemIds()) {
             Escrow escrow = escrowByOrderItemId.get(orderItemId);
             if (escrow == null) {
-                throw new InvalidOrderPaymentRequestException("escrow not found for orderItemId: " + orderItemId);
+                throw new InvalidOrderPaymentRequestException("주문 항목에 대한 에스크로를 찾을 수 없습니다. orderItemId=" + orderItemId);
             }
             if (!Objects.equals(escrow.getOrderId(), command.orderId())) {
-                throw new InvalidOrderPaymentRequestException("orderId does not match escrow for orderItemId: " + orderItemId);
+                throw new InvalidOrderPaymentRequestException("주문 항목의 에스크로와 주문 ID가 일치하지 않습니다. orderItemId=" + orderItemId);
             }
             if (!Objects.equals(escrow.getSellerMemberId(), command.sellerMemberId())) {
-                throw new InvalidOrderPaymentRequestException("seller is not allowed for orderItemId: " + orderItemId);
+                throw new InvalidOrderPaymentRequestException("해당 주문 항목에 대한 판매자 권한이 없습니다. orderItemId=" + orderItemId);
             }
             if (!escrow.isHeld()) {
-                throw new InvalidOrderPaymentRequestException("seller refund is allowed only before purchase confirmation.");
+                throw new InvalidOrderPaymentRequestException("판매자 환불은 구매 확정 전 상태에서만 가능합니다.");
             }
 
             if (buyerMemberId == null) {
                 buyerMemberId = escrow.getBuyerMemberId();
             } else if (!Objects.equals(buyerMemberId, escrow.getBuyerMemberId())) {
-                throw new InvalidOrderPaymentRequestException("buyerMemberId must be same for seller refund items.");
+                throw new InvalidOrderPaymentRequestException("판매자 환불 항목들의 구매자 회원 ID는 모두 같아야 합니다.");
             }
             refundItems.add(new PaymentRefundItemCommand(orderItemId, escrow.getAmount()));
         }
@@ -254,31 +254,31 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
 
     private void validateSellerRefundCommand(SellerRefundCommand command) {
         if (command == null) {
-            throw new InvalidOrderPaymentRequestException("seller refund command is required.");
+            throw new InvalidOrderPaymentRequestException("판매자 환불 요청은 필수입니다.");
         }
         if (command.orderId() == null) {
-            throw new InvalidOrderPaymentRequestException("orderId is required.");
+            throw new InvalidOrderPaymentRequestException("주문 ID는 필수입니다.");
         }
         if (command.sellerMemberId() == null) {
-            throw new InvalidOrderPaymentRequestException("sellerMemberId is required.");
+            throw new InvalidOrderPaymentRequestException("판매자 회원 ID는 필수입니다.");
         }
         if (command.orderCancelRequestId() == null) {
-            throw new InvalidOrderPaymentRequestException("orderCancelRequestId is required.");
+            throw new InvalidOrderPaymentRequestException("주문 취소 요청 ID는 필수입니다.");
         }
         if (command.refundType() == null) {
-            throw new InvalidOrderPaymentRequestException("refundType is required.");
+            throw new InvalidOrderPaymentRequestException("환불 유형은 필수입니다.");
         }
         if (command.orderItemIds() == null || command.orderItemIds().isEmpty()) {
-            throw new InvalidOrderPaymentRequestException("orderItemIds must not be empty.");
+            throw new InvalidOrderPaymentRequestException("주문 항목 ID 목록은 비어 있을 수 없습니다.");
         }
 
         Set<UUID> seenOrderItemIds = new HashSet<>();
         for (UUID orderItemId : command.orderItemIds()) {
             if (orderItemId == null) {
-                throw new InvalidOrderPaymentRequestException("orderItemId is required.");
+                throw new InvalidOrderPaymentRequestException("주문 항목 ID는 필수입니다.");
             }
             if (!seenOrderItemIds.add(orderItemId)) {
-                throw new InvalidOrderPaymentRequestException("orderItemId must be unique in seller refund items.");
+                throw new InvalidOrderPaymentRequestException("판매자 환불 항목의 주문 항목 ID는 중복될 수 없습니다.");
             }
         }
     }
@@ -303,29 +303,29 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
 
     private void validateRefundCommand(PaymentRefundCommand command) {
         if (command == null) {
-            throw new InvalidOrderPaymentRequestException("payment refund command is required.");
+            throw new InvalidOrderPaymentRequestException("결제 환불 요청은 필수입니다.");
         }
         if (command.orderId() == null) {
-            throw new InvalidOrderPaymentRequestException("orderId is required.");
+            throw new InvalidOrderPaymentRequestException("주문 ID는 필수입니다.");
         }
         if (command.buyerMemberId() == null) {
-            throw new InvalidOrderPaymentRequestException("buyerMemberId is required.");
+            throw new InvalidOrderPaymentRequestException("구매자 회원 ID는 필수입니다.");
         }
         if (command.orderCancelRequestId() == null) {
-            throw new InvalidOrderPaymentRequestException("orderCancelRequestId is required.");
+            throw new InvalidOrderPaymentRequestException("주문 취소 요청 ID는 필수입니다.");
         }
         if (command.refundType() == null) {
-            throw new InvalidOrderPaymentRequestException("refundType is required.");
+            throw new InvalidOrderPaymentRequestException("환불 유형은 필수입니다.");
         }
         if (command.items() == null || command.items().isEmpty()) {
-            throw new InvalidOrderPaymentRequestException("refund items must not be empty.");
+            throw new InvalidOrderPaymentRequestException("환불 항목은 비어 있을 수 없습니다.");
         }
 
         Set<UUID> seenOrderItemIds = new HashSet<>();
         for (PaymentRefundItemCommand item : command.items()) {
             validateRefundItemCommand(item);
             if (!seenOrderItemIds.add(item.orderItemId())) {
-                throw new InvalidOrderPaymentRequestException("orderItemId must be unique in refund items.");
+                throw new InvalidOrderPaymentRequestException("환불 항목의 주문 항목 ID는 중복될 수 없습니다.");
             }
         }
     }
@@ -365,13 +365,13 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
 
     private void validateRefundItemCommand(PaymentRefundItemCommand item) {
         if (item == null) {
-            throw new InvalidOrderPaymentRequestException("refund item must not be null.");
+            throw new InvalidOrderPaymentRequestException("환불 항목에 비어 있는 값이 포함될 수 없습니다.");
         }
         if (item.orderItemId() == null) {
-            throw new InvalidOrderPaymentRequestException("orderItemId is required.");
+            throw new InvalidOrderPaymentRequestException("주문 항목 ID는 필수입니다.");
         }
         if (item.refundAmount() == null || item.refundAmount().compareTo(BigDecimal.ZERO) < 0) {
-            throw new InvalidOrderPaymentRequestException("refundAmount must not be negative.");
+            throw new InvalidOrderPaymentRequestException("환불 금액은 음수일 수 없습니다.");
         }
     }
 
@@ -381,7 +381,7 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
             totalAmount = totalAmount.add(item.refundAmount());
         }
         if (totalAmount.compareTo(BigDecimal.ZERO) < 0) {
-            throw new InvalidOrderPaymentRequestException("total refund amount must not be negative.");
+            throw new InvalidOrderPaymentRequestException("총 환불 금액은 음수일 수 없습니다.");
         }
         return totalAmount;
     }
@@ -419,7 +419,7 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
         }
         if ((paymentRefundMethod == PaymentRefundMethod.CARD || paymentRefundMethod == PaymentRefundMethod.MIXED)
                 && (refundReason == null || refundReason.isBlank())) {
-            throw new InvalidOrderPaymentRequestException("reason is required for card refund.");
+            throw new InvalidOrderPaymentRequestException("카드 환불 사유는 필수입니다.");
         }
     }
 
@@ -453,7 +453,7 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
         if (paymentRefund.getPaymentMethod() == PaymentRefundMethod.MIXED) {
             return executeMixedRefund(paymentRefund, itemCommands, now);
         }
-        throw new InvalidOrderPaymentRequestException("unsupported payment method.");
+        throw new InvalidOrderPaymentRequestException("지원하지 않는 결제 수단입니다.");
     }
 
     private PaymentRefundAllocation executeWalletRefund(
@@ -462,7 +462,7 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
             LocalDateTime refundedAt
     ) {
         if (refundAmount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new InvalidOrderPaymentRequestException("wallet refund amount must be positive.");
+            throw new InvalidOrderPaymentRequestException("지갑 환불 금액은 0보다 커야 합니다.");
         }
         Wallet buyerWallet = walletRepository.findByMemberId(paymentRefund.getBuyerMemberId())
                 .orElseThrow(WalletNotFoundException::new);
@@ -510,7 +510,7 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
                 .toList();
 
         if (refundableEscrows.isEmpty()) {
-            throw new InvalidOrderPaymentRequestException("held escrow not found for refund.");
+            throw new InvalidOrderPaymentRequestException("환불할 보관 상태 에스크로를 찾을 수 없습니다.");
         }
 
         Map<UUID, Escrow> escrowByOrderItemId = mapRefundableEscrowsByOrderItemId(refundableEscrows, buyerMemberId, orderId);
@@ -519,7 +519,7 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
             Escrow escrow = escrowByOrderItemId.get(requestedRefundAmountEntry.getKey());
             if (escrow == null) {
                 throw new InvalidOrderPaymentRequestException(
-                        "held escrow not found for orderItemId: " + requestedRefundAmountEntry.getKey()
+                        "주문 항목에 대한 보관 상태 에스크로를 찾을 수 없습니다. orderItemId=" + requestedRefundAmountEntry.getKey()
                 );
             }
 
@@ -538,7 +538,7 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
         }
 
         if (appliedTotalRefundAmount.compareTo(totalRefundAmount) != 0) {
-            throw new InvalidOrderPaymentRequestException("refunded escrow amount does not match total refund amount.");
+            throw new InvalidOrderPaymentRequestException("에스크로 환불 금액 합계와 총 환불 금액이 일치하지 않습니다.");
         }
     }
 
@@ -562,7 +562,7 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
                 afterAmount,
                 refundId,
                 "PAYMENT_REFUND",
-                "escrow refund",
+                "에스크로 환불",
                 occurredAt,
                 occurredAt
         );
@@ -584,10 +584,10 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
                 continue;
             }
             if (!Objects.equals(refundableEscrow.getBuyerMemberId(), buyerMemberId)) {
-                throw new InvalidOrderPaymentRequestException("buyerMemberId does not match escrow.");
+                throw new InvalidOrderPaymentRequestException("에스크로의 구매자 회원 ID가 요청과 일치하지 않습니다.");
             }
             if (!Objects.equals(refundableEscrow.getOrderId(), orderId)) {
-                throw new InvalidOrderPaymentRequestException("orderId does not match escrow.");
+                throw new InvalidOrderPaymentRequestException("에스크로의 주문 ID가 요청과 일치하지 않습니다.");
             }
             refundableEscrowByOrderItemId.put(refundableEscrow.getReferenceId(), refundableEscrow);
         }
@@ -637,7 +637,7 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
         }
 
         if (cardRefundItems.isEmpty() || walletRefundItems.isEmpty()) {
-            throw new InvalidOrderPaymentRequestException("mixed refund requires both card and wallet refund items.");
+            throw new InvalidOrderPaymentRequestException("복합 환불은 카드 환불 항목과 지갑 환불 항목이 모두 필요합니다.");
         }
 
         List<UUID> cardOrderItemIds = cardRefundItems.stream()
@@ -741,10 +741,10 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
             UUID originalTransactionId = originalPayment.getCardTransactionId();
             BigDecimal currentRemainingAmount = remainingAmountByOriginalTransactionId.get(originalTransactionId);
             if (currentRemainingAmount == null) {
-                throw new InvalidOrderPaymentRequestException("remaining card amount not found for orderItemId: " + cardRefundItem.orderItemId());
+                throw new InvalidOrderPaymentRequestException("주문 항목의 남은 카드 결제 금액을 찾을 수 없습니다. orderItemId=" + cardRefundItem.orderItemId());
             }
             if (cardRefundItem.refundAmount().compareTo(currentRemainingAmount) > 0) {
-                throw new InvalidOrderPaymentRequestException("card refund amount exceeds remaining amount for orderItemId: " + cardRefundItem.orderItemId());
+                throw new InvalidOrderPaymentRequestException("카드 환불 금액이 남은 결제 금액을 초과합니다. orderItemId=" + cardRefundItem.orderItemId());
             }
 
             BigDecimal nextRemainingAmount = currentRemainingAmount.subtract(cardRefundItem.refundAmount());
@@ -780,7 +780,7 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
             );
             BigDecimal remainingAmount = originalApprovedAmount.subtract(canceledAmount);
             if (remainingAmount.compareTo(BigDecimal.ZERO) < 0) {
-                throw new InvalidOrderPaymentRequestException("remaining card amount is invalid for orderItemId: " + originalPayment.getReferenceId());
+                throw new InvalidOrderPaymentRequestException("남은 카드 결제 금액이 올바르지 않습니다. orderItemId=" + originalPayment.getReferenceId());
             }
             remainingAmountByOriginalTransactionId.put(originalPayment.getCardTransactionId(), remainingAmount);
         }
@@ -796,7 +796,7 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
         if (requestedAmount != null && requestedAmount.compareTo(BigDecimal.ZERO) > 0) {
             return requestedAmount;
         }
-        throw new InvalidOrderPaymentRequestException("card transaction amount is invalid.");
+        throw new InvalidOrderPaymentRequestException("카드 거래 금액이 올바르지 않습니다.");
     }
 
     private Map<UUID, CardTransaction> mapOriginalPaymentsByOrderItemId(List<CardTransaction> originalPayments) {
@@ -815,25 +815,25 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
         for (UUID orderItemId : orderItemIds) {
             CardTransaction originalPayment = originalPaymentMap.get(orderItemId);
             if (originalPayment == null) {
-                throw new InvalidOrderPaymentRequestException("original card payment not found for orderItemId: " + orderItemId);
+                throw new InvalidOrderPaymentRequestException("원본 카드 결제 내역을 찾을 수 없습니다. orderItemId=" + orderItemId);
             }
             if (!Objects.equals(originalPayment.getBuyerMemberId(), buyerMemberId)) {
-                throw new InvalidOrderPaymentRequestException("buyerMemberId does not match original card payment.");
+                throw new InvalidOrderPaymentRequestException("원본 카드 결제의 구매자 회원 ID가 요청과 일치하지 않습니다.");
             }
         }
     }
 
     private String resolveCardPaymentKey(List<CardTransaction> originalPayments) {
         if (originalPayments.isEmpty()) {
-            throw new InvalidOrderPaymentRequestException("original card payment is required.");
+            throw new InvalidOrderPaymentRequestException("원본 카드 결제 내역이 필요합니다.");
         }
         String paymentKey = originalPayments.get(0).getPgPaymentKey();
         if (paymentKey == null || paymentKey.isBlank()) {
-            throw new InvalidOrderPaymentRequestException("original card payment key is missing.");
+            throw new InvalidOrderPaymentRequestException("원본 카드 결제의 paymentKey가 없습니다.");
         }
         for (CardTransaction originalPayment : originalPayments) {
             if (!Objects.equals(paymentKey, originalPayment.getPgPaymentKey())) {
-                throw new InvalidOrderPaymentRequestException("multiple payment keys found for refund request.");
+                throw new InvalidOrderPaymentRequestException("환불 요청에 서로 다른 paymentKey가 포함되어 있습니다.");
             }
         }
         return paymentKey;
@@ -841,7 +841,7 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
 
     private void validateCardCancellationAmount(BigDecimal expectedAmount, BigDecimal canceledAmount) {
         if (expectedAmount.compareTo(canceledAmount) != 0) {
-            throw new InvalidOrderPaymentRequestException("card cancellation amount does not match requested amount.");
+            throw new InvalidOrderPaymentRequestException("카드 취소 금액이 요청 금액과 일치하지 않습니다.");
         }
     }
 

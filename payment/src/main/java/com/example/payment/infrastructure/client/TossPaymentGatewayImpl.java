@@ -58,11 +58,11 @@ public class TossPaymentGatewayImpl implements TossPaymentGateway {
 
 
             if (response == null) {
-                throw new PaymentGatewayException("Toss confirm response is empty.");
+                throw new PaymentGatewayException("토스 결제 승인 응답이 비어 있습니다.");
             }
             if (response.paymentKey() == null || response.orderId() == null
                     || response.totalAmount() == null || response.approvedAt() == null) {
-                throw new PaymentGatewayException("Toss confirm response is missing required fields.");
+                throw new PaymentGatewayException("토스 결제 승인 응답에 필수 값이 누락되었습니다.");
             }
 
             return new TossPaymentConfirmation(
@@ -76,16 +76,17 @@ public class TossPaymentGatewayImpl implements TossPaymentGateway {
             );
         } catch (RestClientResponseException e) {
             throw new PaymentGatewayException(
-                    "Toss confirm failed. status=%s body=%s".formatted(e.getStatusCode(), e.getResponseBodyAsString()),
+                    "토스 결제 승인 호출에 실패했습니다. status=%s body=%s"
+                            .formatted(e.getStatusCode(), e.getResponseBodyAsString()),
                     e
             );
         } catch (RestClientException e) {
-            throw new PaymentGatewayException("Failed to call Toss confirm API.", e);
+            throw new PaymentGatewayException("토스 결제 승인 API 호출에 실패했습니다.", e);
         } catch (RuntimeException e) {
             if (e instanceof PaymentGatewayException) {
                 throw e;
             }
-            throw new PaymentGatewayException("Failed to parse Toss confirm response.", e);
+            throw new PaymentGatewayException("토스 결제 승인 응답 처리에 실패했습니다.", e);
         }
     }
 
@@ -127,12 +128,12 @@ public class TossPaymentGatewayImpl implements TossPaymentGateway {
                     e
             );
         } catch (RestClientException e) {
-            throw new PaymentGatewayException("Failed to call Toss cancel API.", e);
+            throw new PaymentGatewayException("토스 결제 취소 API 호출에 실패했습니다.", e);
         } catch (RuntimeException e) {
             if (e instanceof PaymentGatewayException) {
                 throw e;
             }
-            throw new PaymentGatewayException("Failed to parse Toss cancel response.", e);
+            throw new PaymentGatewayException("토스 결제 취소 응답 처리에 실패했습니다.", e);
         }
     }
 
@@ -141,16 +142,16 @@ public class TossPaymentGatewayImpl implements TossPaymentGateway {
      */
     private void validateConfiguration() {
         if (isBlank(properties.baseUrl())) {
-            throw new PaymentGatewayException("toss.payments.base-url is required.");
+            throw new PaymentGatewayException("토스 결제 base-url 설정은 필수입니다.");
         }
         if (isBlank(properties.secretKey())) {
-            throw new PaymentGatewayException("toss.payments.secret-key is required.");
+            throw new PaymentGatewayException("토스 결제 secret-key 설정은 필수입니다.");
         }
     }
 
     private Long toTossAmount(BigDecimal amount) {
         if (amount == null) {
-            throw new PaymentGatewayException("Toss confirm amount is required.");
+            throw new PaymentGatewayException("토스 결제 승인 금액은 필수입니다.");
         }
         try {
             return amount.longValueExact();

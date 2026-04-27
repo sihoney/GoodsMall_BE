@@ -50,8 +50,8 @@ public class KafkaSellerSettlementPayoutResultEventPublisher {
             String message = objectMapper.writeValueAsString(envelope);
             kafkaTemplate.send(KafkaTopics.SETTLEMENT_PAYOUT_RESULT, String.valueOf(event.settlementId()), message);
         } catch (Exception e) {
-            log.error("Failed to serialize SellerSettlementPayoutResultMessage. settlementId={}", event.settlementId(), e);
-            throw new RuntimeException("Failed to serialize SellerSettlementPayoutResultMessage", e);
+            log.error("SellerSettlementPayoutResultMessage 직렬화에 실패했습니다. settlementId={}", event.settlementId(), e);
+            throw new RuntimeException("SellerSettlementPayoutResultMessage 직렬화에 실패했습니다.", e);
         }
     }
 
