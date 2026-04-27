@@ -13,6 +13,7 @@ import com.todaylunch.auction.infrastructure.messaging.kafka.KafkaTopics;
 import com.todaylunch.auction.infrastructure.messaging.kafka.message.BidFeeChargeCompletedMessage;
 import com.todaylunch.auction.infrastructure.messaging.kafka.publisher.KafkaBidOutbidEventPublisher;
 import com.todaylunch.common.event.contract.EventEnvelope;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -51,17 +52,17 @@ public class BidFeeChargeCompletedConsumer {
             return;
         }
 
+        Optional<Bid> previousActiveBid = bidRepository.findActiveByAuctionId(bid.getAuction().getAuctionId());
+
         bid.confirm();
 
         Auction auction = auctionRepository.findByIdWithLock(bid.getAuction().getAuctionId());
         auction.updateHighestPrice(bid.getBidPrice());
 
-        bidRepository.findActiveByAuctionId(bid.getAuction().getAuctionId())
-                .filter(active -> !active.getBidId().equals(bid.getBidId()))
-                .ifPresent(previousBid -> {
-                    previousBid.outbid();
-                    bidOutbidEventPublisher.publish(bid.getAuction().getAuctionId(), previousBid.getBidderId());
-                });
+        previousActiveBid.ifPresent(previousBid -> {
+            previousBid.outbid();
+            bidOutbidEventPublisher.publish(bid.getAuction().getAuctionId(), previousBid.getBidderId());
+        });
 
         applicationEventPublisher.publishEvent(new BidPlacedEvent(
                 bid.getAuction().getAuctionId(),
