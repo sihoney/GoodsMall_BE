@@ -6,11 +6,14 @@ import com.example.product.domain.entity.Product;
 import com.example.product.domain.entity.ProductImage;
 import com.example.product.domain.enumtype.ProductStatus;
 import com.example.product.domain.enumtype.ProductType;
+import com.example.product.domain.model.ProductSearchResult;
 import com.example.product.domain.repository.CategoryRepository;
+import com.example.product.domain.repository.FileStorageRepository;
 import com.example.product.domain.repository.ProductImageRepository;
 import com.example.product.domain.repository.ProductRepository;
-import com.example.product.domain.repository.FileStorageRepository;
+import com.example.product.domain.repository.ProductSearchRepository;
 import com.example.product.presentation.dto.response.ProductResponse;
+import java.time.LocalDateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -56,6 +59,9 @@ class ProductSearchServiceTest {
     @Mock
     private FileStorageRepository fileStorageRepository;
 
+    @Mock
+    private ProductSearchRepository productSearchRepository;
+
     @InjectMocks
     private ProductSearchService productSearchService;
 
@@ -77,10 +83,10 @@ class ProductSearchServiceTest {
         @Test
         void 필터_조건_없이_전체_상품을_조회한다() {
             // given
-            Page<Product> productPage = new PageImpl<>(List.of(product));
-            given(productRepository.findDisplayProductsWithFilters(
-                    isNull(), isNull(), isNull(), isNull(), eq(pageable)
-            )).willReturn(productPage);
+            Page<ProductSearchResult> searchResult = new PageImpl<>(List.of(createSearchResult("김치찌개")));
+            given(productSearchRepository.searchProducts(isNull(), isNull(), isNull(), isNull(), eq(pageable)))
+                    .willReturn(searchResult);
+            given(fileStorageRepository.generatePresignedUrl(anyString())).willReturn("http://presigned-url");
 
             // when
             Page<ProductResponse> result = productSearchService.findDisplayProducts(
@@ -90,9 +96,7 @@ class ProductSearchServiceTest {
             // then
             assertThat(result).hasSize(1);
             assertThat(result.getContent().get(0).title()).isEqualTo("김치찌개");
-            verify(productRepository, times(1)).findDisplayProductsWithFilters(
-                    isNull(), isNull(), isNull(), isNull(), eq(pageable)
-            );
+            verify(productSearchRepository, times(1)).searchProducts(isNull(), isNull(), isNull(), isNull(), eq(pageable));
         }
 
         @Test
@@ -100,13 +104,12 @@ class ProductSearchServiceTest {
             // given
             String categoryId = category.getCategoryId().toString();
             List<UUID> categoryIds = List.of(category.getCategoryId());
-            Page<Product> productPage = new PageImpl<>(List.of(product));
+            Page<ProductSearchResult> searchResult = new PageImpl<>(List.of(createSearchResult("김치찌개")));
 
-            given(categoryRepository.findAllDescendantIds(any(UUID.class)))
-                    .willReturn(Collections.emptyList());
-            given(productRepository.findDisplayProductsWithFilters(
-                    eq(categoryIds), isNull(), isNull(), isNull(), eq(pageable)
-            )).willReturn(productPage);
+            given(categoryRepository.findAllDescendantIds(any(UUID.class))).willReturn(Collections.emptyList());
+            given(productSearchRepository.searchProducts(eq(categoryIds), isNull(), isNull(), isNull(), eq(pageable)))
+                    .willReturn(searchResult);
+            given(fileStorageRepository.generatePresignedUrl(anyString())).willReturn("http://presigned-url");
 
             // when
             Page<ProductResponse> result = productSearchService.findDisplayProducts(
@@ -116,9 +119,7 @@ class ProductSearchServiceTest {
             // then
             assertThat(result).hasSize(1);
             verify(categoryRepository, times(1)).findAllDescendantIds(any(UUID.class));
-            verify(productRepository, times(1)).findDisplayProductsWithFilters(
-                    eq(categoryIds), isNull(), isNull(), isNull(), eq(pageable)
-            );
+            verify(productSearchRepository, times(1)).searchProducts(eq(categoryIds), isNull(), isNull(), isNull(), eq(pageable));
         }
 
         @Test
@@ -129,12 +130,12 @@ class ProductSearchServiceTest {
             List<UUID> categoryIds = new ArrayList<>();
             categoryIds.add(category.getCategoryId());
             categoryIds.add(subCategoryId);
+            Page<ProductSearchResult> searchResult = new PageImpl<>(List.of(createSearchResult("김치찌개")));
 
-            given(categoryRepository.findAllDescendantIds(any(UUID.class)))
-                    .willReturn(List.of(subCategoryId));
-            given(productRepository.findDisplayProductsWithFilters(
-                    eq(categoryIds), isNull(), isNull(), isNull(), eq(pageable)
-            )).willReturn(new PageImpl<>(List.of(product)));
+            given(categoryRepository.findAllDescendantIds(any(UUID.class))).willReturn(List.of(subCategoryId));
+            given(productSearchRepository.searchProducts(eq(categoryIds), isNull(), isNull(), isNull(), eq(pageable)))
+                    .willReturn(searchResult);
+            given(fileStorageRepository.generatePresignedUrl(anyString())).willReturn("http://presigned-url");
 
             // when
             Page<ProductResponse> result = productSearchService.findDisplayProducts(
@@ -150,10 +151,10 @@ class ProductSearchServiceTest {
         void 키워드로_상품을_검색한다() {
             // given
             String keyword = "김치";
-            Page<Product> productPage = new PageImpl<>(List.of(product));
-            given(productRepository.findDisplayProductsWithFilters(
-                    isNull(), eq(keyword), isNull(), isNull(), eq(pageable)
-            )).willReturn(productPage);
+            Page<ProductSearchResult> searchResult = new PageImpl<>(List.of(createSearchResult("김치찌개")));
+            given(productSearchRepository.searchProducts(isNull(), eq(keyword), isNull(), isNull(), eq(pageable)))
+                    .willReturn(searchResult);
+            given(fileStorageRepository.generatePresignedUrl(anyString())).willReturn("http://presigned-url");
 
             // when
             Page<ProductResponse> result = productSearchService.findDisplayProducts(
@@ -162,9 +163,7 @@ class ProductSearchServiceTest {
 
             // then
             assertThat(result).hasSize(1);
-            verify(productRepository, times(1)).findDisplayProductsWithFilters(
-                    isNull(), eq(keyword), isNull(), isNull(), eq(pageable)
-            );
+            verify(productSearchRepository, times(1)).searchProducts(isNull(), eq(keyword), isNull(), isNull(), eq(pageable));
         }
 
         @Test
@@ -172,10 +171,10 @@ class ProductSearchServiceTest {
             // given
             BigDecimal minPrice = new BigDecimal("5000");
             BigDecimal maxPrice = new BigDecimal("10000");
-            Page<Product> productPage = new PageImpl<>(List.of(product));
-            given(productRepository.findDisplayProductsWithFilters(
-                    isNull(), isNull(), eq(minPrice), eq(maxPrice), eq(pageable)
-            )).willReturn(productPage);
+            Page<ProductSearchResult> searchResult = new PageImpl<>(List.of(createSearchResult("김치찌개")));
+            given(productSearchRepository.searchProducts(isNull(), isNull(), eq(minPrice), eq(maxPrice), eq(pageable)))
+                    .willReturn(searchResult);
+            given(fileStorageRepository.generatePresignedUrl(anyString())).willReturn("http://presigned-url");
 
             // when
             Page<ProductResponse> result = productSearchService.findDisplayProducts(
@@ -184,9 +183,7 @@ class ProductSearchServiceTest {
 
             // then
             assertThat(result).hasSize(1);
-            verify(productRepository, times(1)).findDisplayProductsWithFilters(
-                    isNull(), isNull(), eq(minPrice), eq(maxPrice), eq(pageable)
-            );
+            verify(productSearchRepository, times(1)).searchProducts(isNull(), isNull(), eq(minPrice), eq(maxPrice), eq(pageable));
         }
 
         @Test
@@ -197,12 +194,12 @@ class ProductSearchServiceTest {
             BigDecimal minPrice = new BigDecimal("5000");
             BigDecimal maxPrice = new BigDecimal("10000");
             List<UUID> categoryIds = List.of(category.getCategoryId());
+            Page<ProductSearchResult> searchResult = new PageImpl<>(List.of(createSearchResult("김치찌개")));
 
-            given(categoryRepository.findAllDescendantIds(any(UUID.class)))
-                    .willReturn(Collections.emptyList());
-            given(productRepository.findDisplayProductsWithFilters(
-                    eq(categoryIds), eq(keyword), eq(minPrice), eq(maxPrice), eq(pageable)
-            )).willReturn(new PageImpl<>(List.of(product)));
+            given(categoryRepository.findAllDescendantIds(any(UUID.class))).willReturn(Collections.emptyList());
+            given(productSearchRepository.searchProducts(eq(categoryIds), eq(keyword), eq(minPrice), eq(maxPrice), eq(pageable)))
+                    .willReturn(searchResult);
+            given(fileStorageRepository.generatePresignedUrl(anyString())).willReturn("http://presigned-url");
 
             // when
             Page<ProductResponse> result = productSearchService.findDisplayProducts(
@@ -211,18 +208,16 @@ class ProductSearchServiceTest {
 
             // then
             assertThat(result).hasSize(1);
-            verify(productRepository, times(1)).findDisplayProductsWithFilters(
-                    eq(categoryIds), eq(keyword), eq(minPrice), eq(maxPrice), eq(pageable)
-            );
+            verify(productSearchRepository, times(1)).searchProducts(eq(categoryIds), eq(keyword), eq(minPrice), eq(maxPrice), eq(pageable));
         }
 
         @Test
         void 카테고리_ID가_빈_문자열이면_null로_처리한다() {
             // given
-            Page<Product> productPage = new PageImpl<>(List.of(product));
-            given(productRepository.findDisplayProductsWithFilters(
-                    isNull(), isNull(), isNull(), isNull(), eq(pageable)
-            )).willReturn(productPage);
+            Page<ProductSearchResult> searchResult = new PageImpl<>(List.of(createSearchResult("김치찌개")));
+            given(productSearchRepository.searchProducts(isNull(), isNull(), isNull(), isNull(), eq(pageable)))
+                    .willReturn(searchResult);
+            given(fileStorageRepository.generatePresignedUrl(anyString())).willReturn("http://presigned-url");
 
             // when
             Page<ProductResponse> result = productSearchService.findDisplayProducts(
@@ -237,9 +232,8 @@ class ProductSearchServiceTest {
         @Test
         void 검색_결과가_없으면_빈_페이지를_반환한다() {
             // given
-            given(productRepository.findDisplayProductsWithFilters(
-                    isNull(), isNull(), isNull(), isNull(), eq(pageable)
-            )).willReturn(Page.empty());
+            given(productSearchRepository.searchProducts(isNull(), isNull(), isNull(), isNull(), eq(pageable)))
+                    .willReturn(Page.empty());
 
             // when
             Page<ProductResponse> result = productSearchService.findDisplayProducts(
@@ -397,6 +391,24 @@ class ProductSearchServiceTest {
 
     private Category createCategory(String name) {
         return Category.createRoot(name, "테스트 카테고리", 1);
+    }
+
+    private ProductSearchResult createSearchResult(String title) {
+        return new ProductSearchResult(
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                category.getCategoryId(),
+                category.getName(),
+                title,
+                "맛있는 " + title,
+                new BigDecimal("8000"),
+                50,
+                ProductStatus.ACTIVE.name(),
+                ProductType.GENERAL.name(),
+                0,
+                "thumbnail.jpg",
+                LocalDateTime.now()
+        );
     }
 
     private ProductImage createProductImage(UUID productId, String s3Key, boolean isThumbnail) {

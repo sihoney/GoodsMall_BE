@@ -34,8 +34,14 @@ public class KafkaAuctionClosedUnsoldEventPublisher {
                     new AuctionClosedUnsoldPayload(auctionTitle)
             );
             String json = objectMapper.writeValueAsString(envelope);
-            kafkaTemplate.send(KafkaTopics.AUCTION_CLOSED, auctionId.toString(), json);
-            log.debug("auction-closed-unsold event published: auctionId={}, sellerId={}", auctionId, sellerId);
+            kafkaTemplate.send(KafkaTopics.AUCTION_CLOSED, auctionId.toString(), json)
+                    .whenComplete((result, ex) -> {
+                        if (ex != null) {
+                            log.error("auction-closed-unsold 이벤트 발행 실패: auctionId={}, sellerId={}", auctionId, sellerId, ex);
+                        } else {
+                            log.debug("auction-closed-unsold 이벤트 발행 성공: auctionId={}, sellerId={}", auctionId, sellerId);
+                        }
+                    });
         } catch (JacksonException e) {
             log.error("auction-closed-unsold 이벤트 직렬화 실패: auctionId={}", auctionId, e);
         }

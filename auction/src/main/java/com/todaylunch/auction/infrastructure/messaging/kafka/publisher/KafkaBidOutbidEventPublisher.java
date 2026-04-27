@@ -33,8 +33,14 @@ public class KafkaBidOutbidEventPublisher {
                     null
             );
             String json = objectMapper.writeValueAsString(envelope);
-            kafkaTemplate.send(KafkaTopics.BID_OUTBID, auctionId.toString(), json);
-            log.debug("bid-outbid event published: auctionId={}, outbidBidderId={}", auctionId, outbidBidderId);
+            kafkaTemplate.send(KafkaTopics.BID_OUTBID, auctionId.toString(), json)
+                    .whenComplete((result, ex) -> {
+                        if (ex != null) {
+                            log.error("bid-outbid 이벤트 발행 실패: auctionId={}, outbidBidderId={}", auctionId, outbidBidderId, ex);
+                        } else {
+                            log.debug("bid-outbid 이벤트 발행 성공: auctionId={}, outbidBidderId={}", auctionId, outbidBidderId);
+                        }
+                    });
         } catch (JacksonException e) {
             log.error("bid-outbid 이벤트 직렬화 실패: auctionId={}", auctionId, e);
         }

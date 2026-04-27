@@ -58,7 +58,7 @@ public class ProductController {
 
     @Operation(
             summary = "상품 등록",
-            description = "상품 정보와 이미지를 함께 등록합니다. 이미지는 선택사항입니다.",
+            description = "상품 정보와 이미지를 함께 등록합니다. 이미지는 필수입니다.",
             responses = {
                     @ApiResponse(responseCode = "201", description = "상품 생성 성공",
                             content = @Content(schema = @Schema(implementation = ProductResponse.class))),
@@ -78,8 +78,8 @@ public class ProductController {
             @Parameter(description = "상품 정보 (JSON 문자열)", required = true,
                     example = "{\"title\":\"햄버거포카\",\"description\":\"햄버거 포토 카드\",\"price\":1000,\"stockQuantity\":90000,\"categoryId\":\"c325102d-2853-42b8-a5f4-23cd7b9adcac\"}")
             @RequestPart("productData") String productDataJson,
-            @Parameter(description = "상품 이미지 파일 배열 (최대 10개)", required = false)
-            @RequestPart(value = "images", required = false) MultipartFile[] images,
+            @Parameter(description = "상품 이미지 파일 배열 (최대 10개)", required = true)
+            @RequestPart(value = "images") MultipartFile[] images,
             @Parameter(description = "썸네일 이미지 인덱스 (기본값: 0)", example = "0")
             @RequestParam(value = "thumbnailIndex", required = false, defaultValue = "0") Integer thumbnailIndex
     ) {

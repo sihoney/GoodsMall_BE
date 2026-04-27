@@ -80,6 +80,7 @@ class AuctionSchedulerServiceTest {
         Bid activeBid = Bid.place(ongoingAuction, UUID.randomUUID(), new BigDecimal("11000"));
 
         given(auctionRepository.findEndable(any())).willReturn(List.of(ongoingAuction));
+        given(auctionRepository.findByIdWithLock(ongoingAuction.getAuctionId())).willReturn(ongoingAuction);
         given(bidRepository.findActiveByAuctionId(ongoingAuction.getAuctionId())).willReturn(Optional.of(activeBid));
 
         auctionSchedulerService.endExpiredAuctions();
@@ -90,7 +91,7 @@ class AuctionSchedulerServiceTest {
     @Test
     void 종료된_경매에_ACTIVE_입찰이_없으면_FAILED로_전이() {
         given(auctionRepository.findEndable(any())).willReturn(List.of(ongoingAuction));
-
+        given(auctionRepository.findByIdWithLock(ongoingAuction.getAuctionId())).willReturn(ongoingAuction);
         given(bidRepository.findActiveByAuctionId(ongoingAuction.getAuctionId())).willReturn(Optional.empty());
 
         auctionSchedulerService.endExpiredAuctions();

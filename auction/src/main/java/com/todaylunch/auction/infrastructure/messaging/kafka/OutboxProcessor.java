@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -24,11 +25,9 @@ public class OutboxProcessor {
         List<OutboxEvent> pending = outboxEventRepository.findAllByStatus(OutboxEventStatus.PENDING);
 
         for (OutboxEvent event : pending) {
-            int updated = outboxEventRepository.changeToPublishedIfPending(event.getId());
-            if (updated == 0) {
-                continue;
-            }
             try {
+                event.changePublished();
+                outboxEventRepository.save(event);
                 kafkaTemplate.send(event.getTopic(), event.getPartitionKey(), event.getPayload()).get();
                 log.debug("Outbox Kafka 발행 성공: id={}, topic={}", event.getId(), event.getTopic());
             } catch (Exception e) {
