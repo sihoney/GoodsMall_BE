@@ -23,16 +23,17 @@ public class OrderPaymentValidationGatewayImpl implements OrderPaymentValidation
     @Override
     public OrderPaymentValidationData validate(UUID orderId, UUID buyerId, java.math.BigDecimal amount) {
         try {
-            OrderPaymentValidationResponse response = orderClient.validatePayment(
-                    new OrderPaymentValidationRequest(orderId, buyerId, amount)
+            var response = orderClient.validatePayment(
+                    orderId,
+                    new OrderPaymentValidationRequest(buyerId, amount)
             );
-            if (response == null) {
+            if (response == null || response.data() == null) {
                 throw new InvalidCardPaymentRequestException("order validation response is empty.");
             }
 
-            List<OrderPaymentValidationItemData> orderItems = response.orderItems() == null
+            List<OrderPaymentValidationItemData> orderItems = response.data().items() == null
                     ? Collections.emptyList()
-                    : response.orderItems().stream()
+                    : response.data().items().stream()
                             .map(orderItem -> new OrderPaymentValidationItemData(
                                     orderItem.orderItemId(),
                                     orderItem.sellerId(),
