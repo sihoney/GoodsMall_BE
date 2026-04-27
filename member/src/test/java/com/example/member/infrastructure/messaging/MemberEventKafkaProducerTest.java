@@ -7,11 +7,11 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.example.member.infrastructure.messaging.kafka.contract.AccountVerificationExpiredPayload;
-import com.example.member.infrastructure.messaging.kafka.contract.AccountVerificationFailedPayload;
-import com.example.member.infrastructure.messaging.kafka.contract.MemberOauthLinkedPayload;
-import com.example.member.infrastructure.messaging.kafka.contract.MemberSignedUpPayload;
-import com.example.member.infrastructure.messaging.kafka.contract.SellerPromotedPayload;
+import com.example.member.application.event.AccountVerificationExpiredEvent;
+import com.example.member.application.event.AccountVerificationFailedEvent;
+import com.example.member.application.event.MemberOauthLinkedEvent;
+import com.example.member.application.event.MemberSignedUpEvent;
+import com.example.member.application.event.SellerPromotedEvent;
 import com.todaylunch.common.event.contract.EventEnvelope;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -44,7 +44,7 @@ class MemberEventKafkaProducerTest {
     @Test
     void sendMemberSignedUp_serializesContractMessage() throws Exception {
         UUID memberId = UUID.randomUUID();
-        MemberSignedUpPayload payload = new MemberSignedUpPayload(memberId, "member@test.com");
+        MemberSignedUpEvent payload = new MemberSignedUpEvent(memberId, "member@test.com");
 
         when(objectMapper.writeValueAsString(any())).thenReturn("{\"ok\":true}");
 
@@ -76,8 +76,8 @@ class MemberEventKafkaProducerTest {
         assertEquals("mock-trace-id", message.traceId());
         org.junit.jupiter.api.Assertions.assertNotNull(message.eventId());
         org.junit.jupiter.api.Assertions.assertNotNull(message.occurredAt());
-        assertInstanceOf(MemberSignedUpPayload.class, message.payload());
-        MemberSignedUpPayload capturedPayload = (MemberSignedUpPayload) message.payload();
+        assertInstanceOf(MemberSignedUpEvent.class, message.payload());
+        MemberSignedUpEvent capturedPayload = (MemberSignedUpEvent) message.payload();
         assertEquals(memberId, capturedPayload.memberId());
         assertEquals("member@test.com", capturedPayload.email());
     }
@@ -86,7 +86,7 @@ class MemberEventKafkaProducerTest {
     void sendSellerPromoted_serializesContractMessage() throws Exception {
         UUID memberId = UUID.randomUUID();
         UUID sellerId = UUID.randomUUID();
-        SellerPromotedPayload payload = new SellerPromotedPayload(memberId, sellerId, "KAKAO");
+        SellerPromotedEvent payload = new SellerPromotedEvent(memberId, sellerId, "KAKAO");
 
         when(objectMapper.writeValueAsString(any())).thenReturn("{\"ok\":true}");
 
@@ -118,8 +118,8 @@ class MemberEventKafkaProducerTest {
         assertEquals("mock-trace-id", message.traceId());
         org.junit.jupiter.api.Assertions.assertNotNull(message.eventId());
         org.junit.jupiter.api.Assertions.assertNotNull(message.occurredAt());
-        assertInstanceOf(SellerPromotedPayload.class, message.payload());
-        SellerPromotedPayload capturedPayload = (SellerPromotedPayload) message.payload();
+        assertInstanceOf(SellerPromotedEvent.class, message.payload());
+        SellerPromotedEvent capturedPayload = (SellerPromotedEvent) message.payload();
         assertEquals(memberId, capturedPayload.memberId());
         assertEquals(sellerId, capturedPayload.sellerId());
         assertEquals("KAKAO", capturedPayload.bankName());
@@ -128,7 +128,7 @@ class MemberEventKafkaProducerTest {
     @Test
     void sendAccountVerificationExpired_serializesContractMessage() throws Exception {
         UUID memberId = UUID.randomUUID();
-        AccountVerificationExpiredPayload payload = new AccountVerificationExpiredPayload(memberId, "av_expired", "SESSION_EXPIRED");
+        AccountVerificationExpiredEvent payload = new AccountVerificationExpiredEvent(memberId, "av_expired", "SESSION_EXPIRED");
 
         when(objectMapper.writeValueAsString(any())).thenReturn("{\"ok\":true}");
 
@@ -158,8 +158,8 @@ class MemberEventKafkaProducerTest {
         assertEquals("mock-trace-id", message.traceId());
         org.junit.jupiter.api.Assertions.assertNotNull(message.eventId());
         org.junit.jupiter.api.Assertions.assertNotNull(message.occurredAt());
-        assertInstanceOf(AccountVerificationExpiredPayload.class, message.payload());
-        AccountVerificationExpiredPayload capturedPayload = (AccountVerificationExpiredPayload) message.payload();
+        assertInstanceOf(AccountVerificationExpiredEvent.class, message.payload());
+        AccountVerificationExpiredEvent capturedPayload = (AccountVerificationExpiredEvent) message.payload();
         assertEquals(memberId, capturedPayload.memberId());
         assertEquals("av_expired", capturedPayload.sessionId());
         assertEquals("SESSION_EXPIRED", capturedPayload.reason());
@@ -168,7 +168,7 @@ class MemberEventKafkaProducerTest {
     @Test
     void sendAccountVerificationFailed_serializesContractMessage() throws Exception {
         UUID memberId = UUID.randomUUID();
-        AccountVerificationFailedPayload payload = new AccountVerificationFailedPayload(memberId, "av_failed", "ATTEMPT_LIMIT_EXCEEDED");
+        AccountVerificationFailedEvent payload = new AccountVerificationFailedEvent(memberId, "av_failed", "ATTEMPT_LIMIT_EXCEEDED");
 
         when(objectMapper.writeValueAsString(any())).thenReturn("{\"ok\":true}");
 
@@ -198,8 +198,8 @@ class MemberEventKafkaProducerTest {
         assertEquals("mock-trace-id", message.traceId());
         org.junit.jupiter.api.Assertions.assertNotNull(message.eventId());
         org.junit.jupiter.api.Assertions.assertNotNull(message.occurredAt());
-        assertInstanceOf(AccountVerificationFailedPayload.class, message.payload());
-        AccountVerificationFailedPayload capturedPayload = (AccountVerificationFailedPayload) message.payload();
+        assertInstanceOf(AccountVerificationFailedEvent.class, message.payload());
+        AccountVerificationFailedEvent capturedPayload = (AccountVerificationFailedEvent) message.payload();
         assertEquals(memberId, capturedPayload.memberId());
         assertEquals("av_failed", capturedPayload.sessionId());
         assertEquals("ATTEMPT_LIMIT_EXCEEDED", capturedPayload.reason());
@@ -209,7 +209,7 @@ class MemberEventKafkaProducerTest {
     void sendMemberOauthLinked_serializesContractMessage() throws Exception {
         UUID memberId = UUID.randomUUID();
         LocalDateTime linkedAt = LocalDateTime.of(2026, 4, 22, 12, 0);
-        MemberOauthLinkedPayload payload = new MemberOauthLinkedPayload(
+        MemberOauthLinkedEvent payload = new MemberOauthLinkedEvent(
                 memberId,
                 "KAKAO",
                 "provider-user-1",
@@ -246,8 +246,8 @@ class MemberEventKafkaProducerTest {
         assertEquals("mock-trace-id", message.traceId());
         org.junit.jupiter.api.Assertions.assertNotNull(message.eventId());
         org.junit.jupiter.api.Assertions.assertNotNull(message.occurredAt());
-        assertInstanceOf(MemberOauthLinkedPayload.class, message.payload());
-        MemberOauthLinkedPayload capturedPayload = (MemberOauthLinkedPayload) message.payload();
+        assertInstanceOf(MemberOauthLinkedEvent.class, message.payload());
+        MemberOauthLinkedEvent capturedPayload = (MemberOauthLinkedEvent) message.payload();
         assertEquals(memberId, capturedPayload.memberId());
         assertEquals("KAKAO", capturedPayload.provider());
         assertEquals("provider-user-1", capturedPayload.providerUserId());

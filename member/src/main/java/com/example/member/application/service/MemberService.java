@@ -1,22 +1,22 @@
 package com.example.member.application.service;
 
-import com.example.member.application.dto.MemberCreateCommand;
-import com.example.member.application.event.MemberEventPublisher;
-import com.example.member.application.support.ProfileImageUrlResolver;
-import com.example.member.application.usecase.MemberUsecase;
+import com.example.member.application.dto.command.ChangePasswordCommand;
+import com.example.member.application.dto.command.CreateMemberCommand;
+import com.example.member.application.dto.command.UpdateMemberCommand;
+import com.example.member.application.dto.query.GetMemberQuery;
+import com.example.member.application.dto.result.ChangePasswordResult;
+import com.example.member.application.dto.result.CreateMemberResult;
+import com.example.member.application.dto.result.MemberResult;
+import com.example.member.application.port.in.MemberUsecase;
+import com.example.member.application.port.out.MemberEventPort;
+import com.example.member.application.port.out.MemberPersistencePort;
+import com.example.member.application.port.out.ProfileImageUrlPort;
 import com.example.member.common.exception.DuplicateMemberEmailException;
 import com.example.member.common.exception.InvalidCurrentPasswordException;
 import com.example.member.common.exception.MemberNotFoundException;
 import com.example.member.config.MemberSignupProperties;
 import com.example.member.domain.entity.Member;
 import com.example.member.domain.enumtype.MemberStatus;
-import com.example.member.infrastructure.repository.MemberRepository;
-import com.example.member.presentation.dto.ChangePasswordRequest;
-import com.example.member.presentation.dto.ChangePasswordResponse;
-import com.example.member.presentation.dto.CreateMemberRequest;
-import com.example.member.presentation.dto.CreateMemberResponse;
-import com.example.member.presentation.dto.MemberResponse;
-import com.example.member.presentation.dto.UpdateMemberRequest;
 import com.todaylunch.common.security.auth.enumtype.MemberRole;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -30,21 +30,20 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class MemberService implements MemberUsecase {
 
-    private final MemberRepository memberRepository;
+    private final MemberPersistencePort memberPersistencePort;
     private final PasswordEncoder passwordEncoder;
-    private final MemberEventPublisher memberEventPublisher;
-    private final ProfileImageUrlResolver profileImageUrlResolver;
+    private final MemberEventPort memberEventPort;
+    private final ProfileImageUrlPort profileImageUrlPort;
     private final EmailVerificationService emailVerificationService;
     private final MemberSignupProperties memberSignupProperties;
 
     @Transactional
     @Override
-    public CreateMemberResponse createMember(CreateMemberRequest request) {
-        validateCreateRequest(request);
-        MemberCreateCommand command = MemberCreateCommand.from(request);
+    public CreateMemberResult createMember(CreateMemberCommand command) {
+        validateCreateCommand(command);
 
         String email = normalizeRequired(command.email(), "email");
-        if (memberRepository.existsByEmail(email)) {
+        if (memberPersistencePort.existsByEmail(email)) {
             throw new DuplicateMemberEmailException();
         }
 
@@ -67,97 +66,108 @@ public class MemberService implements MemberUsecase {
                 now
         );
 
-        Member savedMember = memberRepository.save(member);
+        Member savedMember = memberPersistencePort.save(member);
         if (memberSignupProperties.requireEmailVerification()) {
             emailVerificationService.createSignupVerification(savedMember);
         }
-        memberEventPublisher.publishMemberSignedUp(savedMember);
+        memberEventPort.publishMemberSignedUp(savedMember);
 
-        return CreateMemberResponse.from(savedMember, resolveProfileImageUrl(savedMember));
+        return toCreateMemberResult(savedMember);
     }
 
     @Override
-    public MemberResponse getMember(UUID memberId) {
-        Member member = getMemberEntity(memberId);
-        return MemberResponse.from(member, resolveProfileImageUrl(member));
+    public MemberResult getMember(GetMemberQuery query) {
+        validateGetMemberQuery(query);
+        return toMemberResult(getMemberEntity(query.memberId()));
     }
 
     @Override
-    public MemberResponse getCurrentMember(UUID memberId) {
-        Member member = getMemberEntity(memberId);
-        return MemberResponse.from(member, resolveProfileImageUrl(member));
+    public MemberResult getCurrentMember(GetMemberQuery query) {
+        validateGetMemberQuery(query);
+        return toMemberResult(getMemberEntity(query.memberId()));
     }
 
     @Transactional
     @Override
-    public MemberResponse updateMember(UUID memberId, UpdateMemberRequest request) {
-        validateUpdateRequest(request);
+    public MemberResult updateMember(UpdateMemberCommand command) {
+        validateUpdateCommand(command);
 
-        Member member = getMemberEntity(memberId);
-        LocalDateTime now = LocalDateTime.now();
-
+        Member member = getMemberEntity(command.memberId());
         member.changeNickname(
-                normalizeRequired(request.nickname(), "nickname"),
-                now
+                normalizeRequired(command.nickname(), "nickname"),
+                LocalDateTime.now()
         );
         member.updateProfile(
-                normalizeNullable(request.phone()),
-                normalizeNullable(request.address()),
-                request.profileImageKey() == null
+                normalizeNullable(command.phone()),
+                normalizeNullable(command.address()),
+                command.profileImageKey() == null
                         ? member.getProfileImageKey()
-                        : normalizeProfileImageKey(request.profileImageKey()),
-                now
+                        : normalizeProfileImageKey(command.profileImageKey()),
+                LocalDateTime.now()
         );
 
-        return MemberResponse.from(member, resolveProfileImageUrl(member));
+        return toMemberResult(member);
     }
 
     @Transactional
     @Override
-    public MemberResponse updateCurrentMember(UUID memberId, UpdateMemberRequest request) {
-        return updateMember(memberId, request);
+    public MemberResult updateCurrentMember(UpdateMemberCommand command) {
+        validateUpdateCommand(command);
+        return updateMember(command);
     }
 
     @Transactional
     @Override
-    public ChangePasswordResponse changeCurrentMemberPassword(UUID memberId, ChangePasswordRequest request) {
-        validateChangePasswordRequest(request);
+    public ChangePasswordResult changeCurrentMemberPassword(ChangePasswordCommand command) {
+        validateChangePasswordCommand(command);
 
-        Member member = getMemberEntity(memberId);
-        String currentPassword = normalizeRequired(request.currentPassword(), "currentPassword");
+        Member member = getMemberEntity(command.memberId());
+        String currentPassword = normalizeRequired(command.currentPassword(), "currentPassword");
         if (!passwordEncoder.matches(currentPassword, member.getPassword())) {
             throw new InvalidCurrentPasswordException();
         }
 
-        String newPassword = normalizeRequired(request.newPassword(), "newPassword");
+        String newPassword = normalizeRequired(command.newPassword(), "newPassword");
         if (newPassword.length() < 8) {
             throw new IllegalArgumentException("새 비밀번호는 8자 이상이어야 합니다.");
         }
 
         member.changePassword(passwordEncoder.encode(newPassword), LocalDateTime.now());
-        return ChangePasswordResponse.success();
+        return new ChangePasswordResult("비밀번호가 변경되었습니다.");
     }
 
     private Member getMemberEntity(UUID memberId) {
-        return memberRepository.findById(memberId)
+        return memberPersistencePort.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
     }
 
-    private void validateCreateRequest(CreateMemberRequest request) {
-        if (request == null) {
+    private void validateCreateCommand(CreateMemberCommand command) {
+        if (command == null) {
             throw new IllegalArgumentException("회원 생성 요청 본문은 필수입니다.");
         }
     }
 
-    private void validateUpdateRequest(UpdateMemberRequest request) {
-        if (request == null) {
+    private void validateUpdateCommand(UpdateMemberCommand command) {
+        if (command == null) {
             throw new IllegalArgumentException("회원 수정 요청 본문은 필수입니다.");
+        }
+        if (command.memberId() == null) {
+            throw new IllegalArgumentException("memberId는 필수입니다.");
         }
     }
 
-    private void validateChangePasswordRequest(ChangePasswordRequest request) {
-        if (request == null) {
+    private void validateGetMemberQuery(GetMemberQuery query) {
+        if (query == null || query.memberId() == null) {
+            throw new IllegalArgumentException("memberId는 필수입니다.");
+        }
+    }
+
+    private void validateChangePasswordCommand(ChangePasswordCommand command) {
+        if (command == null) {
             throw new IllegalArgumentException("비밀번호 변경 요청 본문은 필수입니다.");
+        }
+        if (command.memberId() == null) {
+            throw new IllegalArgumentException("memberId는 필수입니다.");
         }
     }
 
@@ -182,13 +192,39 @@ public class MemberService implements MemberUsecase {
         if (normalized == null) {
             return null;
         }
-        if (!profileImageUrlResolver.isSupportedKey(normalized)) {
+        if (!profileImageUrlPort.isSupportedKey(normalized)) {
             throw new IllegalArgumentException("profileImageKey가 올바르지 않습니다.");
         }
         return normalized;
     }
 
     private String resolveProfileImageUrl(Member member) {
-        return profileImageUrlResolver.resolve(member.getProfileImageKey());
+        return profileImageUrlPort.resolve(member.getProfileImageKey());
+    }
+
+    private CreateMemberResult toCreateMemberResult(Member member) {
+        return new CreateMemberResult(
+                member.getMemberId(),
+                member.getNickname(),
+                resolveProfileImageUrl(member),
+                member.getRole(),
+                member.getStatus(),
+                member.getCreatedAt()
+        );
+    }
+
+    private MemberResult toMemberResult(Member member) {
+        return new MemberResult(
+                member.getMemberId(),
+                member.getEmail(),
+                member.getNickname(),
+                member.getPhone(),
+                member.getAddress(),
+                resolveProfileImageUrl(member),
+                member.getRole(),
+                member.getStatus(),
+                member.getCreatedAt(),
+                member.getUpdatedAt()
+        );
     }
 }

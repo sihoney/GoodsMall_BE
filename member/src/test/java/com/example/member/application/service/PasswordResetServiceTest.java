@@ -8,16 +8,16 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.example.member.application.dto.command.PasswordResetConfirmCommand;
+import com.example.member.application.dto.command.PasswordResetSendCommand;
 import com.example.member.common.exception.InvalidPasswordResetTokenException;
 import com.example.member.config.PasswordResetProperties;
 import com.example.member.domain.entity.Member;
 import com.example.member.domain.enumtype.MemberStatus;
 import com.example.member.infrastructure.email.EmailSender;
+import com.example.member.infrastructure.persistence.jpa.MemberJpaAdapter;
 import com.example.member.infrastructure.redis.PasswordResetToken;
 import com.example.member.infrastructure.redis.PasswordResetTokenStore;
-import com.example.member.infrastructure.repository.MemberRepository;
-import com.example.member.presentation.dto.PasswordResetConfirmRequest;
-import com.example.member.presentation.dto.PasswordResetSendRequest;
 import com.todaylunch.common.security.auth.enumtype.MemberRole;
 import java.time.Duration;
 import java.time.Instant;
@@ -36,7 +36,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 class PasswordResetServiceTest {
 
     @Mock
-    private MemberRepository memberRepository;
+    private MemberJpaAdapter memberPersistencePort;
 
     @Mock
     private PasswordResetTokenStore passwordResetTokenStore;
@@ -57,7 +57,7 @@ class PasswordResetServiceTest {
     @BeforeEach
     void setUp() {
         passwordResetService = new PasswordResetService(
-                memberRepository,
+                memberPersistencePort,
                 passwordResetTokenStore,
                 emailSender,
                 passwordResetProperties,
@@ -68,11 +68,11 @@ class PasswordResetServiceTest {
     @Test
     void sendPasswordReset_existingMember_storesTokenAndSendsEmail() {
         Member member = activeMember();
-        when(memberRepository.findByEmail("member@test.com")).thenReturn(Optional.of(member));
+        when(memberPersistencePort.findByEmail("member@test.com")).thenReturn(Optional.of(member));
         when(passwordResetTokenStore.create(any(PasswordResetToken.class), eq(Duration.ofMinutes(30))))
                 .thenReturn(Optional.of("token"));
 
-        passwordResetService.sendPasswordReset(new PasswordResetSendRequest("member@test.com"));
+        passwordResetService.sendPasswordReset(new PasswordResetSendCommand("member@test.com"));
 
         ArgumentCaptor<PasswordResetToken> tokenCaptor = ArgumentCaptor.forClass(PasswordResetToken.class);
         verify(passwordResetTokenStore).create(tokenCaptor.capture(), eq(Duration.ofMinutes(30)));
@@ -85,9 +85,9 @@ class PasswordResetServiceTest {
 
     @Test
     void sendPasswordReset_unknownMember_returnsSuccessWithoutSendingEmail() {
-        when(memberRepository.findByEmail("missing@test.com")).thenReturn(Optional.empty());
+        when(memberPersistencePort.findByEmail("missing@test.com")).thenReturn(Optional.empty());
 
-        passwordResetService.sendPasswordReset(new PasswordResetSendRequest("missing@test.com"));
+        passwordResetService.sendPasswordReset(new PasswordResetSendCommand("missing@test.com"));
 
         verify(passwordResetTokenStore, never()).create(any(), any());
         verify(emailSender, never()).send(any(), any(), any(), eq(true));
@@ -104,10 +104,10 @@ class PasswordResetServiceTest {
         );
 
         when(passwordResetTokenStore.find("reset-token")).thenReturn(Optional.of(token));
-        when(memberRepository.findById(member.getMemberId())).thenReturn(Optional.of(member));
+        when(memberPersistencePort.findById(member.getMemberId())).thenReturn(Optional.of(member));
         when(passwordEncoder.encode("new-password")).thenReturn("encoded-new-password");
 
-        passwordResetService.confirmPasswordReset(new PasswordResetConfirmRequest("reset-token", "new-password"));
+        passwordResetService.confirmPasswordReset(new PasswordResetConfirmCommand("reset-token", "new-password"));
 
         assertEquals("encoded-new-password", member.getPassword());
         verify(passwordResetTokenStore).delete("reset-token");
@@ -120,7 +120,7 @@ class PasswordResetServiceTest {
         assertThrows(
                 InvalidPasswordResetTokenException.class,
                 () -> passwordResetService.confirmPasswordReset(
-                        new PasswordResetConfirmRequest("missing-token", "new-password")
+                        new PasswordResetConfirmCommand("missing-token", "new-password")
                 )
         );
     }
@@ -130,7 +130,7 @@ class PasswordResetServiceTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> passwordResetService.confirmPasswordReset(
-                        new PasswordResetConfirmRequest("reset-token", "short")
+                        new PasswordResetConfirmCommand("reset-token", "short")
                 )
         );
     }

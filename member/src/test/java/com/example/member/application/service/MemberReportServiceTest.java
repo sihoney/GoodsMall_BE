@@ -7,8 +7,12 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.example.member.common.exception.MemberReportNotFoundException;
+import com.example.member.application.dto.command.CreateMemberReportCommand;
+import com.example.member.application.dto.command.CreateMemberRestrictionCommand;
+import com.example.member.application.dto.command.ReviewMemberReportCommand;
+import com.example.member.application.dto.result.MemberReportResult;
 import com.example.member.common.exception.DuplicateMemberReportException;
+import com.example.member.common.exception.MemberReportNotFoundException;
 import com.example.member.common.exception.SelfReportNotAllowedException;
 import com.example.member.domain.entity.Member;
 import com.example.member.domain.entity.MemberReport;
@@ -16,12 +20,8 @@ import com.example.member.domain.enumtype.MemberStatus;
 import com.example.member.domain.enumtype.ReportStatus;
 import com.example.member.domain.enumtype.ReportType;
 import com.example.member.domain.enumtype.RestrictionType;
-import com.example.member.infrastructure.repository.MemberReportRepository;
-import com.example.member.infrastructure.repository.MemberRepository;
-import com.example.member.presentation.dto.CreateMemberReportRequest;
-import com.example.member.presentation.dto.CreateMemberRestrictionRequest;
-import com.example.member.presentation.dto.MemberReportResponse;
-import com.example.member.presentation.dto.ReviewMemberReportRequest;
+import com.example.member.infrastructure.persistence.jpa.MemberJpaAdapter;
+import com.example.member.infrastructure.persistence.jpa.MemberReportJpaAdapter;
 import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
 import com.todaylunch.common.security.auth.enumtype.MemberRole;
 import java.time.LocalDateTime;
@@ -38,10 +38,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class MemberReportServiceTest {
 
     @Mock
-    private MemberRepository memberRepository;
+    private MemberJpaAdapter memberPersistencePort;
 
     @Mock
-    private MemberReportRepository memberReportRepository;
+    private MemberReportJpaAdapter memberReportPersistencePort;
 
     @Mock
     private MemberRestrictionService memberRestrictionService;
@@ -54,21 +54,21 @@ class MemberReportServiceTest {
         UUID reporterId = UUID.randomUUID();
         UUID reportedMemberId = UUID.randomUUID();
         AuthenticatedMember reporter = new AuthenticatedMember(reporterId, MemberRole.USER, UUID.randomUUID());
-        CreateMemberReportRequest request = new CreateMemberReportRequest(
+        CreateMemberReportCommand command = new CreateMemberReportCommand(
                 reportedMemberId,
                 "spam messages",
                 ReportType.SPAM
         );
 
-        when(memberRepository.findById(reporterId)).thenReturn(Optional.of(createMember(reporterId)));
-        when(memberRepository.findById(reportedMemberId)).thenReturn(Optional.of(createMember(reportedMemberId)));
-        when(memberReportRepository.existsPendingReport(reporterId, reportedMemberId)).thenReturn(false);
-        when(memberReportRepository.save(any(MemberReport.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(memberPersistencePort.findById(reporterId)).thenReturn(Optional.of(createMember(reporterId)));
+        when(memberPersistencePort.findById(reportedMemberId)).thenReturn(Optional.of(createMember(reportedMemberId)));
+        when(memberReportPersistencePort.existsPendingReport(reporterId, reportedMemberId)).thenReturn(false);
+        when(memberReportPersistencePort.save(any(MemberReport.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        MemberReportResponse response = memberReportService.createReport(reporter, request);
+        MemberReportResult response = memberReportService.createReport(reporter, command);
 
         ArgumentCaptor<MemberReport> reportCaptor = ArgumentCaptor.forClass(MemberReport.class);
-        verify(memberReportRepository).save(reportCaptor.capture());
+        verify(memberReportPersistencePort).save(reportCaptor.capture());
         assertEquals(reporterId, reportCaptor.getValue().getReporterId());
         assertEquals(reportedMemberId, reportCaptor.getValue().getReportedMemberId());
         assertEquals(ReportStatus.PENDING, response.status());
@@ -78,13 +78,13 @@ class MemberReportServiceTest {
     void createReport_selfReport_throwsException() {
         UUID memberId = UUID.randomUUID();
         AuthenticatedMember reporter = new AuthenticatedMember(memberId, MemberRole.USER, UUID.randomUUID());
-        CreateMemberReportRequest request = new CreateMemberReportRequest(
+        CreateMemberReportCommand command = new CreateMemberReportCommand(
                 memberId,
                 "self report",
                 ReportType.ETC
         );
 
-        assertThrows(SelfReportNotAllowedException.class, () -> memberReportService.createReport(reporter, request));
+        assertThrows(SelfReportNotAllowedException.class, () -> memberReportService.createReport(reporter, command));
     }
 
     @Test
@@ -92,18 +92,18 @@ class MemberReportServiceTest {
         UUID reporterId = UUID.randomUUID();
         UUID reportedMemberId = UUID.randomUUID();
         AuthenticatedMember reporter = new AuthenticatedMember(reporterId, MemberRole.USER, UUID.randomUUID());
-        CreateMemberReportRequest request = new CreateMemberReportRequest(
+        CreateMemberReportCommand command = new CreateMemberReportCommand(
                 reportedMemberId,
                 "fraud",
                 ReportType.FRAUD
         );
 
-        when(memberRepository.findById(reporterId)).thenReturn(Optional.of(createMember(reporterId)));
-        when(memberRepository.findById(reportedMemberId)).thenReturn(Optional.of(createMember(reportedMemberId)));
-        when(memberReportRepository.existsPendingReport(reporterId, reportedMemberId)).thenReturn(true);
+        when(memberPersistencePort.findById(reporterId)).thenReturn(Optional.of(createMember(reporterId)));
+        when(memberPersistencePort.findById(reportedMemberId)).thenReturn(Optional.of(createMember(reportedMemberId)));
+        when(memberReportPersistencePort.existsPendingReport(reporterId, reportedMemberId)).thenReturn(true);
 
-        assertThrows(DuplicateMemberReportException.class, () -> memberReportService.createReport(reporter, request));
-        verify(memberReportRepository, never()).save(any(MemberReport.class));
+        assertThrows(DuplicateMemberReportException.class, () -> memberReportService.createReport(reporter, command));
+        verify(memberReportPersistencePort, never()).save(any(MemberReport.class));
     }
 
     @Test
@@ -119,17 +119,17 @@ class MemberReportServiceTest {
                 ReportType.ABUSE,
                 LocalDateTime.now()
         );
-        ReviewMemberReportRequest request = new ReviewMemberReportRequest(
+        ReviewMemberReportCommand command = new ReviewMemberReportCommand(
                 "confirmed",
                 RestrictionType.LOGIN_BAN,
                 24
         );
 
-        when(memberReportRepository.findById(memberReport.getReportId())).thenReturn(Optional.of(memberReport));
+        when(memberReportPersistencePort.findById(memberReport.getReportId())).thenReturn(Optional.of(memberReport));
 
-        MemberReportResponse response = memberReportService.approveReport(admin, memberReport.getReportId(), request);
+        MemberReportResult response = memberReportService.approveReport(admin, memberReport.getReportId(), command);
 
-        verify(memberRestrictionService).createRestriction(any(), any(CreateMemberRestrictionRequest.class));
+        verify(memberRestrictionService).createRestriction(any(), any(CreateMemberRestrictionCommand.class));
         assertEquals(ReportStatus.APPROVED, response.status());
         assertEquals(adminId, response.reviewedBy());
     }
@@ -146,9 +146,9 @@ class MemberReportServiceTest {
                 LocalDateTime.now()
         );
 
-        when(memberReportRepository.findById(memberReport.getReportId())).thenReturn(Optional.of(memberReport));
+        when(memberReportPersistencePort.findById(memberReport.getReportId())).thenReturn(Optional.of(memberReport));
 
-        MemberReportResponse response = memberReportService.getReportDetail(admin, memberReport.getReportId());
+        MemberReportResult response = memberReportService.getReportDetail(admin, memberReport.getReportId());
 
         assertEquals(memberReport.getReportId(), response.reportId());
         assertEquals(memberReport.getReason(), response.reason());
@@ -159,7 +159,7 @@ class MemberReportServiceTest {
         AuthenticatedMember admin = new AuthenticatedMember(UUID.randomUUID(), MemberRole.ADMIN, UUID.randomUUID());
         UUID reportId = UUID.randomUUID();
 
-        when(memberReportRepository.findById(reportId)).thenReturn(Optional.empty());
+        when(memberReportPersistencePort.findById(reportId)).thenReturn(Optional.empty());
 
         assertThrows(MemberReportNotFoundException.class,
                 () -> memberReportService.getReportDetail(admin, reportId));

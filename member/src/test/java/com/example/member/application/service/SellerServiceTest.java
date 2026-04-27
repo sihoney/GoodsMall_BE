@@ -7,22 +7,22 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.example.member.application.usecase.AccountVerificationUsecase;
+import com.example.member.application.dto.command.SellerRegisterCommand;
+import com.example.member.application.dto.result.AccountVerificationSendResult;
+import com.example.member.application.dto.result.SellerResult;
+import com.example.member.application.port.in.AccountVerificationUsecase;
 import com.example.member.common.exception.MemberNotFoundException;
 import com.example.member.common.exception.SellerAlreadyRegisteredException;
 import com.example.member.common.exception.SellerNotFoundException;
 import com.example.member.domain.entity.Member;
 import com.example.member.domain.entity.Seller;
 import com.example.member.domain.enumtype.MemberStatus;
-import com.example.member.infrastructure.repository.MemberRepository;
-import com.example.member.infrastructure.repository.SellerRepository;
-import com.example.member.presentation.dto.AccountVerificationSendResponse;
-import com.example.member.presentation.dto.SellerRegisterRequest;
-import com.example.member.presentation.dto.SellerResponse;
+import com.example.member.infrastructure.persistence.jpa.MemberJpaAdapter;
+import com.example.member.infrastructure.persistence.jpa.SellerJpaAdapter;
+import com.todaylunch.common.security.auth.enumtype.MemberRole;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
-import com.todaylunch.common.security.auth.enumtype.MemberRole;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -32,21 +32,21 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class SellerServiceTest {
 
     @Mock
-    private SellerRepository sellerRepository;
+    private SellerJpaAdapter sellerPersistencePort;
 
     @Mock
-    private MemberRepository memberRepository;
+    private MemberJpaAdapter memberPersistencePort;
 
     @Mock
     private AccountVerificationUsecase accountVerificationUsecase;
 
     @Test
     void registerSeller_success_delegatesToAccountVerification() {
-        SellerService sellerService = new SellerService(sellerRepository, memberRepository, accountVerificationUsecase);
+        SellerService sellerService = new SellerService(sellerPersistencePort, memberPersistencePort, accountVerificationUsecase);
         UUID memberId = UUID.randomUUID();
         Member member = createMember(memberId);
-        SellerRegisterRequest request = new SellerRegisterRequest("Kakao Bank", "123-456-7890");
-        AccountVerificationSendResponse verificationResponse = new AccountVerificationSendResponse(
+        SellerRegisterCommand command = new SellerRegisterCommand("Kakao Bank", "123-456-7890");
+        AccountVerificationSendResult verificationResult = new AccountVerificationSendResult(
                 "av_test_session",
                 "PENDING",
                 "123-****-7890",
@@ -56,30 +56,30 @@ class SellerServiceTest {
                 0
         );
 
-        when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
-        when(sellerRepository.existsByMemberId(memberId)).thenReturn(false);
-        when(accountVerificationUsecase.createAccountVerification(any(UUID.class), any())).thenReturn(verificationResponse);
+        when(memberPersistencePort.findById(memberId)).thenReturn(Optional.of(member));
+        when(sellerPersistencePort.existsByMemberId(memberId)).thenReturn(false);
+        when(accountVerificationUsecase.createAccountVerification(any(UUID.class), any())).thenReturn(verificationResult);
 
-        AccountVerificationSendResponse response = sellerService.registerSeller(memberId, request);
+        AccountVerificationSendResult response = sellerService.registerSeller(memberId, command);
 
         assertEquals("av_test_session", response.sessionId());
         assertEquals("PENDING", response.status());
         assertEquals("123-****-7890", response.maskedAccountNumber());
         assertEquals("482931", response.verificationCode());
         verify(accountVerificationUsecase).createAccountVerification(any(UUID.class), any());
-        verify(sellerRepository, never()).save(any());
+        verify(sellerPersistencePort, never()).save(any());
     }
 
     @Test
     void registerSeller_duplicateSeller_throwsException() {
-        SellerService sellerService = new SellerService(sellerRepository, memberRepository, accountVerificationUsecase);
+        SellerService sellerService = new SellerService(sellerPersistencePort, memberPersistencePort, accountVerificationUsecase);
         UUID memberId = UUID.randomUUID();
-        when(memberRepository.findById(memberId)).thenReturn(Optional.of(createMember(memberId)));
-        when(sellerRepository.existsByMemberId(memberId)).thenReturn(true);
+        when(memberPersistencePort.findById(memberId)).thenReturn(Optional.of(createMember(memberId)));
+        when(sellerPersistencePort.existsByMemberId(memberId)).thenReturn(true);
 
         assertThrows(
                 SellerAlreadyRegisteredException.class,
-                () -> sellerService.registerSeller(memberId, new SellerRegisterRequest("Bank", "1234"))
+                () -> sellerService.registerSeller(memberId, new SellerRegisterCommand("Bank", "1234"))
         );
 
         verify(accountVerificationUsecase, never()).createAccountVerification(any(), any());
@@ -87,13 +87,13 @@ class SellerServiceTest {
 
     @Test
     void registerSeller_memberNotFound_throwsException() {
-        SellerService sellerService = new SellerService(sellerRepository, memberRepository, accountVerificationUsecase);
+        SellerService sellerService = new SellerService(sellerPersistencePort, memberPersistencePort, accountVerificationUsecase);
         UUID memberId = UUID.randomUUID();
-        when(memberRepository.findById(memberId)).thenReturn(Optional.empty());
+        when(memberPersistencePort.findById(memberId)).thenReturn(Optional.empty());
 
         assertThrows(
                 MemberNotFoundException.class,
-                () -> sellerService.registerSeller(memberId, new SellerRegisterRequest("Bank", "1234"))
+                () -> sellerService.registerSeller(memberId, new SellerRegisterCommand("Bank", "1234"))
         );
 
         verify(accountVerificationUsecase, never()).createAccountVerification(any(), any());
@@ -101,16 +101,16 @@ class SellerServiceTest {
 
     @Test
     void getCurrentSeller_success_returnsSellerResponse() {
-        SellerService sellerService = new SellerService(sellerRepository, memberRepository, accountVerificationUsecase);
+        SellerService sellerService = new SellerService(sellerPersistencePort, memberPersistencePort, accountVerificationUsecase);
         UUID memberId = UUID.randomUUID();
         UUID sellerId = UUID.randomUUID();
         LocalDateTime approvedAt = LocalDateTime.now();
         Seller seller = Seller.create(sellerId, memberId, "Kakao Bank", "123-456-7890", approvedAt);
 
-        when(memberRepository.findById(memberId)).thenReturn(Optional.of(createMember(memberId)));
-        when(sellerRepository.findByMemberId(memberId)).thenReturn(Optional.of(seller));
+        when(memberPersistencePort.findById(memberId)).thenReturn(Optional.of(createMember(memberId)));
+        when(sellerPersistencePort.findByMemberId(memberId)).thenReturn(Optional.of(seller));
 
-        SellerResponse response = sellerService.getCurrentSeller(memberId);
+        SellerResult response = sellerService.getCurrentSeller(memberId);
 
         assertEquals(sellerId, response.sellerId());
         assertEquals(memberId, response.memberId());
@@ -121,11 +121,11 @@ class SellerServiceTest {
 
     @Test
     void getCurrentSeller_sellerNotFound_throwsException() {
-        SellerService sellerService = new SellerService(sellerRepository, memberRepository, accountVerificationUsecase);
+        SellerService sellerService = new SellerService(sellerPersistencePort, memberPersistencePort, accountVerificationUsecase);
         UUID memberId = UUID.randomUUID();
 
-        when(memberRepository.findById(memberId)).thenReturn(Optional.of(createMember(memberId)));
-        when(sellerRepository.findByMemberId(memberId)).thenReturn(Optional.empty());
+        when(memberPersistencePort.findById(memberId)).thenReturn(Optional.of(createMember(memberId)));
+        when(sellerPersistencePort.findByMemberId(memberId)).thenReturn(Optional.empty());
 
         assertThrows(SellerNotFoundException.class, () -> sellerService.getCurrentSeller(memberId));
     }
@@ -147,3 +147,4 @@ class SellerServiceTest {
         );
     }
 }
+

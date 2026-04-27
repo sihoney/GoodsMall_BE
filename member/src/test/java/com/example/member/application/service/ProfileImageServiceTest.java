@@ -3,8 +3,8 @@ package com.example.member.application.service;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
+import com.example.member.application.dto.command.ProfileImagePresignCommand;
 import com.example.member.config.S3Properties;
-import com.example.member.presentation.dto.ProfileImagePresignRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
@@ -26,15 +26,16 @@ class ProfileImageServiceTest {
 
     @Test
     void createPresignedUpload_unsupportedExtension_throwsException() {
-        ProfileImagePresignRequest request = new ProfileImagePresignRequest("avatar.gif", "image/gif");
+        ProfileImagePresignCommand request = new ProfileImagePresignCommand("avatar.gif", "image/gif");
 
         assertThrows(IllegalArgumentException.class, () -> profileImageService.createPresignedUpload(request));
     }
 
     @Test
     void createPresignedUpload_mismatchedMimeType_throwsException() {
-        ProfileImagePresignRequest request = new ProfileImagePresignRequest("avatar.png", "image/jpeg");
+        ProfileImagePresignCommand request = new ProfileImagePresignCommand("avatar.png", "image/jpeg");
 
         assertThrows(IllegalArgumentException.class, () -> profileImageService.createPresignedUpload(request));
     }
 }
+

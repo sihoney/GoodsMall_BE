@@ -1,6 +1,10 @@
 package com.example.member.application.service;
 
-import com.example.member.application.event.MemberEventPublisher;
+import com.example.member.application.dto.result.KakaoOAuthLinkResult;
+import com.example.member.application.dto.result.KakaoOAuthResult;
+import com.example.member.application.port.out.MemberEventPort;
+import com.example.member.application.port.out.MemberOauthAccountPersistencePort;
+import com.example.member.application.port.out.MemberPersistencePort;
 import com.example.member.common.exception.InvalidLoginException;
 import com.example.member.config.KakaoOAuthProperties;
 import com.example.member.domain.entity.Member;
@@ -13,10 +17,6 @@ import com.example.member.infrastructure.redis.KakaoOAuthAuthorizeState;
 import com.example.member.infrastructure.redis.KakaoOAuthAuthorizeStateStore;
 import com.example.member.infrastructure.redis.KakaoOAuthFlowType;
 import com.example.member.infrastructure.redis.KakaoOAuthPendingLink;
-import com.example.member.infrastructure.repository.MemberOauthAccountRepository;
-import com.example.member.infrastructure.repository.MemberRepository;
-import com.example.member.presentation.dto.KakaoOAuthLinkResponse;
-import com.example.member.presentation.dto.KakaoOAuthResultResponse;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -33,10 +33,10 @@ public class KakaoOAuthService {
     private final KakaoOAuthProperties kakaoOAuthProperties;
     private final KakaoOAuthClient kakaoOAuthClient;
     private final KakaoOAuthAuthorizeStateStore kakaoOAuthAuthorizeStateStore;
-    private final MemberRepository memberRepository;
-    private final MemberOauthAccountRepository memberOauthAccountRepository;
+    private final MemberPersistencePort memberPersistencePort;
+    private final MemberOauthAccountPersistencePort memberOauthAccountPersistencePort;
     private final AuthService authService;
-    private final MemberEventPublisher memberEventPublisher;
+    private final MemberEventPort memberEventPort;
 
     public String createLoginAuthorizeState() {
         String state = UUID.randomUUID().toString();
@@ -58,7 +58,7 @@ public class KakaoOAuthService {
 
     public KakaoOAuthAuthorizeState consumeAuthorizeState(String state) {
         return kakaoOAuthAuthorizeStateStore.consumeAuthorizeState(normalizeRequired(state, "state"))
-                .orElseThrow(() -> new IllegalArgumentException("카카오 OAuth state가 올바르지 않거나 만료되었습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("유효하지 않거나 만료된 카카오 OAuth state입니다."));
     }
 
     public String buildAuthorizeUrl(String state) {
@@ -66,95 +66,95 @@ public class KakaoOAuthService {
     }
 
     @Transactional
-    public KakaoOAuthResultResponse loginByCode(String code) {
+    public KakaoOAuthResult loginByCode(String code) {
         KakaoUserProfileResponse profile = fetchProfile(code);
         return loginByProfile(profile);
     }
 
     @Transactional
-    public KakaoOAuthResultResponse linkByCode(UUID memberId, String code) {
+    public KakaoOAuthResult linkByCode(UUID memberId, String code) {
         KakaoUserProfileResponse profile = fetchProfile(code);
         return linkByCurrentMember(memberId, profile);
     }
 
-    public String createOAuthResultKey(KakaoOAuthResultResponse result) {
+    public String createOAuthResultKey(KakaoOAuthResult result) {
         return kakaoOAuthAuthorizeStateStore.createOAuthResult(result, kakaoOAuthProperties.resultTtl())
-                .orElseThrow(() -> new IllegalStateException("카카오 OAuth 결과 저장에 실패했습니다."));
+                .orElseThrow(() -> new IllegalStateException("카카오 OAuth 결과를 저장하지 못했습니다."));
     }
 
-    public KakaoOAuthResultResponse consumeOAuthResult(String resultKey) {
+    public KakaoOAuthResult consumeOAuthResult(String resultKey) {
         return kakaoOAuthAuthorizeStateStore.consumeOAuthResult(normalizeRequired(resultKey, "resultKey"))
-                .orElseThrow(() -> new IllegalStateException("카카오 OAuth 결과를 찾을 수 없거나 만료되었습니다."));
+                .orElseThrow(() -> new IllegalStateException("카카오 OAuth 결과가 없거나 만료되었습니다."));
     }
 
     public String getFrontendCallbackUrl() {
         return normalizeRequired(kakaoOAuthProperties.frontendCallbackUrl(), "frontendCallbackUrl");
     }
 
-    public KakaoOAuthResultResponse createErrorResult(KakaoOAuthFlowType flowType, Exception exception) {
+    public KakaoOAuthResult createErrorResult(KakaoOAuthFlowType flowType, Exception exception) {
         if (exception instanceof IllegalArgumentException) {
-            return KakaoOAuthResultResponse.error(
+            return KakaoOAuthResult.error(
                     "KAKAO_OAUTH_INVALID_REQUEST",
-                    "카카오 로그인 요청이 유효하지 않거나 만료되었습니다."
+                    "카카오 로그인 요청이 올바르지 않거나 만료되었습니다."
             );
         }
 
         if (exception instanceof InvalidLoginException) {
-            return KakaoOAuthResultResponse.error(
+            return KakaoOAuthResult.error(
                     flowType == KakaoOAuthFlowType.LINK
                             ? "KAKAO_OAUTH_LINK_MEMBER_INVALID"
                             : "KAKAO_OAUTH_MEMBER_LOGIN_FAILED",
                     flowType == KakaoOAuthFlowType.LINK
-                            ? "현재 로그인한 계정으로 카카오 연동을 진행할 수 없습니다."
-                            : "연결된 회원 계정으로 로그인할 수 없습니다."
+                            ? "현재 회원은 카카오 계정 연동을 계속 진행할 수 없습니다."
+                            : "연동된 회원 계정으로 로그인할 수 없습니다."
             );
         }
 
         String message = exception.getMessage();
-        if ("카카오 토큰 교환에 실패했습니다.".equals(message)) {
-            return KakaoOAuthResultResponse.error(
+        if ("KAKAO_TOKEN_EXCHANGE_FAILED".equals(message)) {
+            return KakaoOAuthResult.error(
                     "KAKAO_OAUTH_TOKEN_EXCHANGE_FAILED",
-                    "카카오 토큰 교환에 실패했습니다."
+                    "카카오 OAuth 토큰 교환에 실패했습니다."
             );
         }
-        if ("카카오 사용자 프로필을 찾을 수 없습니다.".equals(message)) {
-            return KakaoOAuthResultResponse.error(
+        if ("KAKAO_PROFILE_FETCH_FAILED".equals(message)) {
+            return KakaoOAuthResult.error(
                     "KAKAO_OAUTH_PROFILE_FETCH_FAILED",
-                    "카카오 사용자 정보를 가져오지 못했습니다."
+                    "카카오 사용자 프로필 조회에 실패했습니다."
             );
         }
-        if ("카카오 계정이 이미 다른 회원에게 연동되어 있습니다.".equals(message)) {
-            return KakaoOAuthResultResponse.error(
+        if ("KAKAO_ALREADY_LINKED_TO_ANOTHER_MEMBER".equals(message)) {
+            return KakaoOAuthResult.error(
                     "KAKAO_OAUTH_ALREADY_LINKED_TO_ANOTHER_MEMBER",
-                    "이미 다른 계정에 연결된 카카오 계정입니다."
+                    "이미 다른 회원에 연동된 카카오 계정입니다."
             );
         }
-        if ("회원이 이미 카카오 계정과 연동되어 있습니다.".equals(message)) {
-            return KakaoOAuthResultResponse.error(
+        if ("KAKAO_ALREADY_LINKED".equals(message)) {
+            return KakaoOAuthResult.error(
                     "KAKAO_OAUTH_ALREADY_LINKED",
-                    "현재 계정은 이미 카카오와 연결되어 있습니다."
+                    "현재 회원은 이미 카카오 계정을 연동했습니다."
             );
         }
 
-        return KakaoOAuthResultResponse.error(
+        return KakaoOAuthResult.error(
                 "KAKAO_OAUTH_UNKNOWN_ERROR",
-                "카카오 로그인 처리 중 오류가 발생했습니다."
+                "카카오 로그인 처리 중 알 수 없는 오류가 발생했습니다."
         );
     }
 
     @Transactional
-    public KakaoOAuthLinkResponse linkCurrentMember(UUID memberId, String linkToken) {
+    public KakaoOAuthLinkResult linkCurrentMember(UUID memberId, String linkToken) {
         KakaoOAuthPendingLink pendingLink = kakaoOAuthAuthorizeStateStore
                 .consumePendingLink(normalizeRequired(linkToken, "linkToken"))
-                .orElseThrow(() -> new IllegalStateException("카카오 연동 토큰을 찾을 수 없습니다."));
+                .orElseThrow(() -> new IllegalStateException("대기 중인 카카오 연동 토큰을 찾을 수 없습니다."));
 
-        if (memberOauthAccountRepository.existsByProviderAndProviderUserId(PROVIDER, pendingLink.providerUserId())) {
-            throw new IllegalStateException("카카오 계정이 이미 연동되어 있습니다.");
+        if (memberOauthAccountPersistencePort.existsByProviderAndProviderUserId(PROVIDER, pendingLink.providerUserId())) {
+            throw new IllegalStateException("KAKAO_ALREADY_LINKED_TO_ANOTHER_MEMBER");
         }
-        if (memberOauthAccountRepository.existsByMemberIdAndProvider(memberId, PROVIDER)) {
-            throw new IllegalStateException("회원이 이미 카카오 계정과 연동되어 있습니다.");
+        if (memberOauthAccountPersistencePort.existsByMemberIdAndProvider(memberId, PROVIDER)) {
+            throw new IllegalStateException("KAKAO_ALREADY_LINKED");
         }
-        memberRepository.findById(memberId).orElseThrow(InvalidLoginException::new);
+        memberPersistencePort.findById(memberId).orElseThrow(InvalidLoginException::new);
 
         LocalDateTime now = LocalDateTime.now();
         saveLinkedAccount(
@@ -165,23 +165,23 @@ public class KakaoOAuthService {
                 now
         );
 
-        return new KakaoOAuthLinkResponse(true, PROVIDER.name(), pendingLink.providerUserId());
+        return new KakaoOAuthLinkResult(true, PROVIDER.name(), pendingLink.providerUserId());
     }
 
-    private KakaoOAuthResultResponse loginByProfile(KakaoUserProfileResponse profile) {
+    private KakaoOAuthResult loginByProfile(KakaoUserProfileResponse profile) {
         String providerUserId = profile.id().toString();
         String email = kakaoEmail(profile);
         String nickname = kakaoNickname(profile);
 
-        return memberOauthAccountRepository.findByProviderAndProviderUserId(PROVIDER, providerUserId)
+        return memberOauthAccountPersistencePort.findByProviderAndProviderUserId(PROVIDER, providerUserId)
                 .map(linkedAccount -> {
-                    Member member = memberRepository.findById(linkedAccount.getMemberId())
+                    Member member = memberPersistencePort.findById(linkedAccount.getMemberId())
                             .orElseThrow(InvalidLoginException::new);
                     if (!member.isActive()) {
                         throw new InvalidLoginException();
                     }
                     var loginResponse = authService.login(member);
-                    return KakaoOAuthResultResponse.success(
+                    return KakaoOAuthResult.success(
                             PROVIDER.name(),
                             providerUserId,
                             email,
@@ -197,23 +197,23 @@ public class KakaoOAuthService {
                 .orElseGet(() -> createPendingLink(profile));
     }
 
-    private KakaoOAuthResultResponse linkByCurrentMember(UUID memberId, KakaoUserProfileResponse profile) {
+    private KakaoOAuthResult linkByCurrentMember(UUID memberId, KakaoUserProfileResponse profile) {
         String providerUserId = profile.id().toString();
         String email = kakaoEmail(profile);
         String nickname = kakaoNickname(profile);
 
-        Member member = memberRepository.findById(memberId).orElseThrow(InvalidLoginException::new);
+        Member member = memberPersistencePort.findById(memberId).orElseThrow(InvalidLoginException::new);
         if (!member.isActive()) {
             throw new InvalidLoginException();
         }
 
-        var existingAccount = memberOauthAccountRepository.findByProviderAndProviderUserId(PROVIDER, providerUserId);
+        var existingAccount = memberOauthAccountPersistencePort.findByProviderAndProviderUserId(PROVIDER, providerUserId);
         if (existingAccount.isPresent()) {
             if (!existingAccount.get().getMemberId().equals(memberId)) {
-                throw new IllegalStateException("카카오 계정이 이미 다른 회원에게 연동되어 있습니다.");
+                throw new IllegalStateException("KAKAO_ALREADY_LINKED_TO_ANOTHER_MEMBER");
             }
 
-            return KakaoOAuthResultResponse.success(
+            return KakaoOAuthResult.success(
                     PROVIDER.name(),
                     providerUserId,
                     email,
@@ -227,14 +227,14 @@ public class KakaoOAuthService {
             );
         }
 
-        if (memberOauthAccountRepository.existsByMemberIdAndProvider(memberId, PROVIDER)) {
-            throw new IllegalStateException("회원이 이미 카카오 계정과 연동되어 있습니다.");
+        if (memberOauthAccountPersistencePort.existsByMemberIdAndProvider(memberId, PROVIDER)) {
+            throw new IllegalStateException("KAKAO_ALREADY_LINKED");
         }
 
         LocalDateTime now = LocalDateTime.now();
         saveLinkedAccount(memberId, providerUserId, email, nickname, now);
 
-        return KakaoOAuthResultResponse.success(
+        return KakaoOAuthResult.success(
                 PROVIDER.name(),
                 providerUserId,
                 email,
@@ -251,16 +251,16 @@ public class KakaoOAuthService {
     private KakaoUserProfileResponse fetchProfile(String code) {
         KakaoTokenResponse tokenResponse = kakaoOAuthClient.exchangeCode(normalizeRequired(code, "code"));
         if (tokenResponse == null || tokenResponse.accessToken() == null || tokenResponse.accessToken().isBlank()) {
-            throw new IllegalStateException("카카오 토큰 교환에 실패했습니다.");
+            throw new IllegalStateException("KAKAO_TOKEN_EXCHANGE_FAILED");
         }
         KakaoUserProfileResponse profile = kakaoOAuthClient.fetchUserProfile(tokenResponse.accessToken());
         if (profile == null || profile.id() == null) {
-            throw new IllegalStateException("카카오 사용자 프로필을 찾을 수 없습니다.");
+            throw new IllegalStateException("KAKAO_PROFILE_FETCH_FAILED");
         }
         return profile;
     }
 
-    private KakaoOAuthResultResponse createPendingLink(KakaoUserProfileResponse profile) {
+    private KakaoOAuthResult createPendingLink(KakaoUserProfileResponse profile) {
         String linkToken = UUID.randomUUID().toString();
         String providerUserId = profile.id().toString();
         KakaoOAuthPendingLink pendingLink = new KakaoOAuthPendingLink(
@@ -275,7 +275,7 @@ public class KakaoOAuthService {
                 pendingLink,
                 kakaoOAuthProperties.pendingLinkTtl()
         );
-        return KakaoOAuthResultResponse.linkRequired(
+        return KakaoOAuthResult.linkRequired(
                 linkToken,
                 PROVIDER.name(),
                 providerUserId,
@@ -291,7 +291,7 @@ public class KakaoOAuthService {
             String nickname,
             LocalDateTime linkedAt
     ) {
-        memberOauthAccountRepository.save(MemberOauthAccount.create(
+        memberOauthAccountPersistencePort.save(MemberOauthAccount.create(
                 UUID.randomUUID(),
                 memberId,
                 PROVIDER,
@@ -302,7 +302,7 @@ public class KakaoOAuthService {
                 linkedAt
         ));
 
-        memberEventPublisher.publishMemberOauthLinked(
+        memberEventPort.publishMemberOauthLinked(
                 memberId,
                 PROVIDER.name(),
                 providerUserId,

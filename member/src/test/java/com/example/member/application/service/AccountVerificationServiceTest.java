@@ -10,24 +10,24 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.example.member.application.event.MemberEventPublisher;
+import com.example.member.application.dto.command.AccountVerificationConfirmCommand;
+import com.example.member.application.dto.command.AccountVerificationCreateCommand;
+import com.example.member.application.dto.result.AccountVerificationConfirmResult;
+import com.example.member.application.dto.result.AccountVerificationSendResult;
+import com.example.member.application.port.out.MemberEventPort;
 import com.example.member.common.exception.AccountVerificationAttemptLimitExceededException;
 import com.example.member.common.exception.ExpiredAccountVerificationException;
 import com.example.member.common.exception.InvalidAccountVerificationCodeException;
 import com.example.member.config.AccountVerificationProperties;
 import com.example.member.domain.entity.Member;
 import com.example.member.infrastructure.crypto.AccountEncryptionService;
+import com.example.member.infrastructure.persistence.jpa.MemberJpaAdapter;
 import com.example.member.infrastructure.redis.AccountVerificationSession;
 import com.example.member.infrastructure.redis.AccountVerificationSessionStore;
 import com.example.member.infrastructure.redis.ParsedRefreshToken;
 import com.example.member.infrastructure.redis.RefreshTokenStore;
 import com.example.member.infrastructure.redis.SellerDraft;
 import com.example.member.infrastructure.redis.SellerDraftStore;
-import com.example.member.infrastructure.repository.MemberRepository;
-import com.example.member.presentation.dto.AccountVerificationConfirmRequest;
-import com.example.member.presentation.dto.AccountVerificationConfirmResponse;
-import com.example.member.presentation.dto.AccountVerificationCreateRequest;
-import com.example.member.presentation.dto.AccountVerificationSendResponse;
 import com.example.member.security.JwtTokenProvider;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -43,7 +43,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class AccountVerificationServiceTest {
 
     @Mock
-    private MemberRepository memberRepository;
+    private MemberJpaAdapter memberPersistencePort;
 
     @Mock
     private AccountVerificationSessionStore sessionStore;
@@ -64,7 +64,7 @@ class AccountVerificationServiceTest {
     private RefreshTokenStore refreshTokenStore;
 
     @Mock
-    private MemberEventPublisher memberEventPublisher;
+    private MemberEventPort memberEventPort;
 
     private final AccountVerificationProperties properties = new AccountVerificationProperties(
             Duration.ofMinutes(5),
@@ -76,7 +76,7 @@ class AccountVerificationServiceTest {
     @Test
     void createAccountVerification_success_savesPendingSession() {
         AccountVerificationService service = new AccountVerificationService(
-                memberRepository,
+                memberPersistencePort,
                 sessionStore,
                 sellerDraftStore,
                 accountEncryptionService,
@@ -84,18 +84,18 @@ class AccountVerificationServiceTest {
                 jwtTokenProvider,
                 refreshTokenStore,
                 properties,
-                memberEventPublisher
+                memberEventPort
         );
         UUID memberId = UUID.randomUUID();
         Member member = createMember(memberId);
-        AccountVerificationCreateRequest request = new AccountVerificationCreateRequest("KAKAO", "1234567890123");
+        AccountVerificationCreateCommand command = new AccountVerificationCreateCommand("KAKAO", "1234567890123");
 
-        when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
+        when(memberPersistencePort.findById(memberId)).thenReturn(Optional.of(member));
         when(sessionStore.findCurrentSessionId(memberId)).thenReturn(Optional.empty());
         when(sellerDraftStore.findCurrentDraftId(memberId)).thenReturn(Optional.empty());
         when(accountEncryptionService.encrypt("1234567890123")).thenReturn("encrypted-account-number");
 
-        AccountVerificationSendResponse response = service.createAccountVerification(memberId, request);
+        AccountVerificationSendResult response = service.createAccountVerification(memberId, command);
 
         ArgumentCaptor<SellerDraft> draftCaptor = ArgumentCaptor.forClass(SellerDraft.class);
         ArgumentCaptor<AccountVerificationSession> sessionCaptor = ArgumentCaptor.forClass(AccountVerificationSession.class);
@@ -122,7 +122,7 @@ class AccountVerificationServiceTest {
     @Test
     void confirmAccountVerification_invalidCode_throwsException() {
         AccountVerificationService service = new AccountVerificationService(
-                memberRepository,
+                memberPersistencePort,
                 sessionStore,
                 sellerDraftStore,
                 accountEncryptionService,
@@ -130,7 +130,7 @@ class AccountVerificationServiceTest {
                 jwtTokenProvider,
                 refreshTokenStore,
                 properties,
-                memberEventPublisher
+                memberEventPort
         );
         UUID memberId = UUID.randomUUID();
         String sessionId = "av_test_session";
@@ -153,20 +153,20 @@ class AccountVerificationServiceTest {
                         memberId,
                         UUID.randomUUID(),
                         sessionId,
-                        new AccountVerificationConfirmRequest("111111")
+                        new AccountVerificationConfirmCommand("111111")
                 )
         );
 
         verify(sessionStore).saveSession(any(AccountVerificationSession.class), any(Duration.class));
         verify(sessionStore).releaseLock(sessionId);
-        verify(memberEventPublisher, never()).publishAccountVerificationExpired(any(UUID.class), anyString(), anyString());
-        verify(memberEventPublisher, never()).publishAccountVerificationFailed(any(UUID.class), anyString(), anyString());
+        verify(memberEventPort, never()).publishAccountVerificationExpired(any(UUID.class), anyString(), anyString());
+        verify(memberEventPort, never()).publishAccountVerificationFailed(any(UUID.class), anyString(), anyString());
     }
 
     @Test
     void confirmAccountVerification_success_returnsVerifiedResponseWithRotatedTokens() {
         AccountVerificationService service = new AccountVerificationService(
-                memberRepository,
+                memberPersistencePort,
                 sessionStore,
                 sellerDraftStore,
                 accountEncryptionService,
@@ -174,7 +174,7 @@ class AccountVerificationServiceTest {
                 jwtTokenProvider,
                 refreshTokenStore,
                 properties,
-                memberEventPublisher
+                memberEventPort
         );
         UUID memberId = UUID.randomUUID();
         UUID authSessionId = UUID.randomUUID();
@@ -192,7 +192,7 @@ class AccountVerificationServiceTest {
 
         when(sessionStore.acquireLock(sessionId, Duration.ofSeconds(5))).thenReturn(true);
         when(sessionStore.findSession(sessionId)).thenReturn(Optional.of(session));
-        when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
+        when(memberPersistencePort.findById(memberId)).thenReturn(Optional.of(member));
         when(jwtTokenProvider.createAccessToken(member, authSessionId)).thenReturn("seller-access-token");
         when(jwtTokenProvider.createRefreshToken(member, authSessionId)).thenReturn("seller-refresh-token");
         when(jwtTokenProvider.parseRefreshToken("seller-refresh-token"))
@@ -201,11 +201,11 @@ class AccountVerificationServiceTest {
         when(jwtTokenProvider.getRefreshExpiration()).thenReturn(7200L);
         when(refreshTokenStore.findBySessionId(authSessionId)).thenReturn(Optional.empty());
 
-        AccountVerificationConfirmResponse response = service.confirmAccountVerification(
+        AccountVerificationConfirmResult response = service.confirmAccountVerification(
                 memberId,
                 authSessionId,
                 sessionId,
-                new AccountVerificationConfirmRequest(correctCode)
+                new AccountVerificationConfirmCommand(correctCode)
         );
 
         assertEquals(sessionId, response.sessionId());
@@ -226,14 +226,14 @@ class AccountVerificationServiceTest {
                 Duration.ofMillis(7200L)
         );
         verify(sessionStore).releaseLock(sessionId);
-        verify(memberEventPublisher, never()).publishAccountVerificationExpired(any(UUID.class), anyString(), anyString());
-        verify(memberEventPublisher, never()).publishAccountVerificationFailed(any(UUID.class), anyString(), anyString());
+        verify(memberEventPort, never()).publishAccountVerificationExpired(any(UUID.class), anyString(), anyString());
+        verify(memberEventPort, never()).publishAccountVerificationFailed(any(UUID.class), anyString(), anyString());
     }
 
     @Test
     void confirmAccountVerification_expired_publishesExpiredEvent() {
         AccountVerificationService service = new AccountVerificationService(
-                memberRepository,
+                memberPersistencePort,
                 sessionStore,
                 sellerDraftStore,
                 accountEncryptionService,
@@ -241,7 +241,7 @@ class AccountVerificationServiceTest {
                 jwtTokenProvider,
                 refreshTokenStore,
                 properties,
-                memberEventPublisher
+                memberEventPort
         );
         UUID memberId = UUID.randomUUID();
         String sessionId = "av_expired_session";
@@ -263,13 +263,13 @@ class AccountVerificationServiceTest {
                         memberId,
                         UUID.randomUUID(),
                         sessionId,
-                        new AccountVerificationConfirmRequest("482931")
+                        new AccountVerificationConfirmCommand("482931")
                 )
         );
 
         verify(sessionStore).saveSession(any(AccountVerificationSession.class), eq(Duration.ZERO));
-        verify(memberEventPublisher).publishAccountVerificationExpired(memberId, sessionId, "SESSION_EXPIRED");
-        verify(memberEventPublisher, never()).publishAccountVerificationFailed(any(UUID.class), anyString(), anyString());
+        verify(memberEventPort).publishAccountVerificationExpired(memberId, sessionId, "SESSION_EXPIRED");
+        verify(memberEventPort, never()).publishAccountVerificationFailed(any(UUID.class), anyString(), anyString());
         verify(sessionStore).releaseLock(sessionId);
     }
 
@@ -282,7 +282,7 @@ class AccountVerificationServiceTest {
                 Duration.ofSeconds(30)
         );
         AccountVerificationService service = new AccountVerificationService(
-                memberRepository,
+                memberPersistencePort,
                 sessionStore,
                 sellerDraftStore,
                 accountEncryptionService,
@@ -290,7 +290,7 @@ class AccountVerificationServiceTest {
                 jwtTokenProvider,
                 refreshTokenStore,
                 strictProperties,
-                memberEventPublisher
+                memberEventPort
         );
         UUID memberId = UUID.randomUUID();
         String sessionId = "av_failed_session";
@@ -313,13 +313,13 @@ class AccountVerificationServiceTest {
                         memberId,
                         UUID.randomUUID(),
                         sessionId,
-                        new AccountVerificationConfirmRequest("111111")
+                        new AccountVerificationConfirmCommand("111111")
                 )
         );
 
         verify(sessionStore).saveSession(any(AccountVerificationSession.class), eq(Duration.ZERO));
-        verify(memberEventPublisher).publishAccountVerificationFailed(memberId, sessionId, "ATTEMPT_LIMIT_EXCEEDED");
-        verify(memberEventPublisher, never()).publishAccountVerificationExpired(any(UUID.class), anyString(), anyString());
+        verify(memberEventPort).publishAccountVerificationFailed(memberId, sessionId, "ATTEMPT_LIMIT_EXCEEDED");
+        verify(memberEventPort, never()).publishAccountVerificationExpired(any(UUID.class), anyString(), anyString());
         verify(sessionStore).releaseLock(sessionId);
     }
 

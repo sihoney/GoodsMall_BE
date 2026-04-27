@@ -1,11 +1,11 @@
 package com.example.member.infrastructure.messaging;
 
+import com.example.member.application.event.AccountVerificationExpiredEvent;
+import com.example.member.application.event.AccountVerificationFailedEvent;
+import com.example.member.application.event.MemberOauthLinkedEvent;
+import com.example.member.application.event.MemberSignedUpEvent;
+import com.example.member.application.event.SellerPromotedEvent;
 import com.example.member.infrastructure.messaging.kafka.KafkaTopics;
-import com.example.member.infrastructure.messaging.kafka.contract.AccountVerificationExpiredPayload;
-import com.example.member.infrastructure.messaging.kafka.contract.AccountVerificationFailedPayload;
-import com.example.member.infrastructure.messaging.kafka.contract.MemberSignedUpPayload;
-import com.example.member.infrastructure.messaging.kafka.contract.MemberOauthLinkedPayload;
-import com.example.member.infrastructure.messaging.kafka.contract.SellerPromotedPayload;
 import com.todaylunch.common.event.contract.EventEnvelope;
 import java.time.Instant;
 import java.util.UUID;
@@ -26,30 +26,30 @@ public class MemberEventKafkaProducer {
     // Spring Boot 4 registers the Jackson 3 ObjectMapper under tools.jackson.
     private final ObjectMapper objectMapper;
 
-    public void sendMemberSignedUp(MemberSignedUpPayload payload) {
+    public void sendMemberSignedUp(MemberSignedUpEvent event) {
         try {
-            EventEnvelope<MemberSignedUpPayload> message = new EventEnvelope<>(
+            EventEnvelope<MemberSignedUpEvent> message = new EventEnvelope<>(
                     UUID.randomUUID(),
                     "MEMBER_SIGNED_UP",
                     "member-service",
-                    payload.memberId(),
-                    payload.memberId(),
+                    event.memberId(),
+                    event.memberId(),
                     Instant.now(),
                     MOCK_TRACE_ID,
-                    payload
+                    event
             );
 
             String eventJson = objectMapper.writeValueAsString(message);
             kafkaTemplate.send(
                     KafkaTopics.MEMBER_SIGNED_UP,
-                    payload.memberId().toString(),
+                    event.memberId().toString(),
                     eventJson
             ).whenComplete((result, exception) -> {
                 if (exception != null) {
                     log.error(
                     "Failed to publish EventEnvelope. topic={} memberId={}",
                             KafkaTopics.MEMBER_SIGNED_UP,
-                            payload.memberId(),
+                            event.memberId(),
                             exception
                     );
                     return;
@@ -60,43 +60,43 @@ public class MemberEventKafkaProducer {
                         KafkaTopics.MEMBER_SIGNED_UP,
                         result.getRecordMetadata().partition(),
                         result.getRecordMetadata().offset(),
-                        payload.memberId()
+                        event.memberId()
                 );
             });
         } catch (Exception e) {
             log.error(
                     "Failed to serialize EventEnvelope. memberId={}",
-                    payload.memberId(),
+                    event.memberId(),
                     e
             );
         }
     }
 
-    public void sendSellerPromoted(SellerPromotedPayload payload) {
+    public void sendSellerPromoted(SellerPromotedEvent event) {
         try {
-            EventEnvelope<SellerPromotedPayload> message = new EventEnvelope<>(
+            EventEnvelope<SellerPromotedEvent> message = new EventEnvelope<>(
                     UUID.randomUUID(),
                     "SELLER_PROMOTED",
                     "member-service",
-                    payload.sellerId(),
-                    payload.memberId(),
+                    event.sellerId(),
+                    event.memberId(),
                     Instant.now(),
                     MOCK_TRACE_ID,
-                    payload
+                    event
             );
 
             String eventJson = objectMapper.writeValueAsString(message);
             kafkaTemplate.send(
                     KafkaTopics.SELLER_PROMOTED,
-                    payload.memberId().toString(),
+                    event.memberId().toString(),
                     eventJson
             ).whenComplete((result, exception) -> {
                 if (exception != null) {
                     log.error(
                             "Failed to publish EventEnvelope. topic={} memberId={} sellerId={}",
                             KafkaTopics.SELLER_PROMOTED,
-                            payload.memberId(),
-                            payload.sellerId(),
+                            event.memberId(),
+                            event.sellerId(),
                             exception
                     );
                     return;
@@ -107,45 +107,45 @@ public class MemberEventKafkaProducer {
                         KafkaTopics.SELLER_PROMOTED,
                         result.getRecordMetadata().partition(),
                         result.getRecordMetadata().offset(),
-                        payload.memberId(),
-                        payload.sellerId()
+                        event.memberId(),
+                        event.sellerId()
                 );
             });
         } catch (Exception e) {
             log.error(
                     "Failed to serialize EventEnvelope. memberId={} sellerId={}",
-                    payload.memberId(),
-                    payload.sellerId(),
+                    event.memberId(),
+                    event.sellerId(),
                     e
             );
         }
     }
 
-    public void sendAccountVerificationExpired(AccountVerificationExpiredPayload payload) {
+    public void sendAccountVerificationExpired(AccountVerificationExpiredEvent event) {
         try {
-            EventEnvelope<AccountVerificationExpiredPayload> message = new EventEnvelope<>(
+            EventEnvelope<AccountVerificationExpiredEvent> message = new EventEnvelope<>(
                     UUID.randomUUID(),
                     "ACCOUNT_VERIFICATION_EXPIRED",
                     "member-service",
-                    payload.memberId(),
-                    payload.memberId(),
+                    event.memberId(),
+                    event.memberId(),
                     Instant.now(),
                     MOCK_TRACE_ID,
-                    payload
+                    event
             );
 
             String eventJson = objectMapper.writeValueAsString(message);
             kafkaTemplate.send(
                     KafkaTopics.ACCOUNT_VERIFICATION_EXPIRED,
-                    payload.memberId().toString(),
+                    event.memberId().toString(),
                     eventJson
             ).whenComplete((result, exception) -> {
                 if (exception != null) {
                     log.error(
                             "Failed to publish EventEnvelope. topic={} memberId={} sessionId={}",
                             KafkaTopics.ACCOUNT_VERIFICATION_EXPIRED,
-                            payload.memberId(),
-                            payload.sessionId(),
+                            event.memberId(),
+                            event.sessionId(),
                             exception
                     );
                     return;
@@ -156,45 +156,45 @@ public class MemberEventKafkaProducer {
                         KafkaTopics.ACCOUNT_VERIFICATION_EXPIRED,
                         result.getRecordMetadata().partition(),
                         result.getRecordMetadata().offset(),
-                        payload.memberId(),
-                        payload.sessionId()
+                        event.memberId(),
+                        event.sessionId()
                 );
             });
         } catch (Exception e) {
             log.error(
                     "Failed to serialize EventEnvelope. memberId={} sessionId={}",
-                    payload.memberId(),
-                    payload.sessionId(),
+                    event.memberId(),
+                    event.sessionId(),
                     e
             );
         }
     }
 
-    public void sendAccountVerificationFailed(AccountVerificationFailedPayload payload) {
+    public void sendAccountVerificationFailed(AccountVerificationFailedEvent event) {
         try {
-            EventEnvelope<AccountVerificationFailedPayload> message = new EventEnvelope<>(
+            EventEnvelope<AccountVerificationFailedEvent> message = new EventEnvelope<>(
                     UUID.randomUUID(),
                     "ACCOUNT_VERIFICATION_FAILED",
                     "member-service",
-                    payload.memberId(),
-                    payload.memberId(),
+                    event.memberId(),
+                    event.memberId(),
                     Instant.now(),
                     MOCK_TRACE_ID,
-                    payload
+                    event
             );
 
             String eventJson = objectMapper.writeValueAsString(message);
             kafkaTemplate.send(
                     KafkaTopics.ACCOUNT_VERIFICATION_FAILED,
-                    payload.memberId().toString(),
+                    event.memberId().toString(),
                     eventJson
             ).whenComplete((result, exception) -> {
                 if (exception != null) {
                     log.error(
                             "Failed to publish EventEnvelope. topic={} memberId={} sessionId={}",
                             KafkaTopics.ACCOUNT_VERIFICATION_FAILED,
-                            payload.memberId(),
-                            payload.sessionId(),
+                            event.memberId(),
+                            event.sessionId(),
                             exception
                     );
                     return;
@@ -205,46 +205,46 @@ public class MemberEventKafkaProducer {
                         KafkaTopics.ACCOUNT_VERIFICATION_FAILED,
                         result.getRecordMetadata().partition(),
                         result.getRecordMetadata().offset(),
-                        payload.memberId(),
-                        payload.sessionId()
+                        event.memberId(),
+                        event.sessionId()
                 );
             });
         } catch (Exception e) {
             log.error(
                     "Failed to serialize EventEnvelope. memberId={} sessionId={}",
-                    payload.memberId(),
-                    payload.sessionId(),
+                    event.memberId(),
+                    event.sessionId(),
                     e
             );
         }
     }
 
-    public void sendMemberOauthLinked(MemberOauthLinkedPayload payload) {
+    public void sendMemberOauthLinked(MemberOauthLinkedEvent event) {
         try {
-            EventEnvelope<MemberOauthLinkedPayload> message = new EventEnvelope<>(
+            EventEnvelope<MemberOauthLinkedEvent> message = new EventEnvelope<>(
                     UUID.randomUUID(),
                     "MEMBER_OAUTH_LINKED",
                     "member-service",
-                    payload.memberId(),
-                    payload.memberId(),
+                    event.memberId(),
+                    event.memberId(),
                     Instant.now(),
                     MOCK_TRACE_ID,
-                    payload
+                    event
             );
 
             String eventJson = objectMapper.writeValueAsString(message);
             kafkaTemplate.send(
                     KafkaTopics.MEMBER_OAUTH_LINKED,
-                    payload.memberId().toString(),
+                    event.memberId().toString(),
                     eventJson
             ).whenComplete((result, exception) -> {
                 if (exception != null) {
                     log.error(
                             "Failed to publish EventEnvelope. topic={} memberId={} provider={} providerUserId={}",
                             KafkaTopics.MEMBER_OAUTH_LINKED,
-                            payload.memberId(),
-                            payload.provider(),
-                            payload.providerUserId(),
+                            event.memberId(),
+                            event.provider(),
+                            event.providerUserId(),
                             exception
                     );
                     return;
@@ -255,17 +255,17 @@ public class MemberEventKafkaProducer {
                         KafkaTopics.MEMBER_OAUTH_LINKED,
                         result.getRecordMetadata().partition(),
                         result.getRecordMetadata().offset(),
-                        payload.memberId(),
-                        payload.provider(),
-                        payload.providerUserId()
+                        event.memberId(),
+                        event.provider(),
+                        event.providerUserId()
                 );
             });
         } catch (Exception e) {
             log.error(
                     "Failed to serialize EventEnvelope. memberId={} provider={} providerUserId={}",
-                    payload.memberId(),
-                    payload.provider(),
-                    payload.providerUserId(),
+                    event.memberId(),
+                    event.provider(),
+                    event.providerUserId(),
                     e
             );
         }

@@ -8,21 +8,20 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.example.member.application.dto.command.LoginCommand;
+import com.example.member.application.dto.command.TokenRefreshCommand;
+import com.example.member.application.dto.result.AuthTokenResult;
 import com.example.member.common.exception.InvalidLoginException;
 import com.example.member.common.exception.MemberRestrictedException;
 import com.example.member.domain.entity.Member;
 import com.example.member.domain.entity.MemberRestriction;
 import com.example.member.domain.enumtype.MemberStatus;
 import com.example.member.domain.enumtype.RestrictionType;
+import com.example.member.infrastructure.persistence.jpa.MemberJpaAdapter;
 import com.example.member.infrastructure.redis.AuthSession;
 import com.example.member.infrastructure.redis.ParsedRefreshToken;
 import com.example.member.infrastructure.redis.RefreshTokenStore;
 import com.example.member.infrastructure.redis.TokenBlacklistStore;
-import com.example.member.infrastructure.repository.MemberRepository;
-import com.example.member.presentation.dto.LoginRequest;
-import com.example.member.presentation.dto.LoginResponse;
-import com.example.member.presentation.dto.TokenRefreshRequest;
-import com.example.member.presentation.dto.TokenRefreshResponse;
 import com.example.member.security.JwtTokenProvider;
 import com.todaylunch.common.security.auth.enumtype.MemberRole;
 import com.todaylunch.common.security.exception.InvalidTokenException;
@@ -41,7 +40,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 class AuthServiceTest {
 
     @Mock
-    private MemberRepository memberRepository;
+    private MemberJpaAdapter memberPersistencePort;
 
     @Mock
     private PasswordEncoder passwordEncoder;
@@ -64,9 +63,9 @@ class AuthServiceTest {
     @Test
     void login_success_returnsTokensWhenNoActiveLoginBan() {
         Member member = createMember();
-        LoginRequest request = new LoginRequest("member@test.com", "plain-password");
+        LoginCommand command = new LoginCommand("member@test.com", "plain-password");
 
-        when(memberRepository.findByEmail("member@test.com")).thenReturn(Optional.of(member));
+        when(memberPersistencePort.findByEmail("member@test.com")).thenReturn(Optional.of(member));
         when(passwordEncoder.matches("plain-password", "encoded-password")).thenReturn(true);
         when(memberRestrictionService.getActiveLoginRestriction(eq(member.getMemberId()), any()))
                 .thenReturn(null);
@@ -77,7 +76,7 @@ class AuthServiceTest {
         when(jwtTokenProvider.getAccessExpiration()).thenReturn(3600L);
         when(jwtTokenProvider.getRefreshExpiration()).thenReturn(7200L);
 
-        LoginResponse response = authService.login(request);
+        AuthTokenResult response = authService.login(command);
 
         assertEquals("access-token", response.accessToken());
         assertEquals("refresh-token", response.refreshToken());
@@ -87,7 +86,7 @@ class AuthServiceTest {
     @Test
     void login_activeLoginBan_throwsMemberRestrictedException() {
         Member member = createMember();
-        LoginRequest request = new LoginRequest("member@test.com", "plain-password");
+        LoginCommand command = new LoginCommand("member@test.com", "plain-password");
         MemberRestriction restriction = MemberRestriction.create(
                 UUID.randomUUID(),
                 member.getMemberId(),
@@ -98,12 +97,12 @@ class AuthServiceTest {
                 LocalDateTime.now()
         );
 
-        when(memberRepository.findByEmail("member@test.com")).thenReturn(Optional.of(member));
+        when(memberPersistencePort.findByEmail("member@test.com")).thenReturn(Optional.of(member));
         when(passwordEncoder.matches("plain-password", "encoded-password")).thenReturn(true);
         when(memberRestrictionService.getActiveLoginRestriction(eq(member.getMemberId()), any()))
                 .thenReturn(restriction);
 
-        assertThrows(MemberRestrictedException.class, () -> authService.login(request));
+        assertThrows(MemberRestrictedException.class, () -> authService.login(command));
 
         verify(jwtTokenProvider, never()).createAccessToken(eq(member), any(UUID.class));
         verify(refreshTokenStore, never()).createSession(any(UUID.class), any(UUID.class), any(String.class), any(Duration.class));
@@ -112,23 +111,23 @@ class AuthServiceTest {
     @Test
     void login_invalidPassword_throwsInvalidLoginException() {
         Member member = createMember();
-        LoginRequest request = new LoginRequest("member@test.com", "plain-password");
+        LoginCommand command = new LoginCommand("member@test.com", "plain-password");
 
-        when(memberRepository.findByEmail("member@test.com")).thenReturn(Optional.of(member));
+        when(memberPersistencePort.findByEmail("member@test.com")).thenReturn(Optional.of(member));
         when(passwordEncoder.matches("plain-password", "encoded-password")).thenReturn(false);
 
-        assertThrows(InvalidLoginException.class, () -> authService.login(request));
+        assertThrows(InvalidLoginException.class, () -> authService.login(command));
     }
 
     @Test
     void login_pendingVerification_throwsIllegalStateException() {
         Member member = createMember(MemberStatus.PENDING_VERIFICATION);
-        LoginRequest request = new LoginRequest("member@test.com", "plain-password");
+        LoginCommand command = new LoginCommand("member@test.com", "plain-password");
 
-        when(memberRepository.findByEmail("member@test.com")).thenReturn(Optional.of(member));
+        when(memberPersistencePort.findByEmail("member@test.com")).thenReturn(Optional.of(member));
         when(passwordEncoder.matches("plain-password", "encoded-password")).thenReturn(true);
 
-        assertThrows(com.example.member.common.exception.EmailVerificationRequiredException.class, () -> authService.login(request));
+        assertThrows(com.example.member.common.exception.EmailVerificationRequiredException.class, () -> authService.login(command));
 
         verify(jwtTokenProvider, never()).createAccessToken(eq(member), any(UUID.class));
         verify(refreshTokenStore, never()).createSession(any(UUID.class), any(UUID.class), any(String.class), any(Duration.class));
@@ -139,7 +138,7 @@ class AuthServiceTest {
         Member member = createMember(MemberStatus.ACTIVE);
         UUID memberId = member.getMemberId();
         UUID sessionId = UUID.randomUUID();
-        TokenRefreshRequest request = new TokenRefreshRequest("refresh-token");
+        TokenRefreshCommand command = new TokenRefreshCommand("refresh-token");
 
         when(jwtTokenProvider.parseRefreshToken("refresh-token"))
                 .thenReturn(new ParsedRefreshToken(memberId, sessionId, "refresh-token-id"));
@@ -147,7 +146,7 @@ class AuthServiceTest {
                 .thenReturn(null);
         when(refreshTokenStore.findBySessionId(sessionId))
                 .thenReturn(Optional.of(new AuthSession(memberId, sessionId, "refresh-token-id")));
-        when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
+        when(memberPersistencePort.findById(memberId)).thenReturn(Optional.of(member));
         when(jwtTokenProvider.createAccessToken(member, sessionId)).thenReturn("new-access-token");
         when(jwtTokenProvider.createRefreshToken(member, sessionId)).thenReturn("new-refresh-token");
         when(jwtTokenProvider.parseRefreshToken("new-refresh-token"))
@@ -155,7 +154,7 @@ class AuthServiceTest {
         when(jwtTokenProvider.getAccessExpiration()).thenReturn(3600L);
         when(jwtTokenProvider.getRefreshExpiration()).thenReturn(7200L);
 
-        TokenRefreshResponse response = authService.refresh(request);
+        AuthTokenResult response = authService.refresh(command);
 
         assertEquals("new-access-token", response.accessToken());
         assertEquals("new-refresh-token", response.refreshToken());
@@ -172,7 +171,7 @@ class AuthServiceTest {
         Member member = createMember(MemberStatus.WITHDRAWN);
         UUID memberId = member.getMemberId();
         UUID sessionId = UUID.randomUUID();
-        TokenRefreshRequest request = new TokenRefreshRequest("refresh-token");
+        TokenRefreshCommand command = new TokenRefreshCommand("refresh-token");
 
         when(jwtTokenProvider.parseRefreshToken("refresh-token"))
                 .thenReturn(new ParsedRefreshToken(memberId, sessionId, "refresh-token-id"));
@@ -180,9 +179,9 @@ class AuthServiceTest {
                 .thenReturn(null);
         when(refreshTokenStore.findBySessionId(sessionId))
                 .thenReturn(Optional.of(new AuthSession(memberId, sessionId, "refresh-token-id")));
-        when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
+        when(memberPersistencePort.findById(memberId)).thenReturn(Optional.of(member));
 
-        assertThrows(com.example.member.common.exception.EmailVerificationRequiredException.class, () -> authService.refresh(request));
+        assertThrows(com.example.member.common.exception.EmailVerificationRequiredException.class, () -> authService.refresh(command));
 
         verify(jwtTokenProvider, never()).createAccessToken(eq(member), eq(sessionId));
     }
@@ -192,7 +191,7 @@ class AuthServiceTest {
         Member member = createMember(MemberStatus.ACTIVE);
         UUID memberId = member.getMemberId();
         UUID sessionId = UUID.randomUUID();
-        TokenRefreshRequest request = new TokenRefreshRequest("refresh-token");
+        TokenRefreshCommand command = new TokenRefreshCommand("refresh-token");
 
         when(jwtTokenProvider.parseRefreshToken("refresh-token"))
                 .thenReturn(new ParsedRefreshToken(memberId, sessionId, "refresh-token-id"));
@@ -201,10 +200,10 @@ class AuthServiceTest {
         when(refreshTokenStore.findBySessionId(sessionId))
                 .thenReturn(Optional.of(new AuthSession(memberId, sessionId, "different-token-id")));
 
-        assertThrows(InvalidTokenException.class, () -> authService.refresh(request));
+        assertThrows(InvalidTokenException.class, () -> authService.refresh(command));
 
         verify(refreshTokenStore).deleteSession(memberId, sessionId);
-        verify(memberRepository, never()).findById(any());
+        verify(memberPersistencePort, never()).findById(any());
     }
 
     @Test
