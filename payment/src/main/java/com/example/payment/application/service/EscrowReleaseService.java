@@ -105,8 +105,6 @@ public class EscrowReleaseService implements EscrowReleaseUseCase {
             return existingResult(command.orderId(), releasedAmount);
         }
 
-        // todo: 현재는 통신 기준이 정확하지 않아 반환값이 존재
-        //  api 통신이면 살리고 카프카로 확정이면 반환값 제거 고려
         return new EscrowReleaseResult(
                 command.orderId(),
                 releasedAmount,

@@ -56,4 +56,4 @@ product:
     consumer-groups:
       product-es-sync: product-es-sync-group
   elasticsearch:
-    init-index: false
+    init-index: true

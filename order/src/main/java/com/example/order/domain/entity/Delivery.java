@@ -113,4 +113,13 @@ public class Delivery {
         this.shippedAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }
+
+    public void complete() {
+        if (this.status != DeliveryStatus.SHIPPED) {
+            throw new IllegalStateException("배송 완료는 배송 중 상태에서만 가능합니다.");
+        }
+        this.status = DeliveryStatus.DELIVERED;
+        this.deliveredAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
 }

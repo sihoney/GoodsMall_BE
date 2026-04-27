@@ -3,7 +3,6 @@
 -- 1) 이미 적용된 migration 파일은 의미가 바뀌는 수정(덮어쓰기)을 하지 않습니다.
 -- 2) 엔티티/테이블/컬럼/인덱스 변경은 항상 새 V*.sql 파일로 추가합니다.
 -- 3) 배포 안정성을 위해 하위 호환 DDL을 먼저 적용하고, 데이터 정리는 후속 단계로 분리합니다.
--- TODO(팀): payment 변경은 이 파일이 아니라 V5+ 신규 migration으로 이어서 작성합니다.
 
 CREATE TABLE IF NOT EXISTS payment.wallet (
     wallet_id   UUID        NOT NULL,

@@ -1,4 +1,4 @@
-package com.example.product.infrastructure.elasticsearch;
+package com.example.product.infrastructure.elasticsearch.repository;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.FieldValue;
@@ -12,6 +12,7 @@ import co.elastic.clients.elasticsearch.core.search.Hit;
 import com.example.product.domain.entity.Product;
 import com.example.product.domain.model.ProductSearchResult;
 import com.example.product.domain.repository.ProductSearchRepository;
+import com.example.product.infrastructure.elasticsearch.document.ProductDocument;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -133,7 +134,6 @@ public class ProductSearchRepositoryImpl implements ProductSearchRepository {
             filter.add(rangeQuery("price", minPrice, maxPrice));
         }
 
-        // ACTIVE 상품만 검색
         filter.add(Query.of(query -> query.term(term -> term
                 .field("status")
                 .value("ACTIVE")

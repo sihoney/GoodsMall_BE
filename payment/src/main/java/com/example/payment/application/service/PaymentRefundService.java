@@ -924,8 +924,6 @@ public class PaymentRefundService implements PaymentCancellationUseCase, SellerR
 
         boolean notified = orderRefundNotificationGateway.notifyRefundCompleted(orderId, orderItemIds);
         if (!notified) {
-            // TODO: pg사 처리는 되었는데 order가 실패하면 롤백이 안되는데 어떻게 처리할지 고려하기
-            //  order 상태 변경을 먼저 진행하고 상태 변경 확인후 pg 사 처리하기 만약 pg 사 처리가 실패하면 order 되돌리기 요청 보내기
             log.warn("Order refund completion notification failed. orderId={} orderItemCount={}", orderId, orderItemIds.size());
         }
     }

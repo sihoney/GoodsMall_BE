@@ -1,4 +1,4 @@
-package com.example.product.infrastructure.elasticsearch;
+package com.example.product.infrastructure.elasticsearch.document;
 
 import com.example.product.domain.entity.Product;
 import com.example.product.domain.model.ProductSearchResult;
