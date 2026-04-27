@@ -21,10 +21,6 @@ import org.springframework.web.client.RestClientResponseException;
  * Toss Payments API 호출을 담당하는 infrastructure adapter다.
  * 외부 응답 형식과 클라이언트 예외를 payment 공통 예외로 변환해 application 계층에 전달한다.
  */
-// TODO: TossPaymentGatewayImpl -> TossPaymentGatewayAdapter 네이밍 검토
-// 구현체가 단순 구현보다 outbound adapter 역할에 가깝다
-// TODO: infrastructure.client 보다 infrastructure.tosspayment 같은 외부 시스템 기준 패키지 분리 검토
-// Todo: 에러 메시지 에러코드로 통일하고 한글로 통일할 것.
 public class TossPaymentGatewayImpl implements TossPaymentGateway {
 
     private final RestClient restClient;
@@ -46,7 +42,6 @@ public class TossPaymentGatewayImpl implements TossPaymentGateway {
      */
     public TossPaymentConfirmation confirm(String paymentKey, String orderId, BigDecimal amount) {
         validateConfiguration();
-        // todo: 성공 url을 통해서 받은 amount와 orderId가 저장된 데이터와 일치하는지 보안상 확인이 필요할 수 있다.
         try {
             TossConfirmResponse response = restClient.post()
                     .uri("/v1/payments/confirm")
