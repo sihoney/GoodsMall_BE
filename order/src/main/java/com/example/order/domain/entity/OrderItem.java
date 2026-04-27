@@ -123,6 +123,11 @@ public class OrderItem {
         return unitPriceSnapshot.multiply(BigDecimal.valueOf(quantity));
     }
 
+    public void complete() {
+        this.status = OrderItemStatus.COMPLETED;
+        this.updatedAt = LocalDateTime.now();
+    }
+
     public boolean cancel() {
         if (this.status.equals(OrderItemStatus.PENDING)) {
             this.status = OrderItemStatus.CANCELED;

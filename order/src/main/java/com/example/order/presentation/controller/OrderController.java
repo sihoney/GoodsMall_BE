@@ -1,6 +1,7 @@
 package com.example.order.presentation.controller;
 
 import com.example.order.application.usecase.OrderCancelUseCase;
+import com.example.order.application.usecase.OrderConfirmUseCase;
 import com.example.order.application.usecase.OrderCreateUseCase;
 import com.example.order.application.usecase.OrderSearchUseCase;
 import com.example.order.presentation.dto.request.OrderCancelRequest;
@@ -38,6 +39,7 @@ public class OrderController {
     private final OrderCreateUseCase orderCreateUseCase;
     private final OrderSearchUseCase orderSearchUseCase;
     private final OrderCancelUseCase orderCancelUseCase;
+    private final OrderConfirmUseCase orderConfirmUseCase;
 
     @PostMapping("/deposit")
     public ResponseEntity<ApiResponse<OrderCreateResponse>> createByDeposit(
@@ -91,5 +93,26 @@ public class OrderController {
     ) {
         UUID memberId = authenticatedMember.memberId();
         return ResponseEntity.ok(ApiResponse.success(orderCancelUseCase.cancelOrder(orderId, memberId, request)));
+    }
+
+    @PostMapping("/{orderId}/confirm")
+    public ResponseEntity<ApiResponse<Void>> confirmOrder(
+            @CurrentMember AuthenticatedMember authenticatedMember,
+            @PathVariable UUID orderId
+    ) {
+        UUID memberId = authenticatedMember.memberId();
+        orderConfirmUseCase.confirm(orderId, memberId);
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    @PostMapping("/{orderId}/items/{orderItemId}/confirm")
+    public ResponseEntity<ApiResponse<Void>> confirmOrderItem(
+            @CurrentMember AuthenticatedMember authenticatedMember,
+            @PathVariable UUID orderId,
+            @PathVariable UUID orderItemId
+    ) {
+        UUID memberId = authenticatedMember.memberId();
+        orderConfirmUseCase.confirmItem(orderId, orderItemId, memberId);
+        return ResponseEntity.ok(ApiResponse.success(null));
     }
 }
