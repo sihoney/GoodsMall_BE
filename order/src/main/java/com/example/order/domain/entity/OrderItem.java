@@ -131,6 +131,14 @@ public class OrderItem {
         this.updatedAt = LocalDateTime.now();
     }
 
+    public void deliver() {
+        if (this.status != OrderItemStatus.SHIPPING) {
+            throw new IllegalStateException("배송 완료는 배송 중 상태에서만 가능합니다.");
+        }
+        this.status = OrderItemStatus.DELIVERED;
+        this.updatedAt = LocalDateTime.now();
+    }
+
     public void complete() {
         this.status = OrderItemStatus.COMPLETED;
         this.updatedAt = LocalDateTime.now();
