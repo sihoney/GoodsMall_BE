@@ -3,6 +3,7 @@ package com.example.payment.application.usecase;
 import com.example.payment.application.dto.ChargeDetailResult;
 import com.example.payment.application.dto.ChargeListItemResult;
 import com.example.payment.application.dto.EscrowTransactionItemResult;
+import com.example.payment.application.dto.OrderPaymentDetailResult;
 import com.example.payment.application.dto.PagedResult;
 import com.example.payment.application.dto.PendingSellerIncomeItemResult;
 import com.example.payment.application.dto.WalletSummaryResult;
@@ -45,4 +46,6 @@ public interface PaymentSearchUseCase {
     PagedResult<WithdrawListItemResult> findAllWithdrawRequests(UUID memberId, int page, int size);
 
     List<EscrowTransactionItemResult> findEscrowTransactionsByOrderId(UUID sellerMemberId, UUID orderId);
+
+    OrderPaymentDetailResult findOrderPaymentByOrderId(UUID memberId, UUID orderId);
 }
