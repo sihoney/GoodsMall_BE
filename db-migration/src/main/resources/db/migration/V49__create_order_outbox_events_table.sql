@@ -13,4 +13,4 @@ CREATE TABLE IF NOT EXISTS order_service.outbox_events
         CHECK (status IN ('PENDING', 'PROCESSING', 'PUBLISHED', 'FAILED'))
 );
 
-CREATE INDEX idx_order_outbox_status_created_at ON order_service.outbox_events (status, created_at);
+CREATE INDEX IF NOT EXISTS idx_order_outbox_status_created_at ON order_service.outbox_events (status, created_at);

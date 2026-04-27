@@ -10,8 +10,8 @@ CREATE TABLE payment.auction_deposit (
     updated_at TIMESTAMP NOT NULL
 );
 
-CREATE INDEX idx_auction_deposit_auction_id
+CREATE INDEX IF NOT EXISTS idx_auction_deposit_auction_id
     ON payment.auction_deposit (auction_id);
 
-CREATE INDEX idx_auction_deposit_auction_id_status
+CREATE INDEX IF NOT EXISTS idx_auction_deposit_auction_id_status
     ON payment.auction_deposit (auction_id, status);

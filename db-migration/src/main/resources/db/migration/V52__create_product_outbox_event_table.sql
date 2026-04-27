@@ -15,5 +15,5 @@ CREATE TABLE IF NOT EXISTS product.outbox_event
         CHECK (status IN ('PENDING', 'PROCESSING', 'PUBLISHED'))
 );
 
-CREATE INDEX idx_product_outbox_status_created_at ON product.outbox_event (status, created_at);
-CREATE INDEX idx_product_outbox_aggregate_id ON product.outbox_event (aggregate_id);
+CREATE INDEX IF NOT EXISTS idx_product_outbox_status_created_at ON product.outbox_event (status, created_at);
+CREATE INDEX IF NOT EXISTS idx_product_outbox_aggregate_id ON product.outbox_event (aggregate_id);
