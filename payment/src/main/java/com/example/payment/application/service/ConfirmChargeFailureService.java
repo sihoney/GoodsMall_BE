@@ -55,10 +55,10 @@ public class ConfirmChargeFailureService implements ChargeConfirmFailureUseCase 
 
     private void validateCommand(ChargeConfirmFailureCommand command) {
         if (command.orderId() == null || command.orderId().isBlank()) {
-            throw new InvalidChargeRequestException("orderId is required.");
+            throw new InvalidChargeRequestException("주문 ID는 필수입니다.");
         }
         if (command.failureMessage() == null || command.failureMessage().isBlank()) {
-            throw new InvalidChargeRequestException("message is required.");
+            throw new InvalidChargeRequestException("실패 메시지는 필수입니다.");
         }
     }
 

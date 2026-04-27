@@ -70,8 +70,8 @@ public class SettlementCandidateCreatedOutboxEventSaver {
             outboxRepository.save(outboxEvent);
             applicationEventPublisher.publishEvent(new OutboxEventPendingTrigger());
         } catch (Exception e) {
-            log.error("Failed to serialize SettlementCandidateCreatedMessage. escrowId={}", event.escrowId(), e);
-            throw new RuntimeException("Failed to serialize SettlementCandidateCreatedMessage", e);
+            log.error("SettlementCandidateCreatedMessage 직렬화에 실패했습니다. escrowId={}", event.escrowId(), e);
+            throw new RuntimeException("SettlementCandidateCreatedMessage 직렬화에 실패했습니다.", e);
         }
     }
 

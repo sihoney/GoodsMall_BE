@@ -90,10 +90,10 @@ public class CreateChargeService implements ChargeCreateUseCase {
      */
     private void validateCommand(ChargeCreateCommand command) {
         if (command.memberId() == null) {
-            throw new InvalidChargeRequestException("memberId is required.");
+            throw new InvalidChargeRequestException("회원 ID는 필수입니다.");
         }
         if (command.amount() == null || command.amount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
-            throw new InvalidChargeRequestException("amount must be positive.");
+            throw new InvalidChargeRequestException("금액은 0보다 커야 합니다.");
         }
     }
 }

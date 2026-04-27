@@ -254,10 +254,10 @@ public class Escrow {
         BigDecimal validatedRefundedAmount = validateNonNegativeAmount(refundedAmount);
 
         if (validatedRefundedAmount.compareTo(validatedOriginalAmount) > 0) {
-            throw new IllegalArgumentException("Refunded amount must not exceed original amount.");
+            throw new IllegalArgumentException("환불 금액은 원금보다 클 수 없습니다.");
         }
         if (validatedAmount.compareTo(validatedOriginalAmount.subtract(validatedRefundedAmount)) != 0) {
-            throw new IllegalArgumentException("Escrow amount must equal originalAmount - refundedAmount.");
+            throw new IllegalArgumentException("에스크로 금액은 원금에서 환불 금액을 뺀 값과 일치해야 합니다.");
         }
         return new Escrow(
                 escrowId,
@@ -332,7 +332,7 @@ public class Escrow {
     public void refund(LocalDateTime refundedAt, LocalDateTime updatedAt) {
         validateHeldStatus();
         if (amount.compareTo(BigDecimal.ZERO) != 0) {
-            throw new IllegalStateException("Only zero-balance escrow can be marked as refunded.");
+            throw new IllegalStateException("잔액이 0인 에스크로만 환불 완료로 표시할 수 있습니다.");
         }
         this.escrowStatus = EscrowStatus.REFUNDED;
         this.refundedAt = Objects.requireNonNull(refundedAt);
@@ -347,7 +347,7 @@ public class Escrow {
         validateRefundableStatus();
         BigDecimal validatedRefundAmount = validatePositiveAmount(refundAmount);
         if (validatedRefundAmount.compareTo(amount) > 0) {
-            throw new IllegalArgumentException("Refund amount exceeds escrow amount.");
+            throw new IllegalArgumentException("환불 금액이 에스크로 금액을 초과합니다.");
         }
         this.amount = this.amount.subtract(validatedRefundAmount);
         this.refundedAmount = this.refundedAmount.add(validatedRefundAmount);
@@ -364,22 +364,22 @@ public class Escrow {
     public boolean isOrderItemReference() { return referenceType == EscrowReferenceType.ORDER_ITEM; }
 
     private void validateHeldStatus() {
-        if (!isHeld()) throw new IllegalStateException("Only held escrow can be changed.");
+        if (!isHeld()) throw new IllegalStateException("보관 상태의 에스크로만 변경할 수 있습니다.");
     }
 
     private void validateRefundableStatus() {
-        if (!isHeld() && !isReleased()) throw new IllegalStateException("Only held or released escrow can be refunded.");
+        if (!isHeld() && !isReleased()) throw new IllegalStateException("보관 또는 정산 완료 상태의 에스크로만 환불할 수 있습니다.");
     }
 
     private static BigDecimal validatePositiveAmount(BigDecimal amount) {
         Objects.requireNonNull(amount);
-        if (amount.compareTo(BigDecimal.ZERO) <= 0) throw new IllegalArgumentException("Escrow amount must be positive.");
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) throw new IllegalArgumentException("에스크로 금액은 0보다 커야 합니다.");
         return amount;
     }
 
     private static BigDecimal validateNonNegativeAmount(BigDecimal amount) {
         Objects.requireNonNull(amount);
-        if (amount.compareTo(BigDecimal.ZERO) < 0) throw new IllegalArgumentException("Escrow amount must not be negative.");
+        if (amount.compareTo(BigDecimal.ZERO) < 0) throw new IllegalArgumentException("에스크로 금액은 음수일 수 없습니다.");
         return amount;
     }
 }

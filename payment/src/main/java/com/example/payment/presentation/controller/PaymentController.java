@@ -243,7 +243,7 @@ public class PaymentController {
             @PathVariable UUID orderId
     ) {
         if (authenticatedMember.role() != MemberRole.SELLER) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "seller role is required.");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "판매자 권한이 필요합니다.");
         }
 
         List<EscrowTransactionItemResponse> response = paymentSearchUseCase.findEscrowTransactionsByOrderId(
@@ -348,7 +348,7 @@ public class PaymentController {
             @Valid @RequestBody SellerRefundConfirmRequest request
     ) {
         if (authenticatedMember.role() != MemberRole.SELLER) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "seller role is required.");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "판매자 권한이 필요합니다.");
         }
 
         SellerRefundCommand command = new SellerRefundCommand(

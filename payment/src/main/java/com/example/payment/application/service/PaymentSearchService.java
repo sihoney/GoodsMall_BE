@@ -153,13 +153,13 @@ public class PaymentSearchService implements PaymentSearchUseCase {
 
     private Pageable createPageRequest(int page, int size, String sortBy) {
         if (page < 0) {
-            throw new IllegalArgumentException("page must be zero or positive.");
+            throw new IllegalArgumentException("페이지 번호는 0 이상이어야 합니다.");
         }
         if (size <= 0) {
-            throw new IllegalArgumentException("size must be positive.");
+            throw new IllegalArgumentException("페이지 크기는 1 이상이어야 합니다.");
         }
         if (size > MAX_PAGE_SIZE) {
-            throw new IllegalArgumentException("size must not exceed 100.");
+            throw new IllegalArgumentException("페이지 크기는 100을 초과할 수 없습니다.");
         }
         return PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, sortBy));
     }

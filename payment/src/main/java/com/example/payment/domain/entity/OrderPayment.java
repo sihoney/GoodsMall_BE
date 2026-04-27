@@ -99,7 +99,7 @@ public class OrderPayment {
     public void markRefundStatusByTotalRefundedAmount(BigDecimal totalRefundedAmount, LocalDateTime updatedAt) {
         BigDecimal validatedRefundedAmount = validateNonNegativeAmount(totalRefundedAmount);
         if (validatedRefundedAmount.compareTo(totalAmount) > 0) {
-            throw new IllegalArgumentException("total refunded amount exceeds total payment amount.");
+            throw new IllegalArgumentException("총 환불 금액이 총 결제 금액을 초과합니다.");
         }
 
         if (validatedRefundedAmount.compareTo(BigDecimal.ZERO) == 0) {
@@ -114,14 +114,14 @@ public class OrderPayment {
 
     private static BigDecimal validatePositiveAmount(BigDecimal amount) {
         if (Objects.requireNonNull(amount).compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("totalAmount must be positive.");
+            throw new IllegalArgumentException("총 결제 금액은 0보다 커야 합니다.");
         }
         return amount;
     }
 
     private static BigDecimal validateNonNegativeAmount(BigDecimal amount) {
         if (Objects.requireNonNull(amount).compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("total refunded amount must not be negative.");
+            throw new IllegalArgumentException("총 환불 금액은 음수일 수 없습니다.");
         }
         return amount;
     }

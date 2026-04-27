@@ -119,10 +119,10 @@ public class WithdrawRequest {
             String maskedBankAccount,
             LocalDateTime requestedAt
     ) {
-        validatePositiveAmount(amount, "withdraw amount must be positive.");
+        validatePositiveAmount(amount, "출금 금액은 0보다 커야 합니다.");
         validateNonNegativeFee(fee);
         if (actualAmount == null || actualAmount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("actualAmount must be positive.");
+            throw new IllegalArgumentException("실제 출금 금액은 0보다 커야 합니다.");
         }
 
         return new WithdrawRequest(
@@ -172,7 +172,7 @@ public class WithdrawRequest {
 
     private static void validateNonNegativeFee(BigDecimal fee) {
         if (Objects.requireNonNull(fee).compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("fee must be zero or positive.");
+            throw new IllegalArgumentException("수수료는 0 이상이어야 합니다.");
         }
     }
 }

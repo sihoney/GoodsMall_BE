@@ -100,7 +100,7 @@ public class OrderPaymentAllocation {
 
     private static BigDecimal validatePositiveAmount(BigDecimal amount) {
         if (Objects.requireNonNull(amount).compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("allocation amount must be positive.");
+            throw new IllegalArgumentException("배분 금액은 0보다 커야 합니다.");
         }
         return amount;
     }

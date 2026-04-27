@@ -57,8 +57,8 @@ public class OrderPurchaseConfirmedEventConsumer {
                     payload.confirmationType()
             ));
         } catch (Exception e) {
-            log.error("Failed to process OrderPurchaseConfirmed event envelope", e);
-            throw new RuntimeException("Failed to deserialize OrderPurchaseConfirmed event envelope", e);
+            log.error("주문 구매 확정 이벤트 엔벌로프 처리에 실패했습니다.", e);
+            throw new RuntimeException("주문 구매 확정 이벤트 엔벌로프 역직렬화에 실패했습니다.", e);
         }
     }
 
@@ -67,43 +67,43 @@ public class OrderPurchaseConfirmedEventConsumer {
      */
     private void validateEvent(EventEnvelope<OrderPurchaseConfirmedMessage> event) {
         if (event == null) {
-            throw new InvalidOrderPaymentRequestException("orderPurchaseConfirmed event is required.");
+            throw new InvalidOrderPaymentRequestException("주문 구매 확정 이벤트는 필수입니다.");
         }
         if (event.eventId() == null) {
-            throw new InvalidOrderPaymentRequestException("eventId is required.");
+            throw new InvalidOrderPaymentRequestException("eventId는 필수입니다.");
         }
         if (!ORDER_PURCHASE_CONFIRMED_EVENT_TYPE.equals(event.eventType())) {
-            throw new InvalidOrderPaymentRequestException("Unsupported eventType: " + event.eventType());
+            throw new InvalidOrderPaymentRequestException("지원하지 않는 eventType입니다. eventType=" + event.eventType());
         }
         if (event.source() == null || event.source().isBlank()) {
-            throw new InvalidOrderPaymentRequestException("source is required.");
+            throw new InvalidOrderPaymentRequestException("source는 필수입니다.");
         }
         if (event.aggregateId() == null) {
-            throw new InvalidOrderPaymentRequestException("aggregateId is required.");
+            throw new InvalidOrderPaymentRequestException("aggregateId는 필수입니다.");
         }
         if (event.occurredAt() == null) {
-            throw new InvalidOrderPaymentRequestException("occurredAt is required.");
+            throw new InvalidOrderPaymentRequestException("occurredAt은 필수입니다.");
         }
         if (event.traceId() == null || event.traceId().isBlank()) {
-            throw new InvalidOrderPaymentRequestException("traceId is required.");
+            throw new InvalidOrderPaymentRequestException("traceId는 필수입니다.");
         }
         if (event.payload() == null) {
-            throw new InvalidOrderPaymentRequestException("payload is required.");
+            throw new InvalidOrderPaymentRequestException("payload는 필수입니다.");
         }
         if (event.payload().orderId() == null) {
-            throw new InvalidOrderPaymentRequestException("orderId is required.");
+            throw new InvalidOrderPaymentRequestException("orderId는 필수입니다.");
         }
         if (event.payload().sellerMemberId() == null) {
-            throw new InvalidOrderPaymentRequestException("sellerMemberId is required.");
+            throw new InvalidOrderPaymentRequestException("sellerMemberId는 필수입니다.");
         }
         if (event.payload().confirmedAt() == null) {
-            throw new InvalidOrderPaymentRequestException("confirmedAt is required.");
+            throw new InvalidOrderPaymentRequestException("confirmedAt은 필수입니다.");
         }
         if (event.payload().confirmationType() == null) {
-            throw new InvalidOrderPaymentRequestException("confirmationType is required.");
+            throw new InvalidOrderPaymentRequestException("confirmationType은 필수입니다.");
         }
         if (!Objects.equals(event.aggregateId(), event.payload().orderId())) {
-            throw new InvalidOrderPaymentRequestException("aggregateId and payload.orderId must match.");
+            throw new InvalidOrderPaymentRequestException("aggregateId와 payload.orderId는 일치해야 합니다.");
         }
     }
 }

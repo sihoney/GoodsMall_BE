@@ -58,8 +58,8 @@ public class PaymentExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleValidation(MethodArgumentNotValidException e) {
         String message = e.getBindingResult().getFieldErrors().stream()
                 .findFirst()
-                .map(error -> error.getDefaultMessage() == null ? "Invalid request." : error.getDefaultMessage())
-                .orElse("Invalid request.");
+                .map(error -> error.getDefaultMessage() == null ? "잘못된 요청입니다." : error.getDefaultMessage())
+                .orElse("잘못된 요청입니다.");
 
         return ResponseEntity.badRequest()
                 .body(ApiResponse.fail(ErrorCode.INVALID_INPUT_VALUE.name(), message));

@@ -128,12 +128,12 @@ public class TossPaymentGatewayImpl implements TossPaymentGateway {
                     e
             );
         } catch (RestClientException e) {
-            throw new PaymentGatewayException("Failed to call Toss cancel API.", e);
+            throw new PaymentGatewayException("토스 결제 취소 API 호출에 실패했습니다.", e);
         } catch (RuntimeException e) {
             if (e instanceof PaymentGatewayException) {
                 throw e;
             }
-            throw new PaymentGatewayException("Failed to parse Toss cancel response.", e);
+            throw new PaymentGatewayException("토스 결제 취소 응답 처리에 실패했습니다.", e);
         }
     }
 

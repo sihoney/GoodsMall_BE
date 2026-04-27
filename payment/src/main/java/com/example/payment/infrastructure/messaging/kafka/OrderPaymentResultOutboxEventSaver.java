@@ -60,8 +60,8 @@ public class OrderPaymentResultOutboxEventSaver {
             outboxRepository.save(outboxEvent);
             applicationEventPublisher.publishEvent(new OutboxEventPendingTrigger());
         } catch (Exception e) {
-            log.error("Failed to serialize OrderPaymentResultMessage. orderId={}", event.orderId(), e);
-            throw new RuntimeException("Failed to serialize OrderPaymentResultMessage", e);
+            log.error("OrderPaymentResultMessage 직렬화에 실패했습니다. orderId={}", event.orderId(), e);
+            throw new RuntimeException("OrderPaymentResultMessage 직렬화에 실패했습니다.", e);
         }
     }
 

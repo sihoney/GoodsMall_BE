@@ -132,16 +132,16 @@ public class EscrowReleaseService implements EscrowReleaseUseCase {
      */
     private void validateCommand(EscrowReleaseCommand command) {
         if (command == null) {
-            throw new InvalidOrderPaymentRequestException("command is required.");
+            throw new InvalidOrderPaymentRequestException("에스크로 정산 요청은 필수입니다.");
         }
         if (command.orderId() == null) {
-            throw new InvalidOrderPaymentRequestException("orderId is required.");
+            throw new InvalidOrderPaymentRequestException("주문 ID는 필수입니다.");
         }
         if (command.sellerMemberId() == null) {
-            throw new InvalidOrderPaymentRequestException("sellerMemberId is required.");
+            throw new InvalidOrderPaymentRequestException("판매자 회원 ID는 필수입니다.");
         }
         if (command.confirmationType() == null) {
-            throw new InvalidOrderPaymentRequestException("confirmationType is required.");
+            throw new InvalidOrderPaymentRequestException("구매 확정 유형은 필수입니다.");
         }
     }
 
