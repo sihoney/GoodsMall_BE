@@ -1,5 +1,6 @@
 package com.example.order.domain.entity;
 
+import com.example.order.domain.enumtype.OrderItemStatus;
 import com.example.order.domain.enumtype.OrderStatus;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -48,6 +49,9 @@ public class Order {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    @Column(name = "delivered_at")
+    private LocalDateTime deliveredAt;
 
     @Column(name = "address", nullable = false)
     private String address;
@@ -168,6 +172,25 @@ public class Order {
     public void cancel(boolean hasReturnItems) {
         this.status = hasReturnItems ? OrderStatus.PARTIAL_CANCELED : OrderStatus.CANCELED;
         this.updatedAt = LocalDateTime.now();
+    }
+
+    public void complete() {
+        this.items.stream()
+                .filter(item -> item.getStatus() != OrderItemStatus.CANCELED)
+                .forEach(OrderItem::complete);
+        this.status = OrderStatus.COMPLETED;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void completeIfAllItemsCompleted() {
+        boolean allCompleted = this.items.stream()
+                .filter(item -> item.getStatus() != OrderItemStatus.CANCELED)
+                .allMatch(item -> item.getStatus() == OrderItemStatus.COMPLETED);
+
+        if (allCompleted) {
+            this.status = OrderStatus.COMPLETED;
+            this.updatedAt = LocalDateTime.now();
+        }
     }
 
     public boolean confirm() {
