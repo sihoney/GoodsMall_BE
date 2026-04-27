@@ -35,8 +35,14 @@ public class KafkaAuctionWonEventPublisher {
                     new AuctionWonPayload(auctionTitle, finalPrice)
             );
             String json = objectMapper.writeValueAsString(envelope);
-            kafkaTemplate.send(KafkaTopics.AUCTION_WON, auctionId.toString(), json);
-            log.debug("auction-won event published: auctionId={}, winnerId={}", auctionId, winnerId);
+            kafkaTemplate.send(KafkaTopics.AUCTION_WON, auctionId.toString(), json)
+                    .whenComplete((result, ex) -> {
+                        if (ex != null) {
+                            log.error("auction-won 이벤트 발행 실패: auctionId={}, winnerId={}", auctionId, winnerId, ex);
+                        } else {
+                            log.debug("auction-won 이벤트 발행 성공: auctionId={}, winnerId={}", auctionId, winnerId);
+                        }
+                    });
         } catch (JacksonException e) {
             log.error("auction-won 이벤트 직렬화 실패: auctionId={}", auctionId, e);
         }

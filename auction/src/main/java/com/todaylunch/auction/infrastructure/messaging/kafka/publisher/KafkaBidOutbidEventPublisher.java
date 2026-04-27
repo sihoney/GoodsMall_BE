@@ -38,7 +38,7 @@ public class KafkaBidOutbidEventPublisher {
                         if (ex != null) {
                             log.error("bid-outbid 이벤트 발행 실패: auctionId={}, outbidBidderId={}", auctionId, outbidBidderId, ex);
                         } else {
-                            log.debug("bid-outbid event published: auctionId={}, outbidBidderId={}", auctionId, outbidBidderId);
+                            log.debug("bid-outbid 이벤트 발행 성공: auctionId={}, outbidBidderId={}", auctionId, outbidBidderId);
                         }
                     });
         } catch (JacksonException e) {
