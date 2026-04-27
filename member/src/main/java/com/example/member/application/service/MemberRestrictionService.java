@@ -1,15 +1,15 @@
 package com.example.member.application.service;
 
-import com.example.member.application.usecase.MemberRestrictionUsecase;
+import com.example.member.application.dto.command.CreateMemberRestrictionCommand;
+import com.example.member.application.dto.result.MemberRestrictionResult;
+import com.example.member.application.port.out.MemberPersistencePort;
+import com.example.member.application.port.out.MemberRestrictionPersistencePort;
+import com.example.member.application.port.in.MemberRestrictionUsecase;
 import com.example.member.common.exception.DuplicateActiveRestrictionException;
 import com.example.member.common.exception.MemberNotFoundException;
 import com.example.member.common.exception.MemberRestrictionNotFoundException;
 import com.example.member.domain.entity.MemberRestriction;
 import com.example.member.domain.enumtype.RestrictionType;
-import com.example.member.infrastructure.repository.MemberRepository;
-import com.example.member.infrastructure.repository.MemberRestrictionRepository;
-import com.example.member.presentation.dto.CreateMemberRestrictionRequest;
-import com.example.member.presentation.dto.MemberRestrictionResponse;
 import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
 import com.todaylunch.common.security.auth.util.RoleGuard;
 import java.time.LocalDateTime;
@@ -24,24 +24,24 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class MemberRestrictionService implements MemberRestrictionUsecase {
 
-    private final MemberRepository memberRepository;
-    private final MemberRestrictionRepository memberRestrictionRepository;
+    private final MemberPersistencePort memberPersistencePort;
+    private final MemberRestrictionPersistencePort memberRestrictionPersistencePort;
 
     @Transactional
     @Override
-    public MemberRestrictionResponse createRestriction(
+    public MemberRestrictionResult createRestriction(
             AuthenticatedMember authenticatedMember,
-            CreateMemberRestrictionRequest request
+            CreateMemberRestrictionCommand command
     ) {
         RoleGuard.requireAdmin(authenticatedMember);
-        validateCreateRequest(request);
+        validateCreateCommand(command);
 
-        UUID memberId = request.memberId();
-        memberRepository.findById(memberId).orElseThrow(MemberNotFoundException::new);
+        UUID memberId = command.memberId();
+        memberPersistencePort.findById(memberId).orElseThrow(MemberNotFoundException::new);
 
         LocalDateTime now = LocalDateTime.now();
-        RestrictionType restrictionType = request.restrictionType();
-        if (memberRestrictionRepository.existsActiveRestriction(memberId, restrictionType, now)) {
+        RestrictionType restrictionType = command.restrictionType();
+        if (memberRestrictionPersistencePort.existsActiveRestriction(memberId, restrictionType, now)) {
             throw new DuplicateActiveRestrictionException();
         }
 
@@ -49,59 +49,74 @@ public class MemberRestrictionService implements MemberRestrictionUsecase {
                 UUID.randomUUID(),
                 memberId,
                 authenticatedMember.memberId(),
-                request.reason(),
+                command.reason(),
                 restrictionType,
-                request.durationHours(),
+                command.durationHours(),
                 now
         );
 
-        MemberRestriction savedRestriction = memberRestrictionRepository.save(memberRestriction);
-        return MemberRestrictionResponse.from(savedRestriction);
+        return toResult(memberRestrictionPersistencePort.save(memberRestriction));
     }
 
     @Transactional
     @Override
-    public MemberRestrictionResponse deactivateRestriction(
+    public MemberRestrictionResult deactivateRestriction(
             AuthenticatedMember authenticatedMember,
             UUID restrictionId
     ) {
         RoleGuard.requireAdmin(authenticatedMember);
 
-        MemberRestriction memberRestriction = memberRestrictionRepository.findById(restrictionId)
+        MemberRestriction memberRestriction = memberRestrictionPersistencePort.findById(restrictionId)
                 .orElseThrow(MemberRestrictionNotFoundException::new);
 
         LocalDateTime now = LocalDateTime.now();
         memberRestriction.deactivate(now);
-        return MemberRestrictionResponse.from(memberRestriction);
+        return toResult(memberRestriction);
     }
 
     @Override
-    public List<MemberRestrictionResponse> getMemberRestrictions(
+    public List<MemberRestrictionResult> getMemberRestrictions(
             AuthenticatedMember authenticatedMember,
             UUID memberId
     ) {
         RoleGuard.requireAdmin(authenticatedMember);
-        memberRepository.findById(memberId).orElseThrow(MemberNotFoundException::new);
+        memberPersistencePort.findById(memberId).orElseThrow(MemberNotFoundException::new);
 
-        return memberRestrictionRepository.findAllByMemberId(memberId).stream()
-                .map(MemberRestrictionResponse::from)
+        return memberRestrictionPersistencePort.findAllByMemberId(memberId).stream()
+                .map(this::toResult)
                 .toList();
     }
 
     public MemberRestriction getActiveLoginRestriction(UUID memberId, LocalDateTime now) {
-        return memberRestrictionRepository.findActiveRestriction(memberId, RestrictionType.LOGIN_BAN, now)
+        return memberRestrictionPersistencePort.findActiveRestriction(memberId, RestrictionType.LOGIN_BAN, now)
                 .orElse(null);
     }
 
-    private void validateCreateRequest(CreateMemberRestrictionRequest request) {
-        if (request == null) {
-            throw new IllegalArgumentException("회원 제재 생성 요청 본문은 필수입니다.");
+    private void validateCreateCommand(CreateMemberRestrictionCommand command) {
+        if (command == null) {
+            throw new IllegalArgumentException("회원 제재 생성 요청은 필수입니다.");
         }
-        if (request.memberId() == null) {
+        if (command.memberId() == null) {
             throw new IllegalArgumentException("memberId는 필수입니다.");
         }
-        if (request.restrictionType() == null) {
+        if (command.restrictionType() == null) {
             throw new IllegalArgumentException("restrictionType은 필수입니다.");
         }
     }
+
+    private MemberRestrictionResult toResult(MemberRestriction memberRestriction) {
+        return new MemberRestrictionResult(
+                memberRestriction.getRestrictionId(),
+                memberRestriction.getMemberId(),
+                memberRestriction.getAdminId(),
+                memberRestriction.getReason(),
+                memberRestriction.getRestrictionType(),
+                memberRestriction.getDurationHours(),
+                memberRestriction.getEndAt(),
+                memberRestriction.isActive(),
+                memberRestriction.getCreatedAt(),
+                memberRestriction.getUpdatedAt()
+        );
+    }
 }
+

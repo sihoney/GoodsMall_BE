@@ -1,6 +1,10 @@
 package com.example.member.application.service;
 
-import com.example.member.application.usecase.AuthUsecase;
+import com.example.member.application.dto.command.LoginCommand;
+import com.example.member.application.dto.command.TokenRefreshCommand;
+import com.example.member.application.dto.result.AuthTokenResult;
+import com.example.member.application.port.out.MemberPersistencePort;
+import com.example.member.application.port.in.AuthUsecase;
 import com.example.member.common.exception.EmailVerificationRequiredException;
 import com.example.member.common.exception.InvalidLoginException;
 import com.example.member.common.exception.MemberRestrictedException;
@@ -12,11 +16,6 @@ import com.example.member.infrastructure.redis.ParsedAccessToken;
 import com.example.member.infrastructure.redis.ParsedRefreshToken;
 import com.example.member.infrastructure.redis.RefreshTokenStore;
 import com.example.member.infrastructure.redis.TokenBlacklistStore;
-import com.example.member.infrastructure.repository.MemberRepository;
-import com.example.member.presentation.dto.LoginRequest;
-import com.example.member.presentation.dto.LoginResponse;
-import com.example.member.presentation.dto.TokenRefreshRequest;
-import com.example.member.presentation.dto.TokenRefreshResponse;
 import com.example.member.security.JwtTokenProvider;
 import com.todaylunch.common.security.exception.InvalidTokenException;
 import java.time.Duration;
@@ -33,50 +32,42 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class AuthService implements AuthUsecase {
 
-    private final MemberRepository memberRepository;
+    private final MemberPersistencePort memberPersistencePort;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenStore refreshTokenStore;
     private final TokenBlacklistStore tokenBlacklistStore;
     private final MemberRestrictionService memberRestrictionService;
 
-    /**
-     * 로그인 - 이메일과 비밀번호로 회원 인증 후 JWT 액세스 토큰과 리프레시 토큰을 발급한다.
-     */
     @Override
-    public LoginResponse login(LoginRequest request) {
-        validateLoginRequest(request);
+    public AuthTokenResult login(LoginCommand command) {
+        validateLoginCommand(command);
 
-        String email = normalizeRequired(request.email(), "email");
-        Member member = memberRepository.findByEmail(email)
+        String email = normalizeRequired(command.email(), "email");
+        Member member = memberPersistencePort.findByEmail(email)
                 .orElseThrow(InvalidLoginException::new);
 
-        if (!passwordEncoder.matches(normalizeRequired(request.password(), "password"), member.getPassword())) {
+        if (!passwordEncoder.matches(normalizeRequired(command.password(), "password"), member.getPassword())) {
             throw new InvalidLoginException();
         }
 
-        // TODO: 이메일 인증 구현 후 미인증 계정의 로그인 차단 정책을 반영한다.
         validateActiveMember(member);
         validateLoginRestriction(member);
 
         return issueLoginResponse(member);
     }
 
-    public LoginResponse login(Member member) {
+    public AuthTokenResult login(Member member) {
         validateActiveMember(member);
         validateLoginRestriction(member);
         return issueLoginResponse(member);
     }
 
-    /**
-     * 토큰 재발급 - 유효한 리프레시 토큰을 제출하면 새로운 액세스 토큰과 리프레시 토큰을 발급한다. 
-     * 기존 리프레시 토큰은 무효화된다.
-     */
     @Override
-    public TokenRefreshResponse refresh(TokenRefreshRequest request) {
-        validateRefreshRequest(request);
+    public AuthTokenResult refresh(TokenRefreshCommand command) {
+        validateRefreshCommand(command);
 
-        String refreshToken = normalizeRequired(request.refreshToken(), "refreshToken");
+        String refreshToken = normalizeRequired(command.refreshToken(), "refreshToken");
         jwtTokenProvider.validateRefreshToken(refreshToken);
         ParsedRefreshToken parsedRefreshToken = jwtTokenProvider.parseRefreshToken(refreshToken);
 
@@ -97,7 +88,7 @@ public class AuthService implements AuthUsecase {
             throw new InvalidTokenException();
         }
 
-        Member member = memberRepository.findById(parsedRefreshToken.memberId())
+        Member member = memberPersistencePort.findById(parsedRefreshToken.memberId())
                 .orElseThrow(InvalidTokenException::new);
         validateActiveMember(member);
 
@@ -110,7 +101,7 @@ public class AuthService implements AuthUsecase {
                 Duration.ofMillis(jwtTokenProvider.getRefreshExpiration())
         );
 
-        return new TokenRefreshResponse(
+        return new AuthTokenResult(
                 newAccessToken,
                 newRefreshToken,
                 "Bearer",
@@ -120,15 +111,18 @@ public class AuthService implements AuthUsecase {
         );
     }
 
-    /**
-     * 로그아웃 - 회원의 리프레시 토큰을 무효화한다.
-     */
     @Override
     public void logoutCurrentSession(String accessToken) {
         ParsedAccessToken parsedAccessToken = parseRequiredAccessToken(accessToken);
         refreshTokenStore.deleteSession(parsedAccessToken.memberId(), parsedAccessToken.sessionId());
-        tokenBlacklistStore.blacklistAccessToken(parsedAccessToken.accessTokenId(), remainingTtl(parsedAccessToken.expiresAt()));
-        tokenBlacklistStore.blacklistSession(parsedAccessToken.sessionId(), Duration.ofMillis(jwtTokenProvider.getRefreshExpiration()));
+        tokenBlacklistStore.blacklistAccessToken(
+                parsedAccessToken.accessTokenId(),
+                remainingTtl(parsedAccessToken.expiresAt())
+        );
+        tokenBlacklistStore.blacklistSession(
+                parsedAccessToken.sessionId(),
+                Duration.ofMillis(jwtTokenProvider.getRefreshExpiration())
+        );
     }
 
     @Override
@@ -136,10 +130,16 @@ public class AuthService implements AuthUsecase {
         ParsedAccessToken parsedAccessToken = parseRequiredAccessToken(accessToken);
         Set<UUID> sessionIds = refreshTokenStore.findSessionIdsByMemberId(parsedAccessToken.memberId());
         for (UUID sessionId : sessionIds) {
-            tokenBlacklistStore.blacklistSession(sessionId, Duration.ofMillis(jwtTokenProvider.getRefreshExpiration()));
+            tokenBlacklistStore.blacklistSession(
+                    sessionId,
+                    Duration.ofMillis(jwtTokenProvider.getRefreshExpiration())
+            );
         }
         refreshTokenStore.deleteAllSessions(parsedAccessToken.memberId());
-        tokenBlacklistStore.blacklistAccessToken(parsedAccessToken.accessTokenId(), remainingTtl(parsedAccessToken.expiresAt()));
+        tokenBlacklistStore.blacklistAccessToken(
+                parsedAccessToken.accessTokenId(),
+                remainingTtl(parsedAccessToken.expiresAt())
+        );
     }
 
     @Override
@@ -160,15 +160,15 @@ public class AuthService implements AuthUsecase {
         return remaining.isNegative() ? Duration.ZERO : remaining;
     }
 
-    private void validateLoginRequest(LoginRequest request) {
-        if (request == null) {
+    private void validateLoginCommand(LoginCommand command) {
+        if (command == null) {
             throw new IllegalArgumentException("로그인 요청 본문은 필수입니다.");
         }
     }
 
-    private void validateRefreshRequest(TokenRefreshRequest request) {
-        if (request == null) {
-            throw new IllegalArgumentException("토큰 갱신 요청 본문은 필수입니다.");
+    private void validateRefreshCommand(TokenRefreshCommand command) {
+        if (command == null) {
+            throw new IllegalArgumentException("토큰 재발급 요청 본문은 필수입니다.");
         }
     }
 
@@ -195,7 +195,7 @@ public class AuthService implements AuthUsecase {
         }
     }
 
-    private LoginResponse issueLoginResponse(Member member) {
+    private AuthTokenResult issueLoginResponse(Member member) {
         UUID sessionId = UUID.randomUUID();
         String accessToken = jwtTokenProvider.createAccessToken(member, sessionId);
         String refreshToken = jwtTokenProvider.createRefreshToken(member, sessionId);
@@ -208,7 +208,7 @@ public class AuthService implements AuthUsecase {
                 Duration.ofMillis(jwtTokenProvider.getRefreshExpiration())
         );
 
-        return new LoginResponse(
+        return new AuthTokenResult(
                 accessToken,
                 refreshToken,
                 "Bearer",
@@ -218,3 +218,4 @@ public class AuthService implements AuthUsecase {
         );
     }
 }
+

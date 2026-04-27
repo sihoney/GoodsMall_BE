@@ -1,7 +1,7 @@
 package com.example.member.infrastructure.redis;
 
-import com.example.member.presentation.dto.KakaoOAuthResultResponse;
-import com.example.member.presentation.dto.KakaoOAuthResultStatus;
+import com.example.member.application.dto.result.KakaoOAuthResult;
+import com.example.member.application.dto.result.KakaoOAuthResultStatus;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
@@ -101,7 +101,7 @@ public class RedisKakaoOAuthAuthorizeStateStore implements KakaoOAuthAuthorizeSt
     }
 
     @Override
-    public Optional<String> createOAuthResult(KakaoOAuthResultResponse result, Duration ttl) {
+    public Optional<String> createOAuthResult(KakaoOAuthResult result, Duration ttl) {
         String resultKey = UUID.randomUUID().toString();
         String key = buildResultKey(resultKey);
 
@@ -137,7 +137,7 @@ public class RedisKakaoOAuthAuthorizeStateStore implements KakaoOAuthAuthorizeSt
     }
 
     @Override
-    public Optional<KakaoOAuthResultResponse> consumeOAuthResult(String resultKey) {
+    public Optional<KakaoOAuthResult> consumeOAuthResult(String resultKey) {
         String key = buildResultKey(resultKey);
         var entries = stringRedisTemplate.opsForHash().entries(key);
         if (entries == null || entries.isEmpty()) {
@@ -145,7 +145,7 @@ public class RedisKakaoOAuthAuthorizeStateStore implements KakaoOAuthAuthorizeSt
         }
         stringRedisTemplate.delete(key);
 
-        return Optional.of(new KakaoOAuthResultResponse(
+        return Optional.of(new KakaoOAuthResult(
                 KakaoOAuthResultStatus.valueOf((String) entries.get(FIELD_STATUS)),
                 Boolean.parseBoolean((String) entries.get(FIELD_LINK_REQUIRED)),
                 emptyToNull((String) entries.get(FIELD_LINK_TOKEN)),

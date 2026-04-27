@@ -7,20 +7,22 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.example.member.application.event.MemberEventPublisher;
-import com.example.member.application.support.ProfileImageUrlResolver;
+import com.example.member.application.dto.command.ChangePasswordCommand;
+import com.example.member.application.dto.command.CreateMemberCommand;
+import com.example.member.application.dto.command.UpdateMemberCommand;
+import com.example.member.application.dto.result.CreateMemberResult;
+import com.example.member.application.dto.result.MemberResult;
+import com.example.member.application.port.out.MemberEventPort;
+import com.example.member.application.port.out.MemberPersistencePort;
+import com.example.member.application.port.out.ProfileImageUrlPort;
 import com.example.member.common.exception.DuplicateMemberEmailException;
 import com.example.member.common.exception.InvalidCurrentPasswordException;
 import com.example.member.config.MemberSignupProperties;
 import com.example.member.domain.entity.Member;
 import com.example.member.domain.enumtype.MemberStatus;
-import com.example.member.infrastructure.repository.MemberRepository;
-import com.example.member.presentation.dto.ChangePasswordRequest;
-import com.example.member.presentation.dto.CreateMemberRequest;
-import com.example.member.presentation.dto.CreateMemberResponse;
-import com.example.member.presentation.dto.UpdateMemberRequest;
 import com.todaylunch.common.security.auth.enumtype.MemberRole;
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,16 +36,16 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 class MemberServiceTest {
 
     @Mock
-    private MemberRepository memberRepository;
+    private MemberPersistencePort memberPersistencePort;
 
     @Mock
     private PasswordEncoder passwordEncoder;
 
     @Mock
-    private MemberEventPublisher memberEventPublisher;
+    private MemberEventPort memberEventPort;
 
     @Mock
-    private ProfileImageUrlResolver profileImageUrlResolver;
+    private ProfileImageUrlPort profileImageUrlPort;
 
     @Mock
     private EmailVerificationService emailVerificationService;
@@ -56,7 +58,7 @@ class MemberServiceTest {
 
     @Test
     void createMember_success_savesEncodedMemberAndPublishesEvent() {
-        CreateMemberRequest request = new CreateMemberRequest(
+        CreateMemberCommand command = new CreateMemberCommand(
                 "member@test.com",
                 "plain-password",
                 "tester",
@@ -66,20 +68,20 @@ class MemberServiceTest {
                 MemberRole.USER
         );
 
-        when(memberRepository.existsByEmail("member@test.com")).thenReturn(false);
+        when(memberPersistencePort.existsByEmail("member@test.com")).thenReturn(false);
         when(passwordEncoder.encode("plain-password")).thenReturn("encoded-password");
-        when(memberRepository.save(any(Member.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(profileImageUrlResolver.isSupportedKey("members/profile/profile.png")).thenReturn(true);
-        when(profileImageUrlResolver.resolve("members/profile/profile.png"))
+        when(memberPersistencePort.save(any(Member.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(profileImageUrlPort.isSupportedKey("members/profile/profile.png")).thenReturn(true);
+        when(profileImageUrlPort.resolve("members/profile/profile.png"))
                 .thenReturn("https://cdn.test/members/profile/profile.png");
         when(memberSignupProperties.requireEmailVerification()).thenReturn(true);
         when(emailVerificationService.createSignupVerification(any(Member.class))).thenReturn(null);
 
-        CreateMemberResponse response = memberService.createMember(request);
+        CreateMemberResult response = memberService.createMember(command);
 
         ArgumentCaptor<Member> memberCaptor = ArgumentCaptor.forClass(Member.class);
-        verify(memberRepository).save(memberCaptor.capture());
-        verify(memberEventPublisher).publishMemberSignedUp(memberCaptor.getValue());
+        verify(memberPersistencePort).save(memberCaptor.capture());
+        verify(memberEventPort).publishMemberSignedUp(memberCaptor.getValue());
         verify(emailVerificationService).createSignupVerification(memberCaptor.getValue());
 
         Member savedMember = memberCaptor.getValue();
@@ -96,7 +98,7 @@ class MemberServiceTest {
 
     @Test
     void createMember_whenEmailVerificationDisabled_savesActiveMemberWithoutSendingEmail() {
-        CreateMemberRequest request = new CreateMemberRequest(
+        CreateMemberCommand command = new CreateMemberCommand(
                 "local@test.com",
                 "plain-password",
                 "local-user",
@@ -106,17 +108,17 @@ class MemberServiceTest {
                 MemberRole.USER
         );
 
-        when(memberRepository.existsByEmail("local@test.com")).thenReturn(false);
+        when(memberPersistencePort.existsByEmail("local@test.com")).thenReturn(false);
         when(passwordEncoder.encode("plain-password")).thenReturn("encoded-password");
-        when(memberRepository.save(any(Member.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(profileImageUrlResolver.resolve(null)).thenReturn(null);
+        when(memberPersistencePort.save(any(Member.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(profileImageUrlPort.resolve(null)).thenReturn(null);
         when(memberSignupProperties.requireEmailVerification()).thenReturn(false);
 
-        CreateMemberResponse response = memberService.createMember(request);
+        CreateMemberResult response = memberService.createMember(command);
 
         ArgumentCaptor<Member> memberCaptor = ArgumentCaptor.forClass(Member.class);
-        verify(memberRepository).save(memberCaptor.capture());
-        verify(memberEventPublisher).publishMemberSignedUp(memberCaptor.getValue());
+        verify(memberPersistencePort).save(memberCaptor.capture());
+        verify(memberEventPort).publishMemberSignedUp(memberCaptor.getValue());
         verify(emailVerificationService, never()).createSignupVerification(any(Member.class));
 
         Member savedMember = memberCaptor.getValue();
@@ -126,7 +128,7 @@ class MemberServiceTest {
 
     @Test
     void createMember_duplicateEmail_throwsException() {
-        CreateMemberRequest request = new CreateMemberRequest(
+        CreateMemberCommand command = new CreateMemberCommand(
                 "member@test.com",
                 "plain-password",
                 "tester",
@@ -136,17 +138,17 @@ class MemberServiceTest {
                 MemberRole.USER
         );
 
-        when(memberRepository.existsByEmail("member@test.com")).thenReturn(true);
+        when(memberPersistencePort.existsByEmail("member@test.com")).thenReturn(true);
 
-        assertThrows(DuplicateMemberEmailException.class, () -> memberService.createMember(request));
+        assertThrows(DuplicateMemberEmailException.class, () -> memberService.createMember(command));
 
-        verify(memberRepository, never()).save(any(Member.class));
-        verify(memberEventPublisher, never()).publishMemberSignedUp(any(Member.class));
+        verify(memberPersistencePort, never()).save(any(Member.class));
+        verify(memberEventPort, never()).publishMemberSignedUp(any(Member.class));
     }
 
     @Test
     void createMember_invalidProfileImageKey_throwsException() {
-        CreateMemberRequest request = new CreateMemberRequest(
+        CreateMemberCommand command = new CreateMemberCommand(
                 "member@test.com",
                 "plain-password",
                 "tester",
@@ -156,13 +158,13 @@ class MemberServiceTest {
                 MemberRole.USER
         );
 
-        when(memberRepository.existsByEmail("member@test.com")).thenReturn(false);
-        when(profileImageUrlResolver.isSupportedKey("invalid/profile.png")).thenReturn(false);
+        when(memberPersistencePort.existsByEmail("member@test.com")).thenReturn(false);
+        when(profileImageUrlPort.isSupportedKey("invalid/profile.png")).thenReturn(false);
 
-        assertThrows(IllegalArgumentException.class, () -> memberService.createMember(request));
+        assertThrows(IllegalArgumentException.class, () -> memberService.createMember(command));
 
-        verify(memberRepository, never()).save(any(Member.class));
-        verify(memberEventPublisher, never()).publishMemberSignedUp(any(Member.class));
+        verify(memberPersistencePort, never()).save(any(Member.class));
+        verify(memberEventPort, never()).publishMemberSignedUp(any(Member.class));
     }
 
     @Test
@@ -181,25 +183,25 @@ class MemberServiceTest {
                 LocalDateTime.now().minusDays(1),
                 LocalDateTime.now().minusDays(1)
         );
-        UpdateMemberRequest request = new UpdateMemberRequest(
+        UpdateMemberCommand command = new UpdateMemberCommand(
+                memberId,
                 "updated-tester",
                 "010-1111-2222",
                 "Seoul",
                 null
         );
 
-        when(memberRepository.findById(memberId)).thenReturn(java.util.Optional.of(member));
-        when(profileImageUrlResolver.resolve("members/profile/existing.png"))
+        when(memberPersistencePort.findById(memberId)).thenReturn(Optional.of(member));
+        when(profileImageUrlPort.resolve("members/profile/existing.png"))
                 .thenReturn("https://cdn.test/members/profile/existing.png");
 
-        memberService.updateMember(memberId, request);
+        MemberResult result = memberService.updateMember(command);
 
         assertEquals("members/profile/existing.png", member.getProfileImageKey());
-        assertEquals("updated-tester", member.getNickname());
-        assertEquals("010-1111-2222", member.getPhone());
-        assertEquals("Seoul", member.getAddress());
-        assertEquals("member@test.com", member.getEmail());
-        assertEquals("encoded-password", member.getPassword());
+        assertEquals("updated-tester", result.nickname());
+        assertEquals("010-1111-2222", result.phone());
+        assertEquals("Seoul", result.address());
+        assertEquals("member@test.com", result.email());
     }
 
     @Test
@@ -218,13 +220,13 @@ class MemberServiceTest {
                 LocalDateTime.now().minusDays(1),
                 LocalDateTime.now().minusDays(1)
         );
-        ChangePasswordRequest request = new ChangePasswordRequest("current-password", "new-password");
+        ChangePasswordCommand command = new ChangePasswordCommand(memberId, "current-password", "new-password");
 
-        when(memberRepository.findById(memberId)).thenReturn(java.util.Optional.of(member));
+        when(memberPersistencePort.findById(memberId)).thenReturn(Optional.of(member));
         when(passwordEncoder.matches("current-password", "encoded-current-password")).thenReturn(true);
         when(passwordEncoder.encode("new-password")).thenReturn("encoded-new-password");
 
-        memberService.changeCurrentMemberPassword(memberId, request);
+        memberService.changeCurrentMemberPassword(command);
 
         assertEquals("encoded-new-password", member.getPassword());
     }
@@ -245,13 +247,13 @@ class MemberServiceTest {
                 LocalDateTime.now().minusDays(1),
                 LocalDateTime.now().minusDays(1)
         );
-        ChangePasswordRequest request = new ChangePasswordRequest("wrong-password", "new-password");
+        ChangePasswordCommand command = new ChangePasswordCommand(memberId, "wrong-password", "new-password");
 
-        when(memberRepository.findById(memberId)).thenReturn(java.util.Optional.of(member));
+        when(memberPersistencePort.findById(memberId)).thenReturn(Optional.of(member));
         when(passwordEncoder.matches("wrong-password", "encoded-current-password")).thenReturn(false);
 
         assertThrows(InvalidCurrentPasswordException.class,
-                () -> memberService.changeCurrentMemberPassword(memberId, request));
+                () -> memberService.changeCurrentMemberPassword(command));
     }
 
     @Test
@@ -270,12 +272,12 @@ class MemberServiceTest {
                 LocalDateTime.now().minusDays(1),
                 LocalDateTime.now().minusDays(1)
         );
-        ChangePasswordRequest request = new ChangePasswordRequest("current-password", "short");
+        ChangePasswordCommand command = new ChangePasswordCommand(memberId, "current-password", "short");
 
-        when(memberRepository.findById(memberId)).thenReturn(java.util.Optional.of(member));
+        when(memberPersistencePort.findById(memberId)).thenReturn(Optional.of(member));
         when(passwordEncoder.matches("current-password", "encoded-current-password")).thenReturn(true);
 
         assertThrows(IllegalArgumentException.class,
-                () -> memberService.changeCurrentMemberPassword(memberId, request));
+                () -> memberService.changeCurrentMemberPassword(command));
     }
 }

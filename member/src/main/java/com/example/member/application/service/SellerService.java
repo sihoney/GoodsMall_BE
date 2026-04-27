@@ -1,17 +1,18 @@
 package com.example.member.application.service;
 
-import com.example.member.application.usecase.AccountVerificationUsecase;
-import com.example.member.application.usecase.SellerUsecase;
+import com.example.member.application.dto.command.AccountVerificationCreateCommand;
+import com.example.member.application.dto.command.SellerRegisterCommand;
+import com.example.member.application.dto.result.AccountVerificationSendResult;
+import com.example.member.application.dto.result.SellerResult;
+import com.example.member.application.port.out.MemberPersistencePort;
+import com.example.member.application.port.out.SellerPersistencePort;
+import com.example.member.application.port.in.AccountVerificationUsecase;
+import com.example.member.application.port.in.SellerUsecase;
 import com.example.member.common.exception.MemberNotFoundException;
 import com.example.member.common.exception.SellerAlreadyRegisteredException;
 import com.example.member.common.exception.SellerNotFoundException;
 import com.example.member.domain.entity.Member;
-import com.example.member.infrastructure.repository.MemberRepository;
-import com.example.member.infrastructure.repository.SellerRepository;
-import com.example.member.presentation.dto.AccountVerificationCreateRequest;
-import com.example.member.presentation.dto.AccountVerificationSendResponse;
-import com.example.member.presentation.dto.SellerRegisterRequest;
-import com.example.member.presentation.dto.SellerResponse;
+import com.example.member.domain.entity.Seller;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,46 +23,52 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class SellerService implements SellerUsecase {
 
-    private final SellerRepository sellerRepository;
-    private final MemberRepository memberRepository;
+    private final SellerPersistencePort sellerPersistencePort;
+    private final MemberPersistencePort memberPersistencePort;
     private final AccountVerificationUsecase accountVerificationUsecase;
 
     @Transactional
     @Override
-    public AccountVerificationSendResponse registerSeller(UUID memberId, SellerRegisterRequest request) {
-        validateRegisterRequest(request);
+    public AccountVerificationSendResult registerSeller(UUID memberId, SellerRegisterCommand command) {
+        validateRegisterCommand(command);
         getMember(memberId);
 
-        if (sellerRepository.existsByMemberId(memberId)) {
+        if (sellerPersistencePort.existsByMemberId(memberId)) {
             throw new SellerAlreadyRegisteredException();
         }
 
         return accountVerificationUsecase.createAccountVerification(
                 memberId,
-                new AccountVerificationCreateRequest(
-                        normalizeRequired(request.bankName(), "bankName"),
-                        normalizeRequired(request.account(), "account")
+                new AccountVerificationCreateCommand(
+                        normalizeRequired(command.bankName(), "bankName"),
+                        normalizeRequired(command.account(), "account")
                 )
         );
     }
 
     @Override
-    public SellerResponse getCurrentSeller(UUID memberId) {
+    public SellerResult getCurrentSeller(UUID memberId) {
         getMember(memberId);
-        return SellerResponse.from(
-                sellerRepository.findByMemberId(memberId)
-                        .orElseThrow(SellerNotFoundException::new)
+        Seller seller = sellerPersistencePort.findByMemberId(memberId)
+                .orElseThrow(SellerNotFoundException::new);
+
+        return new SellerResult(
+                seller.getSellerId(),
+                seller.getMemberId(),
+                seller.getBankName(),
+                seller.getAccount(),
+                seller.getApprovedAt()
         );
     }
 
-    private void validateRegisterRequest(SellerRegisterRequest request) {
-        if (request == null) {
-            throw new IllegalArgumentException("판매자 등록 요청 본문은 필수입니다.");
+    private void validateRegisterCommand(SellerRegisterCommand command) {
+        if (command == null) {
+            throw new IllegalArgumentException("판매자 등록 요청은 필수입니다.");
         }
     }
 
     private Member getMember(UUID memberId) {
-        return memberRepository.findById(memberId)
+        return memberPersistencePort.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
     }
 
@@ -72,3 +79,4 @@ public class SellerService implements SellerUsecase {
         return value.trim();
     }
 }
+

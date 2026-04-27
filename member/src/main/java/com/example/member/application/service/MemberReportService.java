@@ -1,17 +1,17 @@
 package com.example.member.application.service;
 
-import com.example.member.application.usecase.MemberReportUsecase;
+import com.example.member.application.dto.command.CreateMemberReportCommand;
+import com.example.member.application.dto.command.CreateMemberRestrictionCommand;
+import com.example.member.application.dto.command.ReviewMemberReportCommand;
+import com.example.member.application.dto.result.MemberReportResult;
+import com.example.member.application.port.out.MemberPersistencePort;
+import com.example.member.application.port.out.MemberReportPersistencePort;
+import com.example.member.application.port.in.MemberReportUsecase;
 import com.example.member.common.exception.DuplicateMemberReportException;
 import com.example.member.common.exception.MemberNotFoundException;
 import com.example.member.common.exception.MemberReportNotFoundException;
 import com.example.member.common.exception.SelfReportNotAllowedException;
 import com.example.member.domain.entity.MemberReport;
-import com.example.member.infrastructure.repository.MemberReportRepository;
-import com.example.member.infrastructure.repository.MemberRepository;
-import com.example.member.presentation.dto.CreateMemberReportRequest;
-import com.example.member.presentation.dto.CreateMemberRestrictionRequest;
-import com.example.member.presentation.dto.MemberReportResponse;
-import com.example.member.presentation.dto.ReviewMemberReportRequest;
 import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
 import com.todaylunch.common.security.auth.util.RoleGuard;
 import java.time.LocalDateTime;
@@ -26,29 +26,29 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class MemberReportService implements MemberReportUsecase {
 
-    private final MemberRepository memberRepository;
-    private final MemberReportRepository memberReportRepository;
+    private final MemberPersistencePort memberPersistencePort;
+    private final MemberReportPersistencePort memberReportPersistencePort;
     private final MemberRestrictionService memberRestrictionService;
 
     @Transactional
     @Override
-    public MemberReportResponse createReport(
+    public MemberReportResult createReport(
             AuthenticatedMember authenticatedMember,
-            CreateMemberReportRequest request
+            CreateMemberReportCommand command
     ) {
         validateReporter(authenticatedMember);
-        validateCreateRequest(request);
+        validateCreateCommand(command);
 
         UUID reporterId = authenticatedMember.memberId();
-        UUID reportedMemberId = request.reportedMemberId();
+        UUID reportedMemberId = command.reportedMemberId();
         if (reporterId.equals(reportedMemberId)) {
             throw new SelfReportNotAllowedException();
         }
 
-        memberRepository.findById(reporterId).orElseThrow(MemberNotFoundException::new);
-        memberRepository.findById(reportedMemberId).orElseThrow(MemberNotFoundException::new);
+        memberPersistencePort.findById(reporterId).orElseThrow(MemberNotFoundException::new);
+        memberPersistencePort.findById(reportedMemberId).orElseThrow(MemberNotFoundException::new);
 
-        if (memberReportRepository.existsPendingReport(reporterId, reportedMemberId)) {
+        if (memberReportPersistencePort.existsPendingReport(reporterId, reportedMemberId)) {
             throw new DuplicateMemberReportException();
         }
 
@@ -56,94 +56,94 @@ public class MemberReportService implements MemberReportUsecase {
                 UUID.randomUUID(),
                 reporterId,
                 reportedMemberId,
-                request.reason(),
-                request.reportType(),
+                command.reason(),
+                command.reportType(),
                 LocalDateTime.now()
         );
-        return MemberReportResponse.from(memberReportRepository.save(memberReport));
+        return toResult(memberReportPersistencePort.save(memberReport));
     }
 
     @Override
-    public List<MemberReportResponse> getMyReports(AuthenticatedMember authenticatedMember) {
+    public List<MemberReportResult> getMyReports(AuthenticatedMember authenticatedMember) {
         validateReporter(authenticatedMember);
-        return memberReportRepository.findAllByReporterId(authenticatedMember.memberId()).stream()
-                .map(MemberReportResponse::from)
+        return memberReportPersistencePort.findAllByReporterId(authenticatedMember.memberId()).stream()
+                .map(this::toResult)
                 .toList();
     }
 
     @Override
-    public List<MemberReportResponse> getReportsForMember(AuthenticatedMember authenticatedMember, UUID memberId) {
+    public List<MemberReportResult> getReportsForMember(AuthenticatedMember authenticatedMember, UUID memberId) {
         RoleGuard.requireAdmin(authenticatedMember);
-        memberRepository.findById(memberId).orElseThrow(MemberNotFoundException::new);
-        return memberReportRepository.findAllByReportedMemberId(memberId).stream()
-                .map(MemberReportResponse::from)
+        memberPersistencePort.findById(memberId).orElseThrow(MemberNotFoundException::new);
+        return memberReportPersistencePort.findAllByReportedMemberId(memberId).stream()
+                .map(this::toResult)
                 .toList();
     }
 
     @Override
-    public List<MemberReportResponse> getAllReports(AuthenticatedMember authenticatedMember) {
+    public List<MemberReportResult> getAllReports(AuthenticatedMember authenticatedMember) {
         RoleGuard.requireAdmin(authenticatedMember);
-        return memberReportRepository.findAll().stream()
-                .map(MemberReportResponse::from)
+        return memberReportPersistencePort.findAll().stream()
+                .map(this::toResult)
                 .toList();
     }
 
     @Override
-    public MemberReportResponse getReportDetail(AuthenticatedMember authenticatedMember, UUID reportId) {
+    public MemberReportResult getReportDetail(AuthenticatedMember authenticatedMember, UUID reportId) {
         RoleGuard.requireAdmin(authenticatedMember);
-        return MemberReportResponse.from(
-                memberReportRepository.findById(reportId)
+        return toResult(
+                memberReportPersistencePort.findById(reportId)
                         .orElseThrow(MemberReportNotFoundException::new)
         );
     }
 
     @Transactional
     @Override
-    public MemberReportResponse approveReport(
+    public MemberReportResult approveReport(
             AuthenticatedMember authenticatedMember,
             UUID reportId,
-            ReviewMemberReportRequest request
+            ReviewMemberReportCommand command
     ) {
         RoleGuard.requireAdmin(authenticatedMember);
-        validateReviewRequest(request);
+        validateReviewCommand(command);
 
-        MemberReport memberReport = memberReportRepository.findById(reportId)
+        MemberReport memberReport = memberReportPersistencePort.findById(reportId)
                 .orElseThrow(MemberReportNotFoundException::new);
-        memberReport.approve(authenticatedMember.memberId(), request.reviewComment(), LocalDateTime.now());
+        memberReport.approve(authenticatedMember.memberId(), command.reviewComment(), LocalDateTime.now());
 
-        if (request.restrictionType() != null || request.durationHours() != null) {
-            if (request.restrictionType() == null || request.durationHours() == null) {
-                throw new IllegalArgumentException("restrictionType과 durationHours는 함께 제공되어야 합니다.");
+        if (command.restrictionType() != null || command.durationHours() != null) {
+            if (command.restrictionType() == null || command.durationHours() == null) {
+                throw new IllegalArgumentException("restrictionType과 durationHours는 함께 입력해야 합니다.");
             }
 
             memberRestrictionService.createRestriction(
                     authenticatedMember,
-                    new CreateMemberRestrictionRequest(
+                    new CreateMemberRestrictionCommand(
                             memberReport.getReportedMemberId(),
                             memberReport.getReason(),
-                            request.restrictionType(),
-                            request.durationHours()
+                            command.restrictionType(),
+                            command.durationHours()
                     )
             );
         }
 
-        return MemberReportResponse.from(memberReport);
+        return toResult(memberReport);
     }
 
     @Transactional
     @Override
-    public MemberReportResponse rejectReport(
+    public MemberReportResult rejectReport(
             AuthenticatedMember authenticatedMember,
             UUID reportId,
-            ReviewMemberReportRequest request
+            ReviewMemberReportCommand command
     ) {
         RoleGuard.requireAdmin(authenticatedMember);
-        validateReviewRequest(request);
+        validateReviewCommand(command);
 
-        MemberReport memberReport = memberReportRepository.findById(reportId)
+        MemberReport memberReport = memberReportPersistencePort.findById(reportId)
                 .orElseThrow(MemberReportNotFoundException::new);
-        memberReport.reject(authenticatedMember.memberId(), request.reviewComment(), LocalDateTime.now());
-        return MemberReportResponse.from(memberReport);
+        memberReport.reject(authenticatedMember.memberId(), command.reviewComment(), LocalDateTime.now());
+        return toResult(memberReport);
     }
 
     private void validateReporter(AuthenticatedMember authenticatedMember) {
@@ -152,21 +152,38 @@ public class MemberReportService implements MemberReportUsecase {
         }
     }
 
-    private void validateCreateRequest(CreateMemberReportRequest request) {
-        if (request == null) {
-            throw new IllegalArgumentException("회원 신고 생성 요청 본문은 필수입니다.");
+    private void validateCreateCommand(CreateMemberReportCommand command) {
+        if (command == null) {
+            throw new IllegalArgumentException("회원 신고 생성 요청은 필수입니다.");
         }
-        if (request.reportedMemberId() == null) {
+        if (command.reportedMemberId() == null) {
             throw new IllegalArgumentException("reportedMemberId는 필수입니다.");
         }
-        if (request.reportType() == null) {
+        if (command.reportType() == null) {
             throw new IllegalArgumentException("reportType은 필수입니다.");
         }
     }
 
-    private void validateReviewRequest(ReviewMemberReportRequest request) {
-        if (request == null) {
-            throw new IllegalArgumentException("회원 신고 검토 요청 본문은 필수입니다.");
+    private void validateReviewCommand(ReviewMemberReportCommand command) {
+        if (command == null) {
+            throw new IllegalArgumentException("회원 신고 검토 요청은 필수입니다.");
         }
     }
+
+    private MemberReportResult toResult(MemberReport memberReport) {
+        return new MemberReportResult(
+                memberReport.getReportId(),
+                memberReport.getReporterId(),
+                memberReport.getReportedMemberId(),
+                memberReport.getReason(),
+                memberReport.getReportType(),
+                memberReport.getStatus(),
+                memberReport.getReviewComment(),
+                memberReport.getReviewedBy(),
+                memberReport.getReviewedAt(),
+                memberReport.getCreatedAt(),
+                memberReport.getUpdatedAt()
+        );
+    }
 }
+
