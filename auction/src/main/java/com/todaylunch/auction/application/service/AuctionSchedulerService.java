@@ -46,6 +46,10 @@ public class AuctionSchedulerService {
             return;
         }
 
+        if (lockedAuction.getEndedAt().isAfter(LocalDateTime.now())) {
+            return;
+        }
+
         Optional<Bid> bid = bidRepository.findActiveByAuctionId(lockedAuction.getAuctionId());
         if (bid.isPresent()) {
             Bid winningBid = bid.get();
