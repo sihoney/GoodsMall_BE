@@ -26,6 +26,11 @@ public class DeliveryRepositoryImpl implements DeliveryRepository {
     }
 
     @Override
+    public Optional<Delivery> findByOrderItemId(UUID orderItemId) {
+        return deliveryJpaRepository.findByOrderItemOrderItemId(orderItemId);
+    }
+
+    @Override
     public void saveAll(List<Delivery> deliveries) {
         deliveryJpaRepository.saveAll(deliveries);
     }
