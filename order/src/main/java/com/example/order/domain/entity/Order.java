@@ -174,6 +174,15 @@ public class Order {
         this.updatedAt = LocalDateTime.now();
     }
 
+    public void markShipping() {
+        boolean allShipping = this.items.stream()
+                .filter(item -> item.getStatus() != OrderItemStatus.CANCELED)
+                .allMatch(item -> item.getStatus() == OrderItemStatus.SHIPPING);
+
+        this.status = allShipping ? OrderStatus.SHIPPING : OrderStatus.PARTIAL_SHIPPING;
+        this.updatedAt = LocalDateTime.now();
+    }
+
     public void complete() {
         this.items.stream()
                 .filter(item -> item.getStatus() != OrderItemStatus.CANCELED)

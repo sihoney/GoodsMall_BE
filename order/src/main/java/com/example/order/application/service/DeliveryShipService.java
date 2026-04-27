@@ -1,39 +1,51 @@
 package com.example.order.application.service;
 
+import com.example.order.application.usecase.DeliveryShipUseCase;
+import com.example.order.common.exception.CustomException;
+import com.example.order.common.exception.ErrorCode;
+import com.example.order.domain.entity.CourierCompany;
+import com.example.order.domain.entity.Delivery;
+import com.example.order.domain.repository.CourierRepository;
 import com.example.order.domain.repository.DeliveryRepository;
+import com.example.order.infrastructure.fake.FakeWebhookTrigger;
+import com.example.order.presentation.dto.request.DeliveryShipRequest;
+import com.example.order.presentation.dto.response.DeliveryShipResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class DeliveryShipService {
-
-    private static final String FAKE_COURIER_CODE = "04"; // CJ대한통운, 임의의 delivery 생성
+public class DeliveryShipService implements DeliveryShipUseCase {
 
     private final DeliveryRepository deliveryRepository;
+    private final CourierRepository courierRepository;
+    private final FakeWebhookTrigger fakeWebhookTrigger;
 
     @Transactional
-    public void startShip(UUID deliveryId) {
-        deliveryRepository.findByDeliveryId(deliveryId).ifPresentOrElse(
-                delivery -> {
-                    delivery.ship(FAKE_COURIER_CODE, generateFakeInvoiceNumber());
-                    log.info("배송 시작 - deliveryId: {}, invoiceNumber: {}, courierCode: {}",
-                            deliveryId, delivery.getInvoiceNumber(), delivery.getCourierCode());
-                },
-                () -> log.warn("배송 정보를 찾을 수 없음 - deliveryId: {}", deliveryId)
-        );
+    public DeliveryShipResponse startShip(UUID deliveryId, UUID sellerId, DeliveryShipRequest request) {
+        Delivery delivery = deliveryRepository.findByDeliveryId(deliveryId)
+                .orElseThrow(() -> new CustomException(ErrorCode.DELIVERY_NOT_FOUND));
 
-    }
+        if (!delivery.getSellerId().equals(sellerId)) {
+            throw new CustomException(ErrorCode.ORDER_FORBIDDEN);
+        }
 
-    // 테스트용 배송 시작 송장 번호 생성
-    private String generateFakeInvoiceNumber() {
-        return String.valueOf(ThreadLocalRandom.current()
-                .nextLong(100_000_000_000L, 1_000_000_000_000L));
+        CourierCompany courier = courierRepository.findByNameAndActiveTrue(request.courier())
+                .orElseThrow(() -> new CustomException(ErrorCode.COURIER_NOT_FOUND));
+
+        delivery.ship(courier.getCode(), request.invoiceNumber());
+        delivery.getOrderItem().startShip();
+        delivery.getOrderItem().getOrder().markShipping();
+
+        log.info("배송 시작 - deliveryId: {}, courier: {}, invoiceNumber: {}", deliveryId, courier.getName(), request.invoiceNumber());
+
+        fakeWebhookTrigger.scheduleDeliveryComplete(deliveryId);
+
+        return DeliveryShipResponse.from(delivery, courier.getName());
     }
 }

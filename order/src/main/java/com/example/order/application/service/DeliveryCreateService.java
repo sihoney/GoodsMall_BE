@@ -1,6 +1,5 @@
 package com.example.order.application.service;
 
-import com.example.order.application.port.CachePort;
 import com.example.order.domain.entity.Delivery;
 import com.example.order.domain.entity.Order;
 import com.example.order.domain.entity.OrderItem;
@@ -17,7 +16,6 @@ import java.util.List;
 public class DeliveryCreateService {
 
     private final DeliveryRepository deliveryRepository;
-    private final CachePort cachePort;
 
     @Transactional
     public void create(Order order) {
@@ -31,9 +29,5 @@ public class DeliveryCreateService {
         }
 
         deliveryRepository.saveAll(deliveries);
-
-        for (Delivery delivery : deliveries) {
-            cachePort.registerExpire(delivery.getDeliveryId());
-        }
     }
 }
