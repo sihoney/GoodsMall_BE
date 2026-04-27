@@ -27,6 +27,7 @@ public enum ErrorCode {
     INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, "입력값이 올바르지 않습니다."),
 
     CHARGE_NOT_FOUND(HttpStatus.NOT_FOUND, "충전 내역을 찾을 수 없습니다."),
+    ORDER_PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "주문 결제 정보를 찾을 수 없습니다."),
     AUCTION_DEPOSIT_NOT_FOUND(HttpStatus.NOT_FOUND, "경매 예치금 정보를 찾을 수 없습니다."),
     ESCROW_NOT_FOUND(HttpStatus.NOT_FOUND, "에스크로 정보를 찾을 수 없습니다."),
     WALLET_NOT_FOUND(HttpStatus.NOT_FOUND, "지갑 정보를 찾을 수 없습니다."),
