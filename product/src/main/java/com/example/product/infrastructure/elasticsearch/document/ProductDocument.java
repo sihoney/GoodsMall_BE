@@ -2,7 +2,7 @@ package com.example.product.infrastructure.elasticsearch.document;
 
 import com.example.product.domain.entity.Product;
 import com.example.product.domain.model.ProductSearchResult;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import tools.jackson.annotation.JsonIgnoreProperties;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
