@@ -5,10 +5,13 @@ import com.example.product.common.exception.ProductNotFoundException;
 import com.example.product.domain.entity.Product;
 import com.example.product.domain.entity.ProductImage;
 import com.example.product.domain.enumtype.ProductStatus;
+import com.example.product.domain.enumtype.ProductType;
+import com.example.product.domain.model.ProductSearchResult;
 import com.example.product.domain.repository.CategoryRepository;
+import com.example.product.domain.repository.FileStorageRepository;
 import com.example.product.domain.repository.ProductImageRepository;
 import com.example.product.domain.repository.ProductRepository;
-import com.example.product.domain.repository.FileStorageRepository;
+import com.example.product.domain.repository.ProductSearchRepository;
 import com.example.product.presentation.dto.response.ProductImageResponse;
 import com.example.product.presentation.dto.response.ProductResponse;
 import java.math.BigDecimal;
@@ -30,6 +33,7 @@ public class ProductSearchService implements ProductSearchUseCase {
     private final ProductImageRepository productImageRepository;
     private final CategoryRepository categoryRepository;
     private final FileStorageRepository fileStorageRepository;
+    private final ProductSearchRepository productSearchRepository;
 
     @Override
     public Page<ProductResponse> findDisplayProducts(
@@ -41,19 +45,26 @@ public class ProductSearchService implements ProductSearchUseCase {
     ) {
         List<UUID> categoryIds = collectCategoryIds(categoryId);
 
-        // 통합 검색 (카테고리 + 키워드 + 가격 필터 + 정렬)
-        Page<Product> products = productRepository.findDisplayProductsWithFilters(
-                categoryIds,
-                keyword,
-                minPrice,
-                maxPrice,
-                pageable
-        );
+        return productSearchRepository.searchProducts(categoryIds, keyword, minPrice, maxPrice, pageable)
+                .map(this::toProductResponse);
+    }
 
-        return products.map(product -> {
-            List<ProductImage> images = productImageRepository.findByProductId(product.getProductId());
-            return buildProductResponse(product, images);
-        });
+    private ProductResponse toProductResponse(ProductSearchResult result) {
+        String presignedUrl = fileStorageRepository.generatePresignedUrl(result.thumbnailS3Key());
+        List<ProductImageResponse> images = List.of(ProductImageResponse.ofThumbnail(result.thumbnailS3Key(), presignedUrl));
+        return new ProductResponse(
+                result.productId(),
+                result.title(),
+                result.description(),
+                result.price(),
+                result.stockQuantity(),
+                ProductStatus.valueOf(result.status()),
+                ProductType.valueOf(result.type()),
+                result.categoryId(),
+                result.categoryName(),
+                result.createdAt(),
+                images
+        );
     }
 
     private List<UUID> collectCategoryIds(String categoryId) {

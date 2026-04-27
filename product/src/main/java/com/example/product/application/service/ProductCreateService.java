@@ -52,10 +52,7 @@ public class ProductCreateService implements ProductCreateUseCase {
         Product savedProduct = productRepository.save(product);
         log.info("Product created: productId={}", savedProduct.getProductId());
 
-        List<ProductImage> savedImages = new ArrayList<>();
-        if (images != null && images.length > 0) {
-            savedImages = uploadImages(savedProduct.getProductId(), images, thumbnailIndex);
-        }
+        List<ProductImage> savedImages = uploadImages(savedProduct.getProductId(), images, thumbnailIndex);
 
         productOutboxEventService.saveCreatedEvent(savedProduct);
 
