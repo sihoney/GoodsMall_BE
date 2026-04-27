@@ -1,142 +1,56 @@
 -- ============================================
--- 배포 기본 Seed Data - 상품 카테고리
+-- 배포 기본 Seed Data - 상품 카테고리 (굿즈몰)
 -- ============================================
--- 기존 데이터는 유지하고, 동일한 의미의 카테고리가 없을 때만 추가합니다.
--- 루트 카테고리(depth=0)는 공용, 하위 카테고리(depth=1)는 판매자 기준으로 구성합니다.
+-- 대분류 5개 (depth=0) / 중분류 16개 (depth=1)
+-- 전체 관리자 공통 관리 (seller_id=NULL)
 -- ============================================
 
-INSERT INTO product.category (
-    category_id,
-    parent_id,
-    seller_id,
-    name,
-    description,
-    depth,
-    sort_order,
-    created_at,
-    updated_at
-)
-SELECT
-    seed.category_id::UUID,
-    NULL,
-    NULL,
-    seed.name,
-    seed.description,
-    0,
-    seed.sort_order::INTEGER,
-    NOW(),
-    NOW()
-FROM (
-    VALUES
-        ('94000000-0000-0000-0000-000000000001', '패션', '의류와 패션 굿즈를 모아보는 카테고리', 100),
-        ('94000000-0000-0000-0000-000000000002', '문구/오피스', '기록과 꾸미기에 어울리는 문구 카테고리', 200),
-        ('94000000-0000-0000-0000-000000000003', '리빙/테크', '생활 소품과 테크 액세서리 카테고리', 300)
-) AS seed(category_id, name, description, sort_order)
-WHERE NOT EXISTS (
-    SELECT 1
-    FROM product.category existing
-    WHERE existing.parent_id IS NULL
-      AND existing.seller_id IS NULL
-      AND existing.depth = 0
-      AND existing.deleted_at IS NULL
-      AND existing.name = seed.name
-);
+-- depth=0 대분류
+INSERT INTO product.category (category_id, parent_id, seller_id, name, description, depth, sort_order, created_at, updated_at)
+VALUES
+    ('94000000-0000-0000-0000-000000000001', NULL, NULL, '패션잡화',    '키링·뱃지·가방 등 패션 소품 굿즈',        0, 100, NOW(), NOW()),
+    ('94000000-0000-0000-0000-000000000002', NULL, NULL, '문구',        '스티커·엽서·노트 등 문구 굿즈',            0, 200, NOW(), NOW()),
+    ('94000000-0000-0000-0000-000000000003', NULL, NULL, '의류',        '티셔츠·맨투맨·후드 등 의류 굿즈',          0, 300, NOW(), NOW()),
+    ('94000000-0000-0000-0000-000000000004', NULL, NULL, '생활용품',    '머그·텀블러·인테리어 소품 굿즈',            0, 400, NOW(), NOW()),
+    ('94000000-0000-0000-0000-000000000005', NULL, NULL, '디지털/전자', '폰케이스·그립톡·마우스패드 등 디지털 굿즈', 0, 500, NOW(), NOW())
+ON CONFLICT (category_id) DO UPDATE SET
+    parent_id   = EXCLUDED.parent_id,
+    seller_id   = EXCLUDED.seller_id,
+    name        = EXCLUDED.name,
+    description = EXCLUDED.description,
+    depth       = EXCLUDED.depth,
+    sort_order  = EXCLUDED.sort_order,
+    updated_at  = NOW();
 
-WITH root_categories AS (
-    SELECT DISTINCT ON (root.name)
-        root.category_id,
-        root.name
-    FROM product.category root
-    WHERE root.parent_id IS NULL
-      AND root.seller_id IS NULL
-      AND root.depth = 0
-      AND root.deleted_at IS NULL
-    ORDER BY root.name, root.sort_order, root.created_at
-)
-INSERT INTO product.category (
-    category_id,
-    parent_id,
-    seller_id,
-    name,
-    description,
-    depth,
-    sort_order,
-    created_at,
-    updated_at
-)
-SELECT
-    seed.category_id::UUID,
-    root_categories.category_id,
-    seller_member.member_id,
-    seed.name,
-    seed.description,
-    1,
-    seed.sort_order::INTEGER,
-    NOW(),
-    NOW()
-FROM (
-    VALUES
-        (
-            '94100000-0000-0000-0000-000000000001',
-            '패션',
-            'haneul.seller@seed.todaylunch.local',
-            '티셔츠',
-            '데일리웨어 중심의 반팔/긴팔 티셔츠',
-            110
-        ),
-        (
-            '94100000-0000-0000-0000-000000000002',
-            '패션',
-            'haneul.seller@seed.todaylunch.local',
-            '후드/스웨트셔츠',
-            '간절기와 겨울 시즌에 적합한 상의',
-            120
-        ),
-        (
-            '94100000-0000-0000-0000-000000000003',
-            '문구/오피스',
-            'haneul.seller@seed.todaylunch.local',
-            '노트/다이어리',
-            '학업과 기록용으로 활용하는 노트류',
-            210
-        ),
-        (
-            '94100000-0000-0000-0000-000000000004',
-            '문구/오피스',
-            'haneul.seller@seed.todaylunch.local',
-            '스티커/데코',
-            '다이어리 꾸미기와 포장용 소품',
-            220
-        ),
-        (
-            '94100000-0000-0000-0000-000000000005',
-            '리빙/테크',
-            'seoyun.seller@seed.todaylunch.local',
-            '키링/뱃지',
-            '가방과 파우치에 포인트를 더하는 소품',
-            310
-        ),
-        (
-            '94100000-0000-0000-0000-000000000006',
-            '리빙/테크',
-            'seoyun.seller@seed.todaylunch.local',
-            '텀블러/머그',
-            '사무실과 일상에서 쓰는 음용 굿즈',
-            320
-        )
-) AS seed(category_id, parent_name, seller_email, name, description, sort_order)
-JOIN root_categories
-    ON root_categories.name = seed.parent_name
-JOIN member.member seller_member
-    ON seller_member.email = seed.seller_email
-WHERE NOT EXISTS (
-    SELECT 1
-    FROM product.category existing
-    WHERE existing.parent_id = root_categories.category_id
-      AND existing.seller_id = seller_member.member_id
-      AND existing.depth = 1
-      AND existing.deleted_at IS NULL
-      AND existing.name = seed.name
-);
-
-
+-- depth=1 중분류 (seller_id=NULL, 관리자 공통 관리)
+INSERT INTO product.category (category_id, parent_id, seller_id, name, description, depth, sort_order, created_at, updated_at)
+VALUES
+    -- 패션잡화
+    ('94100000-0000-0000-0000-000000000001', '94000000-0000-0000-0000-000000000001', NULL, '키링',      '아크릴·레더·원형·입체 키링',            1, 110, NOW(), NOW()),
+    ('94100000-0000-0000-0000-000000000002', '94000000-0000-0000-0000-000000000001', NULL, '핀뱃지',    '금속·아크릴·자수 뱃지',                  1, 120, NOW(), NOW()),
+    ('94100000-0000-0000-0000-000000000003', '94000000-0000-0000-0000-000000000001', NULL, '가방',      '에코백·토트백·파우치백',                  1, 130, NOW(), NOW()),
+    -- 문구
+    ('94100000-0000-0000-0000-000000000004', '94000000-0000-0000-0000-000000000002', NULL, '스티커',       '낱장·스티커팩·홀로그램 스티커',         1, 210, NOW(), NOW()),
+    ('94100000-0000-0000-0000-000000000005', '94000000-0000-0000-0000-000000000002', NULL, '엽서/카드',    '엽서·인사카드·포토카드',                1, 220, NOW(), NOW()),
+    ('94100000-0000-0000-0000-000000000006', '94000000-0000-0000-0000-000000000002', NULL, '노트/다이어리', '스프링·무선노트·다이어리',             1, 230, NOW(), NOW()),
+    ('94100000-0000-0000-0000-000000000007', '94000000-0000-0000-0000-000000000002', NULL, '인쇄물',       '포스터·아트프린트·리플렛',              1, 240, NOW(), NOW()),
+    -- 의류
+    ('94100000-0000-0000-0000-000000000008', '94000000-0000-0000-0000-000000000003', NULL, '상의',   '티셔츠·롱슬리브·맨투맨',           1, 310, NOW(), NOW()),
+    ('94100000-0000-0000-0000-000000000009', '94000000-0000-0000-0000-000000000003', NULL, '아우터', '후드집업·후드티',                   1, 320, NOW(), NOW()),
+    ('94100000-0000-0000-0000-000000000010', '94000000-0000-0000-0000-000000000003', NULL, '기타',   '양말·모자 등 기타 의류 굿즈',       1, 330, NOW(), NOW()),
+    -- 생활용품
+    ('94100000-0000-0000-0000-000000000011', '94000000-0000-0000-0000-000000000004', NULL, '주방',      '머그컵·텀블러·컵받침',                     1, 410, NOW(), NOW()),
+    ('94100000-0000-0000-0000-000000000012', '94000000-0000-0000-0000-000000000004', NULL, '인테리어',  '쿠션·캔버스액자·포스터프레임',             1, 420, NOW(), NOW()),
+    ('94100000-0000-0000-0000-000000000013', '94000000-0000-0000-0000-000000000004', NULL, '기타 생활', '에어팟케이스·거울·마스킹테이프 등',        1, 430, NOW(), NOW()),
+    -- 디지털/전자
+    ('94100000-0000-0000-0000-000000000014', '94000000-0000-0000-0000-000000000005', NULL, '모바일',      '폰케이스·그립톡',          1, 510, NOW(), NOW()),
+    ('94100000-0000-0000-0000-000000000015', '94000000-0000-0000-0000-000000000005', NULL, 'PC 주변기기', '마우스패드·키보드 스킨',   1, 520, NOW(), NOW()),
+    ('94100000-0000-0000-0000-000000000016', '94000000-0000-0000-0000-000000000005', NULL, '기타',        '보조배터리·케이블 등',     1, 530, NOW(), NOW())
+ON CONFLICT (category_id) DO UPDATE SET
+    parent_id   = EXCLUDED.parent_id,
+    seller_id   = EXCLUDED.seller_id,
+    name        = EXCLUDED.name,
+    description = EXCLUDED.description,
+    depth       = EXCLUDED.depth,
+    sort_order  = EXCLUDED.sort_order,
+    updated_at  = NOW();

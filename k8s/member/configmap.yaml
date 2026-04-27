@@ -6,6 +6,7 @@ metadata:
 data:
   API_GATEWAY_HOST: "http://gateway:8080"
   AWS_REGION: "ap-northeast-2"
+  MEMBER_SIGNUP_REQUIRE_EMAIL_VERIFICATION: "true"
 
   EMAIL_PROVIDER: "smtp"
   SMTP_HOST: "live.smtp.mailtrap.io"
