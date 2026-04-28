@@ -49,6 +49,19 @@ cloud:
   elasticsearch:
     uris: ${ELASTICSEARCH_URI:http://localhost:9200}
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
 logging:
   level:
     com.todaylunch.auction: DEBUG

@@ -463,5 +463,25 @@ services:
     ports:
       - "8088:8088"
 
+  prometheus:
+    image: prom/prometheus:v2.51.2
+    container_name: goods-mall-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: goods-mall-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    depends_on:
+      - prometheus
+
 volumes:
   goods_mall_postgres_data:
