@@ -1,7 +1,13 @@
 package com.todaylunch.gateway.filter;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.todaylunch.gateway.security.AuthErrorCode;
+import com.todaylunch.gateway.security.AuthErrorResponse;
+import com.todaylunch.gateway.security.AuthException;
 import com.todaylunch.gateway.security.GatewayAuthProperties;
 import com.todaylunch.gateway.security.GatewayJwtValidator;
+import java.nio.charset.StandardCharsets;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -10,10 +16,12 @@ import org.springframework.core.Ordered;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Slf4j
@@ -27,6 +35,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     private final GatewayJwtValidator gatewayJwtValidator;
     private final GatewayAuthProperties gatewayAuthProperties;
+    private final ObjectMapper objectMapper;
     private final AntPathMatcher antPathMatcher = new AntPathMatcher();
 
     @Override
@@ -49,15 +58,16 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             return chain.filter(exchange);
         }
 
-        if (!gatewayAuthProperties.jwtValidationEnabled()) {
-            return chain.filter(exchange);
-        }
+        // 개발용 - JWT 검증 비활성화
+        // if (!gatewayAuthProperties.jwtValidationEnabled()) {
+        //     return chain.filter(exchange);
+        // }
 
         String authorizationHeader = exchange.getRequest()
             .getHeaders()
             .getFirst(HttpHeaders.AUTHORIZATION);
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            return unauthorized(exchange);
+            return unauthorized(exchange, AuthErrorCode.UNAUTHORIZED);
         }
 
         try {
@@ -78,16 +88,19 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                     })
                     .build();
             return chain.filter(exchange.mutate().request(mutatedRequest).build());
+        } catch (AuthException exception) {
+            log.warn("[JWT] validation failed: {} - {}", exception.getErrorCode(), exception.getMessage());
+            return unauthorized(exchange, exception.getErrorCode());
         } catch (Exception exception) {
             log.warn("[JWT] validation failed: {} - {}", exception.getClass().getSimpleName(), exception.getMessage(), exception);
-            return unauthorized(exchange);
+            return unauthorized(exchange, AuthErrorCode.INVALID_TOKEN);
         }
     }
 
-    @Override
-    public int getOrder() {
-        return -100;
-    }
+    // @Override
+    // public int getOrder() {
+    //     return -100;
+    // }
 
     private boolean isPublic(String method, String path) {
         boolean hasMatchingRoleRule = gatewayAuthProperties.roleRules().stream()
@@ -114,7 +127,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                 .toList();
 
         if (matchedRules.isEmpty()) {
-            return false; // 명시된 규칙이 없는 경우 접근 금지 (명시적 거부 정책, rule 미매칭 보호 API의 경우)
+            return false;
         }
 
         return matchedRules.stream()
@@ -135,15 +148,33 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         return false;
     }
 
-    // 401 Unauthorized
-    private Mono<Void> unauthorized(ServerWebExchange exchange) {
-        exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-        return exchange.getResponse().setComplete();
+    private Mono<Void> unauthorized(ServerWebExchange exchange, AuthErrorCode errorCode) {
+        return writeErrorResponse(exchange, HttpStatus.UNAUTHORIZED, errorCode);
     }
 
-    // 403 Forbidden
     private Mono<Void> forbidden(ServerWebExchange exchange) {
-        exchange.getResponse().setStatusCode(HttpStatus.FORBIDDEN);
-        return exchange.getResponse().setComplete();
+        return writeErrorResponse(exchange, HttpStatus.FORBIDDEN, AuthErrorCode.ACCESS_DENIED);
+    }
+
+    private Mono<Void> writeErrorResponse(
+            ServerWebExchange exchange,
+            HttpStatus status,
+            AuthErrorCode errorCode
+    ) {
+        exchange.getResponse().setStatusCode(status);
+        exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
+
+        byte[] body;
+        try {
+            body = objectMapper.writeValueAsBytes(AuthErrorResponse.from(errorCode));
+        } catch (JsonProcessingException exception) {
+            body = ("{\"code\":\"" + errorCode.name() + "\",\"message\":\""
+                    + errorCode.getMessage() + "\"}")
+                    .getBytes(StandardCharsets.UTF_8);
+        }
+
+        return exchange.getResponse().writeWith(Flux.just(
+                exchange.getResponse().bufferFactory().wrap(body)
+        ));
     }
 }
