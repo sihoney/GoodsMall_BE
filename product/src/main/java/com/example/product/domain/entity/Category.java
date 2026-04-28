@@ -10,6 +10,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -141,6 +143,16 @@ public class Category {
         }
         this.deletedAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
+    }
+
+    public List<UUID> collectIdHierarchy() {
+        List<UUID> ids = new ArrayList<>();
+        Category current = this;
+        while (current != null) {
+            ids.add(current.categoryId);
+            current = current.parent;
+        }
+        return ids;
     }
 
     public void validateSeller(UUID requestSellerId) {

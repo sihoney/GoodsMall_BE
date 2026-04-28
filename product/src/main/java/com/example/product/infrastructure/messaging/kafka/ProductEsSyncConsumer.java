@@ -68,7 +68,9 @@ public class ProductEsSyncConsumer {
                 .map(ProductImage::getS3Key)
                 .orElse(null);
 
-        List<String> categoryIds = List.of(product.getCategory().getCategoryId().toString());
+        List<String> categoryIds = product.getCategory().collectIdHierarchy().stream()
+                .map(UUID::toString)
+                .toList();
 
         productSearchRepository.index(product, categoryIds, thumbnailS3Key);
         log.debug("상품 ES 인덱싱 완료: productId={}", productId);

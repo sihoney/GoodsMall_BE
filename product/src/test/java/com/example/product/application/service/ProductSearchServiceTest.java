@@ -7,7 +7,6 @@ import com.example.product.domain.entity.ProductImage;
 import com.example.product.domain.enumtype.ProductStatus;
 import com.example.product.domain.enumtype.ProductType;
 import com.example.product.domain.model.ProductSearchResult;
-import com.example.product.domain.repository.CategoryRepository;
 import com.example.product.domain.repository.FileStorageRepository;
 import com.example.product.domain.repository.ProductImageRepository;
 import com.example.product.domain.repository.ProductRepository;
@@ -28,8 +27,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -52,9 +49,6 @@ class ProductSearchServiceTest {
 
     @Mock
     private ProductImageRepository productImageRepository;
-
-    @Mock
-    private CategoryRepository categoryRepository;
 
     @Mock
     private FileStorageRepository fileStorageRepository;
@@ -101,12 +95,11 @@ class ProductSearchServiceTest {
 
         @Test
         void 카테고리_ID로_상품을_필터링한다() {
-            // given
+            // given - 인덱스가 조상 계층을 포함하므로 단일 ID로 충분
             String categoryId = category.getCategoryId().toString();
             List<UUID> categoryIds = List.of(category.getCategoryId());
             Page<ProductSearchResult> searchResult = new PageImpl<>(List.of(createSearchResult("김치찌개")));
 
-            given(categoryRepository.findAllDescendantIds(any(UUID.class))).willReturn(Collections.emptyList());
             given(productSearchRepository.searchProducts(eq(categoryIds), isNull(), isNull(), isNull(), eq(pageable)))
                     .willReturn(searchResult);
             given(fileStorageRepository.generatePresignedUrl(anyString())).willReturn("http://presigned-url");
@@ -118,33 +111,7 @@ class ProductSearchServiceTest {
 
             // then
             assertThat(result).hasSize(1);
-            verify(categoryRepository, times(1)).findAllDescendantIds(any(UUID.class));
             verify(productSearchRepository, times(1)).searchProducts(eq(categoryIds), isNull(), isNull(), isNull(), eq(pageable));
-        }
-
-        @Test
-        void 하위_카테고리를_포함하여_상품을_조회한다() {
-            // given
-            String categoryId = category.getCategoryId().toString();
-            UUID subCategoryId = UUID.randomUUID();
-            List<UUID> categoryIds = new ArrayList<>();
-            categoryIds.add(category.getCategoryId());
-            categoryIds.add(subCategoryId);
-            Page<ProductSearchResult> searchResult = new PageImpl<>(List.of(createSearchResult("김치찌개")));
-
-            given(categoryRepository.findAllDescendantIds(any(UUID.class))).willReturn(List.of(subCategoryId));
-            given(productSearchRepository.searchProducts(eq(categoryIds), isNull(), isNull(), isNull(), eq(pageable)))
-                    .willReturn(searchResult);
-            given(fileStorageRepository.generatePresignedUrl(anyString())).willReturn("http://presigned-url");
-
-            // when
-            Page<ProductResponse> result = productSearchService.findDisplayProducts(
-                    categoryId, null, null, null, pageable
-            );
-
-            // then
-            assertThat(result).hasSize(1);
-            verify(categoryRepository, times(1)).findAllDescendantIds(any(UUID.class));
         }
 
         @Test
@@ -196,7 +163,6 @@ class ProductSearchServiceTest {
             List<UUID> categoryIds = List.of(category.getCategoryId());
             Page<ProductSearchResult> searchResult = new PageImpl<>(List.of(createSearchResult("김치찌개")));
 
-            given(categoryRepository.findAllDescendantIds(any(UUID.class))).willReturn(Collections.emptyList());
             given(productSearchRepository.searchProducts(eq(categoryIds), eq(keyword), eq(minPrice), eq(maxPrice), eq(pageable)))
                     .willReturn(searchResult);
             given(fileStorageRepository.generatePresignedUrl(anyString())).willReturn("http://presigned-url");
@@ -226,7 +192,7 @@ class ProductSearchServiceTest {
 
             // then
             assertThat(result).hasSize(1);
-            verify(categoryRepository, never()).findAllDescendantIds(any());
+            verify(productSearchRepository, times(1)).searchProducts(isNull(), isNull(), isNull(), isNull(), eq(pageable));
         }
 
         @Test

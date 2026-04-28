@@ -4,25 +4,63 @@ import com.example.product.domain.entity.Product;
 import com.example.product.domain.model.ProductSearchResult;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.elasticsearch.annotations.Document;
+import org.springframework.data.elasticsearch.annotations.Field;
+import org.springframework.data.elasticsearch.annotations.FieldType;
 
+@Document(indexName = "products", createIndex = false)
 public class ProductDocument {
 
+    @Id
     private String productId;
+
+    @Field(type = FieldType.Keyword)
     private String sellerId;
+
+    @Field(type = FieldType.Keyword)
     private String categoryId;
+
+    @Field(type = FieldType.Keyword)
     private List<String> categoryIds;
+
+    @Field(type = FieldType.Keyword)
     private String categoryName;
+
+    @Field(type = FieldType.Text)
     private String title;
+
+    @Field(type = FieldType.Text)
     private String description;
+
+    @Field(type = FieldType.Double)
     private BigDecimal price;
+
+    @Field(type = FieldType.Integer)
     private Integer stockQuantity;
+
+    @Field(type = FieldType.Keyword)
     private String status;
+
+    @Field(type = FieldType.Keyword)
     private String type;
+
+    @Field(type = FieldType.Integer)
     private Integer viewCount;
+
+    @Field(type = FieldType.Keyword)
     private String thumbnailS3Key;
+
+    // 실제 ES 매핑은 product-mapping.json 의 date(strict_date_optional_time_nanos)가 SoT.
+    // Spring Data ES converter는 String 그대로 직렬화하며, ES가 ISO-8601 문자열을 date로 파싱한다.
+    @Field(type = FieldType.Keyword)
     private String createdAt;
+
+    @Field(type = FieldType.Keyword)
     private String updatedAt;
 
     protected ProductDocument() {
@@ -47,7 +85,7 @@ public class ProductDocument {
     }
 
     public ProductSearchResult toSearchResult() {
-        LocalDateTime parsedCreatedAt = createdAt != null ? LocalDateTime.parse(createdAt) : null;
+        LocalDateTime parsedCreatedAt = parseDate(createdAt);
         return new ProductSearchResult(
                 UUID.fromString(productId),
                 UUID.fromString(sellerId),
@@ -123,5 +161,15 @@ public class ProductDocument {
 
     public String getUpdatedAt() {
         return updatedAt;
+    }
+
+    // ES date 타입은 "2024-01-15T10:30:00" 또는 "2024-01-15T10:30:00.000Z" 등 다양한 포맷으로 반환될 수 있음
+    private static LocalDateTime parseDate(String s) {
+        if (s == null) return null;
+        try {
+            return LocalDateTime.parse(s);
+        } catch (DateTimeParseException e) {
+            return OffsetDateTime.parse(s).toLocalDateTime();
+        }
     }
 }
