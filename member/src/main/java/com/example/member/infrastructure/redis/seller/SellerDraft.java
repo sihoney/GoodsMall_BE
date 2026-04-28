@@ -1,4 +1,4 @@
-package com.example.member.infrastructure.redis;
+package com.example.member.infrastructure.redis.seller;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;

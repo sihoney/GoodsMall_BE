@@ -1,4 +1,4 @@
-package com.example.member.infrastructure.redis;
+package com.example.member.infrastructure.redis.auth;
 
 import java.util.UUID;
 

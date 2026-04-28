@@ -1,4 +1,4 @@
-package com.example.member.infrastructure.redis;
+package com.example.member.infrastructure.redis.passwordreset;
 
 import java.time.Duration;
 import java.util.Optional;

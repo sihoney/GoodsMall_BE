@@ -18,10 +18,10 @@ import com.example.member.domain.entity.MemberRestriction;
 import com.example.member.domain.enumtype.MemberStatus;
 import com.example.member.domain.enumtype.RestrictionType;
 import com.example.member.infrastructure.persistence.jpa.MemberJpaAdapter;
-import com.example.member.infrastructure.redis.AuthSession;
-import com.example.member.infrastructure.redis.ParsedRefreshToken;
-import com.example.member.infrastructure.redis.RefreshTokenStore;
-import com.example.member.infrastructure.redis.TokenBlacklistStore;
+import com.example.member.infrastructure.redis.auth.AuthSession;
+import com.example.member.infrastructure.redis.auth.ParsedRefreshToken;
+import com.example.member.infrastructure.redis.auth.RefreshTokenStore;
+import com.example.member.infrastructure.redis.auth.TokenBlacklistStore;
 import com.example.member.security.JwtTokenProvider;
 import com.todaylunch.common.security.auth.enumtype.MemberRole;
 import com.todaylunch.common.security.exception.InvalidTokenException;
@@ -223,7 +223,7 @@ class AuthServiceTest {
         String token = "access-token";
 
         when(jwtTokenProvider.parseAccessToken(token))
-                .thenReturn(new com.example.member.infrastructure.redis.ParsedAccessToken(
+                .thenReturn(new com.example.member.infrastructure.redis.auth.ParsedAccessToken(
                         memberId,
                         sessionId,
                         accessTokenId.toString(),
@@ -247,7 +247,7 @@ class AuthServiceTest {
         String token = "access-token";
 
         when(jwtTokenProvider.parseAccessToken(token))
-                .thenReturn(new com.example.member.infrastructure.redis.ParsedAccessToken(
+                .thenReturn(new com.example.member.infrastructure.redis.auth.ParsedAccessToken(
                         memberId,
                         sessionId1,
                         accessTokenId.toString(),

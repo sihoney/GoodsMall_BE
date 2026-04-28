@@ -1,4 +1,4 @@
-package com.example.member.infrastructure.redis;
+package com.example.member.infrastructure.redis.oauth;
 
 import com.example.member.application.dto.result.KakaoOAuthResult;
 import com.example.member.application.dto.result.KakaoOAuthResultStatus;
