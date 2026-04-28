@@ -130,11 +130,6 @@ public class Product {
         this.updatedAt = LocalDateTime.now();
     }
 
-    public void updatePrice(BigDecimal price) {
-        this.price = Objects.requireNonNull(price, "가격은 필수입니다");
-        this.updatedAt = LocalDateTime.now();
-    }
-
     public void updateStock(Integer newStock) {
         this.stockQuantity = newStock;
         validateSoldOut(newStock);

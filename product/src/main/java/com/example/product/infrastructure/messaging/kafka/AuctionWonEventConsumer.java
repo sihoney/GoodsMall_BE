@@ -34,8 +34,6 @@ public class AuctionWonEventConsumer {
                     .orElseThrow(ProductNotFoundException::new);
 
             product.decreaseStock(1);
-            product.updatePrice(payload.finalPrice());
-
             productRepository.save(product);
             log.debug("경매 낙찰 상품 처리 완료: productId={}, finalPrice={}", payload.productId(), payload.finalPrice());
         } catch (ProductNotFoundException e) {
