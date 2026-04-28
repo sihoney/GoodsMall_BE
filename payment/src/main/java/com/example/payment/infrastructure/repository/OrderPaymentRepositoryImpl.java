@@ -24,4 +24,9 @@ public class OrderPaymentRepositoryImpl implements OrderPaymentRepository {
     public Optional<OrderPayment> findByOrderId(UUID orderId) {
         return orderPaymentJpaRepository.findByOrderId(orderId);
     }
+
+    @Override
+    public Optional<OrderPayment> findByOrderIdAndBuyerMemberId(UUID orderId, UUID buyerMemberId) {
+        return orderPaymentJpaRepository.findByOrderIdAndBuyerMemberId(orderId, buyerMemberId);
+    }
 }

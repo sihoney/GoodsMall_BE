@@ -3,6 +3,7 @@ package com.example.payment.application.service;
 import com.example.payment.application.dto.ChargeDetailResult;
 import com.example.payment.application.dto.ChargeListItemResult;
 import com.example.payment.application.dto.EscrowTransactionItemResult;
+import com.example.payment.application.dto.OrderPaymentDetailResult;
 import com.example.payment.application.dto.PagedResult;
 import com.example.payment.application.dto.PendingSellerIncomeItemResult;
 import com.example.payment.application.dto.WalletSummaryResult;
@@ -10,16 +11,19 @@ import com.example.payment.application.dto.WalletTransactionItemResult;
 import com.example.payment.application.dto.WithdrawListItemResult;
 import com.example.payment.application.usecase.PaymentSearchUseCase;
 import com.example.payment.common.exception.ChargeNotFoundException;
+import com.example.payment.common.exception.OrderPaymentNotFoundException;
 import com.example.payment.common.exception.WalletNotFoundException;
 import com.example.payment.domain.entity.Charge;
 import com.example.payment.domain.entity.Escrow;
 import com.example.payment.domain.entity.EscrowTransaction;
+import com.example.payment.domain.entity.OrderPayment;
 import com.example.payment.domain.entity.Wallet;
 import com.example.payment.domain.entity.WalletTransaction;
 import com.example.payment.domain.entity.WithdrawRequest;
 import com.example.payment.domain.repository.ChargeRepository;
 import com.example.payment.domain.repository.EscrowRepository;
 import com.example.payment.domain.repository.EscrowTransactionRepository;
+import com.example.payment.domain.repository.OrderPaymentRepository;
 import com.example.payment.domain.repository.WalletRepository;
 import com.example.payment.domain.repository.WalletTransactionRepository;
 import com.example.payment.domain.repository.WithdrawRequestRepository;
@@ -48,6 +52,7 @@ public class PaymentSearchService implements PaymentSearchUseCase {
     private final EscrowRepository escrowRepository;
     private final EscrowTransactionRepository escrowTransactionRepository;
     private final WithdrawRequestRepository withdrawRequestRepository;
+    private final OrderPaymentRepository orderPaymentRepository;
 
     public PaymentSearchService(
             WalletRepository walletRepository,
@@ -55,7 +60,8 @@ public class PaymentSearchService implements PaymentSearchUseCase {
             WalletTransactionRepository walletTransactionRepository,
             EscrowRepository escrowRepository,
             EscrowTransactionRepository escrowTransactionRepository,
-            WithdrawRequestRepository withdrawRequestRepository
+            WithdrawRequestRepository withdrawRequestRepository,
+            OrderPaymentRepository orderPaymentRepository
     ) {
         this.walletRepository = walletRepository;
         this.chargeRepository = chargeRepository;
@@ -63,6 +69,7 @@ public class PaymentSearchService implements PaymentSearchUseCase {
         this.escrowRepository = escrowRepository;
         this.escrowTransactionRepository = escrowTransactionRepository;
         this.withdrawRequestRepository = withdrawRequestRepository;
+        this.orderPaymentRepository = orderPaymentRepository;
     }
 
     @Override
@@ -136,6 +143,21 @@ public class PaymentSearchService implements PaymentSearchUseCase {
         );
 
         return toPagedResult(withdrawRequestPage.map(this::toWithdrawListItemResult));
+    }
+
+    @Override
+    public OrderPaymentDetailResult findOrderPaymentByOrderId(UUID memberId, UUID orderId) {
+        OrderPayment orderPayment = orderPaymentRepository.findByOrderIdAndBuyerMemberId(orderId, memberId)
+                .orElseThrow(OrderPaymentNotFoundException::new);
+
+        return new OrderPaymentDetailResult(
+                orderPayment.getOrderPaymentId(),
+                orderPayment.getOrderId(),
+                orderPayment.getTotalAmount(),
+                orderPayment.getPaymentMethod(),
+                orderPayment.getPaymentStatus(),
+                orderPayment.getPaidAt()
+        );
     }
 
     @Override

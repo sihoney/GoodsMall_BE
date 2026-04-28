@@ -41,6 +41,7 @@ import com.example.payment.presentation.dto.response.ChargeDetailResponse;
 import com.example.payment.presentation.dto.response.ChargeListItemResponse;
 import com.example.payment.presentation.dto.response.EscrowTransactionItemResponse;
 import com.example.payment.presentation.dto.response.OrderPaymentApiResponse;
+import com.example.payment.presentation.dto.response.OrderPaymentDetailResponse;
 import com.example.payment.presentation.dto.response.PagedResponse;
 import com.example.payment.presentation.dto.response.PaymentRefundResponse;
 import com.example.payment.presentation.dto.response.PendingSellerIncomeItemResponse;
@@ -362,6 +363,18 @@ public class PaymentController {
                        .toList()
         );
         PaymentRefundResponse response = PaymentRefundResponse.from(sellerRefundUseCase.requestSellerRefund(command));
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/orders/{orderId}")
+    @Operation(summary = "주문 결제 정보 조회")
+    public ResponseEntity<ApiResponse<OrderPaymentDetailResponse>> findOrderPayment(
+            @CurrentMember AuthenticatedMember authenticatedMember,
+            @PathVariable UUID orderId
+    ) {
+        OrderPaymentDetailResponse response = OrderPaymentDetailResponse.from(
+                paymentSearchUseCase.findOrderPaymentByOrderId(authenticatedMember.memberId(), orderId)
+        );
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
