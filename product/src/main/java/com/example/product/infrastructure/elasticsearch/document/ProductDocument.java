@@ -2,14 +2,11 @@ package com.example.product.infrastructure.elasticsearch.document;
 
 import com.example.product.domain.entity.Product;
 import com.example.product.domain.model.ProductSearchResult;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
 public class ProductDocument {
 
     private String productId;
@@ -25,10 +22,10 @@ public class ProductDocument {
     private String type;
     private Integer viewCount;
     private String thumbnailS3Key;
-    private String createdAt;
-    private String updatedAt;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
-    public ProductDocument() {
+    protected ProductDocument() {
     }
 
     public ProductDocument(Product product, List<String> allCategoryIds, String thumbnailS3Key) {
@@ -45,14 +42,11 @@ public class ProductDocument {
         this.type = product.getType().name();
         this.viewCount = product.getViewCount();
         this.thumbnailS3Key = thumbnailS3Key;
-        this.createdAt = product.getCreatedAt() != null ? product.getCreatedAt().toString() : null;
-        this.updatedAt = product.getUpdatedAt() != null ? product.getUpdatedAt().toString() : null;
+        this.createdAt = product.getCreatedAt();
+        this.updatedAt = product.getUpdatedAt();
     }
 
     public ProductSearchResult toSearchResult() {
-        LocalDateTime parsedCreatedAt = createdAt != null
-                ? LocalDateTime.parse(createdAt, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-                : null;
         return new ProductSearchResult(
                 UUID.fromString(productId),
                 UUID.fromString(sellerId),
@@ -66,7 +60,7 @@ public class ProductDocument {
                 type,
                 viewCount,
                 thumbnailS3Key,
-                parsedCreatedAt
+                createdAt
         );
     }
 
@@ -122,11 +116,11 @@ public class ProductDocument {
         return thumbnailS3Key;
     }
 
-    public String getCreatedAt() {
+    public LocalDateTime getCreatedAt() {
         return createdAt;
     }
 
-    public String getUpdatedAt() {
+    public LocalDateTime getUpdatedAt() {
         return updatedAt;
     }
 }

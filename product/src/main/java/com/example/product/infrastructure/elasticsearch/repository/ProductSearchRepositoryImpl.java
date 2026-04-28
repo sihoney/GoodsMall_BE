@@ -70,7 +70,7 @@ public class ProductSearchRepositoryImpl implements ProductSearchRepository {
 
             return new PageImpl<>(results, pageable, total);
 
-        } catch (Exception e) {
+        } catch (IOException e) {
             log.error("상품 검색 실패: {}", e.getMessage(), e);
             return Page.empty(pageable);
         }
