@@ -56,6 +56,7 @@ class AuctionSchedulerServiceTest {
 
         waitingAuction = Auction.create(UUID.randomUUID(),
                                         "테스트 상품",
+                                        "test/thumbnail.jpg",
                                         UUID.randomUUID(),
                                         new BigDecimal("10000"),
                                         new BigDecimal("1000"),
@@ -64,6 +65,7 @@ class AuctionSchedulerServiceTest {
 
         ongoingAuction = Auction.create(UUID.randomUUID(),
                                         "테스트 상품",
+                                        "test/thumbnail.jpg",
                                         UUID.randomUUID(),
                                         new BigDecimal("10000"),
                                         new BigDecimal("1000"),
