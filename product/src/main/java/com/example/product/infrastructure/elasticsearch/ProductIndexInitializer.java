@@ -87,7 +87,9 @@ public class ProductIndexInitializer implements ApplicationRunner {
                             .map(ProductImage::getS3Key)
                             .orElse(null);
 
-                    List<String> categoryIds = List.of(product.getCategory().getCategoryId().toString());
+                    List<String> categoryIds = product.getCategory().collectIdHierarchy().stream()
+                            .map(java.util.UUID::toString)
+                            .toList();
 
                     productSearchRepository.index(product, categoryIds, thumbnailS3Key);
                     indexed++;

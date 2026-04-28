@@ -1,6 +1,9 @@
 package com.example.product.infrastructure.elasticsearch.repository;
 
 import co.elastic.clients.elasticsearch._types.FieldValue;
+import co.elastic.clients.elasticsearch._types.SortOptions;
+import co.elastic.clients.elasticsearch._types.SortOrder;
+import co.elastic.clients.elasticsearch._types.mapping.FieldType;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import com.example.product.domain.entity.Product;
 import com.example.product.domain.model.ProductSearchResult;
@@ -15,7 +18,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.SearchHit;
@@ -45,27 +47,40 @@ public class ProductSearchRepositoryImpl implements ProductSearchRepository {
 
         Query query = buildQuery(categoryIds, keyword, minPrice, maxPrice);
 
+        SearchHits<ProductDocument> searchHits;
         try {
+            SortOptions sort = SortOptions.of(s -> s
+                    .field(f -> f
+                            .field("createdAt")
+                            .order(SortOrder.Desc)
+                            .missing("_last")
+                            .unmappedType(FieldType.Date)
+                    )
+            );
+
             NativeQuery nativeQuery = NativeQuery.builder()
                     .withQuery(query)
                     .withPageable(pageable)
-                    .withSort(Sort.by(Sort.Direction.DESC, "createdAt"))
+                    .withSort(sort)
                     .build();
 
-            SearchHits<ProductDocument> searchHits = operations.search(
+            searchHits = operations.search(
                     nativeQuery, ProductDocument.class, IndexCoordinates.of(INDEX_NAME));
-
-            List<ProductSearchResult> results = searchHits.stream()
-                    .map(SearchHit::getContent)
-                    .map(ProductDocument::toSearchResult)
-                    .toList();
-
-            return new PageImpl<>(results, pageable, searchHits.getTotalHits());
-
         } catch (Exception e) {
-            log.error("상품 검색 실패: {}", e.getMessage(), e);
+            log.error("상품 검색 ES 통신 실패: {}", e.getMessage(), e);
             return Page.empty(pageable);
         }
+
+        List<ProductSearchResult> results = new ArrayList<>();
+        for (SearchHit<ProductDocument> hit : searchHits) {
+            try {
+                results.add(hit.getContent().toSearchResult());
+            } catch (Exception e) {
+                log.error("상품 검색 결과 변환 실패: id={}, error={}", hit.getId(), e.getMessage());
+            }
+        }
+
+        return new PageImpl<>(results, pageable, searchHits.getTotalHits());
     }
 
     @Override

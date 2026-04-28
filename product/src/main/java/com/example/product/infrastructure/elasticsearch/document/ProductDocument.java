@@ -55,6 +55,8 @@ public class ProductDocument {
     @Field(type = FieldType.Keyword)
     private String thumbnailS3Key;
 
+    // 실제 ES 매핑은 product-mapping.json 의 date(strict_date_optional_time_nanos)가 SoT.
+    // Spring Data ES converter는 String 그대로 직렬화하며, ES가 ISO-8601 문자열을 date로 파싱한다.
     @Field(type = FieldType.Keyword)
     private String createdAt;
 

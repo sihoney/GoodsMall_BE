@@ -12,8 +12,8 @@
     "status":        { "type": "keyword" },
     "type":          { "type": "keyword" },
     "viewCount":     { "type": "integer" },
-    "createdAt":     { "type": "date" },
-    "updatedAt":     { "type": "date" },
+    "createdAt":     { "type": "date", "format": "strict_date_optional_time_nanos" },
+    "updatedAt":     { "type": "date", "format": "strict_date_optional_time_nanos" },
     "thumbnailS3Key": { "type": "keyword" }
   }
 }
