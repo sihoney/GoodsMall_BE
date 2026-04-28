@@ -13,4 +13,6 @@ export const STRESS_THRESHOLDS = {
   http_req_failed: ['rate<0.05'],
 };
 
-export const BASE_URL = 'http://localhost:8090';
+// K8s ClusterIP 직접 접근 (EC2 노드에서 실행 시)
+// 로컬 실행 시: http://localhost:8090
+export const BASE_URL = 'http://10.43.214.112:8090';
