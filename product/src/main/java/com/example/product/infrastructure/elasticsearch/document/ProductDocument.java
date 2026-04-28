@@ -4,6 +4,8 @@ import com.example.product.domain.entity.Product;
 import com.example.product.domain.model.ProductSearchResult;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.annotation.Id;
@@ -81,7 +83,7 @@ public class ProductDocument {
     }
 
     public ProductSearchResult toSearchResult() {
-        LocalDateTime parsedCreatedAt = createdAt != null ? LocalDateTime.parse(createdAt) : null;
+        LocalDateTime parsedCreatedAt = parseDate(createdAt);
         return new ProductSearchResult(
                 UUID.fromString(productId),
                 UUID.fromString(sellerId),
@@ -157,5 +159,15 @@ public class ProductDocument {
 
     public String getUpdatedAt() {
         return updatedAt;
+    }
+
+    // ES date 타입은 "2024-01-15T10:30:00" 또는 "2024-01-15T10:30:00.000Z" 등 다양한 포맷으로 반환될 수 있음
+    private static LocalDateTime parseDate(String s) {
+        if (s == null) return null;
+        try {
+            return LocalDateTime.parse(s);
+        } catch (DateTimeParseException e) {
+            return OffsetDateTime.parse(s).toLocalDateTime();
+        }
     }
 }
