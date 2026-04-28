@@ -7,6 +7,7 @@ import com.example.product.domain.entity.ProductImage;
 import com.example.product.domain.repository.ProductImageRepository;
 import com.example.product.domain.repository.ProductRepository;
 import com.example.product.domain.repository.FileStorageRepository;
+import com.example.product.infrastructure.messaging.kafka.ProductOutboxEventService;
 import com.example.product.presentation.dto.response.ProductImageResponse;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -26,6 +27,7 @@ public class ProductImageUploadService implements ProductImageUploadUseCase {
     private final ProductRepository productRepository;
     private final ProductImageRepository productImageRepository;
     private final FileStorageRepository fileStorageRepository;
+    private final ProductOutboxEventService productOutboxEventService;
 
     @Override
     @Transactional
@@ -64,6 +66,8 @@ public class ProductImageUploadService implements ProductImageUploadUseCase {
 
         ProductImage savedImage = productImageRepository.save(productImage);
         log.info("ProductImage saved: imageId={}", savedImage.getImageId());
+
+        productOutboxEventService.saveUpdatedEvent(product);
 
         return ProductImageResponse.from(savedImage);
     }
