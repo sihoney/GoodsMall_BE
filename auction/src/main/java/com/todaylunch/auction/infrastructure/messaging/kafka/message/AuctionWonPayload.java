@@ -8,5 +8,6 @@ public record AuctionWonPayload(
         String thumbnailKey,
         BigDecimal finalPrice,
         UUID productId,
+        UUID sellerId,
         BigDecimal orderPrice
 ) {}
