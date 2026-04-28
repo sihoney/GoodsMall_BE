@@ -3,7 +3,9 @@ package com.example.order.application.service;
 import com.example.order.application.usecase.OrderSearchUseCase;
 import com.example.order.common.exception.CustomException;
 import com.example.order.common.exception.ErrorCode;
+import com.example.order.domain.entity.Delivery;
 import com.example.order.domain.entity.Order;
+import com.example.order.domain.repository.DeliveryRepository;
 import com.example.order.domain.repository.OrderRepository;
 import com.example.order.presentation.dto.request.PaymentValidationRequest;
 import com.example.order.presentation.dto.response.OrderDetailResponse;
@@ -26,6 +28,7 @@ import java.util.UUID;
 public class OrderSearchService implements OrderSearchUseCase {
 
     private final OrderRepository orderRepository;
+    private final DeliveryRepository deliveryRepository;
 
     @Override
     public Page<OrderSummaryResponse> findByMemberId(UUID memberId, Pageable pageable) {
@@ -40,7 +43,12 @@ public class OrderSearchService implements OrderSearchUseCase {
                 .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
 
         List<OrderItemDetailResponse> orderItems = order.getItems().stream()
-                .map(OrderItemDetailResponse::from)
+                .map(item -> {
+                    UUID deliveryId = deliveryRepository.findByOrderItemId(item.getOrderItemId())
+                            .map(Delivery::getDeliveryId)
+                            .orElse(null);
+                    return OrderItemDetailResponse.from(item, deliveryId);
+                })
                 .toList();
 
         return OrderDetailResponse.from(order, orderItems);

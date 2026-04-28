@@ -1,18 +1,14 @@
-package com.example.product.infrastructure.elasticsearch;
+package com.example.product.infrastructure.elasticsearch.repository;
 
-import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.FieldValue;
+import co.elastic.clients.elasticsearch._types.SortOptions;
 import co.elastic.clients.elasticsearch._types.SortOrder;
+import co.elastic.clients.elasticsearch._types.mapping.FieldType;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
-import co.elastic.clients.elasticsearch.core.DeleteRequest;
-import co.elastic.clients.elasticsearch.core.IndexRequest;
-import co.elastic.clients.elasticsearch.core.SearchRequest;
-import co.elastic.clients.elasticsearch.core.SearchResponse;
-import co.elastic.clients.elasticsearch.core.search.Hit;
 import com.example.product.domain.entity.Product;
 import com.example.product.domain.model.ProductSearchResult;
 import com.example.product.domain.repository.ProductSearchRepository;
-import java.io.IOException;
+import com.example.product.infrastructure.elasticsearch.document.ProductDocument;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,6 +18,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.elasticsearch.client.elc.NativeQuery;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.SearchHit;
+import org.springframework.data.elasticsearch.core.SearchHits;
+import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -30,10 +31,10 @@ public class ProductSearchRepositoryImpl implements ProductSearchRepository {
     private static final Logger log = LoggerFactory.getLogger(ProductSearchRepositoryImpl.class);
     private static final String INDEX_NAME = "products";
 
-    private final ElasticsearchClient client;
+    private final ElasticsearchOperations operations;
 
-    public ProductSearchRepositoryImpl(ElasticsearchClient client) {
-        this.client = client;
+    public ProductSearchRepositoryImpl(ElasticsearchOperations operations) {
+        this.operations = operations;
     }
 
     @Override
@@ -46,51 +47,50 @@ public class ProductSearchRepositoryImpl implements ProductSearchRepository {
 
         Query query = buildQuery(categoryIds, keyword, minPrice, maxPrice);
 
+        SearchHits<ProductDocument> searchHits;
         try {
-            SearchRequest request = SearchRequest.of(search -> search
-                    .index(INDEX_NAME)
-                    .query(query)
-                    .from((int) pageable.getOffset())
-                    .size(pageable.getPageSize())
-                    .sort(sort -> sort.field(fieldSort -> fieldSort
+            SortOptions sort = SortOptions.of(s -> s
+                    .field(f -> f
                             .field("createdAt")
-                            .order(SortOrder.Desc)))
+                            .order(SortOrder.Desc)
+                            .missing("_last")
+                            .unmappedType(FieldType.Date)
+                    )
             );
 
-            SearchResponse<ProductDocument> response = client.search(request, ProductDocument.class);
+            NativeQuery nativeQuery = NativeQuery.builder()
+                    .withQuery(query)
+                    .withPageable(pageable)
+                    .withSort(sort)
+                    .build();
 
-            List<ProductSearchResult> results = response.hits().hits().stream()
-                    .map(Hit::source)
-                    .filter(doc -> doc != null)
-                    .map(ProductDocument::toSearchResult)
-                    .toList();
-
-            long total = response.hits().total() != null ? response.hits().total().value() : 0;
-
-            return new PageImpl<>(results, pageable, total);
-
-        } catch (IOException e) {
-            log.error("상품 검색 실패: {}", e.getMessage());
+            searchHits = operations.search(
+                    nativeQuery, ProductDocument.class, IndexCoordinates.of(INDEX_NAME));
+        } catch (Exception e) {
+            log.error("상품 검색 ES 통신 실패: {}", e.getMessage(), e);
             return Page.empty(pageable);
         }
+
+        List<ProductSearchResult> results = new ArrayList<>();
+        for (SearchHit<ProductDocument> hit : searchHits) {
+            try {
+                results.add(hit.getContent().toSearchResult());
+            } catch (Exception e) {
+                log.error("상품 검색 결과 변환 실패: id={}, error={}", hit.getId(), e.getMessage());
+            }
+        }
+
+        return new PageImpl<>(results, pageable, searchHits.getTotalHits());
     }
 
     @Override
     public void index(Product product, List<String> allCategoryIds, String thumbnailS3Key) {
-        ProductDocument document = new ProductDocument(product, allCategoryIds, thumbnailS3Key);
-
         try {
-            IndexRequest<ProductDocument> request = IndexRequest.of(indexRequest -> indexRequest
-                    .index(INDEX_NAME)
-                    .id(product.getProductId().toString())
-                    .document(document)
-            );
-
-            client.index(request);
+            ProductDocument document = new ProductDocument(product, allCategoryIds, thumbnailS3Key);
+            operations.save(document, IndexCoordinates.of(INDEX_NAME));
             log.debug("상품 인덱싱 완료: {}", product.getProductId());
-
-        } catch (IOException e) {
-            log.error("상품 인덱싱 실패: productId={}, error={}", product.getProductId(), e.getMessage());
+        } catch (Exception e) {
+            log.error("상품 인덱싱 실패: productId={}", product.getProductId(), e);
             throw new RuntimeException("상품 인덱싱 실패", e);
         }
     }
@@ -98,15 +98,9 @@ public class ProductSearchRepositoryImpl implements ProductSearchRepository {
     @Override
     public void delete(UUID productId) {
         try {
-            DeleteRequest request = DeleteRequest.of(deleteRequest -> deleteRequest
-                    .index(INDEX_NAME)
-                    .id(productId.toString())
-            );
-
-            client.delete(request);
+            operations.delete(productId.toString(), IndexCoordinates.of(INDEX_NAME));
             log.debug("상품 인덱스 삭제 완료: {}", productId);
-
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("상품 인덱스 삭제 실패: productId={}, error={}", productId, e.getMessage());
             throw new RuntimeException("상품 인덱스 삭제 실패", e);
         }
@@ -133,7 +127,6 @@ public class ProductSearchRepositoryImpl implements ProductSearchRepository {
             filter.add(rangeQuery("price", minPrice, maxPrice));
         }
 
-        // ACTIVE 상품만 검색
         filter.add(Query.of(query -> query.term(term -> term
                 .field("status")
                 .value("ACTIVE")

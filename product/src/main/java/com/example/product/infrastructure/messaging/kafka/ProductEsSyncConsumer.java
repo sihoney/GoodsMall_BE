@@ -35,7 +35,7 @@ public class ProductEsSyncConsumer {
             ProductCreatedMessage message = objectMapper.readValue(payload, ProductCreatedMessage.class);
             indexProduct(UUID.fromString(message.productId()));
         } catch (Exception e) {
-            log.error("상품 생성 ES 인덱싱 실패: {}", e.getMessage());
+            log.error("상품 생성 ES 인덱싱 실패", e);
         }
     }
 
@@ -46,7 +46,7 @@ public class ProductEsSyncConsumer {
             ProductUpdatedMessage message = objectMapper.readValue(payload, ProductUpdatedMessage.class);
             indexProduct(UUID.fromString(message.productId()));
         } catch (Exception e) {
-            log.error("상품 수정 ES 인덱싱 실패: {}", e.getMessage());
+            log.error("상품 수정 ES 인덱싱 실패", e);
         }
     }
 
@@ -56,7 +56,7 @@ public class ProductEsSyncConsumer {
             ProductDeletedMessage message = objectMapper.readValue(payload, ProductDeletedMessage.class);
             productSearchRepository.delete(UUID.fromString(message.productId()));
         } catch (Exception e) {
-            log.error("상품 삭제 ES 인덱스 삭제 실패: {}", e.getMessage());
+            log.error("상품 삭제 ES 인덱스 삭제 실패", e);
         }
     }
 
@@ -68,7 +68,9 @@ public class ProductEsSyncConsumer {
                 .map(ProductImage::getS3Key)
                 .orElse(null);
 
-        List<String> categoryIds = List.of(product.getCategory().getCategoryId().toString());
+        List<String> categoryIds = product.getCategory().collectIdHierarchy().stream()
+                .map(UUID::toString)
+                .toList();
 
         productSearchRepository.index(product, categoryIds, thumbnailS3Key);
         log.debug("상품 ES 인덱싱 완료: productId={}", productId);

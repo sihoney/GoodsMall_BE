@@ -7,7 +7,6 @@ import com.example.product.domain.entity.ProductImage;
 import com.example.product.domain.enumtype.ProductStatus;
 import com.example.product.domain.enumtype.ProductType;
 import com.example.product.domain.model.ProductSearchResult;
-import com.example.product.domain.repository.CategoryRepository;
 import com.example.product.domain.repository.FileStorageRepository;
 import com.example.product.domain.repository.ProductImageRepository;
 import com.example.product.domain.repository.ProductRepository;
@@ -15,7 +14,6 @@ import com.example.product.domain.repository.ProductSearchRepository;
 import com.example.product.presentation.dto.response.ProductImageResponse;
 import com.example.product.presentation.dto.response.ProductResponse;
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +29,6 @@ public class ProductSearchService implements ProductSearchUseCase {
 
     private final ProductRepository productRepository;
     private final ProductImageRepository productImageRepository;
-    private final CategoryRepository categoryRepository;
     private final FileStorageRepository fileStorageRepository;
     private final ProductSearchRepository productSearchRepository;
 
@@ -50,8 +47,13 @@ public class ProductSearchService implements ProductSearchUseCase {
     }
 
     private ProductResponse toProductResponse(ProductSearchResult result) {
-        String presignedUrl = fileStorageRepository.generatePresignedUrl(result.thumbnailS3Key());
-        List<ProductImageResponse> images = List.of(ProductImageResponse.ofThumbnail(result.thumbnailS3Key(), presignedUrl));
+        List<ProductImageResponse> images;
+        if (result.thumbnailS3Key() != null) {
+            String presignedUrl = fileStorageRepository.generatePresignedUrl(result.thumbnailS3Key());
+            images = List.of(ProductImageResponse.ofThumbnail(result.thumbnailS3Key(), presignedUrl));
+        } else {
+            images = List.of();
+        }
         return new ProductResponse(
                 result.productId(),
                 result.sellerId(),
@@ -72,14 +74,8 @@ public class ProductSearchService implements ProductSearchUseCase {
         if (categoryId == null || categoryId.isBlank()) {
             return null;
         }
-
-        UUID categoryUuid = UUID.fromString(categoryId);
-        List<UUID> categoryIds = new ArrayList<>();
-        categoryIds.add(categoryUuid);
-        categoryIds.addAll(categoryRepository.findAllDescendantIds(categoryUuid));
-
-        // 빈 리스트는 null로 변환 (JPQL IN 절 처리를 위해)
-        return categoryIds.isEmpty() ? null : categoryIds;
+        // ES Document.categoryIds 가 조상 계층을 포함하므로 단일 ID terms 매칭만으로 하위까지 매칭됨
+        return List.of(UUID.fromString(categoryId));
     }
 
     @Override

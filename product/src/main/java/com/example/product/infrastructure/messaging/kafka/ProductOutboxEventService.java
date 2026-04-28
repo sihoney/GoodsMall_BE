@@ -10,6 +10,7 @@ import com.example.product.infrastructure.messaging.kafka.message.ProductUpdated
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
@@ -26,6 +27,8 @@ public class ProductOutboxEventService {
     private final ApplicationEventPublisher eventPublisher;
 
     public void saveCreatedEvent(Product product) {
+        String sourceUpdatedAt = formatNullable(product.getUpdatedAt());
+        String now = Instant.now().toString();
         ProductCreatedMessage message = new ProductCreatedMessage(
                 UUID.randomUUID().toString(),
                 product.getProductId().toString(),
@@ -34,9 +37,9 @@ public class ProductOutboxEventService {
                 product.getCategory().getName(),
                 product.getDescription(),
                 product.getStatus().name(),
-                product.getUpdatedAt().toString(),
-                product.getUpdatedAt().toString(),
-                Instant.now().toString()
+                sourceUpdatedAt,
+                now,
+                now
         );
 
         saveOutboxEvent(product.getProductId(),
@@ -46,6 +49,8 @@ public class ProductOutboxEventService {
     }
 
     public void saveUpdatedEvent(Product product) {
+        String sourceUpdatedAt = formatNullable(product.getUpdatedAt());
+        String now = Instant.now().toString();
         ProductUpdatedMessage message = new ProductUpdatedMessage(
                 UUID.randomUUID().toString(),
                 product.getProductId().toString(),
@@ -54,9 +59,9 @@ public class ProductOutboxEventService {
                 product.getCategory().getName(),
                 product.getDescription(),
                 product.getStatus().name(),
-                product.getUpdatedAt().toString(),
-                product.getUpdatedAt().toString(),
-                Instant.now().toString()
+                sourceUpdatedAt,
+                now,
+                now
         );
 
         saveOutboxEvent(product.getProductId(),
@@ -66,12 +71,14 @@ public class ProductOutboxEventService {
     }
 
     public void saveDeletedEvent(Product product) {
+        String sourceUpdatedAt = formatNullable(product.getUpdatedAt());
+        String now = Instant.now().toString();
         ProductDeletedMessage message = new ProductDeletedMessage(
                 UUID.randomUUID().toString(),
                 product.getProductId().toString(),
-                product.getUpdatedAt().toString(),
-                product.getUpdatedAt().toString(),
-                Instant.now().toString()
+                sourceUpdatedAt,
+                now,
+                now
         );
 
         saveOutboxEvent(product.getProductId(),
@@ -103,5 +110,9 @@ public class ProductOutboxEventService {
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Product outbox 이벤트 직렬화에 실패했습니다.", e);
         }
+    }
+
+    private String formatNullable(LocalDateTime time) {
+        return time != null ? time.toString() : null;
     }
 }

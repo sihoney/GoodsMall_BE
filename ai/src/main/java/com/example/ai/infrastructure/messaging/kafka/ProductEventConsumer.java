@@ -25,7 +25,6 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class ProductEventConsumer {
 
-    // TODO: 토픽 이름과 내용은 발행에 따라 변경이 될 수 있습니다.
     private static final String IDEMPOTENCY_PREFIX = "ai:event:product:";
     private static final String UPSERT_ACTION = "upsert";
     private static final String DEACTIVATE_ACTION = "deactivate";
@@ -245,7 +244,6 @@ public class ProductEventConsumer {
     }
 
     private LocalDateTime parseSourceUpdatedAt(String sourceUpdatedAt, String updatedAt, String occurredAt) {
-        // TODO: Fallback order may change when publisher timestamp semantics are finalized.
         String value = firstNonBlank(sourceUpdatedAt, updatedAt, occurredAt);
         if (value == null) {
             return LocalDateTime.now();

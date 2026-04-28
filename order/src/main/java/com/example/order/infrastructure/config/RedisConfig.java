@@ -1,6 +1,5 @@
 package com.example.order.infrastructure.config;
 
-import com.example.order.infrastructure.redis.DeliveryExpireListener;
 import com.example.order.presentation.dto.response.OrderDetailResponse;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.ApplicationRunner;
@@ -12,8 +11,6 @@ import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.listener.PatternTopic;
-import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.data.redis.serializer.GenericJacksonJsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.RedisSerializer;
@@ -97,22 +94,9 @@ public class RedisConfig {
     }
 
     @Bean
-    public RedisMessageListenerContainer redisMessageListenerContainer(
-            RedisConnectionFactory connectionFactory,
-            DeliveryExpireListener deliveryExpireListener
-    ) {
-        RedisMessageListenerContainer container = new RedisMessageListenerContainer();
-        container.setConnectionFactory(connectionFactory);
-        container.addMessageListener(deliveryExpireListener,
-                new PatternTopic("__keyspace@*__:delivery:expire:*"));
-        return container;
-    }
-
-    @Bean
     public ApplicationRunner redisServerConfig(RedisConnectionFactory connectionFactory) {
         return args -> {
             try (RedisConnection connection = connectionFactory.getConnection()) {
-                connection.serverCommands().setConfig("notify-keyspace-events", "KEx");
                 connection.serverCommands().setConfig("maxmemory", "512mb");
                 connection.serverCommands().setConfig("maxmemory-policy", "allkeys-lru");
             }

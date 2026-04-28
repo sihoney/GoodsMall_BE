@@ -49,14 +49,14 @@ public class ProductReindexController {
                             .map(ProductImage::getS3Key)
                             .orElse(null);
 
-                    List<String> categoryIds = List.of(
-                            product.getCategory().getCategoryId().toString()
-                    );
+                    List<String> categoryIds = product.getCategory().collectIdHierarchy().stream()
+                            .map(java.util.UUID::toString)
+                            .toList();
 
                     productSearchRepository.index(product, categoryIds, thumbnailS3Key);
                     indexed++;
                 } catch (Exception e) {
-                    log.error("ES 인덱싱 실패: productId={}, error={}", product.getProductId(), e.getMessage());
+                    log.error("ES 인덱싱 실패: productId={}", product.getProductId(), e);
                     failed++;
                 }
             }

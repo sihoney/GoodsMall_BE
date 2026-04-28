@@ -63,6 +63,11 @@ spring:
               predicates:
                 - Path=/api/admin/member-restrictions/**
 
+            - id: product-admin-service
+              uri: http://product:8081
+              predicates:
+                - Path=/api/admin/products/**
+
             - id: product-service
               uri: http://product:8081
               predicates:
@@ -282,6 +287,9 @@ gateway:
         allowed-roles: [SELLER, ADMIN]
       - methods: [POST]
         pattern: /api/ai/admin/**
+        allowed-roles: [ADMIN]
+      - methods: [POST]
+        pattern: /api/admin/products/**
         allowed-roles: [ADMIN]
       - methods: [GET, PATCH]
         pattern: /api/admin/member-reports/**

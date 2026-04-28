@@ -12,5 +12,5 @@ CREATE TABLE payment.outbox_events (
     published_at TIMESTAMP
 );
 
-CREATE INDEX idx_payment_outbox_events_status_created_at
+CREATE INDEX IF NOT EXISTS idx_payment_outbox_events_status_created_at
     ON payment.outbox_events (status, created_at);
