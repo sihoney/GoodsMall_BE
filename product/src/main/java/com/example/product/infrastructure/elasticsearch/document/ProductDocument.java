@@ -22,8 +22,8 @@ public class ProductDocument {
     private String type;
     private Integer viewCount;
     private String thumbnailS3Key;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private String createdAt;
+    private String updatedAt;
 
     protected ProductDocument() {
     }
@@ -42,11 +42,12 @@ public class ProductDocument {
         this.type = product.getType().name();
         this.viewCount = product.getViewCount();
         this.thumbnailS3Key = thumbnailS3Key;
-        this.createdAt = product.getCreatedAt();
-        this.updatedAt = product.getUpdatedAt();
+        this.createdAt = product.getCreatedAt() != null ? product.getCreatedAt().toString() : null;
+        this.updatedAt = product.getUpdatedAt() != null ? product.getUpdatedAt().toString() : null;
     }
 
     public ProductSearchResult toSearchResult() {
+        LocalDateTime parsedCreatedAt = createdAt != null ? LocalDateTime.parse(createdAt) : null;
         return new ProductSearchResult(
                 UUID.fromString(productId),
                 UUID.fromString(sellerId),
@@ -60,7 +61,7 @@ public class ProductDocument {
                 type,
                 viewCount,
                 thumbnailS3Key,
-                createdAt
+                parsedCreatedAt
         );
     }
 
@@ -116,11 +117,11 @@ public class ProductDocument {
         return thumbnailS3Key;
     }
 
-    public LocalDateTime getCreatedAt() {
+    public String getCreatedAt() {
         return createdAt;
     }
 
-    public LocalDateTime getUpdatedAt() {
+    public String getUpdatedAt() {
         return updatedAt;
     }
 }

@@ -28,6 +28,7 @@ public class ElasticsearchConfig extends ElasticsearchConfiguration {
     @Override
     public JsonpMapper jsonpMapper() {
         JsonMapper mapper = JsonMapper.builder()
+                .findAndAddModules()
                 .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
                 .build();
         return new Jackson3JsonpMapper(mapper);
