@@ -94,7 +94,7 @@ public class ProductIndexInitializer implements ApplicationRunner {
                     productSearchRepository.index(product, categoryIds, thumbnailS3Key);
                     indexed++;
                 } catch (Exception e) {
-                    log.error("상품 초기 인덱싱 실패: productId={}, error={}", product.getProductId(), e.getMessage());
+                    log.error("상품 초기 인덱싱 실패: productId={}", product.getProductId(), e);
                     failed++;
                 }
             }

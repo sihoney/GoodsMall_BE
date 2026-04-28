@@ -85,12 +85,12 @@ public class ProductSearchRepositoryImpl implements ProductSearchRepository {
 
     @Override
     public void index(Product product, List<String> allCategoryIds, String thumbnailS3Key) {
-        ProductDocument document = new ProductDocument(product, allCategoryIds, thumbnailS3Key);
         try {
+            ProductDocument document = new ProductDocument(product, allCategoryIds, thumbnailS3Key);
             operations.save(document, IndexCoordinates.of(INDEX_NAME));
             log.debug("상품 인덱싱 완료: {}", product.getProductId());
         } catch (Exception e) {
-            log.error("상품 인덱싱 실패: productId={}, error={}", product.getProductId(), e.getMessage());
+            log.error("상품 인덱싱 실패: productId={}", product.getProductId(), e);
             throw new RuntimeException("상품 인덱싱 실패", e);
         }
     }
