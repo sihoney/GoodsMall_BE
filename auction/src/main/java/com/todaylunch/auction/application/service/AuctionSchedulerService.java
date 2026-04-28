@@ -100,7 +100,7 @@ public class AuctionSchedulerService {
                 winnerId,
                 Instant.now(),
                 "mock-trace-id",
-                new AuctionWonPayload(auction.getProductTitle(), finalPrice, auction.getProductId(), orderPrice)
+                new AuctionWonPayload(auction.getProductTitle(), auction.getThumbnailKey(), finalPrice, auction.getProductId(), orderPrice)
         );
         outboxEventRepository.save(OutboxEvent.create(
                 auction.getAuctionId(),
