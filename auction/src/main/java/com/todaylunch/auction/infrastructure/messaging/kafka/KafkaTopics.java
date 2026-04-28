@@ -8,6 +8,7 @@ public final class KafkaTopics {
     public static final String BID_OUTBID                = "auction.bid.outbid";
     public static final String AUCTION_WON               = "auction.won";
     public static final String AUCTION_CLOSED            = "auction.closed";
+    public static final String ORDER_CONFIRMED           = "order.confirmed";
 
     private KafkaTopics() {}
 }

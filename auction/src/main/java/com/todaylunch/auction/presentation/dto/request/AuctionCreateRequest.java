@@ -15,6 +15,9 @@ public record AuctionCreateRequest(
         @NotBlank
         String productTitle,
 
+        @NotBlank
+        String thumbnailKey,
+
         @NotNull
         @DecimalMin(value = "0", inclusive = false)
         BigDecimal startPrice,
