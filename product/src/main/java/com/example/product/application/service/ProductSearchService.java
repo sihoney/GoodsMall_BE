@@ -54,6 +54,7 @@ public class ProductSearchService implements ProductSearchUseCase {
         List<ProductImageResponse> images = List.of(ProductImageResponse.ofThumbnail(result.thumbnailS3Key(), presignedUrl));
         return new ProductResponse(
                 result.productId(),
+                result.sellerId(),
                 result.title(),
                 result.description(),
                 result.price(),
@@ -144,6 +145,7 @@ public class ProductSearchService implements ProductSearchUseCase {
 
         return new ProductResponse(
                 product.getProductId(),
+                product.getSellerId(),
                 product.getTitle(),
                 product.getDescription(),
                 product.getPrice(),
