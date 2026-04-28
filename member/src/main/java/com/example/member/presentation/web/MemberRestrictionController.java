@@ -64,6 +64,18 @@ public class MemberRestrictionController {
         ));
     }
 
+    @GetMapping
+    @Operation(summary = "전체 회원 제재 조회", description = "관리자가 전체 회원의 제재 이력을 조회합니다.")
+    public ResponseEntity<ApiResponse<List<MemberRestrictionResponse>>> getAllMemberRestrictions(
+            @CurrentMember AuthenticatedMember authenticatedMember
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                memberRestrictionUsecase.getAllMemberRestrictions(authenticatedMember).stream()
+                        .map(MemberRestrictionResponse::from)
+                        .toList()
+        ));
+    }
+
     @GetMapping("/members/{memberId}")
     @Operation(summary = "회원 제재 조회", description = "특정 회원의 모든 제재를 조회합니다.")
     public ResponseEntity<ApiResponse<List<MemberRestrictionResponse>>> getMemberRestrictions(

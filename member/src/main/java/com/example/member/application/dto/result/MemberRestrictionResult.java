@@ -7,7 +7,9 @@ import java.util.UUID;
 public record MemberRestrictionResult(
         UUID restrictionId,
         UUID memberId,
+        String memberNickname,
         UUID adminId,
+        String adminNickname,
         String reason,
         RestrictionType restrictionType,
         Integer durationHours,

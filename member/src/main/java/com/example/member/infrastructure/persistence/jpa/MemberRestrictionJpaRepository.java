@@ -22,5 +22,7 @@ public interface MemberRestrictionJpaRepository extends JpaRepository<MemberRest
             LocalDateTime now
     );
 
+    List<MemberRestriction> findAllByOrderByCreatedAtDesc();
+
     List<MemberRestriction> findAllByMemberIdOrderByCreatedAtDesc(UUID memberId);
 }
