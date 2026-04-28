@@ -22,7 +22,7 @@ public class KafkaAuctionWonEventPublisher {
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
 
-    public void publish(UUID auctionId, UUID winnerId, String auctionTitle, BigDecimal finalPrice) {
+    public void publish(UUID auctionId, UUID winnerId, String auctionTitle, BigDecimal finalPrice, UUID productId, BigDecimal orderPrice) {
         try {
             EventEnvelope<AuctionWonPayload> envelope = new EventEnvelope<>(
                     UUID.randomUUID(),
@@ -32,7 +32,7 @@ public class KafkaAuctionWonEventPublisher {
                     winnerId,
                     Instant.now(),
                     "mock-trace-id",
-                    new AuctionWonPayload(auctionTitle, finalPrice)
+                    new AuctionWonPayload(auctionTitle, finalPrice, productId, orderPrice)
             );
             String json = objectMapper.writeValueAsString(envelope);
             kafkaTemplate.send(KafkaTopics.AUCTION_WON, auctionId.toString(), json)

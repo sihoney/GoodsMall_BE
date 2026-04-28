@@ -2,7 +2,9 @@ package com.todaylunch.auction.application.service;
 
 import com.todaylunch.auction.domain.entity.Auction;
 import com.todaylunch.auction.domain.entity.Bid;
+import com.todaylunch.auction.domain.entity.BidPolicy;
 import com.todaylunch.auction.domain.enumtype.AuctionStatus;
+import java.math.BigDecimal;
 import com.todaylunch.auction.domain.repository.AuctionRepository;
 import com.todaylunch.auction.domain.repository.BidRepository;
 import com.todaylunch.auction.infrastructure.messaging.kafka.publisher.KafkaAuctionClosedSoldEventPublisher;
@@ -53,12 +55,16 @@ public class AuctionSchedulerService {
         Optional<Bid> bid = bidRepository.findActiveByAuctionId(lockedAuction.getAuctionId());
         if (bid.isPresent()) {
             Bid winningBid = bid.get();
+            BigDecimal finalPrice = winningBid.getBidPrice();
+            BigDecimal orderPrice = finalPrice.subtract(BidPolicy.calculateBidFee(finalPrice));
             lockedAuction.changeToPendingPayment();
             auctionWonEventPublisher.publish(
                     lockedAuction.getAuctionId(),
                     winningBid.getBidderId(),
                     lockedAuction.getProductTitle(),
-                    winningBid.getBidPrice()
+                    finalPrice,
+                    lockedAuction.getProductId(),
+                    orderPrice
             );
             auctionClosedSoldEventPublisher.publish(
                     lockedAuction.getAuctionId(),
