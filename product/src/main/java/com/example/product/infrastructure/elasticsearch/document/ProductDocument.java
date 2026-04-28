@@ -2,13 +2,11 @@ package com.example.product.infrastructure.elasticsearch.document;
 
 import com.example.product.domain.entity.Product;
 import com.example.product.domain.model.ProductSearchResult;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
 public class ProductDocument {
 
     private String productId;
