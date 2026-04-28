@@ -149,8 +149,8 @@ public class Category {
         List<UUID> ids = new ArrayList<>();
         Category current = this;
         while (current != null) {
-            ids.add(current.categoryId);
-            current = current.parent;
+            ids.add(current.getCategoryId());
+            current = current.getParent();
         }
         return ids;
     }

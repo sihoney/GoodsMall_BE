@@ -56,7 +56,7 @@ public class ProductReindexController {
                     productSearchRepository.index(product, categoryIds, thumbnailS3Key);
                     indexed++;
                 } catch (Exception e) {
-                    log.error("ES 인덱싱 실패: productId={}, error={}", product.getProductId(), e.getMessage());
+                    log.error("ES 인덱싱 실패: productId={}", product.getProductId(), e);
                     failed++;
                 }
             }
