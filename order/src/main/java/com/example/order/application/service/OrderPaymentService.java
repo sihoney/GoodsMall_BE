@@ -7,7 +7,9 @@ import com.example.order.domain.entity.OutboxEvent;
 import com.example.order.domain.enumtype.PaymentStatus;
 import com.example.order.domain.repository.OrderRepository;
 import com.example.order.domain.repository.OutboxRepository;
+import com.example.order.infrastructure.kafka.OutboxEventSaver;
 import com.example.order.infrastructure.kafka.KafkaTopics;
+import com.example.order.infrastructure.kafka.event.OrderConfirmedEvent;
 import com.example.order.infrastructure.kafka.event.PaymentFailedEvent;
 import com.example.order.infrastructure.kafka.event.PaymentResultEvent;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,7 @@ public class OrderPaymentService {
     private final OrderRepository orderRepository;
     private final DeliveryCreateService deliveryCreateService;
     private final OutboxRepository outboxRepository;
+    private final OutboxEventSaver outboxEventSaver;
     private final ObjectMapper objectMapper;
 
     @Transactional
@@ -46,7 +49,7 @@ public class OrderPaymentService {
         order.cancelByPaymentFailure();
         try {
             String payload = objectMapper.writeValueAsString(PaymentFailedEvent.envelopeOf(order));
-            outboxRepository.save(OutboxEvent.create(KafkaTopics.PAYMENT_FAILED, order.getOrderId().toString(), payload));
+            outboxEventSaver.save(OutboxEvent.create(KafkaTopics.PAYMENT_FAILED, order.getOrderId().toString(), payload));
         } catch (Exception e) {
             log.error("PaymentFailedEvent Outbox 저장 실패. orderId={}", order.getOrderId(), e);
         }
@@ -59,5 +62,11 @@ public class OrderPaymentService {
             return;
         }
         deliveryCreateService.create(order);
+        try {
+            String payload = objectMapper.writeValueAsString(OrderConfirmedEvent.envelopeOf(order));
+            outboxRepository.save(OutboxEvent.create(KafkaTopics.ORDER_CONFIRMED, order.getOrderId().toString(), payload));
+        } catch (Exception e) {
+            log.error("OrderConfirmedEvent Outbox 저장 실패. orderId={}", order.getOrderId(), e);
+        }
     }
 }

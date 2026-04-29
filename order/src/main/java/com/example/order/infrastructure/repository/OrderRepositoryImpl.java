@@ -43,4 +43,14 @@ public class OrderRepositoryImpl implements OrderRepository {
     public List<Order> findByStatusAndDeliveredAtBefore(OrderStatus status, LocalDateTime threshold) {
         return orderJpaRepository.findByStatusAndDeliveredAtBefore(status, threshold);
     }
+
+    @Override
+    public boolean existsByOrderNumber(String orderNumber) {
+        return orderJpaRepository.existsByOrderNumber(orderNumber);
+    }
+
+    @Override
+    public Optional<Order> findByAuctionId(UUID auctionId) {
+        return orderJpaRepository.findByAuctionId(auctionId);
+    }
 }

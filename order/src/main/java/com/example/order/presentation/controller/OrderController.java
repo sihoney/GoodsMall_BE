@@ -1,9 +1,11 @@
 package com.example.order.presentation.controller;
 
+import com.example.order.application.usecase.AuctionWinAcceptUseCase;
 import com.example.order.application.usecase.OrderCancelUseCase;
 import com.example.order.application.usecase.OrderConfirmUseCase;
 import com.example.order.application.usecase.OrderCreateUseCase;
 import com.example.order.application.usecase.OrderSearchUseCase;
+import com.example.order.presentation.dto.request.AuctionWinAcceptRequest;
 import com.example.order.presentation.dto.request.OrderCancelRequest;
 import com.example.order.presentation.dto.request.OrderCreateRequest;
 import com.example.order.presentation.dto.request.PaymentValidationRequest;
@@ -40,6 +42,7 @@ public class OrderController {
     private final OrderSearchUseCase orderSearchUseCase;
     private final OrderCancelUseCase orderCancelUseCase;
     private final OrderConfirmUseCase orderConfirmUseCase;
+    private final AuctionWinAcceptUseCase auctionWinAcceptUseCase;
 
     @PostMapping("/deposit")
     public ResponseEntity<ApiResponse<OrderCreateResponse>> createByDeposit(
@@ -114,5 +117,25 @@ public class OrderController {
         UUID memberId = authenticatedMember.memberId();
         orderConfirmUseCase.confirmItem(orderId, orderItemId, memberId);
         return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    @PostMapping("/auction/deposit")
+    public ResponseEntity<Void> acceptAuctionWinByDeposit(
+            @CurrentMember AuthenticatedMember authenticatedMember,
+            @Valid @RequestBody AuctionWinAcceptRequest request
+    ) {
+        UUID memberId = authenticatedMember.memberId();
+        auctionWinAcceptUseCase.acceptWinByDeposit(memberId, request);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/auction/pg")
+    public ResponseEntity<Void> acceptAuctionWinByPg(
+            @CurrentMember AuthenticatedMember authenticatedMember,
+            @Valid @RequestBody AuctionWinAcceptRequest request
+    ) {
+        UUID memberId = authenticatedMember.memberId();
+        auctionWinAcceptUseCase.acceptWinByPg(memberId, request);
+        return ResponseEntity.noContent().build();
     }
 }

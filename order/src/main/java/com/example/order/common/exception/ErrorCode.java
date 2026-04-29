@@ -26,12 +26,16 @@ public enum ErrorCode {
     ORDER_CANNOT_CONFIRM(HttpStatus.BAD_REQUEST, "ORDER_400_2", "배송 완료 상태의 주문만 구매 확정할 수 있습니다."),
     ORDER_ITEM_CANNOT_CONFIRM(HttpStatus.BAD_REQUEST, "ORDER_400_3", "배송 완료 상태의 상품만 구매 확정할 수 있습니다."),
     ORDER_FORBIDDEN(HttpStatus.FORBIDDEN, "ORDER_403_1", "해당 주문에 대한 권한이 없습니다."),
+    ORDER_ALREADY_ACCEPTED(HttpStatus.CONFLICT, "ORDER_409_1", "이미 수락된 경매 주문입니다."),
     ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "ORDER_404_1", "주문이 존재하지 않습니다."),
     ORDER_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "ORDER_404_2", "주문 상품이 존재하지 않습니다."),
 
     // 배송
     DELIVERY_NOT_FOUND(HttpStatus.NOT_FOUND, "DELIVERY_404_1", "배송이 존재하지 않습니다."),
     COURIER_NOT_FOUND(HttpStatus.BAD_REQUEST, "DELIVERY_400_2", "지원하지 않는 택배사 코드입니다."),
+
+    // 경매
+    AUCTION_NOT_FOUND(HttpStatus.NOT_FOUND, "AUCTION_404_1", "경매를 찾을 수 없습니다."),
 
     // 결제
     INVALID_PAYMENT_STATUS(HttpStatus.BAD_REQUEST, "PAYMENT_400_1", "유효하지 않은 결제 상태입니다."),
