@@ -38,7 +38,9 @@ public class OrderSearchService implements OrderSearchUseCase {
 
     @Override
     public Page<OrderSummaryResponse> findByMemberId(UUID memberId, OrderType orderType, String keyword, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
-        Page<Order> orders = orderRepository.findByBuyerIdAndOrderType(memberId, orderType, keyword, startDate, endDate, pageable);
+        LocalDateTime from = startDate != null ? startDate : LocalDateTime.of(2000, 1, 1, 0, 0, 0);
+        LocalDateTime to = endDate != null ? endDate : LocalDateTime.of(2999, 12, 31, 23, 59, 59);
+        Page<Order> orders = orderRepository.findByBuyerIdAndOrderType(memberId, orderType, keyword, from, to, pageable);
         return orders.map(order -> OrderSummaryResponse.from(order, s3BaseUrl));
     }
 
