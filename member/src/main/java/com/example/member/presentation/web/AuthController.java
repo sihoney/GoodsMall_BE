@@ -1,5 +1,6 @@
 package com.example.member.presentation.web;
 
+import com.example.member.application.dto.command.AuthSessionMetadata;
 import com.example.member.application.dto.command.CreateMemberCommand;
 import com.example.member.application.dto.command.LoginCommand;
 import com.example.member.application.dto.command.PasswordResetConfirmCommand;
@@ -36,6 +37,7 @@ import com.todaylunch.common.security.auth.annotation.CurrentMember;
 import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.Locale;
@@ -86,22 +88,28 @@ public class AuthController {
 
     @PostMapping("/login")
     @Operation(summary = "로그인", description = "이메일과 비밀번호로 로그인합니다.")
-    public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<ApiResponse<LoginResponse>> login(
+            @Valid @RequestBody LoginRequest request,
+            HttpServletRequest httpServletRequest
+    ) {
         return ResponseEntity.ok(ApiResponse.success(
                 LoginResponse.from(authUsecase.login(new LoginCommand(
                         request.email(),
                         request.password()
-                )))
+                ), extractSessionMetadata(httpServletRequest)))
         ));
     }
 
     @PostMapping("/refresh")
     @Operation(summary = "토큰 재발급", description = "access token과 refresh token을 재발급합니다.")
-    public ResponseEntity<ApiResponse<TokenRefreshResponse>> refresh(@Valid @RequestBody TokenRefreshRequest request) {
+    public ResponseEntity<ApiResponse<TokenRefreshResponse>> refresh(
+            @Valid @RequestBody TokenRefreshRequest request,
+            HttpServletRequest httpServletRequest
+    ) {
         return ResponseEntity.ok(ApiResponse.success(
                 TokenRefreshResponse.from(authUsecase.refresh(new TokenRefreshCommand(
                         request.refreshToken()
-                )))
+                ), extractSessionMetadata(httpServletRequest)))
         ));
     }
 
@@ -166,10 +174,12 @@ public class AuthController {
             @RequestParam(name = "code", required = false) String code,
             @RequestParam(name = "state", required = false) String state,
             @RequestParam(name = "error", required = false) String error,
-            @RequestParam(name = "error_description", required = false) String errorDescription
+            @RequestParam(name = "error_description", required = false) String errorDescription,
+            HttpServletRequest httpServletRequest
     ) {
         KakaoOAuthFlowType flowType = KakaoOAuthFlowType.LOGIN;
         KakaoOAuthResult result;
+        AuthSessionMetadata metadata = extractSessionMetadata(httpServletRequest);
 
         try {
             KakaoOAuthAuthorizeState authorizeState = kakaoOAuthService.consumeAuthorizeState(state);
@@ -185,7 +195,7 @@ public class AuthController {
             } else if (flowType == KakaoOAuthFlowType.LINK) {
                 result = kakaoOAuthService.linkByCode(authorizeState.memberId(), code);
             } else {
-                result = kakaoOAuthService.loginByCode(code);
+                result = kakaoOAuthService.loginByCode(code, metadata);
             }
         } catch (Exception exception) {
             result = kakaoOAuthService.createErrorResult(flowType, exception);
@@ -253,6 +263,34 @@ public class AuthController {
     ) {
         var member = emailVerificationService.confirmSignupVerification(request.token());
         return ResponseEntity.ok(ApiResponse.success(EmailVerificationConfirmResponse.from(member)));
+    }
+
+    private AuthSessionMetadata extractSessionMetadata(HttpServletRequest request) {
+        if (request == null) {
+            return AuthSessionMetadata.empty();
+        }
+
+        return new AuthSessionMetadata(
+                request.getHeader("User-Agent"),
+                extractClientIp(request)
+        );
+    }
+
+    private String extractClientIp(HttpServletRequest request) {
+        String forwardedFor = request.getHeader("X-Forwarded-For");
+        if (forwardedFor != null && !forwardedFor.isBlank()) {
+            String[] values = forwardedFor.split(",");
+            if (values.length > 0 && values[0] != null && !values[0].trim().isEmpty()) {
+                return values[0].trim();
+            }
+        }
+
+        String realIp = request.getHeader("X-Real-IP");
+        if (realIp != null && !realIp.isBlank()) {
+            return realIp.trim();
+        }
+
+        return request.getRemoteAddr();
     }
 }
 

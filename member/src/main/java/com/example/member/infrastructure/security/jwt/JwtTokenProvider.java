@@ -1,4 +1,4 @@
-package com.example.member.security;
+package com.example.member.infrastructure.security.jwt;
 
 import com.example.member.domain.entity.Member;
 import com.example.member.infrastructure.redis.auth.ParsedAccessToken;
@@ -32,12 +32,11 @@ public class JwtTokenProvider {
         this.jwtProperties = jwtProperties;
         String secret = jwtProperties.secret();
         if (secret == null || secret.isBlank() || secret.contains("${")) {
-            throw new IllegalStateException("member-service의 JWT secret이 설정되지 않았습니다.");
+            throw new IllegalStateException("member-service??JWT secret???ㅼ젙?섏? ?딆븯?듬땲??");
         }
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    // 엑세스 토큰 생성
     public String createAccessToken(Member member, UUID sessionId) {
         Instant now = Instant.now();
         return Jwts.builder()
@@ -55,7 +54,6 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    // 리프레시 토큰 생성
     public String createRefreshToken(Member member, UUID sessionId) {
         Instant now = Instant.now();
         return Jwts.builder()

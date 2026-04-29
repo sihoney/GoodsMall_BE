@@ -1,16 +1,15 @@
-package com.example.member.infrastructure.redis.auth;
+package com.example.member.application.dto.result;
 
 import java.time.Instant;
 import java.util.UUID;
 
-public record AuthSession(
-        UUID memberId,
+public record AuthSessionResult(
         UUID sessionId,
-        String refreshTokenId,
         Instant createdAt,
         Instant lastAccessedAt,
         Instant lastRefreshedAt,
         String userAgent,
-        String ipAddress
+        String ipAddress,
+        boolean current
 ) {
 }

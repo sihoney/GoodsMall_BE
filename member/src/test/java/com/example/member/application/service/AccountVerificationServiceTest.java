@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 
 import com.example.member.application.dto.command.AccountVerificationConfirmCommand;
 import com.example.member.application.dto.command.AccountVerificationCreateCommand;
+import com.example.member.application.dto.command.AuthSessionMetadata;
 import com.example.member.application.dto.result.AccountVerificationConfirmResult;
 import com.example.member.application.dto.result.AccountVerificationSendResult;
 import com.example.member.application.port.out.MemberEventPort;
@@ -28,7 +29,7 @@ import com.example.member.infrastructure.redis.auth.ParsedRefreshToken;
 import com.example.member.infrastructure.redis.auth.RefreshTokenStore;
 import com.example.member.infrastructure.redis.seller.SellerDraft;
 import com.example.member.infrastructure.redis.seller.SellerDraftStore;
-import com.example.member.security.JwtTokenProvider;
+import com.example.member.infrastructure.security.jwt.JwtTokenProvider;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -223,7 +224,8 @@ class AccountVerificationServiceTest {
                 memberId,
                 authSessionId,
                 "seller-refresh-token-id",
-                Duration.ofMillis(7200L)
+                Duration.ofMillis(7200L),
+                AuthSessionMetadata.empty()
         );
         verify(sessionStore).releaseLock(sessionId);
         verify(memberEventPort, never()).publishAccountVerificationExpired(any(UUID.class), anyString(), anyString());

@@ -1,4 +1,4 @@
-package com.example.member.application.support;
+package com.example.member.infrastructure.storage.s3;
 
 import com.example.member.application.port.out.ProfileImageUrlPort;
 import com.example.member.config.S3Properties;
@@ -34,7 +34,7 @@ public class ProfileImageUrlResolver implements ProfileImageUrlPort {
             return null;
         }
         if (!isSupportedKey(objectKey)) {
-            throw new IllegalArgumentException("profileImageKey媛 ?щ컮瑜댁? ?딆뒿?덈떎.");
+            throw new IllegalArgumentException("profileImageKey가 프로필 이미지 경로가 아닙니다.");
         }
 
         GetObjectRequest getObjectRequest = GetObjectRequest.builder()

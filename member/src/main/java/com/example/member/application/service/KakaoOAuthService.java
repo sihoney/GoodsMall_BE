@@ -1,5 +1,6 @@
 package com.example.member.application.service;
 
+import com.example.member.application.dto.command.AuthSessionMetadata;
 import com.example.member.application.dto.result.KakaoOAuthLinkResult;
 import com.example.member.application.dto.result.KakaoOAuthResult;
 import com.example.member.application.port.out.MemberEventPort;
@@ -66,9 +67,9 @@ public class KakaoOAuthService {
     }
 
     @Transactional
-    public KakaoOAuthResult loginByCode(String code) {
+    public KakaoOAuthResult loginByCode(String code, AuthSessionMetadata metadata) {
         KakaoUserProfileResponse profile = fetchProfile(code);
-        return loginByProfile(profile);
+        return loginByProfile(profile, metadata);
     }
 
     @Transactional
@@ -168,7 +169,7 @@ public class KakaoOAuthService {
         return new KakaoOAuthLinkResult(true, PROVIDER.name(), pendingLink.providerUserId());
     }
 
-    private KakaoOAuthResult loginByProfile(KakaoUserProfileResponse profile) {
+    private KakaoOAuthResult loginByProfile(KakaoUserProfileResponse profile, AuthSessionMetadata metadata) {
         String providerUserId = profile.id().toString();
         String email = kakaoEmail(profile);
         String nickname = kakaoNickname(profile);
@@ -180,7 +181,7 @@ public class KakaoOAuthService {
                     if (!member.isActive()) {
                         throw new InvalidLoginException();
                     }
-                    var loginResponse = authService.login(member);
+                    var loginResponse = authService.login(member, metadata);
                     return KakaoOAuthResult.success(
                             PROVIDER.name(),
                             providerUserId,
