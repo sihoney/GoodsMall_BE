@@ -21,4 +21,8 @@ public interface OrderRepository {
     Optional<Order> findByOrderId(UUID orderId);
 
     List<Order> findByStatusAndDeliveredAtBefore(OrderStatus status, LocalDateTime threshold);
+
+    boolean existsByOrderNumber(String orderNumber);
+
+    Optional<Order> findByAuctionId(UUID auctionId);
 }

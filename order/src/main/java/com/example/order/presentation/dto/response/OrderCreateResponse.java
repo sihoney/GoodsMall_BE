@@ -9,6 +9,7 @@ import java.util.UUID;
 
 public record OrderCreateResponse(
         UUID orderId,
+        String orderNumber,
         BigDecimal totalPrice,
         OrderStatus status,
         LocalDateTime createdAt) {
@@ -16,6 +17,7 @@ public record OrderCreateResponse(
     public static OrderCreateResponse from(Order order) {
         return new OrderCreateResponse(
                 order.getOrderId(),
+                order.getOrderNumber(),
                 order.getTotalPrice(),
                 order.getStatus(),
                 order.getCreatedAt());

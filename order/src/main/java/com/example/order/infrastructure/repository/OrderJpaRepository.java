@@ -33,4 +33,8 @@ public interface OrderJpaRepository extends JpaRepository<Order, UUID> {
       and o.deliveredAt < :threshold
 """)
     List<Order> findByStatusAndDeliveredAtBefore(OrderStatus status, LocalDateTime threshold);
+
+    boolean existsByOrderNumber(String orderNumber);
+
+    Optional<Order> findByAuctionId(UUID auctionId);
 }
