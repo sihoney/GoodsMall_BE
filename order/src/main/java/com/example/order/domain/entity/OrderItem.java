@@ -123,6 +123,14 @@ public class OrderItem {
         return unitPriceSnapshot.multiply(BigDecimal.valueOf(quantity));
     }
 
+    public void prepare() {
+        if (this.status != OrderItemStatus.PENDING) {
+            throw new IllegalStateException("상품 준비 중 전환은 주문 접수 상태에서만 가능합니다.");
+        }
+        this.status = OrderItemStatus.PREPARING;
+        this.updatedAt = LocalDateTime.now();
+    }
+
     public void startShip() {
         if (this.status != OrderItemStatus.PREPARING) {
             throw new IllegalStateException("배송 시작은 상품 준비 중 상태에서만 가능합니다.");

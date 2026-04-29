@@ -22,6 +22,7 @@ public class DeliveryCreateService {
         List<Delivery> deliveries = new ArrayList<>();
 
         for (OrderItem orderItem : order.getItems()) {
+            orderItem.prepare();
             deliveries.add(Delivery.create(
                     orderItem.getSellerId(),
                     order.getBuyerId(),

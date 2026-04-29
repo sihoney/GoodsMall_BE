@@ -10,6 +10,7 @@ import com.example.order.domain.enumtype.OrderStatus;
 import com.example.order.domain.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +25,7 @@ public class OrderConfirmService implements OrderConfirmUseCase {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = "order:detail", key = "#orderId + ':' + #memberId")
     public void confirm(UUID orderId, UUID memberId) {
         Order order = orderRepository.findByOrderIdAndBuyerId(orderId, memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
@@ -38,6 +40,7 @@ public class OrderConfirmService implements OrderConfirmUseCase {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = "order:detail", key = "#orderId + ':' + #memberId")
     public void confirmItem(UUID orderId, UUID orderItemId, UUID memberId) {
         Order order = orderRepository.findByOrderIdAndBuyerId(orderId, memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
