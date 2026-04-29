@@ -12,15 +12,32 @@
  */
 import http from 'k6/http';
 import { check } from 'k6';
-import { Rate, Trend } from 'k6/metrics';
+import { Counter, Rate, Trend } from 'k6/metrics';
 import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 import { BASE_URL } from '../config/thresholds.js';
 import { SEED_AUCTIONS, LOAD_TEST_AUCTION_IDS } from '../helpers/data.js';
 import { publicHeaders } from '../helpers/auth.js';
 import { fetchCurrentBidPrice } from '../helpers/bid.js';
 
-const errorRate = new Rate('stress_error_rate');
+// 5xx 전체 비율 — 한계점 판정용 (5% 초과 구간이 실질적 한계점)
+const error5xxRate = new Rate('stress_5xx_rate');
 const bidTrend = new Trend('stress_bid_duration', true);
+
+// 5xx 코드별 분리 — 포화 원인 진단용 (SCENARIOS.md 5xx 분류 표와 매칭)
+//   503: HikariCP 커넥션 풀 타임아웃 → pool size 증설 또는 락 시간 단축 검토
+//   504: 락 대기 / 게이트웨이 타임아웃 → 트랜잭션 범위 또는 동시성 결함
+//   500: 비즈니스 예외 (NPE, IllegalState 등) → 부하와 무관한 버그, 즉시 수정 대상
+const status503 = new Counter('stress_status_503');
+const status504 = new Counter('stress_status_504');
+const status500 = new Counter('stress_status_500');
+
+function record5xx(status) {
+  const is5xx = status >= 500;
+  error5xxRate.add(is5xx ? 1 : 0);
+  if (status === 503) status503.add(1);
+  else if (status === 504) status504.add(1);
+  else if (status === 500) status500.add(1);
+}
 
 export const options = {
   stages: [
@@ -32,7 +49,9 @@ export const options = {
   ],
   thresholds: {
     // 임계값을 느슨하게 설정 (한계점 탐색이 목적)
-    stress_error_rate: ['rate<0.50'],
+    stress_5xx_rate: ['rate<0.50'],
+    // 500 은 부하와 무관한 코드 버그 → 발생 시 빨간불
+    stress_status_500: ['count==0'],
     http_req_failed: ['rate<0.50'],
   },
 };
@@ -48,7 +67,7 @@ export default function () {
       `${BASE_URL}/api/auctions?page=0&size=9`,
       { headers: publicHeaders() }
     );
-    errorRate.add(res.status >= 500 ? 1 : 0);
+    record5xx(res.status);
     check(res, { 'list ok': (r) => r.status < 500 });
 
   } else if (rand < 0.70) {
@@ -56,7 +75,7 @@ export default function () {
       `${BASE_URL}/api/auctions/${auctionId}`,
       { headers: publicHeaders() }
     );
-    errorRate.add(res.status >= 500 ? 1 : 0);
+    record5xx(res.status);
     check(res, { 'detail ok': (r) => r.status < 500 });
 
   } else {
@@ -76,7 +95,7 @@ export default function () {
         }
       );
       bidTrend.add(res.timings.duration);
-      errorRate.add(res.status >= 500 ? 1 : 0);
+      record5xx(res.status);
       check(res, { 'bid ok': (r) => r.status < 500 });
     }
   }

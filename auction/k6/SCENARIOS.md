@@ -297,9 +297,12 @@ sleep 없음 — 최대 처리량 측정이 목적.
 
 ### 측정 포인트
 
-- 각 VU 단계별 `stress_error_rate` 추이
-- `stress_bid_duration` p99 급등 시점 = DB 락/커넥션 포화 시점
-- 에러율 5% 초과 구간이 실질적 한계점
+- 각 VU 단계별 `stress_5xx_rate` 추이 — 5% 초과 구간이 실질적 한계점
+- `stress_status_503` / `stress_status_504` / `stress_status_500` 카운터 비교로 포화 원인 진단
+  - 503 우세 → HikariCP 커넥션 풀 포화 (pool size 증설 검토)
+  - 504 우세 → 락 대기 / 타임아웃 (트랜잭션 범위 또는 동시성 결함)
+  - 500 발생 → 코드 예외 (부하와 무관, 즉시 수정 대상)
+- `stress_bid_duration` p99 급등 시점 = 락/커넥션 포화 시점
 
 ### 성공 기준
 
@@ -307,7 +310,8 @@ sleep 없음 — 최대 처리량 측정이 목적.
 
 | 메트릭 | 기준 |
 |---|---|
-| `stress_error_rate` | < 50% (탐색 범위 확보) |
+| `stress_5xx_rate` | < 50% (탐색 범위 확보) |
+| `stress_status_500` | == 0 (코드 예외는 부하와 무관, 발생 시 즉시 수정) |
 | `http_req_failed` | < 50% |
 
 ### 실행
