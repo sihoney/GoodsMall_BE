@@ -2,6 +2,7 @@ package com.example.member.infrastructure.persistence.jpa;
 
 import com.example.member.application.port.out.MemberPersistencePort;
 import com.example.member.domain.entity.Member;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,11 @@ public class MemberJpaAdapter implements MemberPersistencePort {
     @Override
     public Optional<Member> findByEmail(String email) {
         return memberJpaRepository.findByEmail(email);
+    }
+
+    @Override
+    public List<Member> findAllByIds(Iterable<UUID> memberIds) {
+        return memberJpaRepository.findAllById(memberIds);
     }
 
     @Override

@@ -29,7 +29,7 @@ public class ProductEsSyncConsumer {
     private final ObjectMapper objectMapper;
 
     @Transactional(readOnly = true)
-    @KafkaListener(topics = KafkaTopics.PRODUCT_CREATED, groupId = "${product.kafka.consumer-groups.product-es-sync}")
+    @KafkaListener(topics = KafkaTopics.PRODUCT_CREATED)
     public void handleProductCreated(String payload) {
         try {
             ProductCreatedMessage message = objectMapper.readValue(payload, ProductCreatedMessage.class);
@@ -40,7 +40,7 @@ public class ProductEsSyncConsumer {
     }
 
     @Transactional(readOnly = true)
-    @KafkaListener(topics = KafkaTopics.PRODUCT_UPDATED, groupId = "${product.kafka.consumer-groups.product-es-sync}")
+    @KafkaListener(topics = KafkaTopics.PRODUCT_UPDATED)
     public void handleProductUpdated(String payload) {
         try {
             ProductUpdatedMessage message = objectMapper.readValue(payload, ProductUpdatedMessage.class);
@@ -50,7 +50,7 @@ public class ProductEsSyncConsumer {
         }
     }
 
-    @KafkaListener(topics = KafkaTopics.PRODUCT_DELETED, groupId = "${product.kafka.consumer-groups.product-es-sync}")
+    @KafkaListener(topics = KafkaTopics.PRODUCT_DELETED)
     public void handleProductDeleted(String payload) {
         try {
             ProductDeletedMessage message = objectMapper.readValue(payload, ProductDeletedMessage.class);

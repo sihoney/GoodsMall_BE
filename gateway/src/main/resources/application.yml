@@ -198,6 +198,8 @@ gateway:
       - /swagger-ui.html
     public-rules:
       - methods: [GET]
+        pattern: /api/members/**
+      - methods: [GET]
         pattern: /api/category/**
       - methods: [GET]
         pattern: /api/categories/**

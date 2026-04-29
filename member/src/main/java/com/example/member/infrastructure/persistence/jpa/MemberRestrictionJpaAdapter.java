@@ -49,6 +49,11 @@ public class MemberRestrictionJpaAdapter implements MemberRestrictionPersistence
     }
 
     @Override
+    public List<MemberRestriction> findAll() {
+        return memberRestrictionJpaRepository.findAllByOrderByCreatedAtDesc();
+    }
+
+    @Override
     public List<MemberRestriction> findAllByMemberId(UUID memberId) {
         return memberRestrictionJpaRepository.findAllByMemberIdOrderByCreatedAtDesc(memberId);
     }

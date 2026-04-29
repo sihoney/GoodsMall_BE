@@ -194,6 +194,11 @@ public class Product {
         this.updatedAt = LocalDateTime.now();
     }
 
+    public void updateAuctionFinalPrice(BigDecimal finalPrice) {
+        this.price = Objects.requireNonNull(finalPrice);
+        this.updatedAt = LocalDateTime.now();
+    }
+
     public void increaseViewCount() {
         this.viewCount++;
     }

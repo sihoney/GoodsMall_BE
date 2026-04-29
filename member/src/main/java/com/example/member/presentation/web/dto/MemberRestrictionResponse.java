@@ -8,7 +8,9 @@ import java.util.UUID;
 public record MemberRestrictionResponse(
         UUID restrictionId,
         UUID memberId,
+        String memberNickname,
         UUID adminId,
+        String adminNickname,
         String reason,
         RestrictionType restrictionType,
         Integer durationHours,
@@ -22,7 +24,9 @@ public record MemberRestrictionResponse(
         return new MemberRestrictionResponse(
                 result.restrictionId(),
                 result.memberId(),
+                result.memberNickname(),
                 result.adminId(),
+                result.adminNickname(),
                 result.reason(),
                 result.restrictionType(),
                 result.durationHours(),

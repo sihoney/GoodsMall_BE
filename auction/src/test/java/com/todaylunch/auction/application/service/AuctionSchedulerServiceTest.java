@@ -9,9 +9,9 @@ import com.todaylunch.auction.domain.entity.Bid;
 import com.todaylunch.auction.domain.enumtype.AuctionStatus;
 import com.todaylunch.auction.domain.repository.AuctionRepository;
 import com.todaylunch.auction.domain.repository.BidRepository;
+import com.todaylunch.auction.domain.repository.OutboxEventRepository;
 import com.todaylunch.auction.infrastructure.messaging.kafka.publisher.KafkaAuctionClosedSoldEventPublisher;
 import com.todaylunch.auction.infrastructure.messaging.kafka.publisher.KafkaAuctionClosedUnsoldEventPublisher;
-import com.todaylunch.auction.infrastructure.messaging.kafka.publisher.KafkaAuctionWonEventPublisher;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -23,6 +23,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
+import tools.jackson.databind.ObjectMapper;
 
 @ExtendWith(MockitoExtension.class)
 class AuctionSchedulerServiceTest {
@@ -32,7 +34,11 @@ class AuctionSchedulerServiceTest {
     @Mock
     BidRepository bidRepository;
     @Mock
-    KafkaAuctionWonEventPublisher auctionWonEventPublisher;
+    OutboxEventRepository outboxEventRepository;
+    @Mock
+    ObjectMapper objectMapper;
+    @Mock
+    ApplicationEventPublisher eventPublisher;
     @Mock
     KafkaAuctionClosedSoldEventPublisher auctionClosedSoldEventPublisher;
     @Mock
@@ -50,6 +56,7 @@ class AuctionSchedulerServiceTest {
 
         waitingAuction = Auction.create(UUID.randomUUID(),
                                         "테스트 상품",
+                                        "test/thumbnail.jpg",
                                         UUID.randomUUID(),
                                         new BigDecimal("10000"),
                                         new BigDecimal("1000"),
@@ -58,6 +65,7 @@ class AuctionSchedulerServiceTest {
 
         ongoingAuction = Auction.create(UUID.randomUUID(),
                                         "테스트 상품",
+                                        "test/thumbnail.jpg",
                                         UUID.randomUUID(),
                                         new BigDecimal("10000"),
                                         new BigDecimal("1000"),
@@ -76,12 +84,13 @@ class AuctionSchedulerServiceTest {
     }
 
     @Test
-    void 종료된_경매에_ACTIVE_입찰이_있으면_PENDING_PAYMENT로_전이() {
+    void 종료된_경매에_ACTIVE_입찰이_있으면_PENDING_PAYMENT로_전이() throws Exception {
         Bid activeBid = Bid.place(ongoingAuction, UUID.randomUUID(), new BigDecimal("11000"));
 
         given(auctionRepository.findEndable(any())).willReturn(List.of(ongoingAuction));
         given(auctionRepository.findByIdWithLock(ongoingAuction.getAuctionId())).willReturn(ongoingAuction);
         given(bidRepository.findActiveByAuctionId(ongoingAuction.getAuctionId())).willReturn(Optional.of(activeBid));
+        given(objectMapper.writeValueAsString(any())).willReturn("{}");
 
         auctionSchedulerService.endExpiredAuctions();
 

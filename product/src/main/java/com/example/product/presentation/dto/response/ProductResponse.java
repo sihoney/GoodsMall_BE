@@ -15,6 +15,7 @@ import java.util.UUID;
  */
 public record ProductResponse(
         UUID productId,
+        UUID sellerId,
         String title,
         String description,
         BigDecimal price,
@@ -30,6 +31,7 @@ public record ProductResponse(
     public static ProductResponse from(Product product) {
         return new ProductResponse(
                 product.getProductId(),
+                product.getSellerId(),
                 product.getTitle(),
                 product.getDescription(),
                 product.getPrice(),
@@ -50,6 +52,7 @@ public record ProductResponse(
 
         return new ProductResponse(
                 product.getProductId(),
+                product.getSellerId(),
                 product.getTitle(),
                 product.getDescription(),
                 product.getPrice(),
