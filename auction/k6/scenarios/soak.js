@@ -2,8 +2,15 @@
  * 시나리오 E: 장기 안정성 테스트 (Soak Test)
  * 목적: 메모리 누수, DB 커넥션 누수, Kafka 이벤트 누적 오류 확인
  *       JVM 힙 증가 추이, GC 빈도 관찰
- * 실행: k6 run auction/k6/scenarios/soak.js --out json=results/soak.json
- * 주의: 30~60분 소요 (Grafana에서 JVM 메모리 추이 반드시 모니터링)
+ *
+ * 실행:
+ *   기본 (시연용 30분):  k6 run auction/k6/scenarios/soak.js --out json=results/soak.json
+ *   누수 탐지 (4시간):   k6 run auction/k6/scenarios/soak.js -e DURATION=4h -e VUS=30
+ *
+ * 주의:
+ *   - 30분 통과는 "장애 없이 일정 부하 유지 가능" 의미일 뿐, 누수 없음 보장 아님
+ *   - 누수 패턴은 보통 2시간 이후에 드러남 → 진짜 누수 검증은 최소 2h, 권장 4~8h
+ *   - Grafana 에서 JVM heap / HikariCP active / Kafka consumer lag 동시 모니터링 필수
  * 전제: reset_test_auctions.sql 실행 후 시작
  */
 import http from 'k6/http';

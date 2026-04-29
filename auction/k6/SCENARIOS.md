@@ -334,6 +334,11 @@ k6 run ~/k6/scenarios/stress.js --out json=results/stress.json
 | 유지 시간 | 기본 30분 (환경변수 DURATION으로 조정) |
 | 대상 | 경매 풀 6개 |
 
+> **목적별 권장 duration**
+> - 시연/발표용 (빠른 안정성 확인): 30분 (default)
+> - 누수 탐지 (메모리/커넥션/Kafka lag): **최소 2시간**, 권장 4~8시간
+>   — 누수 패턴은 보통 2시간 이후에 드러남. 30분 통과 ≠ 누수 없음.
+
 ### 트래픽 패턴
 
 | 비율 | 요청 | sleep |
@@ -362,8 +367,11 @@ sleep이 상대적으로 길다 — 낮은 TPS로 장시간 유지해 누수 탐
 ### 실행
 
 ```bash
-# 기본 (20 VU, 30분)
+# 기본 (20 VU, 30분) — 시연용
 k6 run ~/k6/scenarios/soak.js --out json=results/soak.json
+
+# 누수 탐지용 (4시간)
+k6 run ~/k6/scenarios/soak.js -e DURATION=4h -e VUS=30 --out json=results/soak.json
 
 # 사용자 지정
 k6 run ~/k6/scenarios/soak.js -e DURATION=60m -e VUS=30 --out json=results/soak.json
