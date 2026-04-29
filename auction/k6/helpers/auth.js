@@ -11,6 +11,16 @@ export const SELLER_ID = '22222222-2222-2222-2222-222222222202';
 // 시드 계정으로 직접 입찰하는 시나리오를 새로 추가할 때 import 하여 사용.
 export const DEFAULT_BIDDER_ID = '11111111-1111-1111-1111-111111111101';
 
+// ============================================================
+// JWT 인증 (현재 미사용)
+// ------------------------------------------------------------
+// 모든 시나리오가 ClusterIP 직접 접근 + X-Member-Id 헤더 주입 방식이므로
+// 아래 login() / authenticatedHeaders() / 시드 이메일·비밀번호 상수는 호출되지 않는다.
+// 게이트웨이 경유(JWT 검증 포함) 테스트를 추가할 때 import 하여 사용:
+//   const token = login(BUYER_EMAIL, BUYER_PASSWORD);
+//   http.post(url, body, { headers: authenticatedHeaders(token) });
+// ============================================================
+
 // 시드 계정 정보
 export const BUYER_EMAIL = 'buyer@test.local';
 export const BUYER_PASSWORD = '1111';
