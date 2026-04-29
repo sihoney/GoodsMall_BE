@@ -371,7 +371,7 @@ k6 run ~/k6/scenarios/soak.js -e DURATION=60m -e VUS=30 --out json=results/soak.
 
 ```
 □ load_test_auctions.sql 삽입 확인 (최초 1회)
-□ reset_test_auctions.sql 실행
+□ reset_test_auctions.sql 실행 (auction.bid + outbox_event + 최고가 초기화)
 □ auction 서비스 ONGOING 상태 확인
 □ Grafana 대시보드 열기 (soak 시에는 필수)
 
@@ -386,7 +386,12 @@ k6 run ~/k6/scenarios/soak.js -e DURATION=60m -e VUS=30 --out json=results/soak.
 □ reset DB
 □ stress     → 포화점 VU 수 기록
 □ reset DB
+
+□ wallet 잔액 ≥ 50만원 확인 (psql SELECT balance FROM payment.wallet ...)
+   → 부족하면 refill_wallet.sql 실행
 □ soak       → 장기 누수 여부 확인 (Grafana 병행)
+
+□ 모든 시나리오 종료 후 → cleanup_test_data.sql 실행 (테스트 데이터 + wallet 잔액 복원)
 ```
 
 ---
