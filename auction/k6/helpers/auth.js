@@ -6,6 +6,9 @@ import { MEMBER_URL } from '../config/thresholds.js';
 export const SELLER_ID = '22222222-2222-2222-2222-222222222202';
 
 // 기본 입찰자 (시드 데이터)
+// 현재 미사용 — 모든 시나리오는 매 iteration마다 uuidv4() 로 신규 입찰자를 만들어
+// HIGHEST_BIDDER_CANNOT_REBID 룰을 자연스럽게 우회한다.
+// 시드 계정으로 직접 입찰하는 시나리오를 새로 추가할 때 import 하여 사용.
 export const DEFAULT_BIDDER_ID = '11111111-1111-1111-1111-111111111101';
 
 // 시드 계정 정보
