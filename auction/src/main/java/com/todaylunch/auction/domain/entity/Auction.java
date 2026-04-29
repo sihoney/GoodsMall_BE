@@ -21,7 +21,7 @@ import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
+//옥션
 @Getter
 @Entity
 @Table(name = "auction")
