@@ -1,7 +1,7 @@
 package com.todaylunch.gateway.filter;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import com.todaylunch.gateway.security.AuthErrorCode;
 import com.todaylunch.gateway.security.AuthErrorResponse;
 import com.todaylunch.gateway.security.AuthException;
@@ -167,7 +167,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         byte[] body;
         try {
             body = objectMapper.writeValueAsBytes(AuthErrorResponse.from(errorCode));
-        } catch (JsonProcessingException exception) {
+        } catch (JacksonException exception) {
             body = ("{\"code\":\"" + errorCode.name() + "\",\"message\":\""
                     + errorCode.getMessage() + "\"}")
                     .getBytes(StandardCharsets.UTF_8);
