@@ -96,9 +96,7 @@ public class OrderCreateService implements OrderCreateUseCase {
         Order order = buildOrder(memberId, request, productRequests, productMap);
         addOrderItems(order, request.orderItemRequest(), productMap);
 
-        orderRepository.save(order);
-
-        return order;
+        return orderRepository.save(order);
     }
 
     private void validateRequest(OrderCreateRequest request) {
