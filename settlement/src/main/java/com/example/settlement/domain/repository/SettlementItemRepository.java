@@ -12,53 +12,27 @@ import java.util.UUID;
  */
 public interface SettlementItemRepository {
 
-    /**
-     * 정산 원천 항목을 저장한다.
-     */
     SettlementItem save(SettlementItem settlementItem);
 
     void delete(SettlementItem settlementItem);
 
-    /**
-     * escrowId로 정산 원천 항목을 조회한다.
-     * dedup(중복 방지) 체크에 사용된다.
-     */
     Optional<SettlementItem> findByEscrowId(UUID escrowId);
 
-    /**
-     * 지정 기간 내 전체 정산 원천 항목을 조회한다.
-     */
     List<SettlementItem> findByReleasedAtBetween(LocalDateTime releasedAtFrom, LocalDateTime releasedAtTo);
 
-    /**
-     * 지정 기간 내 아직 어떤 정산에도 연결되지 않은 UNASSIGNED 항목만 조회한다.
-     */
     List<SettlementItem> findUnassignedByReleasedAtBetween(LocalDateTime releasedAtFrom, LocalDateTime releasedAtTo);
 
-    /**
-     * 판매자 기준 부분 정산 가능 항목을 조회한다.
-     * settlementId가 null이고 grossAmount가 0보다 큰 항목만 반환한다.
-     */
     List<SettlementItem> findAvailableSettlementItemsForPartialSettlementBySellerId(UUID sellerId);
 
-    /**
-     * settlementItemId 목록으로 정산 원천 항목을 조회한다.
-     */
     List<SettlementItem> findAllBySettlementItemIdIn(List<UUID> settlementItemIds);
 
-    /**
-     * settlementItemId 목록 중 특정 상태와 일치하는 항목만 조회한다.
-     */
     List<SettlementItem> findAllBySettlementItemIdInAndSettlementItemStatus(
             List<UUID> settlementItemIds,
             SettlementItemStatus settlementItemStatus
     );
 
-    /**
-     * 현재 상태가 일치하는 항목만 다음 상태로 조건부 변경한다.
-     *
-     * @return 실제로 상태 변경에 성공한 건수
-     */
+    List<SettlementItem> findAllBySettlementIdOrderByReleasedAtDesc(UUID settlementId);
+
     int updateSettlementItemStatusIn(
             List<UUID> settlementItemIds,
             SettlementItemStatus currentStatus,

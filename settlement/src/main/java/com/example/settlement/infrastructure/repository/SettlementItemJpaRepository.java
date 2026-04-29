@@ -56,6 +56,8 @@ public interface SettlementItemJpaRepository extends JpaRepository<SettlementIte
             SettlementItemStatus settlementItemStatus
     );
 
+    List<SettlementItem> findBySettlementIdOrderByReleasedAtDesc(UUID settlementId);
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
             update SettlementItem settlementItem
