@@ -1,5 +1,5 @@
 -- ============================================================
--- 베이스라인 테스트 전용 입찰자 wallet 시드
+-- 베이스라인 테스트 전용 입찰자 시드
 -- 실행 시점: baseline.js 최초 실행 전 1회
 -- 실행 방법:
 --   kubectl exec -it <postgres-pod> -n goods-mall -- \
@@ -11,6 +11,22 @@
 -- 테스트 완료 후: cleanup_test_data.sql 의 BASELINE STEP 에서 row 삭제
 -- ============================================================
 
+-- ① member 레코드 생성 (payment 서비스 member 검증 통과를 위해 필요)
+INSERT INTO member.member (member_id, email, password, nickname, role, status, created_at, updated_at)
+VALUES
+    ('11111111-1111-1111-1111-111111111110', 'baseline-bidder-01@test.local', '$2b$10$yXUMG19nj3DhnhHmlM8hqOOlfnN7zPJkEn9zoKFdIVExwazLwwr0u', '베이스라인입찰자01', 'USER', 'ACTIVE', NOW(), NOW()),
+    ('11111111-1111-1111-1111-111111111111', 'baseline-bidder-02@test.local', '$2b$10$yXUMG19nj3DhnhHmlM8hqOOlfnN7zPJkEn9zoKFdIVExwazLwwr0u', '베이스라인입찰자02', 'USER', 'ACTIVE', NOW(), NOW()),
+    ('11111111-1111-1111-1111-111111111112', 'baseline-bidder-03@test.local', '$2b$10$yXUMG19nj3DhnhHmlM8hqOOlfnN7zPJkEn9zoKFdIVExwazLwwr0u', '베이스라인입찰자03', 'USER', 'ACTIVE', NOW(), NOW()),
+    ('11111111-1111-1111-1111-111111111113', 'baseline-bidder-04@test.local', '$2b$10$yXUMG19nj3DhnhHmlM8hqOOlfnN7zPJkEn9zoKFdIVExwazLwwr0u', '베이스라인입찰자04', 'USER', 'ACTIVE', NOW(), NOW()),
+    ('11111111-1111-1111-1111-111111111114', 'baseline-bidder-05@test.local', '$2b$10$yXUMG19nj3DhnhHmlM8hqOOlfnN7zPJkEn9zoKFdIVExwazLwwr0u', '베이스라인입찰자05', 'USER', 'ACTIVE', NOW(), NOW()),
+    ('11111111-1111-1111-1111-111111111115', 'baseline-bidder-06@test.local', '$2b$10$yXUMG19nj3DhnhHmlM8hqOOlfnN7zPJkEn9zoKFdIVExwazLwwr0u', '베이스라인입찰자06', 'USER', 'ACTIVE', NOW(), NOW()),
+    ('11111111-1111-1111-1111-111111111116', 'baseline-bidder-07@test.local', '$2b$10$yXUMG19nj3DhnhHmlM8hqOOlfnN7zPJkEn9zoKFdIVExwazLwwr0u', '베이스라인입찰자07', 'USER', 'ACTIVE', NOW(), NOW()),
+    ('11111111-1111-1111-1111-111111111117', 'baseline-bidder-08@test.local', '$2b$10$yXUMG19nj3DhnhHmlM8hqOOlfnN7zPJkEn9zoKFdIVExwazLwwr0u', '베이스라인입찰자08', 'USER', 'ACTIVE', NOW(), NOW()),
+    ('11111111-1111-1111-1111-111111111118', 'baseline-bidder-09@test.local', '$2b$10$yXUMG19nj3DhnhHmlM8hqOOlfnN7zPJkEn9zoKFdIVExwazLwwr0u', '베이스라인입찰자09', 'USER', 'ACTIVE', NOW(), NOW()),
+    ('11111111-1111-1111-1111-111111111119', 'baseline-bidder-10@test.local', '$2b$10$yXUMG19nj3DhnhHmlM8hqOOlfnN7zPJkEn9zoKFdIVExwazLwwr0u', '베이스라인입찰자10', 'USER', 'ACTIVE', NOW(), NOW())
+ON CONFLICT (member_id) DO NOTHING;
+
+-- ② wallet 생성
 INSERT INTO payment.wallet (wallet_id, member_id, balance, created_at, updated_at)
 VALUES
     ('cccccccc-cccc-cccc-cccc-cccccccccc10', '11111111-1111-1111-1111-111111111110', 5000000.00, NOW(), NOW()),
