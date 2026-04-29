@@ -2,6 +2,7 @@ package com.example.order.infrastructure.repository;
 
 import com.example.order.domain.entity.Order;
 import com.example.order.domain.enumtype.OrderStatus;
+import com.example.order.domain.enumtype.OrderType;
 import com.example.order.domain.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -25,8 +26,8 @@ public class OrderRepositoryImpl implements OrderRepository {
     }
 
     @Override
-    public Page<Order> findByBuyerId(UUID buyerId, Pageable pageable) {
-        return orderJpaRepository.findByBuyerId(buyerId, pageable);
+    public Page<Order> findByBuyerIdAndOrderType(UUID buyerId, OrderType orderType, String keyword, Pageable pageable) {
+        return orderJpaRepository.findByBuyerIdAndOrderType(buyerId, orderType, keyword, pageable);
     }
 
     @Override
@@ -42,5 +43,15 @@ public class OrderRepositoryImpl implements OrderRepository {
     @Override
     public List<Order> findByStatusAndDeliveredAtBefore(OrderStatus status, LocalDateTime threshold) {
         return orderJpaRepository.findByStatusAndDeliveredAtBefore(status, threshold);
+    }
+
+    @Override
+    public boolean existsByOrderNumber(String orderNumber) {
+        return orderJpaRepository.existsByOrderNumber(orderNumber);
+    }
+
+    @Override
+    public Optional<Order> findByAuctionId(UUID auctionId) {
+        return orderJpaRepository.findByAuctionId(auctionId);
     }
 }

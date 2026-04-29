@@ -5,6 +5,7 @@ import com.example.order.common.exception.CustomException;
 import com.example.order.common.exception.ErrorCode;
 import com.example.order.domain.entity.Delivery;
 import com.example.order.domain.entity.Order;
+import com.example.order.domain.enumtype.OrderType;
 import com.example.order.domain.repository.DeliveryRepository;
 import com.example.order.domain.repository.OrderRepository;
 import com.example.order.presentation.dto.request.PaymentValidationRequest;
@@ -31,8 +32,8 @@ public class OrderSearchService implements OrderSearchUseCase {
     private final DeliveryRepository deliveryRepository;
 
     @Override
-    public Page<OrderSummaryResponse> findByMemberId(UUID memberId, Pageable pageable) {
-        Page<Order> orders = orderRepository.findByBuyerId(memberId, pageable);
+    public Page<OrderSummaryResponse> findByMemberId(UUID memberId, OrderType orderType, String keyword, Pageable pageable) {
+        Page<Order> orders = orderRepository.findByBuyerIdAndOrderType(memberId, orderType, keyword, pageable);
         return orders.map(OrderSummaryResponse::from);
     }
 

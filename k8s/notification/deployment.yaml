@@ -24,7 +24,7 @@ spec:
             - containerPort: 8087
           env:
             - name: JAVA_TOOL_OPTIONS
-              value: "-Xms128m -Xmx256m -Duser.timezone=Asia/Seoul"
+              value: "-Xms192m -Xmx384m -Duser.timezone=Asia/Seoul"
           envFrom:
             - configMapRef:
                 name: common-config
@@ -34,7 +34,7 @@ spec:
             httpGet:
               path: /actuator/health
               port: 8087
-            failureThreshold: 20
+            failureThreshold: 30
             periodSeconds: 10
           livenessProbe:
             httpGet:

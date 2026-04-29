@@ -2,6 +2,7 @@ package com.example.order.domain.repository;
 
 import com.example.order.domain.entity.Order;
 import com.example.order.domain.enumtype.OrderStatus;
+import com.example.order.domain.enumtype.OrderType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -14,11 +15,15 @@ public interface OrderRepository {
 
     Order save(Order order);
 
-    Page<Order> findByBuyerId(UUID buyerId, Pageable pageable);
+    Page<Order> findByBuyerIdAndOrderType(UUID buyerId, OrderType orderType, String keyword, Pageable pageable);
 
     Optional<Order> findByOrderIdAndBuyerId(UUID orderId, UUID buyerId);
 
     Optional<Order> findByOrderId(UUID orderId);
 
     List<Order> findByStatusAndDeliveredAtBefore(OrderStatus status, LocalDateTime threshold);
+
+    boolean existsByOrderNumber(String orderNumber);
+
+    Optional<Order> findByAuctionId(UUID auctionId);
 }

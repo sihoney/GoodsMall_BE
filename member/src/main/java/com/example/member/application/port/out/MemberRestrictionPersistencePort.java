@@ -17,5 +17,7 @@ public interface MemberRestrictionPersistencePort {
 
     Optional<MemberRestriction> findActiveRestriction(UUID memberId, RestrictionType restrictionType, LocalDateTime now);
 
+    List<MemberRestriction> findAll();
+
     List<MemberRestriction> findAllByMemberId(UUID memberId);
 }

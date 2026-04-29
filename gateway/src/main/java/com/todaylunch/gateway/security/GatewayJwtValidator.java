@@ -1,6 +1,7 @@
 package com.todaylunch.gateway.security;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
@@ -32,27 +33,33 @@ public class GatewayJwtValidator {
     }
 
     public AuthenticatedPrincipal validateAccessToken(String token) {
-        // JWT 서명/만료/claim 검증
-        Claims claims = Jwts.parser()
-                .requireIssuer(jwtProperties.issuer())
-                .verifyWith(secretKey)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
+        Claims claims;
+        try {
+            claims = Jwts.parser()
+                    .requireIssuer(jwtProperties.issuer())
+                    .verifyWith(secretKey)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+        } catch (ExpiredJwtException exception) {
+            throw new AuthException(AuthErrorCode.TOKEN_EXPIRED, exception);
+        } catch (Exception exception) {
+            throw new AuthException(AuthErrorCode.INVALID_TOKEN, exception);
+        }
 
         if (!ACCESS.equals(claims.get(TOKEN_TYPE_CLAIM, String.class))) {
-            throw new IllegalArgumentException("Only access tokens are accepted.");
+            throw new AuthException(AuthErrorCode.INVALID_TOKEN);
         }
 
         String accessTokenId = claims.getId();
         String sessionId = claims.get(SESSION_ID_CLAIM, String.class);
         if (accessTokenId == null || accessTokenId.isBlank() || sessionId == null || sessionId.isBlank()) {
-            throw new IllegalArgumentException("Invalid access token claims.");
+            throw new AuthException(AuthErrorCode.INVALID_TOKEN);
         }
 
         if (tokenBlacklistStore.isAccessTokenBlacklisted(accessTokenId)
                 || tokenBlacklistStore.isSessionBlacklisted(UUID.fromString(sessionId))) {
-            throw new IllegalArgumentException("Token is blacklisted.");
+            throw new AuthException(AuthErrorCode.INVALID_TOKEN);
         }
 
         return new AuthenticatedPrincipal(

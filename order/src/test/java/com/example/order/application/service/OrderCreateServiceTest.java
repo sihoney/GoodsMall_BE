@@ -9,9 +9,12 @@ import com.example.order.common.exception.ErrorCode;
 import com.example.order.domain.entity.Order;
 import com.example.order.domain.enumtype.ProductOrderStatus;
 import com.example.order.domain.repository.OrderRepository;
+import com.example.order.domain.repository.OutboxRepository;
+import com.example.order.infrastructure.kafka.OutboxEventSaver;
 import com.example.order.presentation.dto.request.OrderCreateRequest;
 import com.example.order.presentation.dto.request.OrderItemCreateRequest;
 import com.example.order.presentation.dto.response.OrderCreateResponse;
+import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -47,6 +50,18 @@ class OrderCreateServiceTest {
     @Mock
     private DeliveryCreateService deliveryCreateService;
 
+    @Mock
+    private OutboxRepository outboxRepository;
+
+    @Mock
+    private OutboxEventSaver outboxEventSaver;
+
+    @Mock
+    private ObjectMapper objectMapper;
+
+    @Mock
+    private OrderNumberGenerator orderNumberGenerator;
+
     @InjectMocks
     private OrderCreateService orderCreateService;
 
@@ -63,6 +78,7 @@ class OrderCreateServiceTest {
         productId2 = UUID.randomUUID();
         sellerId1 = UUID.randomUUID();
         sellerId2 = UUID.randomUUID();
+        lenient().when(orderNumberGenerator.generateUnique()).thenReturn("240101000001");
     }
 
     @Nested

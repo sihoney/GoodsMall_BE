@@ -15,5 +15,7 @@ public interface MemberRestrictionUsecase {
 
     MemberRestrictionResult deactivateRestriction(AuthenticatedMember authenticatedMember, UUID restrictionId);
 
+    List<MemberRestrictionResult> getAllMemberRestrictions(AuthenticatedMember authenticatedMember);
+
     List<MemberRestrictionResult> getMemberRestrictions(AuthenticatedMember authenticatedMember, UUID memberId);
 }

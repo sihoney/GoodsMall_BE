@@ -13,7 +13,7 @@ import com.example.order.domain.repository.OrderRepository;
 import com.example.order.domain.repository.OutboxRepository;
 import com.example.order.infrastructure.kafka.KafkaTopics;
 import com.example.order.infrastructure.kafka.OutboxEventSaver;
-import com.example.order.infrastructure.kafka.event.OrderCreatedEvent;
+import com.example.order.infrastructure.kafka.event.OrderConfirmedEvent;
 import com.example.order.infrastructure.kafka.event.PaymentFailedEvent;
 import com.example.order.presentation.dto.request.OrderCreateRequest;
 import com.example.order.presentation.dto.request.OrderItemCreateRequest;
@@ -40,6 +40,7 @@ public class OrderCreateService implements OrderCreateUseCase {
     private final OutboxRepository outboxRepository;
     private final OutboxEventSaver outboxEventSaver;
     private final ObjectMapper objectMapper;
+    private final OrderNumberGenerator orderNumberGenerator;
 
     @Transactional
     @Override
@@ -56,17 +57,17 @@ public class OrderCreateService implements OrderCreateUseCase {
 
         order.confirm();
         deliveryCreateService.create(order);
-        saveOrderCreatedOutbox(order);
+        saveOrderConfirmedOutbox(order);
 
         return OrderCreateResponse.from(order);
     }
 
-    private void saveOrderCreatedOutbox(Order order) {
+    private void saveOrderConfirmedOutbox(Order order) {
         try {
-            String payload = objectMapper.writeValueAsString(OrderCreatedEvent.envelopeOf(order));
-            outboxRepository.save(OutboxEvent.create(KafkaTopics.ORDER_CREATED, order.getOrderId().toString(), payload));
+            String payload = objectMapper.writeValueAsString(OrderConfirmedEvent.envelopeOf(order));
+            outboxRepository.save(OutboxEvent.create(KafkaTopics.ORDER_CONFIRMED, order.getOrderId().toString(), payload));
         } catch (Exception e) {
-            log.error("OrderCreatedEvent Outbox 저장 실패. orderId={}", order.getOrderId(), e);
+            log.error("OrderConfirmedEvent Outbox 저장 실패. orderId={}", order.getOrderId(), e);
         }
     }
 
@@ -83,8 +84,6 @@ public class OrderCreateService implements OrderCreateUseCase {
     @Override
     public OrderCreateResponse createByPg(UUID memberId, OrderCreateRequest request) {
         Order order = createOrder(memberId, request);
-        saveOrderCreatedOutbox(order);
-
         return OrderCreateResponse.from(order);
     }
 
@@ -133,8 +132,10 @@ public class OrderCreateService implements OrderCreateUseCase {
             Map<UUID, ProductInfo> productMap
     ) {
         ProductInfo representativeProduct = getRepresentativeProduct(productRequests, productMap);
+        String orderNumber = orderNumberGenerator.generateUnique();
 
         return Order.create(
+                orderNumber,
                 memberId,
                 request.address(),
                 request.addressDetail(),
