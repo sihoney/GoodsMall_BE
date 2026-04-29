@@ -19,6 +19,9 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class DeliveryRepositoryImpl implements DeliveryRepository {
 
+    private static final LocalDateTime MIN_DATE = LocalDateTime.of(2000, 1, 1, 0, 0);
+    private static final LocalDateTime MAX_DATE = LocalDateTime.of(2100, 12, 31, 23, 59, 59);
+
     private final DeliveryJpaRepository deliveryJpaRepository;
 
     @Override
@@ -53,17 +56,20 @@ public class DeliveryRepositoryImpl implements DeliveryRepository {
             LocalDateTime dateTo,
             Pageable pageable
     ) {
+        LocalDateTime from = dateFrom != null ? dateFrom : MIN_DATE;
+        LocalDateTime to   = dateTo   != null ? dateTo   : MAX_DATE;
+
         if (status != null) {
             return deliveryJpaRepository.findBySellerIdAndStatusWithFilters(
                     sellerId, status, courierCode,
                     like(orderNumber), like(receiver), like(productName),
-                    dateFrom, dateTo, pageable
+                    from, to, pageable
             );
         }
         return deliveryJpaRepository.findBySellerIdWithFilters(
                 sellerId, courierCode,
                 like(orderNumber), like(receiver), like(productName),
-                dateFrom, dateTo, pageable
+                from, to, pageable
         );
     }
 
