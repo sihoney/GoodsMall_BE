@@ -68,10 +68,11 @@ public class OrderController {
     public ResponseEntity<ApiResponse<Page<OrderSummaryResponse>>> findOrders(
             @CurrentMember AuthenticatedMember authenticatedMember,
             @RequestParam(required = false) OrderType orderType,
+            @RequestParam(required = false) String keyword,
             @ParameterObject Pageable pageable
     ) {
         UUID memberId = authenticatedMember.memberId();
-        return ResponseEntity.ok(ApiResponse.success(orderSearchUseCase.findByMemberId(memberId, orderType, pageable)));
+        return ResponseEntity.ok(ApiResponse.success(orderSearchUseCase.findByMemberId(memberId, orderType, keyword, pageable)));
     }
 
     @GetMapping("{orderId}")

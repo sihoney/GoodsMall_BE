@@ -32,8 +32,8 @@ public class OrderSearchService implements OrderSearchUseCase {
     private final DeliveryRepository deliveryRepository;
 
     @Override
-    public Page<OrderSummaryResponse> findByMemberId(UUID memberId, OrderType orderType, Pageable pageable) {
-        Page<Order> orders = orderRepository.findByBuyerIdAndOrderType(memberId, orderType, pageable);
+    public Page<OrderSummaryResponse> findByMemberId(UUID memberId, OrderType orderType, String keyword, Pageable pageable) {
+        Page<Order> orders = orderRepository.findByBuyerIdAndOrderType(memberId, orderType, keyword, pageable);
         return orders.map(OrderSummaryResponse::from);
     }
 

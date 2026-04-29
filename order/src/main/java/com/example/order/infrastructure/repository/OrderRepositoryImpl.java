@@ -26,8 +26,8 @@ public class OrderRepositoryImpl implements OrderRepository {
     }
 
     @Override
-    public Page<Order> findByBuyerIdAndOrderType(UUID buyerId, OrderType orderType, Pageable pageable) {
-        return orderJpaRepository.findByBuyerIdAndOrderType(buyerId, orderType, pageable);
+    public Page<Order> findByBuyerIdAndOrderType(UUID buyerId, OrderType orderType, String keyword, Pageable pageable) {
+        return orderJpaRepository.findByBuyerIdAndOrderType(buyerId, orderType, keyword, pageable);
     }
 
     @Override

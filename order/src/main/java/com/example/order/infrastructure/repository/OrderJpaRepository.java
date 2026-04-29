@@ -16,8 +16,14 @@ import java.util.UUID;
 
 public interface OrderJpaRepository extends JpaRepository<Order, UUID> {
 
-    @Query("select o from Order o where o.buyerId = :buyerId and (:orderType is null or o.orderType = :orderType) and o.status <> com.example.order.domain.enumtype.OrderStatus.CREATED")
-    Page<Order> findByBuyerIdAndOrderType(@Param("buyerId") UUID buyerId, @Param("orderType") OrderType orderType, Pageable pageable);
+    @Query("""
+        select distinct o from Order o join o.items i
+        where o.buyerId = :buyerId
+          and (:orderType is null or o.orderType = :orderType)
+          and (:keyword is null or i.productNameSnapshot like %:keyword%)
+          and o.status <> com.example.order.domain.enumtype.OrderStatus.CREATED
+        """)
+    Page<Order> findByBuyerIdAndOrderType(@Param("buyerId") UUID buyerId, @Param("orderType") OrderType orderType, @Param("keyword") String keyword, Pageable pageable);
 
     @Query("""
     select o from Order o

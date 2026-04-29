@@ -15,7 +15,7 @@ public interface OrderRepository {
 
     Order save(Order order);
 
-    Page<Order> findByBuyerIdAndOrderType(UUID buyerId, OrderType orderType, Pageable pageable);
+    Page<Order> findByBuyerIdAndOrderType(UUID buyerId, OrderType orderType, String keyword, Pageable pageable);
 
     Optional<Order> findByOrderIdAndBuyerId(UUID orderId, UUID buyerId);
 

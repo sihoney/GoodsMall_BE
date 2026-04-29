@@ -11,7 +11,7 @@ import org.springframework.data.domain.Pageable;
 import java.util.UUID;
 
 public interface OrderSearchUseCase {
-    Page<OrderSummaryResponse> findByMemberId(UUID memberId, OrderType orderType, Pageable pageable);
+    Page<OrderSummaryResponse> findByMemberId(UUID memberId, OrderType orderType, String keyword, Pageable pageable);
 
     OrderDetailResponse getOrderDetail(UUID orderId, UUID memberId);
 
