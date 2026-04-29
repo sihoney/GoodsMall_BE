@@ -93,6 +93,11 @@ spring:
               predicates:
                 - Path=/api/orders/**
 
+            - id: order-delivery-service
+              uri: http://order:8084
+              predicates:
+                - Path=/api/deliveries/**
+
             - id: payment-service
               uri: http://payment:8082
               predicates:
@@ -248,6 +253,18 @@ gateway:
         allowed-roles: [USER, SELLER, ADMIN]
       - methods: [GET, POST]
         pattern: /api/orders/**
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [GET]
+        pattern: /api/deliveries/seller/**
+        allowed-roles: [SELLER, ADMIN]
+      - methods: [GET]
+        pattern: /api/deliveries/seller
+        allowed-roles: [SELLER, ADMIN]
+      - methods: [POST]
+        pattern: /api/deliveries/*/ship
+        allowed-roles: [SELLER, ADMIN]
+      - methods: [GET]
+        pattern: /api/deliveries/**
         allowed-roles: [USER, SELLER, ADMIN]
       - methods: [GET, POST]
         pattern: /api/payments/**
