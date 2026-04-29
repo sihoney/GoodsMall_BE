@@ -3,6 +3,8 @@ package com.example.order.application.service;
 import com.example.order.common.exception.CustomException;
 import com.example.order.common.exception.ErrorCode;
 import com.example.order.domain.entity.Order;
+import com.example.order.domain.enumtype.OrderType;
+import com.example.order.domain.repository.DeliveryRepository;
 import com.example.order.domain.repository.OrderRepository;
 import com.example.order.presentation.dto.response.OrderDetailResponse;
 import com.example.order.presentation.dto.response.OrderSummaryResponse;
@@ -31,6 +33,9 @@ class OrderSearchServiceTest {
     @Mock
     private OrderRepository orderRepository;
 
+    @Mock
+    private DeliveryRepository deliveryRepository;
+
     @InjectMocks
     private OrderSearchService orderSearchService;
 
@@ -45,15 +50,15 @@ class OrderSearchServiceTest {
 
         Page<Order> orderPage = new PageImpl<>(List.of(order1, order2), pageable, 2);
 
-        when(orderRepository.findByBuyerId(memberId, pageable)).thenReturn(orderPage);
+        when(orderRepository.findByBuyerIdAndOrderType(memberId, null, null, pageable)).thenReturn(orderPage);
 
-        Page<OrderSummaryResponse> result = orderSearchService.findByMemberId(memberId, pageable);
+        Page<OrderSummaryResponse> result = orderSearchService.findByMemberId(memberId, null, null, pageable);
 
         assertThat(result).isNotNull();
         assertThat(result.getContent()).hasSize(2);
         assertThat(result.getTotalElements()).isEqualTo(2);
 
-        verify(orderRepository).findByBuyerId(memberId, pageable);
+        verify(orderRepository).findByBuyerIdAndOrderType(memberId, null, null, pageable);
     }
 
     @Test
@@ -62,16 +67,50 @@ class OrderSearchServiceTest {
         UUID memberId = UUID.randomUUID();
         Pageable pageable = PageRequest.of(0, 10);
 
-        when(orderRepository.findByBuyerId(memberId, pageable))
+        when(orderRepository.findByBuyerIdAndOrderType(memberId, null, null, pageable))
                 .thenReturn(Page.empty(pageable));
 
-        Page<OrderSummaryResponse> result = orderSearchService.findByMemberId(memberId, pageable);
+        Page<OrderSummaryResponse> result = orderSearchService.findByMemberId(memberId, null, null, pageable);
 
         assertThat(result).isNotNull();
         assertThat(result.getContent()).isEmpty();
         assertThat(result.getTotalElements()).isZero();
 
-        verify(orderRepository).findByBuyerId(memberId, pageable);
+        verify(orderRepository).findByBuyerIdAndOrderType(memberId, null, null, pageable);
+    }
+
+    @Test
+    @DisplayName("orderType 필터로 조회하면 해당 타입의 주문만 반환한다")
+    void findByMemberId_withOrderTypeFilter() {
+        UUID memberId = UUID.randomUUID();
+        Pageable pageable = PageRequest.of(0, 10);
+
+        Order order = mock(Order.class);
+        Page<Order> orderPage = new PageImpl<>(List.of(order), pageable, 1);
+
+        when(orderRepository.findByBuyerIdAndOrderType(memberId, OrderType.AUCTION, null, pageable)).thenReturn(orderPage);
+
+        Page<OrderSummaryResponse> result = orderSearchService.findByMemberId(memberId, OrderType.AUCTION, null, pageable);
+
+        assertThat(result.getContent()).hasSize(1);
+        verify(orderRepository).findByBuyerIdAndOrderType(memberId, OrderType.AUCTION, null, pageable);
+    }
+
+    @Test
+    @DisplayName("keyword로 검색하면 해당 상품명을 포함한 주문만 반환한다")
+    void findByMemberId_withKeyword() {
+        UUID memberId = UUID.randomUUID();
+        Pageable pageable = PageRequest.of(0, 10);
+
+        Order order = mock(Order.class);
+        Page<Order> orderPage = new PageImpl<>(List.of(order), pageable, 1);
+
+        when(orderRepository.findByBuyerIdAndOrderType(memberId, null, "닭갈비", pageable)).thenReturn(orderPage);
+
+        Page<OrderSummaryResponse> result = orderSearchService.findByMemberId(memberId, null, "닭갈비", pageable);
+
+        assertThat(result.getContent()).hasSize(1);
+        verify(orderRepository).findByBuyerIdAndOrderType(memberId, null, "닭갈비", pageable);
     }
 
     @Nested
