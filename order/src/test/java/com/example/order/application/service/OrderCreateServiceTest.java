@@ -78,7 +78,7 @@ class OrderCreateServiceTest {
         productId2 = UUID.randomUUID();
         sellerId1 = UUID.randomUUID();
         sellerId2 = UUID.randomUUID();
-        when(orderNumberGenerator.generateUnique()).thenReturn("240101000001");
+        lenient().when(orderNumberGenerator.generateUnique()).thenReturn("240101000001");
     }
 
     @Nested
