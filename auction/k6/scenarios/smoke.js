@@ -70,6 +70,9 @@ export default function (data) {
     JSON.stringify({ bidPrice: 55000 }),
     { headers: authenticatedHeaders(data.buyerToken) }
   );
+  if (bidRes.status >= 500) {
+    console.log(`[입찰 오류] status=${bidRes.status} body=${bidRes.body}`);
+  }
   check(bidRes, {
     // 201(성공) 또는 400/409/422(비즈니스 에러)만 허용, 5xx는 안됨
     '입찰 5xx 없음': (r) => r.status < 500,
