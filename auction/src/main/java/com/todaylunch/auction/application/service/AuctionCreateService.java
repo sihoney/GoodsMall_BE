@@ -27,6 +27,7 @@ public class AuctionCreateService implements AuctionCreateUseCase {
         Auction auction = Auction.create(
                 request.productId(),
                 request.productTitle(),
+                request.thumbnailKey(),
                 sellerId,
                 request.startPrice(),
                 request.bidUnit(),

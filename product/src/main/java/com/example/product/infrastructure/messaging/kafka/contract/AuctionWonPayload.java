@@ -1,13 +1,11 @@
-package com.todaylunch.auction.infrastructure.messaging.kafka.message;
+package com.example.product.infrastructure.messaging.kafka.contract;
 
 import java.math.BigDecimal;
 import java.util.UUID;
 
 public record AuctionWonPayload(
         String auctionTitle,
-        String thumbnailKey,
         BigDecimal finalPrice,
         UUID productId,
-        UUID sellerId,
         BigDecimal orderPrice
 ) {}
