@@ -20,6 +20,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -29,6 +30,9 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class OrderSearchServiceTest {
+
+    private static final LocalDateTime DEFAULT_FROM = LocalDateTime.of(2000, 1, 1, 0, 0, 0);
+    private static final LocalDateTime DEFAULT_TO = LocalDateTime.of(2999, 12, 31, 23, 59, 59);
 
     @Mock
     private OrderRepository orderRepository;
@@ -50,7 +54,7 @@ class OrderSearchServiceTest {
 
         Page<Order> orderPage = new PageImpl<>(List.of(order1, order2), pageable, 2);
 
-        when(orderRepository.findByBuyerIdAndOrderType(memberId, null, null, null, null, pageable)).thenReturn(orderPage);
+        when(orderRepository.findByBuyerIdAndOrderType(memberId, null, null, DEFAULT_FROM, DEFAULT_TO, pageable)).thenReturn(orderPage);
 
         Page<OrderSummaryResponse> result = orderSearchService.findByMemberId(memberId, null, null, null, null, pageable);
 
@@ -58,7 +62,7 @@ class OrderSearchServiceTest {
         assertThat(result.getContent()).hasSize(2);
         assertThat(result.getTotalElements()).isEqualTo(2);
 
-        verify(orderRepository).findByBuyerIdAndOrderType(memberId, null, null, null, null, pageable);
+        verify(orderRepository).findByBuyerIdAndOrderType(memberId, null, null, DEFAULT_FROM, DEFAULT_TO, pageable);
     }
 
     @Test
@@ -67,7 +71,7 @@ class OrderSearchServiceTest {
         UUID memberId = UUID.randomUUID();
         Pageable pageable = PageRequest.of(0, 10);
 
-        when(orderRepository.findByBuyerIdAndOrderType(memberId, null, null, null, null, pageable))
+        when(orderRepository.findByBuyerIdAndOrderType(memberId, null, null, DEFAULT_FROM, DEFAULT_TO, pageable))
                 .thenReturn(Page.empty(pageable));
 
         Page<OrderSummaryResponse> result = orderSearchService.findByMemberId(memberId, null, null, null, null, pageable);
@@ -76,7 +80,7 @@ class OrderSearchServiceTest {
         assertThat(result.getContent()).isEmpty();
         assertThat(result.getTotalElements()).isZero();
 
-        verify(orderRepository).findByBuyerIdAndOrderType(memberId, null, null, null, null, pageable);
+        verify(orderRepository).findByBuyerIdAndOrderType(memberId, null, null, DEFAULT_FROM, DEFAULT_TO, pageable);
     }
 
     @Test
@@ -88,12 +92,12 @@ class OrderSearchServiceTest {
         Order order = mock(Order.class);
         Page<Order> orderPage = new PageImpl<>(List.of(order), pageable, 1);
 
-        when(orderRepository.findByBuyerIdAndOrderType(memberId, OrderType.AUCTION, null, null, null, pageable)).thenReturn(orderPage);
+        when(orderRepository.findByBuyerIdAndOrderType(memberId, OrderType.AUCTION, null, DEFAULT_FROM, DEFAULT_TO, pageable)).thenReturn(orderPage);
 
         Page<OrderSummaryResponse> result = orderSearchService.findByMemberId(memberId, OrderType.AUCTION, null, null, null, pageable);
 
         assertThat(result.getContent()).hasSize(1);
-        verify(orderRepository).findByBuyerIdAndOrderType(memberId, OrderType.AUCTION, null, null, null, pageable);
+        verify(orderRepository).findByBuyerIdAndOrderType(memberId, OrderType.AUCTION, null, DEFAULT_FROM, DEFAULT_TO, pageable);
     }
 
     @Test
@@ -105,12 +109,12 @@ class OrderSearchServiceTest {
         Order order = mock(Order.class);
         Page<Order> orderPage = new PageImpl<>(List.of(order), pageable, 1);
 
-        when(orderRepository.findByBuyerIdAndOrderType(memberId, null, "닭갈비", null, null, pageable)).thenReturn(orderPage);
+        when(orderRepository.findByBuyerIdAndOrderType(memberId, null, "닭갈비", DEFAULT_FROM, DEFAULT_TO, pageable)).thenReturn(orderPage);
 
         Page<OrderSummaryResponse> result = orderSearchService.findByMemberId(memberId, null, "닭갈비", null, null, pageable);
 
         assertThat(result.getContent()).hasSize(1);
-        verify(orderRepository).findByBuyerIdAndOrderType(memberId, null, "닭갈비", null, null, pageable);
+        verify(orderRepository).findByBuyerIdAndOrderType(memberId, null, "닭갈비", DEFAULT_FROM, DEFAULT_TO, pageable);
     }
 
     @Nested
@@ -128,7 +132,6 @@ class OrderSearchServiceTest {
             when(orderRepository.findByOrderIdAndBuyerId(orderId, memberId))
                     .thenReturn(Optional.of(order));
 
-            // order.getItems()가 내부적으로 사용되므로 null만 아니면 됨
             when(order.getItems()).thenReturn(List.of());
 
             OrderDetailResponse result = orderSearchService.getOrderDetail(orderId, memberId);
