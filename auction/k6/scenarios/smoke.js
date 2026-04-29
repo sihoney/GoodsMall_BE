@@ -10,6 +10,13 @@ import { BASE_URL } from '../config/thresholds.js';
 import { buyerHeaders, publicHeaders } from '../helpers/auth.js';
 import { SEED_AUCTIONS } from '../helpers/data.js';
 
+// VU1 → buyer101, VU2 → buyer102 (기존 시드 멤버, wallet 보유)
+// 서로 다른 입찰자 배정으로 HIGHEST_BIDDER_CANNOT_REBID 룰 충돌 방지
+const SMOKE_BIDDER_IDS = [
+  '11111111-1111-1111-1111-111111111101',  // buyer1
+  '11111111-1111-1111-1111-111111111102',  // buyer2
+];
+
 export const options = {
   vus: 2,
   duration: '1m',
@@ -55,16 +62,15 @@ export default function () {
 
   // 4. 입찰 (상세 조회 결과로 최소 입찰가 동적 계산)
   //
-  // bidder는 매 iteration마다 신규 UUID 사용 (buyerHeaders 인자 생략 시 uuidv4()).
-  // 고정 ID 를 쓰면 첫 입찰이 ACTIVE 확정된 뒤부터 같은 사람이 또 입찰을 시도하게 되어
-  // HIGHEST_BIDDER_CANNOT_REBID(400) 가 반복 발생 → "기능 정상 동작 확인"이라는
-  // 스모크 테스트 본래 목적이 사실상 검증 안 되므로, 매번 다른 입찰자로 가정한다.
+  // VU마다 고정 입찰자 배정: VU1 → buyer101, VU2 → buyer102
+  // - 두 VU가 서로 다른 입찰자를 사용하므로 HIGHEST_BIDDER_CANNOT_REBID 룰 충돌 없음
+  // - 기존 시드 멤버라 wallet 보유 → 실제 입찰 흐름(DB 락 → Kafka → 결제) 검증 가능
   //
   // 201 외 4xx 가 일부 나올 수 있는 정상 케이스:
-  //   - 동시 입찰(VU=2)로 늦게 도착한 쪽이 BidIncrementNotMet(400)
-  //   - GET 시점과 POST 시점 사이에 다른 VU가 끼어들어 stale 한 값으로 BidIncrement 미달(400)
-  //   - 누적 차감으로 wallet 잔액 부족 시 INSUFFICIENT_DEPOSIT(409)
-  // → 5xx만 실패로 카운트하며, 위 4xx는 도메인 룰이 정상 작동했다는 신호로 간주.
+  //   - GET 시점과 POST 시점 사이에 다른 VU가 끼어들어 BidIncrementNotMet(400)
+  //   - 422: HIGHEST_BIDDER_CANNOT_REBID (연속 iteration에서 동일 VU가 최고가 유지 시)
+  // → 5xx만 실패로 카운트하며, 위 4xx/422는 도메인 룰이 정상 작동했다는 신호로 간주.
+  const bidderId = SMOKE_BIDDER_IDS[(__VU - 1) % SMOKE_BIDDER_IDS.length];
   let bidPrice = null;
   if (detailRes.status === 200) {
     const d = detailRes.json('data');
@@ -79,7 +85,7 @@ export default function () {
       `${BASE_URL}/api/auctions/${SEED_AUCTIONS.ONGOING}/bids`,
       JSON.stringify({ bidPrice }),
       {
-        headers: buyerHeaders(),
+        headers: buyerHeaders(bidderId),
         responseCallback: http.expectedStatuses(201, 400, 409, 422),
       }
     );
