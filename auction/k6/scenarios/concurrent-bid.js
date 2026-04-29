@@ -69,7 +69,7 @@ export default function () {
       headers: {
         'Content-Type': 'application/json',
         'X-Member-Id': memberId,
-        'X-Member-Role': 'BUYER',
+        'X-Member-Role': 'USER',
         'X-Session-Id': uuidv4(),
       },
     }

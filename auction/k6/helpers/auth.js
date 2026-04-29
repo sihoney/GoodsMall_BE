@@ -61,7 +61,7 @@ export function buyerHeaders(memberId) {
   return {
     'Content-Type': 'application/json',
     'X-Member-Id': id,
-    'X-Member-Role': 'BUYER',
+    'X-Member-Role': 'USER',
     'X-Session-Id': uuidv4(),
   };
 }
