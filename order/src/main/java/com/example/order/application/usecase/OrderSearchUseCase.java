@@ -8,10 +8,11 @@ import com.example.order.presentation.dto.response.PaymentValidationResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 public interface OrderSearchUseCase {
-    Page<OrderSummaryResponse> findByMemberId(UUID memberId, OrderType orderType, String keyword, Pageable pageable);
+    Page<OrderSummaryResponse> findByMemberId(UUID memberId, OrderType orderType, String keyword, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable);
 
     OrderDetailResponse getOrderDetail(UUID orderId, UUID memberId);
 
