@@ -8,6 +8,8 @@ import com.example.order.domain.entity.OrderItem;
 import com.example.order.domain.repository.DeliveryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +21,7 @@ import java.util.UUID;
 public class DeliveryCompleteService {
 
     private final DeliveryRepository deliveryRepository;
+    private final CacheManager cacheManager;
 
     @Transactional
     public void complete(UUID deliveryId) {
@@ -33,6 +36,15 @@ public class DeliveryCompleteService {
         Order order = orderItem.getOrder();
         order.markDelivered();
 
+        evictOrderDetailCache(order.getOrderId(), order.getBuyerId());
+
         log.info("배송 완료 처리. deliveryId={}, orderId={}", deliveryId, order.getOrderId());
+    }
+
+    private void evictOrderDetailCache(UUID orderId, UUID buyerId) {
+        Cache cache = cacheManager.getCache("order:detail");
+        if (cache != null) {
+            cache.evict(orderId + ":" + buyerId);
+        }
     }
 }
