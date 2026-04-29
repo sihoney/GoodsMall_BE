@@ -2,6 +2,7 @@ package com.example.member.application.service;
 
 import com.example.member.application.dto.command.AccountVerificationConfirmCommand;
 import com.example.member.application.dto.command.AccountVerificationCreateCommand;
+import com.example.member.application.dto.command.AuthSessionMetadata;
 import com.example.member.application.dto.result.AccountVerificationCancelResult;
 import com.example.member.application.dto.result.AccountVerificationConfirmResult;
 import com.example.member.application.dto.result.AccountVerificationCurrentResult;
@@ -19,13 +20,13 @@ import com.example.member.config.AccountVerificationProperties;
 import com.example.member.domain.entity.Member;
 import com.example.member.domain.enumtype.AccountVerificationStatus;
 import com.example.member.infrastructure.crypto.AccountEncryptionService;
-import com.example.member.infrastructure.redis.AccountVerificationSession;
-import com.example.member.infrastructure.redis.AccountVerificationSessionStore;
-import com.example.member.infrastructure.redis.ParsedRefreshToken;
-import com.example.member.infrastructure.redis.RefreshTokenStore;
-import com.example.member.infrastructure.redis.SellerDraft;
-import com.example.member.infrastructure.redis.SellerDraftStore;
-import com.example.member.security.JwtTokenProvider;
+import com.example.member.infrastructure.redis.accountverification.AccountVerificationSession;
+import com.example.member.infrastructure.redis.accountverification.AccountVerificationSessionStore;
+import com.example.member.infrastructure.redis.auth.ParsedRefreshToken;
+import com.example.member.infrastructure.redis.auth.RefreshTokenStore;
+import com.example.member.infrastructure.redis.seller.SellerDraft;
+import com.example.member.infrastructure.redis.seller.SellerDraftStore;
+import com.example.member.infrastructure.security.jwt.JwtTokenProvider;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -337,9 +338,20 @@ public class AccountVerificationService implements AccountVerificationUsecase {
         Duration refreshTtl = Duration.ofMillis(jwtTokenProvider.getRefreshExpiration());
 
         if (refreshTokenStore.findBySessionId(authSessionId).isPresent()) {
-            refreshTokenStore.updateRefreshTokenId(authSessionId, parsedRefreshToken.refreshTokenId(), refreshTtl);
+            refreshTokenStore.updateRefreshTokenId(
+                    authSessionId,
+                    parsedRefreshToken.refreshTokenId(),
+                    refreshTtl,
+                    AuthSessionMetadata.empty()
+            );
         } else {
-            refreshTokenStore.createSession(memberId, authSessionId, parsedRefreshToken.refreshTokenId(), refreshTtl);
+            refreshTokenStore.createSession(
+                    memberId,
+                    authSessionId,
+                    parsedRefreshToken.refreshTokenId(),
+                    refreshTtl,
+                    AuthSessionMetadata.empty()
+            );
         }
 
         return new AccountVerificationConfirmResult.AuthTokens(

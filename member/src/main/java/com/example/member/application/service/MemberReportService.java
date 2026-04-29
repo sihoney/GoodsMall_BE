@@ -11,12 +11,16 @@ import com.example.member.common.exception.DuplicateMemberReportException;
 import com.example.member.common.exception.MemberNotFoundException;
 import com.example.member.common.exception.MemberReportNotFoundException;
 import com.example.member.common.exception.SelfReportNotAllowedException;
+import com.example.member.domain.entity.Member;
 import com.example.member.domain.entity.MemberReport;
 import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
 import com.todaylunch.common.security.auth.util.RoleGuard;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -66,8 +70,11 @@ public class MemberReportService implements MemberReportUsecase {
     @Override
     public List<MemberReportResult> getMyReports(AuthenticatedMember authenticatedMember) {
         validateReporter(authenticatedMember);
-        return memberReportPersistencePort.findAllByReporterId(authenticatedMember.memberId()).stream()
-                .map(this::toResult)
+        List<MemberReport> reports = memberReportPersistencePort.findAllByReporterId(authenticatedMember.memberId());
+        Map<UUID, String> nicknamesById = resolveNicknames(reports);
+
+        return reports.stream()
+                .map(report -> toResult(report, nicknamesById))
                 .toList();
     }
 
@@ -75,16 +82,22 @@ public class MemberReportService implements MemberReportUsecase {
     public List<MemberReportResult> getReportsForMember(AuthenticatedMember authenticatedMember, UUID memberId) {
         RoleGuard.requireAdmin(authenticatedMember);
         memberPersistencePort.findById(memberId).orElseThrow(MemberNotFoundException::new);
-        return memberReportPersistencePort.findAllByReportedMemberId(memberId).stream()
-                .map(this::toResult)
+        List<MemberReport> reports = memberReportPersistencePort.findAllByReportedMemberId(memberId);
+        Map<UUID, String> nicknamesById = resolveNicknames(reports);
+
+        return reports.stream()
+                .map(report -> toResult(report, nicknamesById))
                 .toList();
     }
 
     @Override
     public List<MemberReportResult> getAllReports(AuthenticatedMember authenticatedMember) {
         RoleGuard.requireAdmin(authenticatedMember);
-        return memberReportPersistencePort.findAll().stream()
-                .map(this::toResult)
+        List<MemberReport> reports = memberReportPersistencePort.findAll();
+        Map<UUID, String> nicknamesById = resolveNicknames(reports);
+
+        return reports.stream()
+                .map(report -> toResult(report, nicknamesById))
                 .toList();
     }
 
@@ -170,20 +183,46 @@ public class MemberReportService implements MemberReportUsecase {
         }
     }
 
-    private MemberReportResult toResult(MemberReport memberReport) {
+    private MemberReportResult toResult(MemberReport memberReport, Map<UUID, String> nicknamesById) {
         return new MemberReportResult(
                 memberReport.getReportId(),
                 memberReport.getReporterId(),
+                nicknamesById.get(memberReport.getReporterId()),
                 memberReport.getReportedMemberId(),
+                nicknamesById.get(memberReport.getReportedMemberId()),
                 memberReport.getReason(),
                 memberReport.getReportType(),
                 memberReport.getStatus(),
                 memberReport.getReviewComment(),
                 memberReport.getReviewedBy(),
+                nicknamesById.get(memberReport.getReviewedBy()),
                 memberReport.getReviewedAt(),
                 memberReport.getCreatedAt(),
                 memberReport.getUpdatedAt()
         );
+    }
+
+    private MemberReportResult toResult(MemberReport memberReport) {
+        return toResult(memberReport, resolveNicknames(List.of(memberReport)));
+    }
+
+    private Map<UUID, String> resolveNicknames(List<MemberReport> reports) {
+        HashSet<UUID> memberIds = new HashSet<>();
+
+        for (MemberReport report : reports) {
+            if (report.getReporterId() != null) {
+                memberIds.add(report.getReporterId());
+            }
+            if (report.getReportedMemberId() != null) {
+                memberIds.add(report.getReportedMemberId());
+            }
+            if (report.getReviewedBy() != null) {
+                memberIds.add(report.getReviewedBy());
+            }
+        }
+
+        return memberPersistencePort.findAllByIds(memberIds).stream()
+                .collect(Collectors.toMap(Member::getMemberId, Member::getNickname, (left, right) -> left));
     }
 }
 

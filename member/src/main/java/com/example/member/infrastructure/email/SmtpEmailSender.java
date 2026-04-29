@@ -22,7 +22,12 @@ public class SmtpEmailSender implements EmailSender {
     private final EmailProperties emailProperties;
 
     @Override
-    public void send(String to, String subject, String body, boolean html) {
+    public void send(
+        String to, 
+        String subject, 
+        String body, 
+        boolean html
+    ) {
         try {
             MimeMessage mimeMessage = javaMailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(

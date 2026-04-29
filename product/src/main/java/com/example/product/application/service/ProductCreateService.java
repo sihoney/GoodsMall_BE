@@ -73,6 +73,7 @@ public class ProductCreateService implements ProductCreateUseCase {
 
         return new ProductResponse(
                 product.getProductId(),
+                product.getSellerId(),
                 product.getTitle(),
                 product.getDescription(),
                 product.getPrice(),
