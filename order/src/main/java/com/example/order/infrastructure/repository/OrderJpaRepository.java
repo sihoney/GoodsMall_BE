@@ -21,7 +21,7 @@ public interface OrderJpaRepository extends JpaRepository<Order, UUID> {
         where o.buyerId = :buyerId
           and (:orderType is null or o.orderType = :orderType)
           and (:keyword is null or i.productNameSnapshot like %:keyword%)
-          and o.status <> com.example.order.domain.enumtype.OrderStatus.CREATED
+          and (o.orderType = com.example.order.domain.enumtype.OrderType.AUCTION or o.status <> com.example.order.domain.enumtype.OrderStatus.CREATED)
         """)
     Page<Order> findByBuyerIdAndOrderType(@Param("buyerId") UUID buyerId, @Param("orderType") OrderType orderType, @Param("keyword") String keyword, Pageable pageable);
 
