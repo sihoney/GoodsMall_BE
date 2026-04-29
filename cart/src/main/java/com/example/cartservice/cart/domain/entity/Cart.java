@@ -10,7 +10,7 @@ import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
+//변경감지
 @Getter
 @Entity
 @Table(name = "cart")
