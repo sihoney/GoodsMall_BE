@@ -36,7 +36,7 @@ public class AuctionWinAcceptService implements AuctionWinAcceptUseCase {
     @Transactional
     @Override
     public void acceptWinByDeposit(UUID memberId, AuctionWinAcceptRequest request) {
-        Order order = findAndValidate(memberId, request.auctionId());
+        Order order = findAndValidate(memberId, request.orderId());
 
         order.assignShippingInfo(
                 request.address(),
@@ -62,7 +62,7 @@ public class AuctionWinAcceptService implements AuctionWinAcceptUseCase {
     @Transactional
     @Override
     public void acceptWinByPg(UUID memberId, AuctionWinAcceptRequest request) {
-        Order order = findAndValidate(memberId, request.auctionId());
+        Order order = findAndValidate(memberId, request.orderId());
 
         order.assignShippingInfo(
                 request.address(),
@@ -73,13 +73,9 @@ public class AuctionWinAcceptService implements AuctionWinAcceptUseCase {
         );
     }
 
-    private Order findAndValidate(UUID memberId, UUID auctionId) {
-        Order order = orderRepository.findByAuctionId(auctionId)
+    private Order findAndValidate(UUID memberId, UUID orderId) {
+        Order order = orderRepository.findByOrderIdAndBuyerId(orderId, memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
-
-        if (!order.getBuyerId().equals(memberId)) {
-            throw new CustomException(ErrorCode.ORDER_FORBIDDEN);
-        }
 
         if (order.isShippingInfoAssigned()) {
             throw new CustomException(ErrorCode.ORDER_ALREADY_ACCEPTED);
