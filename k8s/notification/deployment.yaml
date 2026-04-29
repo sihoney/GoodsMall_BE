@@ -24,7 +24,7 @@ spec:
             - containerPort: 8087
           env:
             - name: JAVA_TOOL_OPTIONS
-              value: "-Xms256m -Xmx512m -Duser.timezone=Asia/Seoul"
+              value: "-Xms192m -Xmx384m -Duser.timezone=Asia/Seoul"
           envFrom:
             - configMapRef:
                 name: common-config
