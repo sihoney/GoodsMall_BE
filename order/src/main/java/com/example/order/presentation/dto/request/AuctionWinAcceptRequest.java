@@ -7,8 +7,8 @@ import java.util.UUID;
 
 public record AuctionWinAcceptRequest(
 
-        @NotNull(message = "경매 ID를 입력해주세요.")
-        UUID auctionId,
+        @NotNull(message = "주문 ID를 입력해주세요.")
+        UUID orderId,
 
         @NotBlank(message = "주소를 입력해주세요.")
         String address,
