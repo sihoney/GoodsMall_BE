@@ -1,6 +1,8 @@
 // 시드 데이터 기준 경매 ID
 export const SEED_AUCTIONS = {
-  ONGOING: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeee001',  // startPrice=50000, bidUnit=1000, currentHighest=52000
+  // startPrice=50000, bidUnit=1000 / 테스트 실행 전 reset_test_auctions.sql로 current_highest_price 초기화 필요
+  ONGOING: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeee001',
+  // 아래 두 ID는 현재 DB에 없음 — 필요 시 직접 INSERT 후 사용
   WAITING: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeee002',
   COMPLETED: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeee003',
 };

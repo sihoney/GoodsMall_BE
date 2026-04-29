@@ -3,13 +3,19 @@
  * 목적: PESSIMISTIC_WRITE 락 경합 시 처리량 한계 측정
  *       HikariCP pool(max=5) 소진 시점 확인
  *
- * 사전 조건: load_test_auctions.sql 실행 필요
- *   - CONCURRENT_BID_AUCTION_ID 경매가 ONGOING 상태이고 currentHighestPrice=null
+ * 락 경합 원리:
+ *   여러 VU가 동시에 경매 상세 조회 → 같은 currentHighestPrice 읽음
+ *   → 동일 bidPrice로 동시 POST → DB 락 경합 발생 → 1건 성공, 나머지 409
+ *   bid_conflict_rate = 409 비율 (락 경합 지표)
+ *
+ * 사전 조건:
+ *   1) load_test_auctions.sql 실행
+ *   2) reset_test_auctions.sql 실행 (current_highest_price = NULL 초기화)
  *
  * 실행:
- *   k6 run auction/k6/scenarios/concurrent-bid.js -e VUS=50 --out json=results/concurrent-bid-50.json
- *   k6 run auction/k6/scenarios/concurrent-bid.js -e VUS=100 --out json=results/concurrent-bid-100.json
- *   k6 run auction/k6/scenarios/concurrent-bid.js -e VUS=200 --out json=results/concurrent-bid-200.json
+ *   k6 run auction/k6/scenarios/concurrent-bid.js -e VUS=30
+ *   k6 run auction/k6/scenarios/concurrent-bid.js -e VUS=50
+ *   k6 run auction/k6/scenarios/concurrent-bid.js -e VUS=100
  */
 import http from 'k6/http';
 import { check } from 'k6';
@@ -17,14 +23,14 @@ import { Counter, Rate, Trend } from 'k6/metrics';
 import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 import { BASE_URL } from '../config/thresholds.js';
 import { CONCURRENT_BID_AUCTION_ID } from '../helpers/data.js';
+import { fetchCurrentBidPrice } from '../helpers/bid.js';
 
 const successfulBids = new Counter('successful_bids');
 const failedBids = new Counter('failed_bids');
-const lockContentionRate = new Rate('lock_contention');
-const bidP99 = new Trend('bid_p99', true);
+const bidConflictRate = new Rate('bid_conflict_rate'); // 409 = 동시 입찰 경합
+const bidTrend = new Trend('bid_duration', true);
 
-const TARGET_VUS = parseInt(__ENV.VUS || '50');
-const BID_PRICE = 50000; // startPrice (currentHighest=null이므로 startPrice 이상이면 유효)
+const TARGET_VUS = parseInt(__ENV.VUS || '30');
 
 export const options = {
   scenarios: {
@@ -35,42 +41,50 @@ export const options = {
     },
   },
   thresholds: {
-    successful_bids: [`count>0`],
-    http_req_failed: ['rate<0.50'], // 비즈니스 에러(락 경합)는 실패로 간주하지 않음
+    successful_bids: ['count>0'],
+    http_req_failed: ['rate<0.50'],
   },
 };
 
 export default function () {
-  // 각 VU가 고유한 memberId를 사용 (같은 최고입찰자 재입찰 금지 정책 우회)
+  // 각 VU가 고유한 memberId 사용 (같은 최고입찰자 재입찰 금지 정책 우회)
   const memberId = uuidv4();
 
-  const headers = {
-    'Content-Type': 'application/json',
-    'X-Member-Id': memberId,
-    'X-Member-Role': 'BUYER',
-    'X-Session-Id': uuidv4(),
-  };
+  // 현재 최고가 조회 — 여러 VU가 동시에 같은 값을 읽으면 동일 bidPrice 계산 → 락 경합 발생
+  const bidPrice = fetchCurrentBidPrice(CONCURRENT_BID_AUCTION_ID);
+  if (bidPrice === null) {
+    console.log('경매 상세 조회 실패, 입찰 스킵');
+    return;
+  }
 
   const res = http.post(
     `${BASE_URL}/api/auctions/${CONCURRENT_BID_AUCTION_ID}/bids`,
-    JSON.stringify({ bidPrice: BID_PRICE }),
-    { headers }
+    JSON.stringify({ bidPrice }),
+    {
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Member-Id': memberId,
+        'X-Member-Role': 'BUYER',
+        'X-Session-Id': uuidv4(),
+      },
+    }
   );
 
-  bidP99.add(res.timings.duration);
+  bidTrend.add(res.timings.duration);
 
   const isSuccess = res.status === 201;
-  const isBusinessError = [400, 409, 422].includes(res.status);
-  const isServerError = res.status >= 500;
+  const isBidConflict = res.status === 409; // 동시 입찰로 인한 가격 충돌
 
   if (isSuccess) {
     successfulBids.add(1);
   } else {
     failedBids.add(1);
   }
+  bidConflictRate.add(isBidConflict ? 1 : 0);
 
-  // 5xx는 락 경합이 아닌 실제 오류
-  lockContentionRate.add(isServerError ? 1 : 0);
+  if (res.status >= 500) {
+    console.log(`SERVER ERROR: status=${res.status} body=${res.body}`);
+  }
 
   check(res, {
     '서버 에러 없음': (r) => r.status < 500,

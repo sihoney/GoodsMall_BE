@@ -4,6 +4,7 @@
  *       JVM 힙 증가 추이, GC 빈도 관찰
  * 실행: k6 run auction/k6/scenarios/soak.js --out json=results/soak.json
  * 주의: 30~60분 소요 (Grafana에서 JVM 메모리 추이 반드시 모니터링)
+ * 전제: reset_test_auctions.sql 실행 후 시작
  */
 import http from 'k6/http';
 import { check, sleep } from 'k6';
@@ -12,12 +13,13 @@ import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 import { BASE_URL } from '../config/thresholds.js';
 import { SEED_AUCTIONS, LOAD_TEST_AUCTION_IDS } from '../helpers/data.js';
 import { publicHeaders } from '../helpers/auth.js';
+import { fetchCurrentBidPrice } from '../helpers/bid.js';
 
 const totalErrors = new Counter('soak_total_errors');
 const errorRate = new Rate('soak_error_rate');
 
 const SOAK_DURATION = __ENV.DURATION || '30m';
-const TARGET_VUS = parseInt(__ENV.VUS || '50');
+const TARGET_VUS = parseInt(__ENV.VUS || '20');
 
 export const options = {
   stages: [
@@ -61,23 +63,26 @@ export default function () {
     sleep(0.5);
 
   } else {
-    const memberId = uuidv4();
-    const res = http.post(
-      `${BASE_URL}/api/auctions/${auctionId}/bids`,
-      JSON.stringify({ bidPrice: 50000 }),
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Member-Id': memberId,
-          'X-Member-Role': 'BUYER',
-          'X-Session-Id': uuidv4(),
-        },
-      }
-    );
-    const isError = res.status >= 500;
-    errorRate.add(isError ? 1 : 0);
-    if (isError) totalErrors.add(1);
-    check(res, { 'soak bid ok': (r) => r.status < 500 });
+    // 20% 입찰 (현재 최고가 기반 동적 bidPrice)
+    const bidPrice = fetchCurrentBidPrice(auctionId);
+    if (bidPrice !== null) {
+      const res = http.post(
+        `${BASE_URL}/api/auctions/${auctionId}/bids`,
+        JSON.stringify({ bidPrice }),
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Member-Id': uuidv4(),
+            'X-Member-Role': 'BUYER',
+            'X-Session-Id': uuidv4(),
+          },
+        }
+      );
+      const isError = res.status >= 500;
+      errorRate.add(isError ? 1 : 0);
+      if (isError) totalErrors.add(1);
+      check(res, { 'soak bid ok': (r) => r.status < 500 });
+    }
     sleep(2);
   }
 }

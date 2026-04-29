@@ -3,26 +3,31 @@
  * 목적: 시스템 포화점(Saturation Point) 탐색
  *       에러율 5% 초과 시점 = 한계점
  * 실행: k6 run auction/k6/scenarios/stress.js --out json=results/stress.json
+ * 전제: reset_test_auctions.sql 실행 후 시작
+ *
+ * VU 스케일 근거 (HikariCP max=5):
+ *   50 VU → 이미 DB 커넥션 경합 시작
+ *   100 VU → 포화 예상 구간
+ *   200 VU → 실질적 한계점 확인
  */
 import http from 'k6/http';
-import { check, sleep } from 'k6';
+import { check } from 'k6';
 import { Rate, Trend } from 'k6/metrics';
 import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 import { BASE_URL } from '../config/thresholds.js';
 import { SEED_AUCTIONS, LOAD_TEST_AUCTION_IDS } from '../helpers/data.js';
 import { publicHeaders } from '../helpers/auth.js';
+import { fetchCurrentBidPrice } from '../helpers/bid.js';
 
 const errorRate = new Rate('stress_error_rate');
 const bidTrend = new Trend('stress_bid_duration', true);
 
 export const options = {
-  // 단계적 VU 증가로 포화점 탐색
   stages: [
+    { duration: '2m', target: 20 },
     { duration: '2m', target: 50 },
     { duration: '2m', target: 100 },
     { duration: '2m', target: 200 },
-    { duration: '2m', target: 400 },
-    { duration: '2m', target: 800 },
     { duration: '2m', target: 0 },  // 회복
   ],
   thresholds: {
@@ -55,21 +60,24 @@ export default function () {
     check(res, { 'detail ok': (r) => r.status < 500 });
 
   } else {
-    const memberId = uuidv4();
-    const res = http.post(
-      `${BASE_URL}/api/auctions/${auctionId}/bids`,
-      JSON.stringify({ bidPrice: 50000 }),
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Member-Id': memberId,
-          'X-Member-Role': 'BUYER',
-          'X-Session-Id': uuidv4(),
-        },
-      }
-    );
-    bidTrend.add(res.timings.duration);
-    errorRate.add(res.status >= 500 ? 1 : 0);
-    check(res, { 'bid ok': (r) => r.status < 500 });
+    // 30% 입찰 (현재 최고가 기반 동적 bidPrice)
+    const bidPrice = fetchCurrentBidPrice(auctionId);
+    if (bidPrice !== null) {
+      const res = http.post(
+        `${BASE_URL}/api/auctions/${auctionId}/bids`,
+        JSON.stringify({ bidPrice }),
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Member-Id': uuidv4(),
+            'X-Member-Role': 'BUYER',
+            'X-Session-Id': uuidv4(),
+          },
+        }
+      );
+      bidTrend.add(res.timings.duration);
+      errorRate.add(res.status >= 500 ? 1 : 0);
+      check(res, { 'bid ok': (r) => r.status < 500 });
+    }
   }
 }
