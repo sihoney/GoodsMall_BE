@@ -5,6 +5,7 @@ import com.example.order.application.usecase.OrderCancelUseCase;
 import com.example.order.application.usecase.OrderConfirmUseCase;
 import com.example.order.application.usecase.OrderCreateUseCase;
 import com.example.order.application.usecase.OrderSearchUseCase;
+import com.example.order.domain.enumtype.OrderType;
 import com.example.order.presentation.dto.request.AuctionWinAcceptRequest;
 import com.example.order.presentation.dto.request.OrderCancelRequest;
 import com.example.order.presentation.dto.request.OrderCreateRequest;
@@ -29,6 +30,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
@@ -65,10 +67,11 @@ public class OrderController {
     @GetMapping
     public ResponseEntity<ApiResponse<Page<OrderSummaryResponse>>> findOrders(
             @CurrentMember AuthenticatedMember authenticatedMember,
+            @RequestParam(required = false) OrderType orderType,
             @ParameterObject Pageable pageable
     ) {
         UUID memberId = authenticatedMember.memberId();
-        return ResponseEntity.ok(ApiResponse.success(orderSearchUseCase.findByMemberId(memberId, pageable)));
+        return ResponseEntity.ok(ApiResponse.success(orderSearchUseCase.findByMemberId(memberId, orderType, pageable)));
     }
 
     @GetMapping("{orderId}")

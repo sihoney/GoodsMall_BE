@@ -2,10 +2,12 @@ package com.example.order.infrastructure.repository;
 
 import com.example.order.domain.entity.Order;
 import com.example.order.domain.enumtype.OrderStatus;
+import com.example.order.domain.enumtype.OrderType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -14,7 +16,8 @@ import java.util.UUID;
 
 public interface OrderJpaRepository extends JpaRepository<Order, UUID> {
 
-    Page<Order> findByBuyerId(UUID buyerId, Pageable pageable);
+    @Query("select o from Order o where o.buyerId = :buyerId and (:orderType is null or o.orderType = :orderType) and o.status <> com.example.order.domain.enumtype.OrderStatus.CREATED")
+    Page<Order> findByBuyerIdAndOrderType(@Param("buyerId") UUID buyerId, @Param("orderType") OrderType orderType, Pageable pageable);
 
     @Query("""
     select o from Order o
