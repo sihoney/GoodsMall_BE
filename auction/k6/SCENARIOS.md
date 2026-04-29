@@ -155,24 +155,29 @@ POST /api/auctions/{id}/bids  { bidPrice: currentHighestPrice + bidUnit }
 
 | 메트릭 | 의미 |
 |---|---|
-| `successful_bids` | 실제 입찰 성공 건수 (201) |
-| `failed_bids` | 실패 건수 (409 포함) |
-| `bid_conflict_rate` | 409 비율 = 락 경합 강도 |
-| `bid_duration` p90/p99 | 락 대기 포함 입찰 레이턴시 |
+| `successful_bids` | 201 누적. 동시 입찰 시 1건이 아니라 N건 통과됨 (결함 가시화) |
+| `failed_bids` | 4xx/5xx 누적 |
+| `pending_overrun` | 낭비된 PENDING 수 = `successful_bids - 1`. Payment 호출/wallet 차감이 N-1번 헛돌았다는 의미 |
+| `bid_duration` p99/p99.9 | 락 직렬화로 인한 꼬리 지연 — VU 증가 시 급등 예상 |
+
+> **왜 409가 아닌 `pending_overrun` 인가**: 현재 코드는 `currentHighestPrice` 갱신이 Payment Kafka 응답 후라서 락이 풀려도 다음 입찰자는 여전히 NULL을 본다. 동시 입찰이 모두 PENDING 통과되므로 409는 거의 발생하지 않는다. 자세한 분석은 Notion `Auction - 비관적 락만으로 부족한 이유` 노트 참조.
 
 ### 예상 현상
 
-- VU 증가 → `bid_conflict_rate` 상승 (경합 증가)
-- VU 5 초과 → HikariCP 대기 시작 → `bid_duration` 급등 예상
-- VU 100 → 처리량 포화, 응답시간 수 초 이상
+- 동시 입찰이 모두 PENDING 통과 → `successful_bids` ≈ 요청 수
+- `pending_overrun` 이 곧 시스템 비효율의 척도 (100 VU 2분이면 수천 건의 헛 Payment 호출 예상)
+- VU 5 초과 → HikariCP 대기 시작 → `bid_duration` p99 급등 (락 직렬화)
+- VU 100 이상 → 커넥션 큐 적체로 p99.9 가 5~10초대 진입
 
 ### 성공 기준
 
 | 지표 | 기준 |
 |---|---|
-| `successful_bids` count | > 0 (최소 1건 이상 성공) |
-| `http_req_failed` | < 50% (5xx 기준, 409는 비즈니스 에러로 제외) |
-| 5xx | 없어야 함 |
+| `successful_bids` count | > 0 (한계 검증용) |
+| `bid_duration` p99 | < 5s |
+| `bid_duration` p99.9 | < 10s |
+| `http_req_failed` | < 50% (5xx 기준, 4xx 비즈니스 에러는 제외) |
+| 5xx 패턴 | 없거나 503/504 → HikariCP 포화일 때 별도 명시 |
 
 ### 실행
 
@@ -397,13 +402,19 @@ k6 run ~/k6/scenarios/soak.js -e DURATION=60m -e VUS=30 --out json=results/soak.
 | 2s ~ 5s | 위험 — DB 커넥션 포화 또는 락 타임아웃 임박 |
 | > 5s | 한계 초과 |
 
-### `bid_conflict_rate` 해석 (concurrent-bid 전용)
+### `pending_overrun` 해석 (concurrent-bid 전용)
 
-| 비율 | 해석 |
+> 보정값 = `successful_bids - 1`. 한 경매당 최종 ACTIVE는 1건뿐이므로 그 외는 모두 헛돈 Payment.
+
+| 보정값 / 요청 수 | 해석 |
 |---|---|
-| 0 ~ 30% | 정상 경합 수준 |
-| 30 ~ 70% | 높은 경합 — VU 수 대비 DB 처리량 한계 |
-| > 70% | 거의 모든 입찰이 경합으로 실패 — 락 직렬화 병목 확인 |
+| ≈ 0 | currentHighestPrice가 동기 갱신되도록 수정된 상태 (개선 후 기대값) |
+| < 10% | 락이 충분히 직렬화하여 비효율이 작음 |
+| 10 ~ 50% | 대다수 동시 입찰이 같은 가격으로 통과 — 룰 우회 발생 |
+| > 50% | 거의 모든 입찰이 헛돈 Payment 호출 — 동시성 결함 명확 |
+
+> 이 메트릭이 0에 가까워지는 게 개선 목표.
+> 결함 분석은 Notion `Auction - 비관적 락만으로 부족한 이유` 노트 참조.
 
 ### 5xx 에러 원인 분류
 

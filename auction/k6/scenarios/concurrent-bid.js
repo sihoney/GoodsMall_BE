@@ -19,7 +19,7 @@
  */
 import http from 'k6/http';
 import { check } from 'k6';
-import { Counter, Rate, Trend } from 'k6/metrics';
+import { Counter, Trend } from 'k6/metrics';
 import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 import { BASE_URL } from '../config/thresholds.js';
 import { CONCURRENT_BID_AUCTION_ID } from '../helpers/data.js';
@@ -27,7 +27,10 @@ import { fetchCurrentBidPrice } from '../helpers/bid.js';
 
 const successfulBids = new Counter('successful_bids');
 const failedBids = new Counter('failed_bids');
-const bidConflictRate = new Rate('bid_conflict_rate'); // 409 = 동시 입찰 경합
+// 락은 잡히지만 currentHighestPrice 갱신이 Payment Kafka 응답 후라서 동시 입찰이 모두 PENDING 통과한다.
+// 한 경매당 최종 ACTIVE는 1건이어야 정상이므로, 그 외 PENDING 성공은 모두 "낭비된 Payment 호출/wallet 차감".
+// 분석 시 정확한 값 = successful_bids - 1 (테스트 시작 시점 currentHighestPrice=NULL 전제).
+const pendingOverrun = new Counter('pending_overrun');
 const bidTrend = new Trend('bid_duration', true);
 
 const TARGET_VUS = parseInt(__ENV.VUS || '30');
@@ -42,6 +45,8 @@ export const options = {
   },
   thresholds: {
     successful_bids: ['count>0'],
+    // 락 직렬화로 인한 꼬리 지연 한계 — 한계점 탐색 목적이라 느슨히 잡음
+    bid_duration: ['p(99)<5000', 'p(99.9)<10000'],
     http_req_failed: ['rate<0.50'],
   },
 };
@@ -73,14 +78,13 @@ export default function () {
   bidTrend.add(res.timings.duration);
 
   const isSuccess = res.status === 201;
-  const isBidConflict = res.status === 409; // 동시 입찰로 인한 가격 충돌
 
   if (isSuccess) {
     successfulBids.add(1);
+    pendingOverrun.add(1); // 분석 시 -1 보정 (실제 ACTIVE는 1건)
   } else {
     failedBids.add(1);
   }
-  bidConflictRate.add(isBidConflict ? 1 : 0);
 
   if (res.status >= 500) {
     console.log(`SERVER ERROR: status=${res.status} body=${res.body}`);

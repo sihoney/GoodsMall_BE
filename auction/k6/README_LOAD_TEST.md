@@ -153,5 +153,6 @@ k6 run ~/k6/scenarios/soak.js -e DURATION=30m -e VUS=50
 |------|------|-----------|
 | HikariCP pool 소진 | max-pool-size=5 | 10~20으로 증가 후 재측정 |
 | 입찰 직렬화 처리 | PESSIMISTIC_WRITE 락 | Redis 분산 락 검토 |
+| 동시성 룰 우회 | currentHighestPrice 비동기 갱신 | `BidCreateService.place()` 락 안에서 즉시 갱신 (Notion 분석 노트 참조) |
 | 조회 성능 | 인덱스 미활용 | EXPLAIN ANALYZE 후 인덱스 추가 |
 | WebSocket 확장성 | 인메모리 상태 | Redis pub/sub 연동 검토 |
