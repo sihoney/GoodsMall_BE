@@ -24,7 +24,7 @@ spec:
             - containerPort: 8090
           env:
             - name: JAVA_TOOL_OPTIONS
-              value: "-Xms128m -Xmx256m -Duser.timezone=Asia/Seoul"
+              value: "-Xms256m -Xmx512m -Duser.timezone=Asia/Seoul"
           envFrom:
             - configMapRef:
                 name: common-config
@@ -37,7 +37,7 @@ spec:
           startupProbe:
             tcpSocket:
               port: 8090
-            failureThreshold: 20
+            failureThreshold: 30
             periodSeconds: 10
           livenessProbe:
             tcpSocket:

@@ -2,6 +2,7 @@ package com.example.order.presentation.dto.response;
 
 import com.example.order.domain.entity.Order;
 import com.example.order.domain.enumtype.OrderStatus;
+import com.example.order.domain.enumtype.OrderType;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -12,6 +13,7 @@ public record OrderSummaryResponse(
         String orderNumber,
         BigDecimal totalPrice,
         OrderStatus status,
+        OrderType orderType,
         LocalDateTime createdAt,
         String representativeProductName,
         String representativeThumbnailKey,
@@ -23,6 +25,7 @@ public record OrderSummaryResponse(
                 order.getOrderNumber(),
                 order.getTotalPrice(),
                 order.getStatus(),
+                order.getOrderType(),
                 order.getCreatedAt(),
                 order.getRepresentativeProductName(),
                 order.getRepresentativeThumbnailKey(),
