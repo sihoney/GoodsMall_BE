@@ -97,10 +97,10 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         }
     }
 
-    // @Override
-    // public int getOrder() {
-    //     return -100;
-    // }
+    @Override
+    public int getOrder() {
+        return -100;
+    }
 
     private boolean isPublic(String method, String path) {
         boolean hasMatchingRoleRule = gatewayAuthProperties.roleRules().stream()
