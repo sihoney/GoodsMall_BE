@@ -14,6 +14,7 @@ import com.example.order.presentation.dto.response.OrderItemDetailResponse;
 import com.example.order.presentation.dto.response.OrderSummaryResponse;
 import com.example.order.presentation.dto.response.PaymentValidationResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -31,10 +32,13 @@ public class OrderSearchService implements OrderSearchUseCase {
     private final OrderRepository orderRepository;
     private final DeliveryRepository deliveryRepository;
 
+    @Value("${cloud.aws.s3.base-url}")
+    private String s3BaseUrl;
+
     @Override
     public Page<OrderSummaryResponse> findByMemberId(UUID memberId, OrderType orderType, String keyword, Pageable pageable) {
         Page<Order> orders = orderRepository.findByBuyerIdAndOrderType(memberId, orderType, keyword, pageable);
-        return orders.map(OrderSummaryResponse::from);
+        return orders.map(order -> OrderSummaryResponse.from(order, s3BaseUrl));
     }
 
     @Override
@@ -48,7 +52,7 @@ public class OrderSearchService implements OrderSearchUseCase {
                     UUID deliveryId = deliveryRepository.findByOrderItemId(item.getOrderItemId())
                             .map(Delivery::getDeliveryId)
                             .orElse(null);
-                    return OrderItemDetailResponse.from(item, deliveryId);
+                    return OrderItemDetailResponse.from(item, deliveryId, s3BaseUrl);
                 })
                 .toList();
 

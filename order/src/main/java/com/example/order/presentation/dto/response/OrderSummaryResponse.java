@@ -19,7 +19,11 @@ public record OrderSummaryResponse(
         String representativeThumbnailKey,
         Integer itemCount
 ) {
-    public static OrderSummaryResponse from(Order order) {
+    public static OrderSummaryResponse from(Order order, String s3BaseUrl) {
+        String thumbnailKey = order.getRepresentativeThumbnailKey();
+        String thumbnailUrl = (thumbnailKey != null && !thumbnailKey.isBlank())
+                ? s3BaseUrl + "/" + thumbnailKey
+                : null;
         return new OrderSummaryResponse(
                 order.getOrderId(),
                 order.getOrderNumber(),
@@ -28,7 +32,7 @@ public record OrderSummaryResponse(
                 order.getOrderType(),
                 order.getCreatedAt(),
                 order.getRepresentativeProductName(),
-                order.getRepresentativeThumbnailKey(),
+                thumbnailUrl,
                 order.getItemCount());
     }
 }
