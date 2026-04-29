@@ -6,7 +6,7 @@ import java.util.UUID;
 public record AuctionWonEvent(
         UUID productId,
         UUID sellerId,
-        String productTitle,
+        String auctionTitle,
         String thumbnailKey,
         BigDecimal orderPrice
 ) {}
