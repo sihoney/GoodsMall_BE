@@ -97,6 +97,11 @@ public class SettlementItemRepositoryImpl implements SettlementItemRepository {
     }
 
     @Override
+    public List<SettlementItem> findAllBySettlementIdOrderByReleasedAtDesc(UUID settlementId) {
+        return settlementItemJpaRepository.findBySettlementIdOrderByReleasedAtDesc(settlementId);
+    }
+
+    @Override
     public int updateSettlementItemStatusIn(
             List<UUID> settlementItemIds,
             SettlementItemStatus currentStatus,

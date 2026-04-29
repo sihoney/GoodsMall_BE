@@ -19,6 +19,12 @@ public class AuctionEventConsumer {
     @KafkaListener(topics = KafkaTopics.AUCTION_WON, groupId = "order-group", containerFactory = "auctionListenerContainerFactory")
     public void consume(EventEnvelope<AuctionWonEvent> envelope) {
         log.info("auction.won 이벤트 수신. auctionId={}, winnerId={}", envelope.aggregateId(), envelope.recipientId());
-        orderAuctionCreateService.createFromAuctionWon(envelope.aggregateId(), envelope.recipientId(), envelope.payload());
+        try {
+            orderAuctionCreateService.createFromAuctionWon(envelope.aggregateId(), envelope.recipientId(), envelope.payload());
+        } catch (Exception e) {
+            log.error("auction.won 처리 실패. auctionId={}, winnerId={}, payload={}",
+                    envelope.aggregateId(), envelope.recipientId(), envelope.payload(), e);
+            throw e;
+        }
     }
 }

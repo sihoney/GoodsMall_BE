@@ -31,14 +31,14 @@ public class OrderAuctionCreateService {
                 orderNumber,
                 auctionId,
                 winnerId,
-                event.productTitle(),
+                event.auctionTitle(),
                 event.thumbnailKey()
         );
 
         order.addItem(
                 event.productId(),
                 event.sellerId(),
-                event.productTitle(),
+                event.auctionTitle(),
                 event.orderPrice(),
                 1,
                 event.thumbnailKey()

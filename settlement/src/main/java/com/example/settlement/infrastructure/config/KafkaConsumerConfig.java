@@ -11,6 +11,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
@@ -50,6 +51,7 @@ public class KafkaConsumerConfig {
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, String>
         settlementCandidateCreatedKafkaListenerContainerFactory(
+            @Qualifier("settlementCandidateCreatedConsumerFactory")
             ConsumerFactory<String, String> settlementCandidateCreatedConsumerFactory,
             KafkaTemplate<String, String> kafkaTemplate
     ) {
@@ -84,6 +86,7 @@ public class KafkaConsumerConfig {
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, String>
         sellerSettlementPayoutResultKafkaListenerContainerFactory(
+            @Qualifier("sellerSettlementPayoutResultConsumerFactory")
             ConsumerFactory<String, String> sellerSettlementPayoutResultConsumerFactory,
             KafkaTemplate<String, String> kafkaTemplate
     ) {

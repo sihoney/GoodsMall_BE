@@ -7,6 +7,8 @@ import com.example.settlement.domain.repository.SettlementRepository;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -71,5 +73,29 @@ public class SettlementRepositoryImpl implements SettlementRepository {
                 settlementMonth,
                 settlementType
         );
+    }
+
+    @Override
+    public Page<Settlement> findBySellerIdWithFilters(
+            UUID sellerId,
+            SettlementType settlementType,
+            SettlementStatus settlementStatus,
+            Integer settlementYear,
+            Integer settlementMonth,
+            Pageable pageable
+    ) {
+        return settlementJpaRepository.findBySellerIdWithFilters(
+                sellerId,
+                settlementType,
+                settlementStatus,
+                settlementYear,
+                settlementMonth,
+                pageable
+        );
+    }
+
+    @Override
+    public Optional<Settlement> findBySettlementIdAndSellerId(UUID settlementId, UUID sellerId) {
+        return settlementJpaRepository.findBySettlementIdAndSellerId(settlementId, sellerId);
     }
 }
