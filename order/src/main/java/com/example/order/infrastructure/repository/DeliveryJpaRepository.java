@@ -29,8 +29,8 @@ public interface DeliveryJpaRepository extends JpaRepository<Delivery, UUID> {
           and (:orderNumber is null or o.orderNumber like :orderNumber)
           and (:receiver is null or o.receiver like :receiver)
           and (:productName is null or oi.productNameSnapshot like :productName)
-          and (:dateFrom is null or d.createdAt >= :dateFrom)
-          and (:dateTo is null or d.createdAt <= :dateTo)
+          and d.createdAt >= :dateFrom
+          and d.createdAt <= :dateTo
         """,
         countQuery = """
         select count(d) from Delivery d
@@ -42,8 +42,8 @@ public interface DeliveryJpaRepository extends JpaRepository<Delivery, UUID> {
           and (:orderNumber is null or o.orderNumber like :orderNumber)
           and (:receiver is null or o.receiver like :receiver)
           and (:productName is null or oi.productNameSnapshot like :productName)
-          and (:dateFrom is null or d.createdAt >= :dateFrom)
-          and (:dateTo is null or d.createdAt <= :dateTo)
+          and d.createdAt >= :dateFrom
+          and d.createdAt <= :dateTo
         """)
     Page<Delivery> findBySellerIdAndStatusWithFilters(
             @Param("sellerId") UUID sellerId,
@@ -66,8 +66,8 @@ public interface DeliveryJpaRepository extends JpaRepository<Delivery, UUID> {
           and (:orderNumber is null or o.orderNumber like :orderNumber)
           and (:receiver is null or o.receiver like :receiver)
           and (:productName is null or oi.productNameSnapshot like :productName)
-          and (:dateFrom is null or d.createdAt >= :dateFrom)
-          and (:dateTo is null or d.createdAt <= :dateTo)
+          and d.createdAt >= :dateFrom
+          and d.createdAt <= :dateTo
         """,
         countQuery = """
         select count(d) from Delivery d
@@ -78,8 +78,8 @@ public interface DeliveryJpaRepository extends JpaRepository<Delivery, UUID> {
           and (:orderNumber is null or o.orderNumber like :orderNumber)
           and (:receiver is null or o.receiver like :receiver)
           and (:productName is null or oi.productNameSnapshot like :productName)
-          and (:dateFrom is null or d.createdAt >= :dateFrom)
-          and (:dateTo is null or d.createdAt <= :dateTo)
+          and d.createdAt >= :dateFrom
+          and d.createdAt <= :dateTo
         """)
     Page<Delivery> findBySellerIdWithFilters(
             @Param("sellerId") UUID sellerId,
