@@ -39,6 +39,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class CardPaymentConfirmService implements CardPaymentConfirmUseCase {
 
     private static final String CARD_METHOD = "카드";
+    private static final String EASY_PAY_METHOD = "간편결제";
 
     private final CardTransactionRepository cardTransactionRepository;
     private final EscrowRepository escrowRepository;
@@ -232,9 +233,13 @@ public class CardPaymentConfirmService implements CardPaymentConfirmUseCase {
                 || confirmation.approvedAmount().compareTo(command.amount()) != 0) {
             throw new InvalidCardPaymentRequestException("승인된 결제 금액이 요청 금액과 일치하지 않습니다.");
         }
-        if (!CARD_METHOD.equals(confirmation.method())) {
+        if (!isAllowedPgMethod(confirmation.method())) {
             throw new InvalidCardPaymentRequestException("승인된 결제 수단이 카드가 아닙니다.");
         }
+    }
+
+    private boolean isAllowedPgMethod(String method) {
+        return CARD_METHOD.equals(method) || EASY_PAY_METHOD.equals(method);
     }
 
     private void failTransactions(List<CardTransaction> cardTransactions, String failureReason) {
