@@ -3,6 +3,7 @@ package com.todaylunch.auction.application.service;
 import com.todaylunch.auction.application.event.OutboxEventPendingTrigger;
 import com.todaylunch.auction.application.port.dto.request.BidFeeChargeRequest;
 import com.todaylunch.auction.application.usecase.BidCreateUseCase;
+import com.todaylunch.auction.common.exception.application.BidAlreadyPendingException;
 import com.todaylunch.auction.domain.entity.Auction;
 import com.todaylunch.auction.domain.entity.Bid;
 import com.todaylunch.auction.domain.entity.BidPolicy;
@@ -44,6 +45,11 @@ public class BidCreateService implements BidCreateUseCase {
     public BidResponse place(UUID auctionId, UUID bidderId, BidPlaceRequest request) {
 
         Auction auction = auctionRepository.findByIdWithLock(auctionId);
+
+        if (bidRepository.findPendingByAuctionId(auctionId).isPresent()) {
+            throw new BidAlreadyPendingException();
+        }
+
         Optional<Bid> previousBid = bidRepository.findActiveByAuctionId(auctionId);
         auction.validatePendingBid(bidderId,
                                    request.bidPrice(),
