@@ -21,6 +21,7 @@ public interface ProductSearchUseCase {
 
     Page<ProductResponse> getAllProducts(Pageable pageable);
     Page<ProductResponse> findBySellerId(String sellerId, Pageable pageable);
+    boolean hasActiveProductsBySellerId(String sellerId);
     ProductResponse findById(String productId);
     List<ProductResponse> findByProductIds(List<UUID> productIds);
 }

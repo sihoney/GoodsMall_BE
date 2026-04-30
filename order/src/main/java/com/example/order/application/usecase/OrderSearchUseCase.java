@@ -1,6 +1,7 @@
 package com.example.order.application.usecase;
 
 import com.example.order.domain.enumtype.OrderType;
+import com.example.order.presentation.dto.response.MemberOrderWithdrawalSummaryResponse;
 import com.example.order.presentation.dto.request.PaymentValidationRequest;
 import com.example.order.presentation.dto.response.OrderDetailResponse;
 import com.example.order.presentation.dto.response.OrderSummaryResponse;
@@ -13,6 +14,8 @@ import java.util.UUID;
 
 public interface OrderSearchUseCase {
     Page<OrderSummaryResponse> findByMemberId(UUID memberId, OrderType orderType, String keyword, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable);
+
+    MemberOrderWithdrawalSummaryResponse getWithdrawalSummary(UUID memberId);
 
     OrderDetailResponse getOrderDetail(UUID orderId, UUID memberId);
 

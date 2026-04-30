@@ -28,6 +28,8 @@ public interface ProductRepository {
 
     Page<Product> findBySellerId(UUID sellerId, Pageable pageable);
 
+    boolean existsActiveBySellerId(UUID sellerId);
+
     Optional<Product> findById(UUID productId);
 
     Optional<Product> findByIdWithLock(UUID productId);
