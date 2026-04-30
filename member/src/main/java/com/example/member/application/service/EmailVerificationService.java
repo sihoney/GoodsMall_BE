@@ -1,5 +1,7 @@
 package com.example.member.application.service;
 
+import com.example.member.application.dto.result.EmailVerificationAutoLoginTokenResult;
+import com.example.member.application.dto.result.EmailVerificationConfirmResult;
 import com.example.member.application.port.out.EmailSenderPort;
 import com.example.member.application.port.out.EmailVerificationPersistencePort;
 import com.example.member.application.port.out.MemberPersistencePort;
@@ -27,6 +29,7 @@ public class EmailVerificationService {
     private final MemberPersistencePort memberPersistencePort;
     private final EmailSenderPort emailSender;
     private final EmailVerificationProperties emailVerificationProperties;
+    private final EmailVerificationAutoLoginService emailVerificationAutoLoginService;
 
     @Transactional
     public EmailVerification createSignupVerification(Member member) {
@@ -56,13 +59,13 @@ public class EmailVerificationService {
     }
 
     @Transactional
-    public Member confirmSignupVerification(String token) {
+    public EmailVerificationConfirmResult confirmSignupVerification(String token) {
         String normalizedToken = normalizeRequired(token, "token");
         EmailVerification emailVerification = emailVerificationPersistencePort.findByToken(normalizedToken)
                 .orElseThrow(InvalidEmailVerificationTokenException::new);
 
         LocalDateTime now = LocalDateTime.now();
-        if (emailVerification.isExpiredAt(now) && emailVerification.isPending()) {
+        if (emailVerification.isExpiredAt(now) && emailVerification.isPending()) { 
             emailVerification.expire(now);
             throw new ExpiredEmailVerificationException();
         }
@@ -79,7 +82,14 @@ public class EmailVerificationService {
         }
 
         emailVerification.verify(now);
-        return member;
+        EmailVerificationAutoLoginTokenResult autoLoginToken = emailVerificationAutoLoginService.issueToken(member);
+        return new EmailVerificationConfirmResult(
+                member.getMemberId(),
+                member.getEmail(),
+                member.getStatus(),
+                autoLoginToken.token(),
+                autoLoginToken.expiresInSeconds()
+        );
     }
 
     @Transactional

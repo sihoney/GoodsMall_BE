@@ -7,6 +7,7 @@ import com.example.member.application.dto.command.PasswordResetConfirmCommand;
 import com.example.member.application.dto.command.PasswordResetSendCommand;
 import com.example.member.application.dto.command.TokenRefreshCommand;
 import com.example.member.application.dto.result.KakaoOAuthResult;
+import com.example.member.application.service.EmailVerificationAutoLoginService;
 import com.example.member.application.service.EmailVerificationService;
 import com.example.member.application.service.KakaoOAuthService;
 import com.example.member.application.service.PasswordResetService;
@@ -19,6 +20,8 @@ import com.example.member.presentation.web.dto.ConfirmEmailVerificationRequest;
 import com.example.member.presentation.web.dto.CreateMemberRequest;
 import com.example.member.presentation.web.dto.CreateMemberResponse;
 import com.example.member.presentation.web.dto.EmailVerificationConfirmResponse;
+import com.example.member.presentation.web.dto.EmailVerificationAutoLoginRequest;
+import com.example.member.presentation.web.dto.EmailVerificationAutoLoginResponse;
 import com.example.member.presentation.web.dto.EmailVerificationSendResponse;
 import com.example.member.presentation.web.dto.KakaoOAuthAuthorizeUrlResponse;
 import com.example.member.presentation.web.dto.KakaoOAuthLinkRequest;
@@ -64,6 +67,7 @@ public class AuthController {
     private final AuthUsecase authUsecase;
     private final MemberUsecase memberUsecase;
     private final EmailVerificationService emailVerificationService;
+    private final EmailVerificationAutoLoginService emailVerificationAutoLoginService;
     private final KakaoOAuthService kakaoOAuthService;
     private final PasswordResetService passwordResetService;
 
@@ -261,8 +265,24 @@ public class AuthController {
     public ResponseEntity<ApiResponse<EmailVerificationConfirmResponse>> confirmEmailVerification(
             @Valid @RequestBody ConfirmEmailVerificationRequest request
     ) {
-        var member = emailVerificationService.confirmSignupVerification(request.token());
-        return ResponseEntity.ok(ApiResponse.success(EmailVerificationConfirmResponse.from(member)));
+        var result = emailVerificationService.confirmSignupVerification(request.token());
+        return ResponseEntity.ok(ApiResponse.success(EmailVerificationConfirmResponse.from(result)));
+    }
+
+    @PostMapping("/email-verifications/auto-login")
+    @Operation(summary = "이메일 인증 자동 로그인", description = "이메일 인증 후 발급된 1회용 토큰으로 자동 로그인을 완료합니다.")
+    public ResponseEntity<ApiResponse<EmailVerificationAutoLoginResponse>> autoLoginAfterEmailVerification(
+            @Valid @RequestBody EmailVerificationAutoLoginRequest request,
+            HttpServletRequest httpServletRequest
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                EmailVerificationAutoLoginResponse.from(
+                        emailVerificationAutoLoginService.authenticate(
+                                request.autoLoginToken(),
+                                extractSessionMetadata(httpServletRequest)
+                        )
+                )
+        ));
     }
 
     private AuthSessionMetadata extractSessionMetadata(HttpServletRequest request) {
