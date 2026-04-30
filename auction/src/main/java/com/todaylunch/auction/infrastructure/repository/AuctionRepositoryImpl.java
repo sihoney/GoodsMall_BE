@@ -51,7 +51,7 @@ public class AuctionRepositoryImpl implements AuctionRepository {
     }
 
     @Override
-    public Page<Auction> findAllBySellerIdAndStatus(UUID sellerId, AuctionStatus status, Pageable pageable) {
-        return jpaRepository.findAllBySellerIdAndStatus(sellerId, status, pageable);
+    public boolean existsBySellerIdAndStatus(UUID sellerId, AuctionStatus status) {
+        return jpaRepository.existsBySellerIdAndStatus(sellerId, status);
     }
 }

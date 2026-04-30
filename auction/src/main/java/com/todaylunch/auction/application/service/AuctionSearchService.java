@@ -4,6 +4,7 @@ import com.todaylunch.auction.application.usecase.AuctionSearchUseCase;
 import com.todaylunch.auction.domain.entity.Auction;
 import com.todaylunch.auction.domain.enumtype.AuctionStatus;
 import com.todaylunch.auction.domain.repository.AuctionRepository;
+import com.todaylunch.auction.presentation.dto.response.AuctionSellerBlockingSummaryResponse;
 import com.todaylunch.auction.presentation.dto.response.AuctionResponse;
 import com.todaylunch.auction.presentation.dto.response.PagedResponse;
 import java.util.List;
@@ -49,20 +50,11 @@ public class AuctionSearchService implements AuctionSearchUseCase {
     }
 
     @Override
-    public PagedResponse<AuctionResponse> searchBySeller(UUID sellerId, AuctionStatus status, int page, int size) {
-        Page<Auction> result = findSellerAuctions(sellerId, status, page, size);
-
-        List<AuctionResponse> items = result.getContent().stream()
-                .map(AuctionResponse::from)
-                .toList();
-
-        return new PagedResponse<>(
-                items,
-                result.getNumber(),
-                result.getSize(),
-                result.getTotalElements(),
-                result.getTotalPages(),
-                result.hasNext()
+    public AuctionSellerBlockingSummaryResponse getSellerBlockingSummary(UUID sellerId) {
+        return new AuctionSellerBlockingSummaryResponse(
+                auctionRepository.existsBySellerIdAndStatus(sellerId, AuctionStatus.WAITING),
+                auctionRepository.existsBySellerIdAndStatus(sellerId, AuctionStatus.ONGOING),
+                auctionRepository.existsBySellerIdAndStatus(sellerId, AuctionStatus.PENDING_PAYMENT)
         );
     }
 
@@ -79,16 +71,4 @@ public class AuctionSearchService implements AuctionSearchUseCase {
         return auctionRepository.findAllByStatus(status, pageRequest);
     }
 
-    private Page<Auction> findSellerAuctions(UUID sellerId, AuctionStatus status, int page, int size) {
-        int normalizedPage = Math.max(page, 0);
-        int normalizedSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
-
-        PageRequest pageRequest = PageRequest.of(
-                normalizedPage,
-                normalizedSize,
-                Sort.by(Sort.Direction.DESC, "createdAt")
-        );
-
-        return auctionRepository.findAllBySellerIdAndStatus(sellerId, status, pageRequest);
-    }
 }
