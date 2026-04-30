@@ -2,6 +2,7 @@ package com.example.order.presentation.controller;
 
 import com.example.order.application.usecase.ReturnInspectUseCase;
 import com.example.order.application.usecase.ReturnRequestSearchUseCase;
+import com.example.order.domain.enumtype.ReturnRequestStatus;
 import com.example.order.presentation.dto.request.ReturnInspectRequest;
 import com.example.order.presentation.dto.response.ApiResponse;
 import com.example.order.presentation.dto.response.ReturnInspectResponse;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
@@ -31,14 +33,15 @@ public class ReturnRequestController {
     private final ReturnInspectUseCase returnInspectUseCase;
     private final ReturnRequestSearchUseCase returnRequestSearchUseCase;
 
-    @GetMapping("/seller/pending")
-    public ResponseEntity<ApiResponse<Page<ReturnRequestSummaryResponse>>> findPendingInspections(
+    @GetMapping("/seller")
+    public ResponseEntity<ApiResponse<Page<ReturnRequestSummaryResponse>>> findForSeller(
             @CurrentMember AuthenticatedMember authenticatedMember,
+            @RequestParam(required = false) ReturnRequestStatus status,
             @ParameterObject Pageable pageable
     ) {
         UUID sellerMemberId = authenticatedMember.memberId();
         Page<ReturnRequestSummaryResponse> response =
-                returnRequestSearchUseCase.findPendingInspections(sellerMemberId, pageable);
+                returnRequestSearchUseCase.findForSeller(sellerMemberId, status, pageable);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

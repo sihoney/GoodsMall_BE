@@ -20,9 +20,14 @@ public class ReturnRequestSearchService implements ReturnRequestSearchUseCase {
     private final ReturnRequestRepository returnRequestRepository;
 
     @Override
-    public Page<ReturnRequestSummaryResponse> findPendingInspections(UUID sellerMemberId, Pageable pageable) {
+    public Page<ReturnRequestSummaryResponse> findForSeller(
+            UUID sellerMemberId,
+            ReturnRequestStatus status,
+            Pageable pageable
+    ) {
+        ReturnRequestStatus targetStatus = status != null ? status : ReturnRequestStatus.RECEIVED;
         return returnRequestRepository
-                .findBySellerIdAndStatus(sellerMemberId, ReturnRequestStatus.RECEIVED, pageable)
+                .findBySellerIdAndStatus(sellerMemberId, targetStatus, pageable)
                 .map(ReturnRequestSummaryResponse::from);
     }
 }

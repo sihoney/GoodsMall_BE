@@ -3,6 +3,8 @@ package com.example.order.presentation.dto.response;
 import com.example.order.domain.entity.Claim;
 import com.example.order.domain.entity.OrderItem;
 import com.example.order.domain.entity.ReturnRequest;
+import com.example.order.domain.enumtype.ResponsibilityType;
+import com.example.order.domain.enumtype.ReturnRequestStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -13,6 +15,7 @@ public record ReturnRequestSummaryResponse(
         UUID orderId,
         UUID orderItemId,
         UUID buyerId,
+        String receiver,
         String productName,
         String thumbnailKey,
         Integer quantity,
@@ -20,7 +23,12 @@ public record ReturnRequestSummaryResponse(
         String reason,
         String detailReason,
         LocalDateTime requestedAt,
-        LocalDateTime receivedAt
+        LocalDateTime receivedAt,
+        ReturnRequestStatus status,
+        LocalDateTime processedAt,
+        ResponsibilityType responsibilityType,
+        BigDecimal refundedAmount,
+        String rejectReason
 ) {
 
     public static ReturnRequestSummaryResponse from(ReturnRequest returnRequest) {
@@ -28,11 +36,15 @@ public record ReturnRequestSummaryResponse(
         Claim claim = returnRequest.getClaim();
         BigDecimal refundable = item.getUnitPriceSnapshot().multiply(BigDecimal.valueOf(item.getQuantity()));
 
+        boolean isCompleted = returnRequest.getStatus() == ReturnRequestStatus.COMPLETED;
+        boolean isFailed = returnRequest.getStatus() == ReturnRequestStatus.FAILED;
+
         return new ReturnRequestSummaryResponse(
                 returnRequest.getReturnRequestId(),
                 item.getOrder().getOrderId(),
                 item.getOrderItemId(),
                 item.getOrder().getBuyerId(),
+                item.getOrder().getReceiver(),
                 item.getProductNameSnapshot(),
                 item.getThumbnailKeySnapshot(),
                 item.getQuantity(),
@@ -40,7 +52,12 @@ public record ReturnRequestSummaryResponse(
                 claim.getReason(),
                 claim.getDetailReason(),
                 claim.getRequestedAt(),
-                returnRequest.getReceivedAt()
+                returnRequest.getReceivedAt(),
+                returnRequest.getStatus(),
+                isCompleted || isFailed ? returnRequest.getUpdatedAt() : null,
+                isCompleted ? claim.getResponsibilityType() : null,
+                isCompleted ? refundable : null,
+                isFailed ? returnRequest.getFailReason() : null
         );
     }
 }
