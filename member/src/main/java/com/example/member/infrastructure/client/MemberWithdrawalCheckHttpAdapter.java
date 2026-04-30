@@ -5,8 +5,6 @@ import com.example.member.common.exception.MemberWithdrawalException;
 import com.example.member.domain.entity.Member;
 import com.example.member.domain.enumtype.MemberStatus;
 import com.todaylunch.common.security.auth.enumtype.MemberRole;
-import java.util.Iterator;
-import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -22,9 +20,6 @@ import tools.jackson.databind.ObjectMapper;
 @Component
 public class MemberWithdrawalCheckHttpAdapter implements MemberWithdrawalCheckPort {
 
-    private static final Set<String> TERMINAL_ORDER_STATUSES = Set.of("COMPLETED", "CANCELED");
-    private static final Set<String> BLOCKING_WITHDRAW_STATUSES = Set.of("REQUESTED", "PROCESSING");
-
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
     private final String orderServiceUrl;
@@ -39,7 +34,7 @@ public class MemberWithdrawalCheckHttpAdapter implements MemberWithdrawalCheckPo
             @Value("${services.order.url:http://localhost:8084}") String orderServiceUrl,
             @Value("${services.payment.url:http://localhost:8082}") String paymentServiceUrl,
             @Value("${services.product.url:http://localhost:8081}") String productServiceUrl,
-            @Value("${services.auction.url:http://localhost:8086}") String auctionServiceUrl,
+            @Value("${services.auction.url:http://localhost:8090}") String auctionServiceUrl,
             @Value("${services.settlement.url:http://localhost:8085}") String settlementServiceUrl
     ) {
         this.restClient = restClientBuilder.build();
@@ -57,98 +52,74 @@ public class MemberWithdrawalCheckHttpAdapter implements MemberWithdrawalCheckPo
             return;
         }
 
-        validateBuyerOrders(authorizationHeader);
+        validateBuyerOrders(member);
 
         if (member.getRole() == MemberRole.SELLER) {
-            validateSellerProducts(authorizationHeader);
-            validateSellerAuctions(authorizationHeader);
-            validateSellerDeliveryCounts(authorizationHeader);
-            validateSellerPendingIncomes(authorizationHeader);
-            validateSellerWithdrawRequests(authorizationHeader);
-            validateSellerSettlements(authorizationHeader);
-            validateSellerPartialSettlementAvailability(authorizationHeader);
+            validateSellerProducts(member);
+            // validateSellerAuctions(member);
+            validateSellerDeliveryCounts(member);
+            validateSellerPaymentSummary(member);
+            validateSellerSettlementSummary(member);
         }
     }
 
-    private void validateBuyerOrders(String authorizationHeader) {
-        JsonNode root = getJson(orderServiceUrl + "/api/orders?page=0&size=20", authorizationHeader);
-        JsonNode orders = root.path("data").path("content");
-
-        if (!orders.isArray()) {
-            return;
-        }
-
-        for (JsonNode order : orders) {
-            String status = order.path("status").asText("");
-            if (!TERMINAL_ORDER_STATUSES.contains(status)) {
-                throw new MemberWithdrawalException(
-                        "MEMBER_WITHDRAWAL_ACTIVE_ORDER_EXISTS",
-                        HttpStatus.CONFLICT,
-                        "진행 중인 주문이 있어 탈퇴할 수 없습니다."
-                );
-            }
-        }
-    }
-
-    private void validateSellerProducts(String authorizationHeader) {
-        JsonNode root = getJson(productServiceUrl + "/api/products/seller?page=0&size=100", authorizationHeader);
-        JsonNode products = root.path("content");
-
-        if (!products.isArray()) {
-            return;
-        }
-
-        for (JsonNode product : products) {
-            String status = product.path("status").asText("");
-            if ("ACTIVE".equals(status)) {
-                throw new MemberWithdrawalException(
-                        "MEMBER_WITHDRAWAL_ACTIVE_PRODUCT_EXISTS",
-                        HttpStatus.CONFLICT,
-                        "판매 중인 상품이 있어 탈퇴할 수 없습니다."
-                );
-            }
-        }
-    }
-
-    private void validateSellerAuctions(String authorizationHeader) {
-        validateSellerAuctionStatus(
-                authorizationHeader,
-                "WAITING",
-                "MEMBER_WITHDRAWAL_ACTIVE_AUCTION_EXISTS",
-                "진행 예정인 경매가 있어 탈퇴할 수 없습니다."
-        );
-        validateSellerAuctionStatus(
-                authorizationHeader,
-                "ONGOING",
-                "MEMBER_WITHDRAWAL_ACTIVE_AUCTION_EXISTS",
-                "진행 중인 경매가 있어 탈퇴할 수 없습니다."
-        );
-        validateSellerAuctionStatus(
-                authorizationHeader,
-                "PENDING_PAYMENT",
-                "MEMBER_WITHDRAWAL_PENDING_AUCTION_PAYMENT_EXISTS",
-                "결제 대기 중인 경매가 있어 탈퇴할 수 없습니다."
-        );
-    }
-
-    private void validateSellerAuctionStatus(
-            String authorizationHeader,
-            String status,
-            String code,
-            String message
-    ) {
+    private void validateBuyerOrders(Member member) {
         JsonNode root = getJson(
-                auctionServiceUrl + "/api/auctions/seller?status=" + status + "&page=0&size=1",
-                authorizationHeader
+                orderServiceUrl + "/internal/orders/members/" + member.getMemberId() + "/withdrawal-summary",
+                null
         );
-        long totalElements = root.path("data").path("totalElements").asLong(0L);
-        if (totalElements > 0) {
-            throw new MemberWithdrawalException(code, HttpStatus.CONFLICT, message);
+        if (root.path("data").path("hasActiveOrder").asBoolean(false)) {
+            throw new MemberWithdrawalException(
+                    "MEMBER_WITHDRAWAL_ACTIVE_ORDER_EXISTS",
+                    HttpStatus.CONFLICT,
+                    "진행 중인 주문이 있어 탈퇴할 수 없습니다."
+            );
         }
     }
 
-    private void validateSellerDeliveryCounts(String authorizationHeader) {
-        JsonNode root = getJson(orderServiceUrl + "/api/deliveries/seller/counts", authorizationHeader);
+    private void validateSellerProducts(Member member) {
+        JsonNode root = getJson(
+                productServiceUrl + "/internal/products/sellers/" + member.getMemberId() + "/withdrawal-summary",
+                null
+        );
+        if (root.path("hasActiveProduct").asBoolean(false)) {
+            throw new MemberWithdrawalException(
+                    "MEMBER_WITHDRAWAL_ACTIVE_PRODUCT_EXISTS",
+                    HttpStatus.CONFLICT,
+                    "판매 중인 상품이 있어 탈퇴할 수 없습니다."
+            );
+        }
+    }
+
+    private void validateSellerAuctions(Member member) {
+        JsonNode root = getJson(
+                auctionServiceUrl + "/internal/auctions/sellers/" + member.getMemberId() + "/blocking-summary",
+                null
+        );
+        JsonNode data = root.path("data");
+
+        if (data.path("waiting").asBoolean(false) || data.path("ongoing").asBoolean(false)) {
+            throw new MemberWithdrawalException(
+                    "MEMBER_WITHDRAWAL_ACTIVE_AUCTION_EXISTS",
+                    HttpStatus.CONFLICT,
+                    "진행 중인 경매가 있어 탈퇴할 수 없습니다."
+            );
+        }
+
+        if (data.path("pendingPayment").asBoolean(false)) {
+            throw new MemberWithdrawalException(
+                    "MEMBER_WITHDRAWAL_PENDING_AUCTION_PAYMENT_EXISTS",
+                    HttpStatus.CONFLICT,
+                    "결제 대기 중인 경매가 있어 탈퇴할 수 없습니다."
+            );
+        }
+    }
+
+    private void validateSellerDeliveryCounts(Member member) {
+        JsonNode root = getJson(
+                orderServiceUrl + "/internal/deliveries/sellers/" + member.getMemberId() + "/status-counts",
+                null
+        );
         JsonNode counts = root.path("data");
         long preparing = counts.path("preparing").asLong(0L);
         long shipped = counts.path("shipped").asLong(0L);
@@ -162,80 +133,54 @@ public class MemberWithdrawalCheckHttpAdapter implements MemberWithdrawalCheckPo
         }
     }
 
-    private void validateSellerPendingIncomes(String authorizationHeader) {
-        JsonNode root = getJson(paymentServiceUrl + "/api/payments/seller/pending-incomes?page=0&size=1", authorizationHeader);
-        JsonNode data = root.path("data");
-        long totalElements = data.path("totalElements").asLong(0L);
+    private void validateSellerPaymentSummary(Member member) {
+        JsonNode root = getJson(
+                paymentServiceUrl + "/internal/payments/sellers/" + member.getMemberId() + "/withdrawal-summary",
+                null
+        );
+        JsonNode items = root.path("data");
 
-        if (totalElements > 0) {
+        if (items.path("hasPendingIncome").asBoolean(false)) {
             throw new MemberWithdrawalException(
                     "MEMBER_WITHDRAWAL_PENDING_INCOME_EXISTS",
                     HttpStatus.CONFLICT,
                     "정산 대기 금액이 있어 탈퇴할 수 없습니다."
             );
         }
-    }
 
-    private void validateSellerWithdrawRequests(String authorizationHeader) {
-        JsonNode root = getJson(paymentServiceUrl + "/api/payments/withdrawals?page=0&size=20", authorizationHeader);
-        JsonNode items = root.path("data").path("items");
-
-        if (!items.isArray()) {
-            return;
-        }
-
-        Iterator<JsonNode> iterator = items.iterator();
-        while (iterator.hasNext()) {
-            JsonNode item = iterator.next();
-            String status = item.path("status").asString("");
-            if (BLOCKING_WITHDRAW_STATUSES.contains(status)) {
-                throw new MemberWithdrawalException(
-                        "MEMBER_WITHDRAWAL_PENDING_WITHDRAW_EXISTS",
-                        HttpStatus.CONFLICT,
-                        "처리 중인 출금 요청이 있어 탈퇴할 수 없습니다."
-                );
-            }
+        if (items.path("hasPendingWithdrawRequest").asBoolean(false)) {
+            throw new MemberWithdrawalException(
+                    "MEMBER_WITHDRAWAL_PENDING_WITHDRAW_EXISTS",
+                    HttpStatus.CONFLICT,
+                    "처리 중인 출금 요청이 있어 탈퇴할 수 없습니다."
+            );
         }
     }
 
-    private void validateSellerSettlements(String authorizationHeader) {
-        validateSellerSettlementStatus(
-                authorizationHeader,
-                "PENDING",
-                "MEMBER_WITHDRAWAL_PENDING_SETTLEMENT_EXISTS",
-                "정산 대기 건이 있어 탈퇴할 수 없습니다."
-        );
-        validateSellerSettlementStatus(
-                authorizationHeader,
-                "PROCESSING",
-                "MEMBER_WITHDRAWAL_PROCESSING_SETTLEMENT_EXISTS",
-                "처리 중인 정산 건이 있어 탈퇴할 수 없습니다."
-        );
-    }
-
-    private void validateSellerSettlementStatus(
-            String authorizationHeader,
-            String status,
-            String code,
-            String message
-    ) {
+    private void validateSellerSettlementSummary(Member member) {
         JsonNode root = getJson(
-                settlementServiceUrl + "/api/settlements/seller?status=" + status + "&page=0&size=1",
-                authorizationHeader
+                settlementServiceUrl + "/internal/settlements/sellers/" + member.getMemberId() + "/withdrawal-summary",
+                null
         );
-        long totalElements = root.path("data").path("totalElements").asLong(0L);
-        if (totalElements > 0) {
-            throw new MemberWithdrawalException(code, HttpStatus.CONFLICT, message);
-        }
-    }
+        JsonNode data = root.path("data");
 
-    private void validateSellerPartialSettlementAvailability(String authorizationHeader) {
-        JsonNode root = getJson(
-                settlementServiceUrl + "/api/settlements/seller/partial-settlements/available",
-                authorizationHeader
-        );
-        JsonNode items = root.path("data");
-        if (items.isArray() && !items.isEmpty()) {
+        if (data.path("hasPendingSettlement").asBoolean(false)) {
+            throw new MemberWithdrawalException(
+                    "MEMBER_WITHDRAWAL_PENDING_SETTLEMENT_EXISTS",
+                    HttpStatus.CONFLICT,
+                    "정산 대기 건이 있어 탈퇴할 수 없습니다."
+            );
+        }
+
+        if (data.path("hasProcessingSettlement").asBoolean(false)) {
+            throw new MemberWithdrawalException(
+                    "MEMBER_WITHDRAWAL_PROCESSING_SETTLEMENT_EXISTS",
+                    HttpStatus.CONFLICT,
+                    "처리 중인 정산 건이 있어 탈퇴할 수 없습니다."
+            );
+        }
+
+        if (data.path("hasPartialSettlementAvailable").asBoolean(false)) {
             throw new MemberWithdrawalException(
                     "MEMBER_WITHDRAWAL_PARTIAL_SETTLEMENT_AVAILABLE",
                     HttpStatus.CONFLICT,
@@ -246,12 +191,15 @@ public class MemberWithdrawalCheckHttpAdapter implements MemberWithdrawalCheckPo
 
     private JsonNode getJson(String url, String authorizationHeader) {
         try {
-            String body = restClient.get()
+            RestClient.RequestHeadersSpec<?> request = restClient.get()
                     .uri(url)
-                    .header(HttpHeaders.AUTHORIZATION, authorizationHeader)
-                    .accept(MediaType.APPLICATION_JSON)
-                    .retrieve()
-                    .body(String.class);
+                    .accept(MediaType.APPLICATION_JSON);
+
+            if (authorizationHeader != null && !authorizationHeader.isBlank()) {
+                request = request.header(HttpHeaders.AUTHORIZATION, authorizationHeader);
+            }
+
+            String body = request.retrieve().body(String.class);
 
             if (body == null || body.isBlank()) {
                 return objectMapper.createObjectNode();
@@ -274,5 +222,4 @@ public class MemberWithdrawalCheckHttpAdapter implements MemberWithdrawalCheckPo
             );
         }
     }
-
 }
