@@ -230,6 +230,9 @@ gateway:
       - methods: [POST]
         pattern: /api/auth/logout/**
         allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [GET, DELETE]
+        pattern: /api/auth/sessions/**
+        allowed-roles: [USER, SELLER, ADMIN]
       - methods: [GET]
         pattern: /api/auth/oauth/kakao/link/authorize
         allowed-roles: [USER, SELLER, ADMIN]
