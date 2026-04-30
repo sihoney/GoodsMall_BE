@@ -3,6 +3,7 @@ package com.example.cartservice.cart.application.service;
 import com.example.cartservice.cart.application.usecase.CartUpdateUseCase;
 import com.example.cartservice.cart.domain.entity.Cart;
 import com.example.cartservice.cart.domain.repository.CartRepository;
+import com.example.cartservice.cart.infrastructure.kafka.CartEventPublisher;
 import com.example.cartservice.cart.presentation.dto.request.AddCartItemRequest;
 import com.example.cartservice.cart.presentation.dto.request.UpdateCartItemRequest;
 import com.example.cartservice.cart.presentation.dto.response.CartItemResponse;
@@ -25,6 +26,7 @@ public class CartUpdateService implements CartUpdateUseCase {
     private static final int MAX_CART_ITEMS = 10;
 
     private final CartRepository cartRepository;
+    private final CartEventPublisher cartEventPublisher;
 
     @Override
     public CartResponse addCartItem(UUID memberId,
@@ -34,6 +36,8 @@ public class CartUpdateService implements CartUpdateUseCase {
 
         Cart cart = Cart.create(memberId, request.getProductId(), request.getQuantity());
         cartRepository.save(cart);
+
+        cartEventPublisher.publishCartItemAdded(memberId, request.getProductId());
 
         return convertCartResponse(memberId);
     }
