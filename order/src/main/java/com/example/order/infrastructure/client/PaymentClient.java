@@ -2,6 +2,7 @@ package com.example.order.infrastructure.client;
 
 import com.example.order.infrastructure.client.dto.request.ExternalPaymentRefundRequest;
 import com.example.order.infrastructure.client.dto.request.ExternalPaymentRequest;
+import com.example.order.infrastructure.client.dto.request.ExternalSellerRefundRequest;
 import com.example.order.infrastructure.client.dto.response.PaymentRefundResultResponse;
 import com.example.order.infrastructure.client.dto.response.PaymentResultResponse;
 import com.example.order.presentation.dto.response.ApiResponse;
@@ -17,4 +18,7 @@ public interface PaymentClient {
 
     @PostMapping("/cancellations")
     ApiResponse<PaymentRefundResultResponse> requestRefund(@RequestBody ExternalPaymentRefundRequest request);
+
+    @PostMapping("/seller/refunds/confirm")
+    ApiResponse<PaymentRefundResultResponse> requestSellerRefund(@RequestBody ExternalSellerRefundRequest request);
 }

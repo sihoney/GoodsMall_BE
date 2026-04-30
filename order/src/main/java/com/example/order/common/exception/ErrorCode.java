@@ -26,10 +26,13 @@ public enum ErrorCode {
     ORDER_CANNOT_CONFIRM(HttpStatus.BAD_REQUEST, "ORDER_400_2", "배송 완료 상태의 주문만 구매 확정할 수 있습니다."),
     ORDER_ITEM_CANNOT_CONFIRM(HttpStatus.BAD_REQUEST, "ORDER_400_3", "배송 완료 상태의 상품만 구매 확정할 수 있습니다."),
     ORDER_ITEM_NOT_CLAIMABLE(HttpStatus.BAD_REQUEST, "ORDER_400_4", "취소/반품이 불가능한 상태입니다."),
+    RETURN_NOT_INSPECTABLE(HttpStatus.BAD_REQUEST, "ORDER_400_5", "검수 가능한 상태가 아닙니다."),
+    INVALID_INSPECTION_REQUEST(HttpStatus.BAD_REQUEST, "ORDER_400_6", "검수 요청 값이 유효하지 않습니다."),
     ORDER_FORBIDDEN(HttpStatus.FORBIDDEN, "ORDER_403_1", "해당 주문에 대한 권한이 없습니다."),
     ORDER_ALREADY_ACCEPTED(HttpStatus.CONFLICT, "ORDER_409_1", "이미 수락된 경매 주문입니다."),
     ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "ORDER_404_1", "주문이 존재하지 않습니다."),
     ORDER_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "ORDER_404_2", "주문 상품이 존재하지 않습니다."),
+    RETURN_REQUEST_NOT_FOUND(HttpStatus.NOT_FOUND, "ORDER_404_3", "반품 요청이 존재하지 않습니다."),
     RETURN_ALREADY_REQUESTED(HttpStatus.CONFLICT, "ORDER_409_2", "이미 반품이 신청된 상품입니다."),
 
     // 배송

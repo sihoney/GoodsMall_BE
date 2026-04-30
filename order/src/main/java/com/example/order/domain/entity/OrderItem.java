@@ -174,4 +174,9 @@ public class OrderItem {
     public boolean canReturn() {
         return this.status == OrderItemStatus.DELIVERED;
     }
+
+    public void completeReturn() {
+        this.status = OrderItemStatus.CANCELED;
+        this.updatedAt = LocalDateTime.now();
+    }
 }

@@ -134,4 +134,22 @@ public class Claim {
                 now
         );
     }
+
+    public void assignResponsibility(ResponsibilityType type) {
+        this.responsibilityType = Objects.requireNonNull(type);
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void complete() {
+        this.status = ClaimStatus.COMPLETED;
+        this.completedAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void reject(String rejectReason) {
+        this.status = ClaimStatus.REJECTED;
+        this.rejectReason = Objects.requireNonNull(rejectReason);
+        this.completedAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
 }
