@@ -44,7 +44,7 @@ k6 run ~/k6/scenarios/smoke.js
 
 ## STEP 2 — Baseline 전용 Wallet 시딩 (최초 1회)
 
-baseline 입찰자 10명 wallet 생성 (member_id `11111111-...-11111111111[0-9]`, 잔액 5,000,000):
+baseline 입찰자 30명 wallet 생성 (member_id `11111111-...-11111111111[0-9]` ~ `11111111-...-11111111113[0-9]`, 잔액 5,000,000):
 
 ```bash
 kubectl exec -i postgres-c99f56b7d-7bdts -n goods-mall -- psql -U goods -d goods_mall < ~/k6/seed/seed_baseline_wallets.sql

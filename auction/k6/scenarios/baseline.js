@@ -7,8 +7,8 @@
  *   2) reset_test_auctions.sql 실행 후 시작
  *
  * 입찰자 전략:
- *   - BASELINE_BIDDER_IDS 풀(10명)에서 __VU % 10 으로 배정
- *   - VU마다 전담 입찰자를 가지므로 HIGHEST_BIDDER_CANNOT_REBID 충돌 최소화
+ *   - BASELINE_BIDDER_IDS 풀(30명)에서 (__VU-1) % 30 으로 배정
+ *   - VU마다 전담 입찰자를 가지므로 동일 입찰자 동시 사용 없음
  *   - 422(최고입찰자 재입찰 불가) / 409(동시 충돌)는 정상 비즈니스 케이스로 허용
  *   - 실제 wallet 예치금 hold → Kafka 이벤트 → 결제 서비스 전체 흐름 측정
  */
