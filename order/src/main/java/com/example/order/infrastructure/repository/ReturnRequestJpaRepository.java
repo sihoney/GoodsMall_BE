@@ -12,7 +12,7 @@ import java.util.UUID;
 
 public interface ReturnRequestJpaRepository extends JpaRepository<ReturnRequest, UUID> {
 
-    boolean existsByOrderItem_OrderItemId(UUID orderItemId);
+    boolean existsByOrderItem_OrderItemIdAndStatusNotIn(UUID orderItemId, List<ReturnRequestStatus> statuses);
 
     List<ReturnRequest> findByStatusAndPickedUpAtBefore(ReturnRequestStatus status, LocalDateTime threshold);
 

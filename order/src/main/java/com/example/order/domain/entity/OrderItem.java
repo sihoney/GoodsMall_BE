@@ -148,7 +148,26 @@ public class OrderItem {
     }
 
     public void complete() {
+        if (this.status == OrderItemStatus.RETURN_REQUESTED) {
+            throw new IllegalStateException("반품 진행 중인 상품은 구매 확정할 수 없습니다.");
+        }
         this.status = OrderItemStatus.COMPLETED;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void requestReturn() {
+        if (this.status != OrderItemStatus.DELIVERED) {
+            throw new IllegalStateException("반품 신청은 배송 완료 상태에서만 가능합니다.");
+        }
+        this.status = OrderItemStatus.RETURN_REQUESTED;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void cancelReturn() {
+        if (this.status != OrderItemStatus.RETURN_REQUESTED) {
+            throw new IllegalStateException("반품 신청 상태에서만 반품을 취소할 수 있습니다.");
+        }
+        this.status = OrderItemStatus.DELIVERED;
         this.updatedAt = LocalDateTime.now();
     }
 

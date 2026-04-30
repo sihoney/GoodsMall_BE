@@ -26,7 +26,6 @@ import com.example.order.presentation.dto.request.OrderCancelRequest;
 import com.example.order.presentation.dto.response.OrderCancelResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
@@ -59,7 +58,6 @@ public class OrderCancelService implements OrderCancelUseCase {
 
     @Override
     @Transactional
-    @CacheEvict(cacheNames = "order:detail", key = "#orderId + ':' + #memberId")
     public OrderCancelResponse cancelOrder(UUID orderId, UUID memberId, OrderCancelRequest request) {
         Order order = findOrder(orderId);
         validateOrderOwner(order, memberId);
@@ -73,6 +71,8 @@ public class OrderCancelService implements OrderCancelUseCase {
         validateReturnNotDuplicated(toReturn);
 
         List<OrderItem> canceledItems = applyCancel(toCancel);
+        applyReturnRequest(toReturn);
+
         List<Claim> claims = new ArrayList<>(buildClaims(toCancel, ClaimType.CANCEL, request, request.requesterType().toResponsibility()));
         claims.addAll(buildClaims(toReturn, ClaimType.RETURN, request, null));
         claimRepository.saveAll(claims);
@@ -150,7 +150,7 @@ public class OrderCancelService implements OrderCancelUseCase {
 
     private void validateReturnNotDuplicated(List<RequestedItem> toReturn) {
         for (RequestedItem r : toReturn) {
-            if (returnRequestRepository.existsByOrderItemId(r.item().getOrderItemId())) {
+            if (returnRequestRepository.existsActiveByOrderItemId(r.item().getOrderItemId())) {
                 throw new CustomException(ErrorCode.RETURN_ALREADY_REQUESTED);
             }
         }
@@ -161,6 +161,10 @@ public class OrderCancelService implements OrderCancelUseCase {
                 .peek(r -> r.item().cancel())
                 .map(RequestedItem::item)
                 .toList();
+    }
+
+    private void applyReturnRequest(List<RequestedItem> toReturn) {
+        toReturn.forEach(r -> r.item().requestReturn());
     }
 
     private boolean hasRemainingItems(Order order, List<OrderItem> canceledItems) {
