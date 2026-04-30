@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 import com.example.order.domain.repository.DeliveryRepository;
 import com.example.order.domain.repository.OrderRepository;
 import com.example.order.presentation.dto.request.PaymentValidationRequest;
+import com.example.order.presentation.dto.response.MemberOrderWithdrawalSummaryResponse;
 import com.example.order.presentation.dto.response.OrderDetailResponse;
 import com.example.order.presentation.dto.response.OrderItemDetailResponse;
 import com.example.order.presentation.dto.response.OrderSummaryResponse;
@@ -42,6 +43,25 @@ public class OrderSearchService implements OrderSearchUseCase {
         LocalDateTime to = endDate != null ? endDate : LocalDateTime.of(2999, 12, 31, 23, 59, 59);
         Page<Order> orders = orderRepository.findByBuyerIdAndOrderType(memberId, orderType, keyword, from, to, pageable);
         return orders.map(order -> OrderSummaryResponse.from(order, s3BaseUrl));
+    }
+
+    @Override
+    public MemberOrderWithdrawalSummaryResponse getWithdrawalSummary(UUID memberId) {
+        Page<OrderSummaryResponse> orders = findByMemberId(
+                memberId,
+                null,
+                null,
+                null,
+                null,
+                org.springframework.data.domain.PageRequest.of(0, 100)
+        );
+
+        boolean hasActiveOrder = orders.getContent().stream()
+                .map(OrderSummaryResponse::status)
+                .anyMatch(status -> status != com.example.order.domain.enumtype.OrderStatus.COMPLETED
+                        && status != com.example.order.domain.enumtype.OrderStatus.CANCELED);
+
+        return new MemberOrderWithdrawalSummaryResponse(hasActiveOrder);
     }
 
     @Override

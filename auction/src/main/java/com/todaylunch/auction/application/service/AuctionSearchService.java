@@ -4,6 +4,7 @@ import com.todaylunch.auction.application.usecase.AuctionSearchUseCase;
 import com.todaylunch.auction.domain.entity.Auction;
 import com.todaylunch.auction.domain.enumtype.AuctionStatus;
 import com.todaylunch.auction.domain.repository.AuctionRepository;
+import com.todaylunch.auction.presentation.dto.response.AuctionSellerBlockingSummaryResponse;
 import com.todaylunch.auction.presentation.dto.response.AuctionResponse;
 import com.todaylunch.auction.presentation.dto.response.PagedResponse;
 import java.util.List;
@@ -32,16 +33,7 @@ public class AuctionSearchService implements AuctionSearchUseCase {
 
     @Override
     public PagedResponse<AuctionResponse> search(AuctionStatus status, int page, int size) {
-        int normalizedPage = Math.max(page, 0);
-        int normalizedSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
-
-        PageRequest pageRequest = PageRequest.of(
-                normalizedPage,
-                normalizedSize,
-                Sort.by(Sort.Direction.DESC, "createdAt")
-        );
-
-        Page<Auction> result = auctionRepository.findAllByStatus(status, pageRequest);
+        Page<Auction> result = findAuctions(status, page, size);
 
         List<AuctionResponse> items = result.getContent().stream()
                 .map(AuctionResponse::from)
@@ -56,4 +48,27 @@ public class AuctionSearchService implements AuctionSearchUseCase {
                 result.hasNext()
         );
     }
+
+    @Override
+    public AuctionSellerBlockingSummaryResponse getSellerBlockingSummary(UUID sellerId) {
+        return new AuctionSellerBlockingSummaryResponse(
+                auctionRepository.existsBySellerIdAndStatus(sellerId, AuctionStatus.WAITING),
+                auctionRepository.existsBySellerIdAndStatus(sellerId, AuctionStatus.ONGOING),
+                auctionRepository.existsBySellerIdAndStatus(sellerId, AuctionStatus.PENDING_PAYMENT)
+        );
+    }
+
+    private Page<Auction> findAuctions(AuctionStatus status, int page, int size) {
+        int normalizedPage = Math.max(page, 0);
+        int normalizedSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
+
+        PageRequest pageRequest = PageRequest.of(
+                normalizedPage,
+                normalizedSize,
+                Sort.by(Sort.Direction.DESC, "createdAt")
+        );
+
+        return auctionRepository.findAllByStatus(status, pageRequest);
+    }
+
 }

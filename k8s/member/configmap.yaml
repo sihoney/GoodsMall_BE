@@ -5,6 +5,11 @@ metadata:
   namespace: goods-mall
 data:
   API_GATEWAY_HOST: "http://gateway:8080"
+  SERVICES_ORDER_URL: "http://order:8084"
+  SERVICES_PAYMENT_URL: "http://payment:8082"
+  SERVICES_PRODUCT_URL: "http://product:8081"
+  SERVICES_AUCTION_URL: "http://auction:8090"
+  SERVICES_SETTLEMENT_URL: "http://settlement:8085"
   AWS_REGION: "ap-northeast-2"
   MEMBER_SIGNUP_REQUIRE_EMAIL_VERIFICATION: "true"
 

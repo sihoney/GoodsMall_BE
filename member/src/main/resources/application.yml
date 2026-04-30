@@ -63,6 +63,18 @@ springdoc:
 apigateway:
   host: ${API_GATEWAY_HOST:http://localhost:8080}
 
+services:
+  order:
+    url: ${SERVICES_ORDER_URL:http://localhost:8084}
+  payment:
+    url: ${SERVICES_PAYMENT_URL:http://localhost:8082}
+  product:
+    url: ${SERVICES_PRODUCT_URL:http://localhost:8081}
+  auction:
+    url: ${SERVICES_AUCTION_URL:http://localhost:8090}
+  settlement:
+    url: ${SERVICES_SETTLEMENT_URL:http://localhost:8085}
+
 oauth:
   kakao:
     client-id: ${KAKAO_CLIENT_ID:}

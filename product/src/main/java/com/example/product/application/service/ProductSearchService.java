@@ -106,6 +106,11 @@ public class ProductSearchService implements ProductSearchUseCase {
     }
 
     @Override
+    public boolean hasActiveProductsBySellerId(String sellerId) {
+        return productRepository.existsActiveBySellerId(UUID.fromString(sellerId));
+    }
+
+    @Override
     @Transactional
     public ProductResponse findById(String productId) {
         Product product = productRepository.findById(UUID.fromString(productId))

@@ -22,6 +22,8 @@ public interface AuctionJpaRepository extends JpaRepository<Auction, UUID> {
             """)
     Page<Auction> findAllByStatus(@Param("status") AuctionStatus status, Pageable pageable);
 
+    boolean existsBySellerIdAndStatus(UUID sellerId, AuctionStatus status);
+
     @Query("""
             SELECT a
             FROM Auction a

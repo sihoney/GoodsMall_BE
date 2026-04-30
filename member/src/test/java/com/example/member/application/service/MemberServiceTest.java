@@ -10,13 +10,18 @@ import static org.mockito.Mockito.when;
 import com.example.member.application.dto.command.ChangePasswordCommand;
 import com.example.member.application.dto.command.CreateMemberCommand;
 import com.example.member.application.dto.command.UpdateMemberCommand;
+import com.example.member.application.dto.command.WithdrawMemberCommand;
 import com.example.member.application.dto.result.CreateMemberResult;
 import com.example.member.application.dto.result.MemberResult;
+import com.example.member.application.dto.result.WithdrawMemberResult;
+import com.example.member.application.port.in.AuthUsecase;
 import com.example.member.application.port.out.MemberEventPort;
 import com.example.member.application.port.out.MemberPersistencePort;
 import com.example.member.application.port.out.ProfileImageUrlPort;
+import com.example.member.application.port.out.MemberWithdrawalCheckPort;
 import com.example.member.common.exception.DuplicateMemberEmailException;
 import com.example.member.common.exception.InvalidCurrentPasswordException;
+import com.example.member.common.exception.MemberWithdrawalException;
 import com.example.member.config.MemberSignupProperties;
 import com.example.member.domain.entity.Member;
 import com.example.member.domain.enumtype.MemberStatus;
@@ -52,6 +57,12 @@ class MemberServiceTest {
 
     @Mock
     private MemberSignupProperties memberSignupProperties;
+
+    @Mock
+    private AuthUsecase authUsecase;
+
+    @Mock
+    private MemberWithdrawalCheckPort memberWithdrawalCheckPort;
 
     @InjectMocks
     private MemberService memberService;
@@ -279,5 +290,138 @@ class MemberServiceTest {
 
         assertThrows(IllegalArgumentException.class,
                 () -> memberService.changeCurrentMemberPassword(command));
+    }
+
+    @Test
+    void withdrawCurrentMember_success_changesStatusAndLogsOutAllSessions() {
+        UUID memberId = UUID.randomUUID();
+        Member member = Member.create(
+                memberId,
+                "member@test.com",
+                "encoded-current-password",
+                "tester",
+                null,
+                null,
+                null,
+                MemberRole.USER,
+                MemberStatus.ACTIVE,
+                LocalDateTime.now().minusDays(1),
+                LocalDateTime.now().minusDays(1)
+        );
+        WithdrawMemberCommand command = new WithdrawMemberCommand(
+                memberId,
+                "current-password",
+                "Bearer access-token"
+        );
+
+        when(memberPersistencePort.findById(memberId)).thenReturn(Optional.of(member));
+        when(passwordEncoder.matches("current-password", "encoded-current-password")).thenReturn(true);
+
+        WithdrawMemberResult result = memberService.withdrawCurrentMember(command);
+
+        assertEquals(MemberStatus.WITHDRAWN, member.getStatus());
+        assertEquals(MemberStatus.WITHDRAWN, result.status());
+        verify(memberWithdrawalCheckPort).validateWithdrawable(member, "Bearer access-token");
+        verify(authUsecase).logoutAllSessions("Bearer access-token");
+    }
+
+    @Test
+    void withdrawCurrentMember_admin_throwsMemberWithdrawalException() {
+        UUID memberId = UUID.randomUUID();
+        Member member = Member.create(
+                memberId,
+                "admin@test.com",
+                "encoded-current-password",
+                "admin",
+                null,
+                null,
+                null,
+                MemberRole.ADMIN,
+                MemberStatus.ACTIVE,
+                LocalDateTime.now().minusDays(1),
+                LocalDateTime.now().minusDays(1)
+        );
+        WithdrawMemberCommand command = new WithdrawMemberCommand(
+                memberId,
+                "current-password",
+                "Bearer access-token"
+        );
+
+        when(memberPersistencePort.findById(memberId)).thenReturn(Optional.of(member));
+
+        MemberWithdrawalException exception = assertThrows(
+                MemberWithdrawalException.class,
+                () -> memberService.withdrawCurrentMember(command)
+        );
+        assertEquals("MEMBER_WITHDRAWAL_ADMIN_FORBIDDEN", exception.getCode());
+        verify(memberWithdrawalCheckPort, never()).validateWithdrawable(any(), any());
+        verify(authUsecase, never()).logoutAllSessions(any());
+    }
+
+    @Test
+    void withdrawCurrentMember_invalidCurrentPassword_throwsException() {
+        UUID memberId = UUID.randomUUID();
+        Member member = Member.create(
+                memberId,
+                "member@test.com",
+                "encoded-current-password",
+                "tester",
+                null,
+                null,
+                null,
+                MemberRole.USER,
+                MemberStatus.ACTIVE,
+                LocalDateTime.now().minusDays(1),
+                LocalDateTime.now().minusDays(1)
+        );
+        WithdrawMemberCommand command = new WithdrawMemberCommand(
+                memberId,
+                "wrong-password",
+                "Bearer access-token"
+        );
+
+        when(memberPersistencePort.findById(memberId)).thenReturn(Optional.of(member));
+        when(passwordEncoder.matches("wrong-password", "encoded-current-password")).thenReturn(false);
+
+        MemberWithdrawalException exception = assertThrows(
+                MemberWithdrawalException.class,
+                () -> memberService.withdrawCurrentMember(command)
+        );
+        assertEquals("MEMBER_WITHDRAWAL_PASSWORD_INVALID", exception.getCode());
+        verify(memberWithdrawalCheckPort).validateWithdrawable(member, "Bearer access-token");
+        verify(authUsecase, never()).logoutAllSessions(any());
+    }
+
+    @Test
+    void withdrawCurrentMember_whenMemberNotActive_throwsMemberWithdrawalException() {
+        UUID memberId = UUID.randomUUID();
+        Member member = Member.create(
+                memberId,
+                "member@test.com",
+                "encoded-current-password",
+                "tester",
+                null,
+                null,
+                null,
+                MemberRole.USER,
+                MemberStatus.SUSPENDED,
+                LocalDateTime.now().minusDays(1),
+                LocalDateTime.now().minusDays(1)
+        );
+        WithdrawMemberCommand command = new WithdrawMemberCommand(
+                memberId,
+                "current-password",
+                "Bearer access-token"
+        );
+
+        when(memberPersistencePort.findById(memberId)).thenReturn(Optional.of(member));
+
+        MemberWithdrawalException exception = assertThrows(
+                MemberWithdrawalException.class,
+                () -> memberService.withdrawCurrentMember(command)
+        );
+        assertEquals("MEMBER_WITHDRAWAL_NOT_ACTIVE", exception.getCode());
+        verify(memberWithdrawalCheckPort, never()).validateWithdrawable(any(), any());
+        verify(authUsecase, never()).logoutAllSessions(any());
     }
 }
