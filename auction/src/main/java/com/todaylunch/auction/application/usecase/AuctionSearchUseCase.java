@@ -10,4 +10,6 @@ public interface AuctionSearchUseCase {
     AuctionResponse findById(UUID auctionId);
 
     PagedResponse<AuctionResponse> search(AuctionStatus status, int page, int size);
+
+    PagedResponse<AuctionResponse> searchBySeller(UUID sellerId, AuctionStatus status, int page, int size);
 }

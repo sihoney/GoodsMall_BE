@@ -55,4 +55,20 @@ public class AuctionController {
         PagedResponse<AuctionResponse> response = auctionSearchUseCase.search(status, page, size);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
+
+    @GetMapping("/seller")
+    public ResponseEntity<ApiResponse<PagedResponse<AuctionResponse>>> searchSellerAuctions(
+            @CurrentMember AuthenticatedMember member,
+            @RequestParam(required = false) AuctionStatus status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        PagedResponse<AuctionResponse> response = auctionSearchUseCase.searchBySeller(
+                member.memberId(),
+                status,
+                page,
+                size
+        );
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
 }

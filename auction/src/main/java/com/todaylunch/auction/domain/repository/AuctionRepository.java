@@ -18,6 +18,8 @@ public interface AuctionRepository {
 
     Page<Auction> findAllByStatus(AuctionStatus status, Pageable pageable);
 
+    Page<Auction> findAllBySellerIdAndStatus(UUID sellerId, AuctionStatus status, Pageable pageable);
+
     List<Auction> findStartable(LocalDateTime now);
 
     List<Auction> findEndable(LocalDateTime now);

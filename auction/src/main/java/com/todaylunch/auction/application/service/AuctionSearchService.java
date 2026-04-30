@@ -32,16 +32,7 @@ public class AuctionSearchService implements AuctionSearchUseCase {
 
     @Override
     public PagedResponse<AuctionResponse> search(AuctionStatus status, int page, int size) {
-        int normalizedPage = Math.max(page, 0);
-        int normalizedSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
-
-        PageRequest pageRequest = PageRequest.of(
-                normalizedPage,
-                normalizedSize,
-                Sort.by(Sort.Direction.DESC, "createdAt")
-        );
-
-        Page<Auction> result = auctionRepository.findAllByStatus(status, pageRequest);
+        Page<Auction> result = findAuctions(status, page, size);
 
         List<AuctionResponse> items = result.getContent().stream()
                 .map(AuctionResponse::from)
@@ -55,5 +46,49 @@ public class AuctionSearchService implements AuctionSearchUseCase {
                 result.getTotalPages(),
                 result.hasNext()
         );
+    }
+
+    @Override
+    public PagedResponse<AuctionResponse> searchBySeller(UUID sellerId, AuctionStatus status, int page, int size) {
+        Page<Auction> result = findSellerAuctions(sellerId, status, page, size);
+
+        List<AuctionResponse> items = result.getContent().stream()
+                .map(AuctionResponse::from)
+                .toList();
+
+        return new PagedResponse<>(
+                items,
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages(),
+                result.hasNext()
+        );
+    }
+
+    private Page<Auction> findAuctions(AuctionStatus status, int page, int size) {
+        int normalizedPage = Math.max(page, 0);
+        int normalizedSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
+
+        PageRequest pageRequest = PageRequest.of(
+                normalizedPage,
+                normalizedSize,
+                Sort.by(Sort.Direction.DESC, "createdAt")
+        );
+
+        return auctionRepository.findAllByStatus(status, pageRequest);
+    }
+
+    private Page<Auction> findSellerAuctions(UUID sellerId, AuctionStatus status, int page, int size) {
+        int normalizedPage = Math.max(page, 0);
+        int normalizedSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
+
+        PageRequest pageRequest = PageRequest.of(
+                normalizedPage,
+                normalizedSize,
+                Sort.by(Sort.Direction.DESC, "createdAt")
+        );
+
+        return auctionRepository.findAllBySellerIdAndStatus(sellerId, status, pageRequest);
     }
 }
