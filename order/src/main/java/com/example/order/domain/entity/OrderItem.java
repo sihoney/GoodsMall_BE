@@ -165,4 +165,18 @@ public class OrderItem {
 
         return false;
     }
+
+    public boolean canCancel() {
+        return this.status == OrderItemStatus.PENDING
+                || this.status == OrderItemStatus.PREPARING;
+    }
+
+    public boolean canReturn() {
+        return this.status == OrderItemStatus.DELIVERED;
+    }
+
+    public void completeReturn() {
+        this.status = OrderItemStatus.CANCELED;
+        this.updatedAt = LocalDateTime.now();
+    }
 }
