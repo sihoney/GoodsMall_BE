@@ -24,6 +24,7 @@ import com.example.member.common.exception.MemberOauthAccountNotFoundException;
 import com.example.member.common.exception.MemberReportNotFoundException;
 import com.example.member.common.exception.MemberRestrictedException;
 import com.example.member.common.exception.MemberRestrictionNotFoundException;
+import com.example.member.common.exception.MemberWithdrawnException;
 import com.example.member.common.exception.MemberWithdrawalException;
 import com.example.member.common.exception.RefreshTokenNotFoundException;
 import com.example.member.common.exception.SelfReportNotAllowedException;
@@ -147,6 +148,12 @@ public class MemberExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleMemberRestricted(MemberRestrictedException exception) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(ApiResponse.fail("MEMBER_RESTRICTED", exception.getMessage()));
+    }
+
+    @ExceptionHandler(MemberWithdrawnException.class)
+    public ResponseEntity<ApiResponse<Object>> handleMemberWithdrawn(MemberWithdrawnException exception) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.fail("MEMBER_WITHDRAWN", exception.getMessage()));
     }
 
     @ExceptionHandler(MemberWithdrawalException.class)
