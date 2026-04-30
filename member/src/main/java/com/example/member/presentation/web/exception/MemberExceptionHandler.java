@@ -14,6 +14,7 @@ import com.example.member.common.exception.ExpiredAccountVerificationException;
 import com.example.member.common.exception.ExpiredEmailVerificationException;
 import com.example.member.common.exception.InvalidAccountVerificationCodeException;
 import com.example.member.common.exception.InvalidCurrentPasswordException;
+import com.example.member.common.exception.InvalidEmailVerificationAutoLoginTokenException;
 import com.example.member.common.exception.InvalidEmailVerificationTokenException;
 import com.example.member.common.exception.InvalidLoginException;
 import com.example.member.common.exception.InvalidPasswordResetTokenException;
@@ -110,6 +111,14 @@ public class MemberExceptionHandler {
     ) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.fail("EMAIL_VERIFICATION_TOKEN_INVALID", exception.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidEmailVerificationAutoLoginTokenException.class)
+    public ResponseEntity<ApiResponse<Object>> handleInvalidEmailVerificationAutoLoginToken(
+            InvalidEmailVerificationAutoLoginTokenException exception
+    ) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.fail("EMAIL_VERIFICATION_AUTO_LOGIN_TOKEN_INVALID", exception.getMessage()));
     }
 
     @ExceptionHandler(ExpiredEmailVerificationException.class)

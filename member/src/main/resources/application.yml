@@ -106,7 +106,7 @@ aws:
 
 member:
   signup:
-    require-email-verification: ${MEMBER_SIGNUP_REQUIRE_EMAIL_VERIFICATION:false}
+    require-email-verification: ${MEMBER_SIGNUP_REQUIRE_EMAIL_VERIFICATION:true}
   email:
     provider: ${EMAIL_PROVIDER:logging}
     from-address: ${MAIL_FROM:no-reply@todaylunch.local}
@@ -114,6 +114,7 @@ member:
   email-verification:
     expiration: 24h
     frontend-confirm-url: ${EMAIL_VERIFICATION_FRONTEND_URL}
+    auto-login-expiration: ${EMAIL_VERIFICATION_AUTO_LOGIN_EXPIRATION:3m}
   password-reset:
     expiration: ${PASSWORD_RESET_EXPIRATION:30m}
     frontend-reset-url: ${PASSWORD_RESET_FRONTEND_URL:http://localhost:5173/password-reset}
