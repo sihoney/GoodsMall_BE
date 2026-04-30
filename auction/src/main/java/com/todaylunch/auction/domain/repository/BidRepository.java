@@ -14,6 +14,8 @@ public interface BidRepository {
 
     Optional<Bid> findActiveByAuctionId(UUID auctionId);
 
+    Optional<Bid> findPendingByAuctionId(UUID auctionId);
+
     Optional<Bid> findCurrentValidByAuctionId(UUID auctionId);
 
     Page<Bid> findAllByAuctionId(UUID auctionId, Pageable pageable);

@@ -28,7 +28,8 @@ public enum ErrorCode {
     BID_BELOW_START_PRICE(HttpStatus.BAD_REQUEST, "입찰가는 시작가 이상이어야 합니다"),
     BID_PRICE_UNIT_NOT_MET(HttpStatus.BAD_REQUEST, "입찰가는 입찰 단위의 배수여야 합니다"),
     INVALID_BID_PRICE(HttpStatus.BAD_REQUEST, "입찰가는 0보다 커야 합니다"),
-    BID_NOT_ACTIVE(HttpStatus.CONFLICT, "활성 상태의 입찰이 아닙니다");
+    BID_NOT_ACTIVE(HttpStatus.CONFLICT, "활성 상태의 입찰이 아닙니다"),
+    BID_ALREADY_PENDING(HttpStatus.CONFLICT, "이전 입찰이 처리 중입니다. 잠시 후 다시 시도해주세요");
 
     private final HttpStatus httpStatus;
     private final String message;
