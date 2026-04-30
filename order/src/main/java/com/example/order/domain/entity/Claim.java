@@ -113,7 +113,8 @@ public class Claim {
             ClaimType type,
             String reason,
             String detailReason,
-            RequesterType requesterType
+            RequesterType requesterType,
+            ResponsibilityType responsibilityType
     ) {
         LocalDateTime now = LocalDateTime.now();
         return new Claim(
@@ -125,7 +126,7 @@ public class Claim {
                 detailReason,
                 ClaimStatus.REQUESTED,
                 requesterType,
-                null,
+                responsibilityType,
                 null,
                 now,
                 null,

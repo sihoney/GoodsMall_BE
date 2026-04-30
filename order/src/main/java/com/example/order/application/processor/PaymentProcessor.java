@@ -51,13 +51,14 @@ public class PaymentProcessor {
         );
     }
 
-    public PaymentRefundResult refund(Order order, List<OrderItem> canceledItems, List<OrderItem> returnItems, String reason) {
-        PaymentRefundRequest request = toPaymentRefundRequest(order, canceledItems, returnItems, reason);
+    public PaymentRefundResult refund(Order order, List<OrderItem> canceledItems, String reason) {
+        PaymentRefundRequest request = toPaymentRefundRequest(order, canceledItems, reason);
         return paymentPort.requestRefund(request);
     }
 
-    private PaymentRefundRequest toPaymentRefundRequest(Order order, List<OrderItem> canceledItems, List<OrderItem> returnItems, String reason) {
-        PaymentRefundType refundType = returnItems.isEmpty() ? PaymentRefundType.FULL : PaymentRefundType.PARTIAL;
+    private PaymentRefundRequest toPaymentRefundRequest(Order order, List<OrderItem> canceledItems, String reason) {
+        boolean isFullRefund = canceledItems.size() == order.getItems().size();
+        PaymentRefundType refundType = isFullRefund ? PaymentRefundType.FULL : PaymentRefundType.PARTIAL;
         List<PaymentRefundLineRequest> refundLines = canceledItems.stream()
                 .map(PaymentRefundLineRequest::from)
                 .toList();

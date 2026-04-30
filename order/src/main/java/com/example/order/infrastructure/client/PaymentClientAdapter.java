@@ -15,10 +15,12 @@ import com.example.order.infrastructure.client.dto.request.ExternalPaymentReques
 import com.example.order.infrastructure.client.dto.response.PaymentRefundResultResponse;
 import com.example.order.infrastructure.client.dto.response.PaymentResultResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.UUID;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class PaymentClientAdapter implements PaymentPort {
@@ -86,12 +88,29 @@ public class PaymentClientAdapter implements PaymentPort {
     }
 
     private PaymentStatus toPaymentStatus(String refundStatus) {
-        if (refundStatus == null) return PaymentStatus.FAILED;
-        return switch (refundStatus.toUpperCase()) {
-            case "SUCCEEDED" -> PaymentStatus.SUCCESS;
-            case "FAILED" -> PaymentStatus.FAILED;
-            default -> PaymentStatus.FAILED;
-        };
+        if (refundStatus == null) {
+            log.error("환불 응답 status가 null. 실패로 처리합니다.");
+            return PaymentStatus.FAILED;
+        }
+
+        String upper = refundStatus.toUpperCase();
+
+        if ("SUCCEEDED".equals(upper)) {
+            return PaymentStatus.SUCCESS;
+        }
+
+        if ("FAILED".equals(upper)) {
+            return PaymentStatus.FAILED;
+        }
+
+        if ("PROCESSING".equals(upper) || "REQUESTED".equals(upper)) {
+            // PG 일시 장애 등으로 동기 응답이 처리 중인 케이스. 보수적으로 실패 처리하여 재시도 유도.
+            log.warn("환불이 처리 중 상태로 응답됨. 실패로 처리하여 재시도 유도. status={}", refundStatus);
+            return PaymentStatus.FAILED;
+        }
+
+        log.error("알 수 없는 환불 status. status={}", refundStatus);
+        return PaymentStatus.FAILED;
     }
 
     private ExternalPaymentRefundRequest toExternalRefundRequest(PaymentRefundRequest request) {
