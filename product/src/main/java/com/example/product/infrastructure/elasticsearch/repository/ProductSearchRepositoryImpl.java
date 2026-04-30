@@ -49,19 +49,12 @@ public class ProductSearchRepositoryImpl implements ProductSearchRepository {
 
         SearchHits<ProductDocument> searchHits;
         try {
-            SortOptions sort = SortOptions.of(s -> s
-                    .field(f -> f
-                            .field("createdAt")
-                            .order(SortOrder.Desc)
-                            .missing("_last")
-                            .unmappedType(FieldType.Date)
-                    )
-            );
+            List<SortOptions> sorts = buildSort(pageable);
 
             NativeQuery nativeQuery = NativeQuery.builder()
                     .withQuery(query)
                     .withPageable(pageable)
-                    .withSort(sort)
+                    .withSort(sorts)
                     .build();
 
             searchHits = operations.search(
@@ -104,6 +97,28 @@ public class ProductSearchRepositoryImpl implements ProductSearchRepository {
             log.error("상품 인덱스 삭제 실패: productId={}, error={}", productId, e.getMessage());
             throw new RuntimeException("상품 인덱스 삭제 실패", e);
         }
+    }
+
+    private List<SortOptions> buildSort(Pageable pageable) {
+        if (!pageable.getSort().isSorted()) {
+            return List.of(defaultSort());
+        }
+        return pageable.getSort().stream()
+                .map(order -> SortOptions.of(s -> s.field(f -> f
+                        .field(order.getProperty())
+                        .order(order.isAscending() ? SortOrder.Asc : SortOrder.Desc)
+                        .missing("_last")
+                )))
+                .toList();
+    }
+
+    private SortOptions defaultSort() {
+        return SortOptions.of(s -> s.field(f -> f
+                .field("createdAt")
+                .order(SortOrder.Desc)
+                .missing("_last")
+                .unmappedType(FieldType.Date)
+        ));
     }
 
     private Query buildQuery(List<UUID> categoryIds, String keyword,

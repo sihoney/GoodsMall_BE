@@ -248,7 +248,7 @@ gateway:
       - methods: [GET, PATCH]
         pattern: /api/notifications/**
         allowed-roles: [USER, SELLER, ADMIN]
-      - methods: [GET, POST, PUT, DELETE]
+      - methods: [GET, POST, PUT, PATCH, DELETE]
         pattern: /api/carts/**
         allowed-roles: [USER, SELLER, ADMIN]
       - methods: [GET, POST, DELETE]
@@ -325,6 +325,9 @@ gateway:
         allowed-roles: [SELLER, ADMIN]
       - methods: [POST]
         pattern: /api/ai/auction-price-recommendation
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [GET]
+        pattern: /api/ai/recommendations/me
         allowed-roles: [USER, SELLER, ADMIN]
 
 logging:
