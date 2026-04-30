@@ -7,6 +7,7 @@ public final class KafkaTopics {
     public static final String ORDER_RETURN_REQUESTED = "order.return-requested";
     public static final String PAYMENT_FAILED = "order.payment-failed";
     public static final String ORDER_CONFIRMED = "order.confirmed";
+    public static final String ORDER_PURCHASE_CONFIRMED = "order.purchase-confirmed";
     public static final String AUCTION_WON = "auction.won";
 
     private KafkaTopics() {
