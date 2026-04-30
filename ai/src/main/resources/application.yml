@@ -77,6 +77,7 @@ ai:
     read-timeout-ms: 8000
   cache:
     recommendation-ttl-seconds: 600
+    user-recommendation-ttl-seconds: 3600
   event:
     idempotency-ttl-seconds: 259200
   kafka:
