@@ -215,7 +215,7 @@ gateway:
       - methods: [GET]
         pattern: /api/auctions/**
     role-rules:
-      - methods: [GET, PUT, PATCH]
+      - methods: [GET, PUT, PATCH, DELETE]
         pattern: /api/members/me
         allowed-roles: [USER, SELLER, ADMIN]
       - methods: [PATCH]
