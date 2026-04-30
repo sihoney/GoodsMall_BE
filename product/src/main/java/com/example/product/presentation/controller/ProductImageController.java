@@ -1,6 +1,7 @@
 package com.example.product.presentation.controller;
 
 import com.example.product.application.usecase.ProductImageDeleteUseCase;
+import com.example.product.application.usecase.ProductImageUpdateUseCase;
 import com.example.product.application.usecase.ProductImageUploadUseCase;
 import com.example.product.presentation.dto.response.ProductImageResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -15,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -33,6 +35,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class ProductImageController {
 
     private final ProductImageUploadUseCase productImageUploadUseCase;
+    private final ProductImageUpdateUseCase productImageUpdateUseCase;
     private final ProductImageDeleteUseCase productImageDeleteUseCase;
 
     @Operation(
@@ -67,6 +70,29 @@ public class ProductImageController {
         );
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @Operation(
+            summary = "썸네일 이미지 변경",
+            description = "지정한 이미지를 썸네일로 변경합니다. 기존 썸네일은 자동으로 해제됩니다.",
+            responses = {
+                    @ApiResponse(responseCode = "204", description = "썸네일 변경 성공"),
+                    @ApiResponse(responseCode = "400", description = "잘못된 요청"),
+                    @ApiResponse(responseCode = "404", description = "상품 또는 이미지를 찾을 수 없음")
+            }
+    )
+    @PatchMapping("/{imageId}/thumbnail")
+    public ResponseEntity<Void> changeThumbnail(
+            @Parameter(description = "상품 ID", required = true)
+            @PathVariable UUID productId,
+            @Parameter(description = "썸네일로 지정할 이미지 ID", required = true)
+            @PathVariable UUID imageId
+    ) {
+        log.info("Change thumbnail request: productId={}, imageId={}", productId, imageId);
+
+        productImageUpdateUseCase.changeThumbnail(productId, imageId);
+
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(
