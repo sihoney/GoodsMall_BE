@@ -3,16 +3,21 @@ package com.example.member.application.service;
 import com.example.member.application.dto.command.ChangePasswordCommand;
 import com.example.member.application.dto.command.CreateMemberCommand;
 import com.example.member.application.dto.command.UpdateMemberCommand;
+import com.example.member.application.dto.command.WithdrawMemberCommand;
 import com.example.member.application.dto.query.GetMemberQuery;
 import com.example.member.application.dto.result.ChangePasswordResult;
 import com.example.member.application.dto.result.CreateMemberResult;
 import com.example.member.application.dto.result.MemberResult;
+import com.example.member.application.dto.result.WithdrawMemberResult;
+import com.example.member.application.port.in.AuthUsecase;
 import com.example.member.application.port.in.MemberUsecase;
+import com.example.member.application.port.out.MemberWithdrawalCheckPort;
 import com.example.member.application.port.out.MemberEventPort;
 import com.example.member.application.port.out.MemberPersistencePort;
 import com.example.member.application.port.out.ProfileImageUrlPort;
 import com.example.member.common.exception.DuplicateMemberEmailException;
 import com.example.member.common.exception.InvalidCurrentPasswordException;
+import com.example.member.common.exception.MemberWithdrawalException;
 import com.example.member.common.exception.MemberNotFoundException;
 import com.example.member.config.MemberSignupProperties;
 import com.example.member.domain.entity.Member;
@@ -21,6 +26,7 @@ import com.todaylunch.common.security.auth.enumtype.MemberRole;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,9 +39,11 @@ public class MemberService implements MemberUsecase {
     private final MemberPersistencePort memberPersistencePort;
     private final PasswordEncoder passwordEncoder;
     private final MemberEventPort memberEventPort;
+    private final MemberWithdrawalCheckPort memberWithdrawalCheckPort;
     private final ProfileImageUrlPort profileImageUrlPort;
     private final EmailVerificationService emailVerificationService;
     private final MemberSignupProperties memberSignupProperties;
+    private final AuthUsecase authUsecase;
 
     @Transactional
     @Override
@@ -136,6 +144,39 @@ public class MemberService implements MemberUsecase {
         return new ChangePasswordResult("비밀번호가 변경되었습니다.");
     }
 
+    @Transactional
+    @Override
+    public WithdrawMemberResult withdrawCurrentMember(WithdrawMemberCommand command) {
+        validateWithdrawCommand(command);
+
+        Member member = getMemberEntity(command.memberId());
+        validateWithdrawableMember(member);
+        memberWithdrawalCheckPort.validateWithdrawable(
+                member,
+                normalizeRequired(command.authorizationHeader(), "authorizationHeader")
+        );
+
+        String currentPassword = normalizeRequired(command.currentPassword(), "currentPassword");
+        if (!passwordEncoder.matches(currentPassword, member.getPassword())) {
+            throw new MemberWithdrawalException(
+                    "MEMBER_WITHDRAWAL_PASSWORD_INVALID",
+                    HttpStatus.BAD_REQUEST,
+                    "현재 비밀번호가 올바르지 않습니다."
+            );
+        }
+
+        LocalDateTime withdrawnAt = LocalDateTime.now();
+        member.changeStatus(MemberStatus.WITHDRAWN, withdrawnAt);
+        authUsecase.logoutAllSessions(normalizeRequired(command.authorizationHeader(), "authorizationHeader"));
+
+        return new WithdrawMemberResult(
+                member.getMemberId(),
+                member.getStatus(),
+                member.getUpdatedAt(),
+                "회원탈퇴가 완료되었습니다."
+        );
+    }
+
     private Member getMemberEntity(UUID memberId) {
         return memberPersistencePort.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
@@ -171,10 +212,43 @@ public class MemberService implements MemberUsecase {
         }
     }
 
+    private void validateWithdrawCommand(WithdrawMemberCommand command) {
+        if (command == null) {
+            throw new IllegalArgumentException("회원탈퇴 요청 본문은 필수입니다.");
+        }
+        if (command.memberId() == null) {
+            throw new IllegalArgumentException("memberId는 필수입니다.");
+        }
+    }
+
+    private void validateWithdrawableMember(Member member) {
+        if (member.getRole() == MemberRole.ADMIN) {
+            throw new MemberWithdrawalException(
+                    "MEMBER_WITHDRAWAL_ADMIN_FORBIDDEN",
+                    HttpStatus.FORBIDDEN,
+                    "관리자 계정은 셀프 탈퇴를 지원하지 않습니다."
+            );
+        }
+        if (member.getStatus() == MemberStatus.WITHDRAWN) {
+            throw new MemberWithdrawalException(
+                    "MEMBER_ALREADY_WITHDRAWN",
+                    HttpStatus.CONFLICT,
+                    "이미 탈퇴한 회원입니다."
+            );
+        }
+        if (member.getStatus() != MemberStatus.ACTIVE) {
+            throw new MemberWithdrawalException(
+                    "MEMBER_WITHDRAWAL_NOT_ACTIVE",
+                    HttpStatus.CONFLICT,
+                    "ACTIVE 상태 회원만 탈퇴할 수 있습니다."
+            );
+        }
+    }
+
     private String normalizeRequired(String value, String fieldName) {
         String normalized = normalizeNullable(value);
         if (normalized == null) {
-            throw new IllegalArgumentException(fieldName + "은(는) 필수입니다.");
+            throw new IllegalArgumentException(fieldName + "는(은) 필수입니다.");
         }
         return normalized;
     }
