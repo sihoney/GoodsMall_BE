@@ -91,8 +91,8 @@ oauth:
 jwt:
   secret: ${JWT_SECRET_KEY}
   issuer: member-service
-  access-expiration: 3600000
-  refresh-expiration: 604800000
+  access-expiration: 3600000 
+  refresh-expiration: 604800000 
 
 aws:
   s3:
