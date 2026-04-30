@@ -16,6 +16,7 @@ import com.example.member.application.dto.result.MemberResult;
 import com.example.member.application.dto.result.WithdrawMemberResult;
 import com.example.member.application.port.in.AuthUsecase;
 import com.example.member.application.port.out.MemberEventPort;
+import com.example.member.application.port.out.MemberOauthAccountPersistencePort;
 import com.example.member.application.port.out.MemberPersistencePort;
 import com.example.member.application.port.out.ProfileImageUrlPort;
 import com.example.member.application.port.out.MemberWithdrawalCheckPort;
@@ -24,9 +25,12 @@ import com.example.member.common.exception.InvalidCurrentPasswordException;
 import com.example.member.common.exception.MemberWithdrawalException;
 import com.example.member.config.MemberSignupProperties;
 import com.example.member.domain.entity.Member;
+import com.example.member.domain.entity.MemberOauthAccount;
+import com.example.member.domain.enumtype.OAuthProvider;
 import com.example.member.domain.enumtype.MemberStatus;
 import com.todaylunch.common.security.auth.enumtype.MemberRole;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -63,6 +67,9 @@ class MemberServiceTest {
 
     @Mock
     private MemberWithdrawalCheckPort memberWithdrawalCheckPort;
+
+    @Mock
+    private MemberOauthAccountPersistencePort memberOauthAccountPersistencePort;
 
     @InjectMocks
     private MemberService memberService;
@@ -316,6 +323,17 @@ class MemberServiceTest {
 
         when(memberPersistencePort.findById(memberId)).thenReturn(Optional.of(member));
         when(passwordEncoder.matches("current-password", "encoded-current-password")).thenReturn(true);
+        MemberOauthAccount oauthAccount = MemberOauthAccount.create(
+                UUID.randomUUID(),
+                memberId,
+                OAuthProvider.KAKAO,
+                "provider-user-id",
+                "member@test.com",
+                "tester",
+                LocalDateTime.now().minusDays(1),
+                LocalDateTime.now().minusDays(1)
+        );
+        when(memberOauthAccountPersistencePort.findAllByMemberId(memberId)).thenReturn(List.of(oauthAccount));
 
         WithdrawMemberResult result = memberService.withdrawCurrentMember(command);
 
@@ -323,6 +341,7 @@ class MemberServiceTest {
         assertEquals("withdrawn+" + memberId + "@deleted.local", member.getEmail());
         assertEquals(MemberStatus.WITHDRAWN, result.status());
         verify(memberWithdrawalCheckPort).validateWithdrawable(member, "Bearer access-token");
+        verify(memberOauthAccountPersistencePort).delete(oauthAccount);
         verify(authUsecase).logoutAllSessions("Bearer access-token");
     }
 
