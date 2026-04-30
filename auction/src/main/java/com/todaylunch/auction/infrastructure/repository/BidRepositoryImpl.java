@@ -3,6 +3,7 @@ package com.todaylunch.auction.infrastructure.repository;
 import com.todaylunch.auction.domain.entity.Bid;
 import com.todaylunch.auction.domain.enumtype.BidStatus;
 import com.todaylunch.auction.domain.repository.BidRepository;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,12 @@ public class BidRepositoryImpl implements BidRepository {
     @Override
     public Optional<Bid> findActiveByAuctionId(UUID auctionId) {
         return jpaRepository.findTopByAuctionIdAndStatus(auctionId, BidStatus.ACTIVE);
+    }
+
+    @Override
+    public Optional<Bid> findCurrentValidByAuctionId(UUID auctionId) {
+        return jpaRepository.findTopByAuctionIdAndStatusIn(
+                auctionId, List.of(BidStatus.ACTIVE, BidStatus.OUTBID));
     }
 
     @Override

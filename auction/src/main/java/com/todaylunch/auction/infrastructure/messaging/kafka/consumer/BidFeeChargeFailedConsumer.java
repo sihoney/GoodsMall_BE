@@ -55,7 +55,7 @@ public class BidFeeChargeFailedConsumer {
         bid.cancel();
 
         UUID auctionId = message.auctionId();
-        BigDecimal previousHighestPrice = bidRepository.findActiveByAuctionId(auctionId)
+        BigDecimal previousHighestPrice = bidRepository.findCurrentValidByAuctionId(auctionId)
                 .map(Bid::getBidPrice)
                 .orElse(null);
 
