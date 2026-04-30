@@ -25,8 +25,11 @@ public class ReturnRequestRepositoryImpl implements ReturnRequestRepository {
     }
 
     @Override
-    public boolean existsByOrderItemId(UUID orderItemId) {
-        return returnRequestJpaRepository.existsByOrderItem_OrderItemId(orderItemId);
+    public boolean existsActiveByOrderItemId(UUID orderItemId) {
+        return returnRequestJpaRepository.existsByOrderItem_OrderItemIdAndStatusNotIn(
+                orderItemId,
+                List.of(ReturnRequestStatus.FAILED)
+        );
     }
 
     @Override

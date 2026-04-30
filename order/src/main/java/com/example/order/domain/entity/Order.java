@@ -268,8 +268,16 @@ public class Order {
     public void complete() {
         this.items.stream()
                 .filter(item -> item.getStatus() != OrderItemStatus.CANCELED)
+                .filter(item -> item.getStatus() != OrderItemStatus.RETURN_REQUESTED)
+                .filter(item -> item.getStatus() != OrderItemStatus.COMPLETED)
                 .forEach(OrderItem::complete);
-        this.status = OrderStatus.COMPLETED;
+
+        boolean allTerminal = this.items.stream()
+                .allMatch(item -> item.getStatus() == OrderItemStatus.COMPLETED
+                        || item.getStatus() == OrderItemStatus.CANCELED);
+        if (allTerminal) {
+            this.status = OrderStatus.COMPLETED;
+        }
         this.updatedAt = LocalDateTime.now();
     }
 

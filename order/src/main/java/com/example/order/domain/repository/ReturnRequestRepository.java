@@ -14,7 +14,7 @@ public interface ReturnRequestRepository {
 
     List<ReturnRequest> saveAll(List<ReturnRequest> returnRequests);
 
-    boolean existsByOrderItemId(UUID orderItemId);
+    boolean existsActiveByOrderItemId(UUID orderItemId);
 
     Optional<ReturnRequest> findById(UUID returnRequestId);
 

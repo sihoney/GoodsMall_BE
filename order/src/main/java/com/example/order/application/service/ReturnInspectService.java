@@ -118,6 +118,8 @@ public class ReturnInspectService implements ReturnInspectUseCase {
 
     private ReturnInspectResponse processFail(ReturnRequest returnRequest, ReturnInspectRequest request) {
         Claim claim = returnRequest.getClaim();
+        OrderItem orderItem = returnRequest.getOrderItem();
+
         if (request.responsibilityType() != null) {
             claim.assignResponsibility(request.responsibilityType());
         }
@@ -125,6 +127,10 @@ public class ReturnInspectService implements ReturnInspectUseCase {
         returnRequest.completeInspection(InspectionResult.FAIL);
         returnRequest.fail(request.rejectReason());
         claim.reject(request.rejectReason());
+
+        if (orderItem.getStatus() == OrderItemStatus.RETURN_REQUESTED) {
+            orderItem.cancelReturn();
+        }
 
         return new ReturnInspectResponse(
                 returnRequest.getReturnRequestId(),
