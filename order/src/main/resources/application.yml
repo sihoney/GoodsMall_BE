@@ -9,6 +9,10 @@ spring:
             connectTimeout: 1000
             readTimeout: 2000
             loggerLevel: basic
+          payment-service:
+            connectTimeout: 2000
+            readTimeout: 10000
+            loggerLevel: basic
 
   datasource:
     driver-class-name: org.postgresql.Driver

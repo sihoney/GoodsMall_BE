@@ -5,6 +5,7 @@ import com.example.order.application.port.dto.request.PaymentRefundLineRequest;
 import com.example.order.application.port.dto.request.PaymentRefundRequest;
 import com.example.order.application.port.dto.request.PaymentRequest;
 import com.example.order.application.port.dto.request.PaymentRequestOrderLine;
+import com.example.order.application.port.dto.request.SellerRefundRequest;
 import com.example.order.application.port.dto.response.PaymentRefundResult;
 import com.example.order.application.port.dto.response.PaymentResult;
 import com.example.order.common.exception.CustomException;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @Component
@@ -51,13 +53,27 @@ public class PaymentProcessor {
         );
     }
 
-    public PaymentRefundResult refund(Order order, List<OrderItem> canceledItems, List<OrderItem> returnItems, String reason) {
-        PaymentRefundRequest request = toPaymentRefundRequest(order, canceledItems, returnItems, reason);
+    public PaymentRefundResult refund(Order order, List<OrderItem> canceledItems, String reason) {
+        PaymentRefundRequest request = toPaymentRefundRequest(order, canceledItems, reason);
         return paymentPort.requestRefund(request);
     }
 
-    private PaymentRefundRequest toPaymentRefundRequest(Order order, List<OrderItem> canceledItems, List<OrderItem> returnItems, String reason) {
-        PaymentRefundType refundType = returnItems.isEmpty() ? PaymentRefundType.FULL : PaymentRefundType.PARTIAL;
+    public PaymentRefundResult sellerRefund(Order order, List<OrderItem> returnedItems, UUID orderCancelRequestId, String reason) {
+        boolean isFullRefund = returnedItems.size() == order.getItems().size();
+        PaymentRefundType refundType = isFullRefund ? PaymentRefundType.FULL : PaymentRefundType.PARTIAL;
+        SellerRefundRequest request = new SellerRefundRequest(
+                order.getOrderId(),
+                orderCancelRequestId,
+                refundType,
+                reason,
+                returnedItems.stream().map(OrderItem::getOrderItemId).toList()
+        );
+        return paymentPort.requestSellerRefund(request);
+    }
+
+    private PaymentRefundRequest toPaymentRefundRequest(Order order, List<OrderItem> canceledItems, String reason) {
+        boolean isFullRefund = canceledItems.size() == order.getItems().size();
+        PaymentRefundType refundType = isFullRefund ? PaymentRefundType.FULL : PaymentRefundType.PARTIAL;
         List<PaymentRefundLineRequest> refundLines = canceledItems.stream()
                 .map(PaymentRefundLineRequest::from)
                 .toList();

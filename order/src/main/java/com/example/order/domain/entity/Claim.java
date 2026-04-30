@@ -113,7 +113,8 @@ public class Claim {
             ClaimType type,
             String reason,
             String detailReason,
-            RequesterType requesterType
+            RequesterType requesterType,
+            ResponsibilityType responsibilityType
     ) {
         LocalDateTime now = LocalDateTime.now();
         return new Claim(
@@ -125,12 +126,30 @@ public class Claim {
                 detailReason,
                 ClaimStatus.REQUESTED,
                 requesterType,
-                null,
+                responsibilityType,
                 null,
                 now,
                 null,
                 now,
                 now
         );
+    }
+
+    public void assignResponsibility(ResponsibilityType type) {
+        this.responsibilityType = Objects.requireNonNull(type);
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void complete() {
+        this.status = ClaimStatus.COMPLETED;
+        this.completedAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void reject(String rejectReason) {
+        this.status = ClaimStatus.REJECTED;
+        this.rejectReason = Objects.requireNonNull(rejectReason);
+        this.completedAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
 }
