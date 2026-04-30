@@ -320,6 +320,7 @@ class MemberServiceTest {
         WithdrawMemberResult result = memberService.withdrawCurrentMember(command);
 
         assertEquals(MemberStatus.WITHDRAWN, member.getStatus());
+        assertEquals("withdrawn+" + memberId + "@deleted.local", member.getEmail());
         assertEquals(MemberStatus.WITHDRAWN, result.status());
         verify(memberWithdrawalCheckPort).validateWithdrawable(member, "Bearer access-token");
         verify(authUsecase).logoutAllSessions("Bearer access-token");

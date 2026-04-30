@@ -166,7 +166,7 @@ public class MemberService implements MemberUsecase {
         }
 
         LocalDateTime withdrawnAt = LocalDateTime.now();
-        member.changeStatus(MemberStatus.WITHDRAWN, withdrawnAt);
+        member.withdraw(createWithdrawnEmail(member), withdrawnAt);
         authUsecase.logoutAllSessions(normalizeRequired(command.authorizationHeader(), "authorizationHeader"));
 
         return new WithdrawMemberResult(
@@ -274,6 +274,10 @@ public class MemberService implements MemberUsecase {
 
     private String resolveProfileImageUrl(Member member) {
         return profileImageUrlPort.resolve(member.getProfileImageKey());
+    }
+
+    private String createWithdrawnEmail(Member member) {
+        return "withdrawn+" + member.getMemberId() + "@deleted.local";
     }
 
     private CreateMemberResult toCreateMemberResult(Member member) {
