@@ -11,6 +11,7 @@ import com.example.order.domain.entity.OrderItem;
 import com.example.order.domain.entity.OutboxEvent;
 import com.example.order.domain.entity.ReturnRequest;
 import com.example.order.domain.enumtype.ClaimType;
+import com.example.order.domain.enumtype.OrderItemStatus;
 import com.example.order.domain.enumtype.PaymentStatus;
 import com.example.order.domain.enumtype.PickupType;
 import com.example.order.domain.enumtype.ResponsibilityType;
@@ -84,7 +85,7 @@ public class OrderCancelService implements OrderCancelUseCase {
         LocalDateTime processedAt = LocalDateTime.now();
 
         if (!canceledItems.isEmpty()) {
-            order.cancel(hasRemainingItems(order, canceledItems));
+            order.cancel(hasRemainingItems(order));
             PaymentRefundResult refundResult = paymentProcessor.refund(order, canceledItems, firstReason(toCancel));
             validateRefundResult(refundResult);
             refundedAmount = refundResult.refundedAmount();
@@ -171,8 +172,9 @@ public class OrderCancelService implements OrderCancelUseCase {
         toReturn.forEach(r -> r.item().requestReturn());
     }
 
-    private boolean hasRemainingItems(Order order, List<OrderItem> canceledItems) {
-        return order.getItems().size() != canceledItems.size();
+    private boolean hasRemainingItems(Order order) {
+        return order.getItems().stream()
+                .anyMatch(item -> item.getStatus() != OrderItemStatus.CANCELED);
     }
 
     private List<Claim> buildClaims(
