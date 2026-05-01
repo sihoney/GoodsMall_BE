@@ -46,9 +46,17 @@ public class PaymentClientAdapter implements PaymentPort {
     public PaymentRefundResult requestRefund(PaymentRefundRequest request) {
         try {
             ExternalPaymentRefundRequest externalRequest = toExternalRefundRequest(request);
+            log.info("[requestRefund] payload orderId={}, buyerMemberId={}, refundType={}, items={}",
+                    externalRequest.orderId(), externalRequest.buyerMemberId(),
+                    externalRequest.refundType(), externalRequest.items());
             PaymentRefundResultResponse response = paymentClient.requestRefund(externalRequest).data();
             return toPaymentRefundResult(response);
+        } catch (feign.FeignException fe) {
+            log.error("[requestRefund] FeignException status={}, body={}",
+                    fe.status(), fe.contentUTF8(), fe);
+            throw new CustomException(ErrorCode.PAYMENT_FAILED);
         } catch (Exception e) {
+            log.error("[requestRefund] failed", e);
             throw new CustomException(ErrorCode.PAYMENT_FAILED);
         }
     }
