@@ -21,6 +21,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.UUID;
 
 @Slf4j
@@ -112,11 +114,14 @@ public class PaymentClientAdapter implements PaymentPort {
     }
 
     private PaymentRefundResult toPaymentRefundResult(PaymentRefundResultResponse response) {
+        Instant canceledAt = response.processedAt() == null
+                ? null
+                : response.processedAt().atZone(ZoneId.systemDefault()).toInstant();
         return new PaymentRefundResult(
                 response.orderId(),
                 response.totalRefundAmount(),
                 toPaymentStatus(response.refundStatus()),
-                response.processedAt(),
+                canceledAt,
                 response.failReason()
         );
     }
