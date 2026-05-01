@@ -131,22 +131,22 @@ public class OrderController {
     }
 
     @PostMapping("/auction/deposit")
-    public ResponseEntity<Void> acceptAuctionWinByDeposit(
+    public ResponseEntity<ApiResponse<OrderCreateResponse>> acceptAuctionWinByDeposit(
             @CurrentMember AuthenticatedMember authenticatedMember,
             @Valid @RequestBody AuctionWinAcceptRequest request
     ) {
         UUID memberId = authenticatedMember.memberId();
-        auctionWinAcceptUseCase.acceptWinByDeposit(memberId, request);
-        return ResponseEntity.noContent().build();
+        OrderCreateResponse response = auctionWinAcceptUseCase.acceptWinByDeposit(memberId, request);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @PostMapping("/auction/pg")
-    public ResponseEntity<Void> acceptAuctionWinByPg(
+    public ResponseEntity<ApiResponse<OrderCreateResponse>> acceptAuctionWinByPg(
             @CurrentMember AuthenticatedMember authenticatedMember,
             @Valid @RequestBody AuctionWinAcceptRequest request
     ) {
         UUID memberId = authenticatedMember.memberId();
-        auctionWinAcceptUseCase.acceptWinByPg(memberId, request);
-        return ResponseEntity.noContent().build();
+        OrderCreateResponse response = auctionWinAcceptUseCase.acceptWinByPg(memberId, request);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

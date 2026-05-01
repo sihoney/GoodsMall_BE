@@ -13,6 +13,7 @@ import com.example.order.infrastructure.kafka.OutboxEventSaver;
 import com.example.order.infrastructure.kafka.event.OrderConfirmedEvent;
 import com.example.order.infrastructure.kafka.event.PaymentFailedEvent;
 import com.example.order.presentation.dto.request.AuctionWinAcceptRequest;
+import com.example.order.presentation.dto.response.OrderCreateResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,7 +36,7 @@ public class AuctionWinAcceptService implements AuctionWinAcceptUseCase {
 
     @Transactional
     @Override
-    public void acceptWinByDeposit(UUID memberId, AuctionWinAcceptRequest request) {
+    public OrderCreateResponse acceptWinByDeposit(UUID memberId, AuctionWinAcceptRequest request) {
         Order order = findAndValidate(memberId, request.orderId());
 
         order.assignShippingInfo(
@@ -57,11 +58,12 @@ public class AuctionWinAcceptService implements AuctionWinAcceptUseCase {
         order.confirm();
         deliveryCreateService.create(order);
         saveOrderConfirmedOutbox(order);
+        return OrderCreateResponse.from(order);
     }
 
     @Transactional
     @Override
-    public void acceptWinByPg(UUID memberId, AuctionWinAcceptRequest request) {
+    public OrderCreateResponse acceptWinByPg(UUID memberId, AuctionWinAcceptRequest request) {
         Order order = findAndValidate(memberId, request.orderId());
 
         order.assignShippingInfo(
@@ -71,6 +73,7 @@ public class AuctionWinAcceptService implements AuctionWinAcceptUseCase {
                 request.receiver(),
                 request.receiverPhone()
         );
+        return OrderCreateResponse.from(order);
     }
 
     private Order findAndValidate(UUID memberId, UUID orderId) {
