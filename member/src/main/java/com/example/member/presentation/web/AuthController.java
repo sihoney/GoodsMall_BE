@@ -85,7 +85,8 @@ public class AuthController {
                         request.phone(),
                         request.address(),
                         request.profileImageKey(),
-                        request.role()
+                        request.role(),
+                        request.kakaoLinkToken()
                 )))
         ));
     }
