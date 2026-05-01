@@ -6,6 +6,7 @@ import com.example.order.application.usecase.OrderCancelUseCase;
 import com.example.order.common.exception.CustomException;
 import com.example.order.common.exception.ErrorCode;
 import com.example.order.domain.entity.Claim;
+import com.example.order.domain.entity.Delivery;
 import com.example.order.domain.entity.Order;
 import com.example.order.domain.entity.OrderItem;
 import com.example.order.domain.entity.OutboxEvent;
@@ -16,6 +17,7 @@ import com.example.order.domain.enumtype.PaymentStatus;
 import com.example.order.domain.enumtype.PickupType;
 import com.example.order.domain.enumtype.ResponsibilityType;
 import com.example.order.domain.repository.ClaimRepository;
+import com.example.order.domain.repository.DeliveryRepository;
 import com.example.order.domain.repository.OrderRepository;
 import com.example.order.domain.repository.OutboxRepository;
 import com.example.order.domain.repository.ReturnRequestRepository;
@@ -53,6 +55,7 @@ public class OrderCancelService implements OrderCancelUseCase {
     private final OrderRepository orderRepository;
     private final ClaimRepository claimRepository;
     private final ReturnRequestRepository returnRequestRepository;
+    private final DeliveryRepository deliveryRepository;
     private final PaymentProcessor paymentProcessor;
     private final OutboxRepository outboxRepository;
     private final ObjectMapper objectMapper;
@@ -163,9 +166,16 @@ public class OrderCancelService implements OrderCancelUseCase {
 
     private List<OrderItem> applyCancel(List<RequestedItem> toCancel) {
         return toCancel.stream()
-                .peek(r -> r.item().cancel())
+                .peek(r -> {
+                    r.item().cancel();
+                    cancelDelivery(r.item().getOrderItemId());
+                })
                 .map(RequestedItem::item)
                 .toList();
+    }
+
+    private void cancelDelivery(UUID orderItemId) {
+        deliveryRepository.findByOrderItemId(orderItemId).ifPresent(Delivery::cancel);
     }
 
     private void applyReturnRequest(List<RequestedItem> toReturn) {

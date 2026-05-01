@@ -6,6 +6,7 @@ import com.example.order.application.usecase.ReturnInspectUseCase;
 import com.example.order.common.exception.CustomException;
 import com.example.order.common.exception.ErrorCode;
 import com.example.order.domain.entity.Claim;
+import com.example.order.domain.entity.Delivery;
 import com.example.order.domain.entity.Order;
 import com.example.order.domain.entity.OrderItem;
 import com.example.order.domain.entity.OutboxEvent;
@@ -14,6 +15,7 @@ import com.example.order.domain.enumtype.InspectionResult;
 import com.example.order.domain.enumtype.OrderItemStatus;
 import com.example.order.domain.enumtype.PaymentStatus;
 import com.example.order.domain.enumtype.ReturnRequestStatus;
+import com.example.order.domain.repository.DeliveryRepository;
 import com.example.order.domain.repository.OutboxRepository;
 import com.example.order.domain.repository.ReturnRequestRepository;
 import com.example.order.infrastructure.kafka.KafkaTopics;
@@ -38,6 +40,7 @@ import java.util.UUID;
 public class ReturnInspectService implements ReturnInspectUseCase {
 
     private final ReturnRequestRepository returnRequestRepository;
+    private final DeliveryRepository deliveryRepository;
     private final PaymentProcessor paymentProcessor;
     private final OutboxRepository outboxRepository;
     private final ObjectMapper objectMapper;
@@ -99,6 +102,7 @@ public class ReturnInspectService implements ReturnInspectUseCase {
         }
 
         orderItem.completeReturn();
+        deliveryRepository.findByOrderItemId(orderItem.getOrderItemId()).ifPresent(Delivery::cancel);
         updateOrderStatus(order);
 
         returnRequest.completeInspection(InspectionResult.PASS);
