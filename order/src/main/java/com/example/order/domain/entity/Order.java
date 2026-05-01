@@ -238,8 +238,24 @@ public class Order {
     }
 
     public void cancel(boolean hasReturnItems) {
-        this.status = hasReturnItems ? OrderStatus.PARTIAL_CANCELED : OrderStatus.CANCELED;
+        if (!hasReturnItems) {
+            this.status = OrderStatus.CANCELED;
+            this.updatedAt = LocalDateTime.now();
+            return;
+        }
+        if (isFlowState(this.status)) {
+            this.updatedAt = LocalDateTime.now();
+            return;
+        }
+        this.status = OrderStatus.PARTIAL_CANCELED;
         this.updatedAt = LocalDateTime.now();
+    }
+
+    private boolean isFlowState(OrderStatus status) {
+        return status == OrderStatus.SHIPPING
+                || status == OrderStatus.PARTIAL_SHIPPING
+                || status == OrderStatus.DELIVERED
+                || status == OrderStatus.COMPLETED;
     }
 
     public void markShipping() {

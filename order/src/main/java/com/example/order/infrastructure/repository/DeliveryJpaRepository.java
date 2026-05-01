@@ -62,6 +62,7 @@ public interface DeliveryJpaRepository extends JpaRepository<Delivery, UUID> {
         join fetch d.orderItem oi
         join fetch oi.order o
         where d.sellerId = :sellerId
+          and d.status <> com.example.order.domain.enumtype.DeliveryStatus.CANCELED
           and (:courierCode is null or d.courierCode = :courierCode)
           and (:orderNumber is null or o.orderNumber like :orderNumber)
           and (:receiver is null or o.receiver like :receiver)
@@ -74,6 +75,7 @@ public interface DeliveryJpaRepository extends JpaRepository<Delivery, UUID> {
         join d.orderItem oi
         join oi.order o
         where d.sellerId = :sellerId
+          and d.status <> com.example.order.domain.enumtype.DeliveryStatus.CANCELED
           and (:courierCode is null or d.courierCode = :courierCode)
           and (:orderNumber is null or o.orderNumber like :orderNumber)
           and (:receiver is null or o.receiver like :receiver)
