@@ -128,6 +128,8 @@ public class OrderCancelService implements OrderCancelUseCase {
                     if (item == null) {
                         throw new CustomException(ErrorCode.ORDER_ITEM_NOT_FOUND);
                     }
+                    log.info("[cancelOrder] requested orderItemId={}, status={}, canCancel={}, canReturn={}",
+                            item.getOrderItemId(), item.getStatus(), item.canCancel(), item.canReturn());
                     if (!item.canCancel() && !item.canReturn()) {
                         throw new CustomException(ErrorCode.ORDER_ITEM_NOT_CLAIMABLE);
                     }
@@ -151,6 +153,8 @@ public class OrderCancelService implements OrderCancelUseCase {
     private void validateReturnNotDuplicated(List<RequestedItem> toReturn) {
         for (RequestedItem r : toReturn) {
             if (returnRequestRepository.existsActiveByOrderItemId(r.item().getOrderItemId())) {
+                log.warn("[cancelOrder] RETURN_ALREADY_REQUESTED blocked. orderItemId={}, itemStatus={}",
+                        r.item().getOrderItemId(), r.item().getStatus());
                 throw new CustomException(ErrorCode.RETURN_ALREADY_REQUESTED);
             }
         }
