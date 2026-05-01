@@ -46,6 +46,7 @@ public class MemberService implements MemberUsecase {
     private final MemberOauthAccountPersistencePort memberOauthAccountPersistencePort;
     private final ProfileImageUrlPort profileImageUrlPort;
     private final EmailVerificationService emailVerificationService;
+    private final KakaoOAuthService kakaoOAuthService;
     private final MemberSignupProperties memberSignupProperties;
     private final AuthUsecase authUsecase;
 
@@ -79,6 +80,7 @@ public class MemberService implements MemberUsecase {
         );
 
         Member savedMember = memberPersistencePort.save(member);
+        linkPendingKakaoAccountIfPresent(savedMember.getMemberId(), command.kakaoLinkToken());
         if (memberSignupProperties.requireEmailVerification()) {
             emailVerificationService.createSignupVerification(savedMember);
         }
@@ -288,6 +290,15 @@ public class MemberService implements MemberUsecase {
     private void deleteOauthAccounts(UUID memberId) {
         List<MemberOauthAccount> oauthAccounts = memberOauthAccountPersistencePort.findAllByMemberId(memberId);
         oauthAccounts.forEach(memberOauthAccountPersistencePort::delete);
+    }
+
+    private void linkPendingKakaoAccountIfPresent(UUID memberId, String kakaoLinkToken) {
+        String normalizedLinkToken = normalizeNullable(kakaoLinkToken);
+        if (normalizedLinkToken == null) {
+            return;
+        }
+
+        kakaoOAuthService.linkPendingSignupMember(memberId, normalizedLinkToken);
     }
 
     private CreateMemberResult toCreateMemberResult(Member member) {

@@ -60,6 +60,9 @@ class MemberServiceTest {
     private EmailVerificationService emailVerificationService;
 
     @Mock
+    private KakaoOAuthService kakaoOAuthService;
+
+    @Mock
     private MemberSignupProperties memberSignupProperties;
 
     @Mock
@@ -83,7 +86,8 @@ class MemberServiceTest {
                 "010-1111-2222",
                 "Seoul",
                 "members/profile/profile.png",
-                MemberRole.USER
+                MemberRole.USER,
+                null
         );
 
         when(memberPersistencePort.existsByEmail("member@test.com")).thenReturn(false);
@@ -123,7 +127,8 @@ class MemberServiceTest {
                 null,
                 null,
                 null,
-                MemberRole.USER
+                MemberRole.USER,
+                null
         );
 
         when(memberPersistencePort.existsByEmail("local@test.com")).thenReturn(false);
@@ -145,6 +150,36 @@ class MemberServiceTest {
     }
 
     @Test
+    void createMember_withKakaoLinkToken_linksOauthAccountAfterSavingMember() {
+        CreateMemberCommand command = new CreateMemberCommand(
+                "kakao@test.com",
+                "plain-password",
+                "kakao-user",
+                null,
+                null,
+                null,
+                MemberRole.USER,
+                "pending-kakao-link-token"
+        );
+
+        when(memberPersistencePort.existsByEmail("kakao@test.com")).thenReturn(false);
+        when(passwordEncoder.encode("plain-password")).thenReturn("encoded-password");
+        when(memberPersistencePort.save(any(Member.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(profileImageUrlPort.resolve(null)).thenReturn(null);
+        when(memberSignupProperties.requireEmailVerification()).thenReturn(false);
+
+        CreateMemberResult response = memberService.createMember(command);
+
+        ArgumentCaptor<Member> memberCaptor = ArgumentCaptor.forClass(Member.class);
+        verify(memberPersistencePort).save(memberCaptor.capture());
+        verify(kakaoOAuthService).linkPendingSignupMember(
+                memberCaptor.getValue().getMemberId(),
+                "pending-kakao-link-token"
+        );
+        assertEquals(memberCaptor.getValue().getMemberId(), response.memberId());
+    }
+
+    @Test
     void createMember_duplicateEmail_throwsException() {
         CreateMemberCommand command = new CreateMemberCommand(
                 "member@test.com",
@@ -153,7 +188,8 @@ class MemberServiceTest {
                 null,
                 null,
                 null,
-                MemberRole.USER
+                MemberRole.USER,
+                null
         );
 
         when(memberPersistencePort.existsByEmail("member@test.com")).thenReturn(true);
@@ -173,7 +209,8 @@ class MemberServiceTest {
                 null,
                 null,
                 "invalid/profile.png",
-                MemberRole.USER
+                MemberRole.USER,
+                null
         );
 
         when(memberPersistencePort.existsByEmail("member@test.com")).thenReturn(false);
