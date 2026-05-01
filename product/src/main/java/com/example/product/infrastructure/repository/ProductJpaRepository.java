@@ -48,6 +48,8 @@ public interface ProductJpaRepository extends JpaRepository<Product, UUID> {
 
     Page<Product> findBySellerId(UUID sellerId, Pageable pageable);
 
+    boolean existsBySellerIdAndStatusAndDeletedAtIsNull(UUID sellerId, ProductStatus status);
+
     Optional<Product> findById(UUID productId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

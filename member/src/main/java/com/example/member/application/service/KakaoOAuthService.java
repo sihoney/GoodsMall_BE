@@ -144,28 +144,16 @@ public class KakaoOAuthService {
     }
 
     @Transactional
+    public KakaoOAuthLinkResult linkPendingSignupMember(UUID memberId, String linkToken) {
+        KakaoOAuthPendingLink pendingLink = consumePendingLink(linkToken);
+        linkPendingAccount(memberId, pendingLink);
+        return new KakaoOAuthLinkResult(true, PROVIDER.name(), pendingLink.providerUserId());
+    }
+
+    @Transactional
     public KakaoOAuthLinkResult linkCurrentMember(UUID memberId, String linkToken) {
-        KakaoOAuthPendingLink pendingLink = kakaoOAuthAuthorizeStateStore
-                .consumePendingLink(normalizeRequired(linkToken, "linkToken"))
-                .orElseThrow(() -> new IllegalStateException("대기 중인 카카오 연동 토큰을 찾을 수 없습니다."));
-
-        if (memberOauthAccountPersistencePort.existsByProviderAndProviderUserId(PROVIDER, pendingLink.providerUserId())) {
-            throw new IllegalStateException("KAKAO_ALREADY_LINKED_TO_ANOTHER_MEMBER");
-        }
-        if (memberOauthAccountPersistencePort.existsByMemberIdAndProvider(memberId, PROVIDER)) {
-            throw new IllegalStateException("KAKAO_ALREADY_LINKED");
-        }
-        memberPersistencePort.findById(memberId).orElseThrow(InvalidLoginException::new);
-
-        LocalDateTime now = LocalDateTime.now();
-        saveLinkedAccount(
-                memberId,
-                pendingLink.providerUserId(),
-                pendingLink.email(),
-                pendingLink.nickname(),
-                now
-        );
-
+        KakaoOAuthPendingLink pendingLink = consumePendingLink(linkToken);
+        linkPendingAccount(memberId, pendingLink);
         return new KakaoOAuthLinkResult(true, PROVIDER.name(), pendingLink.providerUserId());
     }
 
@@ -282,6 +270,31 @@ public class KakaoOAuthService {
                 providerUserId,
                 pendingLink.email(),
                 pendingLink.nickname()
+        );
+    }
+
+    private KakaoOAuthPendingLink consumePendingLink(String linkToken) {
+        return kakaoOAuthAuthorizeStateStore
+                .consumePendingLink(normalizeRequired(linkToken, "linkToken"))
+                .orElseThrow(() -> new IllegalStateException("대기 중인 카카오 연동 토큰을 찾을 수 없습니다."));
+    }
+
+    private void linkPendingAccount(UUID memberId, KakaoOAuthPendingLink pendingLink) {
+        if (memberOauthAccountPersistencePort.existsByProviderAndProviderUserId(PROVIDER, pendingLink.providerUserId())) {
+            throw new IllegalStateException("KAKAO_ALREADY_LINKED_TO_ANOTHER_MEMBER");
+        }
+        if (memberOauthAccountPersistencePort.existsByMemberIdAndProvider(memberId, PROVIDER)) {
+            throw new IllegalStateException("KAKAO_ALREADY_LINKED");
+        }
+        memberPersistencePort.findById(memberId).orElseThrow(InvalidLoginException::new);
+
+        LocalDateTime now = LocalDateTime.now();
+        saveLinkedAccount(
+                memberId,
+                pendingLink.providerUserId(),
+                pendingLink.email(),
+                pendingLink.nickname(),
+                now
         );
     }
 

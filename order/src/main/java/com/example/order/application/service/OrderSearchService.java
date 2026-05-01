@@ -10,13 +10,13 @@ import java.time.LocalDateTime;
 import com.example.order.domain.repository.DeliveryRepository;
 import com.example.order.domain.repository.OrderRepository;
 import com.example.order.presentation.dto.request.PaymentValidationRequest;
+import com.example.order.presentation.dto.response.MemberOrderWithdrawalSummaryResponse;
 import com.example.order.presentation.dto.response.OrderDetailResponse;
 import com.example.order.presentation.dto.response.OrderItemDetailResponse;
 import com.example.order.presentation.dto.response.OrderSummaryResponse;
 import com.example.order.presentation.dto.response.PaymentValidationResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -45,7 +45,25 @@ public class OrderSearchService implements OrderSearchUseCase {
     }
 
     @Override
-    @Cacheable(cacheNames = "order:detail", key = "#orderId + ':' + #memberId")
+    public MemberOrderWithdrawalSummaryResponse getWithdrawalSummary(UUID memberId) {
+        Page<OrderSummaryResponse> orders = findByMemberId(
+                memberId,
+                null,
+                null,
+                null,
+                null,
+                org.springframework.data.domain.PageRequest.of(0, 100)
+        );
+
+        boolean hasActiveOrder = orders.getContent().stream()
+                .map(OrderSummaryResponse::status)
+                .anyMatch(status -> status != com.example.order.domain.enumtype.OrderStatus.COMPLETED
+                        && status != com.example.order.domain.enumtype.OrderStatus.CANCELED);
+
+        return new MemberOrderWithdrawalSummaryResponse(hasActiveOrder);
+    }
+
+    @Override
     public OrderDetailResponse getOrderDetail(UUID orderId, UUID memberId) {
         Order order = orderRepository.findByOrderIdAndBuyerId(orderId, memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));

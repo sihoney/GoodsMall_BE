@@ -57,6 +57,11 @@ public class ProductRepositoryImpl implements ProductRepository {
     }
 
     @Override
+    public boolean existsActiveBySellerId(UUID sellerId) {
+        return jpaRepository.existsBySellerIdAndStatusAndDeletedAtIsNull(sellerId, ProductStatus.ACTIVE);
+    }
+
+    @Override
     public Optional<Product> findById(UUID productId) {
         return jpaRepository.findById(productId);
     }

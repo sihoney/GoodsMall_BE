@@ -11,9 +11,11 @@ import com.example.member.application.port.out.MemberPersistencePort;
 import com.example.member.common.exception.EmailVerificationRequiredException;
 import com.example.member.common.exception.InvalidLoginException;
 import com.example.member.common.exception.MemberRestrictedException;
+import com.example.member.common.exception.MemberWithdrawnException;
 import com.example.member.common.exception.RefreshTokenNotFoundException;
 import com.example.member.domain.entity.Member;
 import com.example.member.domain.entity.MemberRestriction;
+import com.example.member.domain.enumtype.MemberStatus;
 import com.example.member.infrastructure.redis.auth.AuthSession;
 import com.example.member.infrastructure.redis.auth.ParsedAccessToken;
 import com.example.member.infrastructure.redis.auth.ParsedRefreshToken;
@@ -240,6 +242,10 @@ public class AuthService implements AuthUsecase {
     }
 
     private void validateActiveMember(Member member) {
+        if (member.getStatus() == MemberStatus.WITHDRAWN) {
+            throw new MemberWithdrawnException();
+        }
+
         if (!member.isActive()) {
             throw new EmailVerificationRequiredException();
         }

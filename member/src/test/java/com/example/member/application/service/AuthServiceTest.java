@@ -15,6 +15,7 @@ import com.example.member.application.dto.result.AuthSessionListResult;
 import com.example.member.application.dto.result.AuthTokenResult;
 import com.example.member.common.exception.InvalidLoginException;
 import com.example.member.common.exception.MemberRestrictedException;
+import com.example.member.common.exception.MemberWithdrawnException;
 import com.example.member.domain.entity.Member;
 import com.example.member.domain.entity.MemberRestriction;
 import com.example.member.domain.enumtype.MemberStatus;
@@ -178,7 +179,7 @@ class AuthServiceTest {
     }
 
     @Test
-    void refresh_withdrawnMember_throwsIllegalStateException() {
+    void refresh_withdrawnMember_throwsMemberWithdrawnException() {
         Member member = createMember(MemberStatus.WITHDRAWN);
         UUID memberId = member.getMemberId();
         UUID sessionId = UUID.randomUUID();
@@ -192,7 +193,8 @@ class AuthServiceTest {
                 .thenReturn(Optional.of(new AuthSession(memberId, sessionId, "refresh-token-id", java.time.Instant.now(), java.time.Instant.now(), java.time.Instant.now(), null, null)));
         when(memberPersistencePort.findById(memberId)).thenReturn(Optional.of(member));
 
-        assertThrows(com.example.member.common.exception.EmailVerificationRequiredException.class, () -> authService.refresh(command, AuthSessionMetadata.empty()));
+        assertThrows(MemberWithdrawnException.class, () ->
+                authService.refresh(command, AuthSessionMetadata.empty()));
 
         verify(jwtTokenProvider, never()).createAccessToken(eq(member), eq(sessionId));
     }

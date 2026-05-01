@@ -238,8 +238,24 @@ public class Order {
     }
 
     public void cancel(boolean hasReturnItems) {
-        this.status = hasReturnItems ? OrderStatus.PARTIAL_CANCELED : OrderStatus.CANCELED;
+        if (!hasReturnItems) {
+            this.status = OrderStatus.CANCELED;
+            this.updatedAt = LocalDateTime.now();
+            return;
+        }
+        if (isFlowState(this.status)) {
+            this.updatedAt = LocalDateTime.now();
+            return;
+        }
+        this.status = OrderStatus.PARTIAL_CANCELED;
         this.updatedAt = LocalDateTime.now();
+    }
+
+    private boolean isFlowState(OrderStatus status) {
+        return status == OrderStatus.SHIPPING
+                || status == OrderStatus.PARTIAL_SHIPPING
+                || status == OrderStatus.DELIVERED
+                || status == OrderStatus.COMPLETED;
     }
 
     public void markShipping() {
@@ -268,8 +284,16 @@ public class Order {
     public void complete() {
         this.items.stream()
                 .filter(item -> item.getStatus() != OrderItemStatus.CANCELED)
+                .filter(item -> item.getStatus() != OrderItemStatus.RETURN_REQUESTED)
+                .filter(item -> item.getStatus() != OrderItemStatus.COMPLETED)
                 .forEach(OrderItem::complete);
-        this.status = OrderStatus.COMPLETED;
+
+        boolean allTerminal = this.items.stream()
+                .allMatch(item -> item.getStatus() == OrderItemStatus.COMPLETED
+                        || item.getStatus() == OrderItemStatus.CANCELED);
+        if (allTerminal) {
+            this.status = OrderStatus.COMPLETED;
+        }
         this.updatedAt = LocalDateTime.now();
     }
 

@@ -14,7 +14,6 @@ import com.example.order.infrastructure.kafka.KafkaTopics;
 import com.example.order.infrastructure.kafka.event.OrderCompletedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
@@ -33,7 +32,6 @@ public class OrderConfirmService implements OrderConfirmUseCase {
 
     @Override
     @Transactional
-    @CacheEvict(cacheNames = "order:detail", key = "#orderId + ':' + #memberId")
     public void confirm(UUID orderId, UUID memberId) {
         Order order = orderRepository.findByOrderIdAndBuyerId(orderId, memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
@@ -49,7 +47,6 @@ public class OrderConfirmService implements OrderConfirmUseCase {
 
     @Override
     @Transactional
-    @CacheEvict(cacheNames = "order:detail", key = "#orderId + ':' + #memberId")
     public void confirmItem(UUID orderId, UUID orderItemId, UUID memberId) {
         Order order = orderRepository.findByOrderIdAndBuyerId(orderId, memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));

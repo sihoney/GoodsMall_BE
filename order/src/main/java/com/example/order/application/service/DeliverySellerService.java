@@ -70,7 +70,10 @@ public class DeliverySellerService implements DeliverySellerUseCase {
                 : courierRepository.findNamesByCode(codes);
 
         return page.map(delivery ->
-                SellerDeliveryResponse.from(delivery, courierNames.get(delivery.getCourierCode()))
+                SellerDeliveryResponse.from(
+                        delivery,
+                        delivery.getCourierCode() == null ? null : courierNames.get(delivery.getCourierCode())
+                )
         );
     }
 

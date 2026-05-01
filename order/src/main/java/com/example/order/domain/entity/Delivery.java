@@ -122,4 +122,9 @@ public class Delivery {
         this.deliveredAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }
+
+    public void cancel() {
+        this.status = DeliveryStatus.CANCELED;
+        this.updatedAt = LocalDateTime.now();
+    }
 }

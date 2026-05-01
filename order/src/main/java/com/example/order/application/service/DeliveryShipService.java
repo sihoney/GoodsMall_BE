@@ -13,8 +13,6 @@ import com.example.order.presentation.dto.request.DeliveryShipRequest;
 import com.example.order.presentation.dto.response.DeliveryShipResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.Cache;
-import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,7 +26,6 @@ public class DeliveryShipService implements DeliveryShipUseCase {
     private final DeliveryRepository deliveryRepository;
     private final CourierRepository courierRepository;
     private final FakeWebhookTrigger fakeWebhookTrigger;
-    private final CacheManager cacheManager;
 
     @Transactional
     public DeliveryShipResponse startShip(UUID deliveryId, UUID sellerId, DeliveryShipRequest request) {
@@ -48,19 +45,10 @@ public class DeliveryShipService implements DeliveryShipUseCase {
         Order order = delivery.getOrderItem().getOrder();
         order.markShipping();
 
-        evictOrderDetailCache(order.getOrderId(), order.getBuyerId());
-
         log.info("배송 시작 - deliveryId: {}, courier: {}, invoiceNumber: {}", deliveryId, courier.getName(), request.invoiceNumber());
 
         fakeWebhookTrigger.scheduleDeliveryComplete(deliveryId);
 
         return DeliveryShipResponse.from(delivery, courier.getName());
-    }
-
-    private void evictOrderDetailCache(UUID orderId, UUID buyerId) {
-        Cache cache = cacheManager.getCache("order:detail");
-        if (cache != null) {
-            cache.evict(orderId + ":" + buyerId);
-        }
     }
 }
