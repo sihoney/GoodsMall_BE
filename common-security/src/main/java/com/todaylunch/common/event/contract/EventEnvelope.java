@@ -1,6 +1,6 @@
 package com.todaylunch.common.event.contract;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import tools.jackson.annotation.JsonIgnoreProperties;
 import java.time.Instant;
 import java.util.UUID;
 

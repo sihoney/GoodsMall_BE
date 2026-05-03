@@ -9,7 +9,7 @@ import com.example.product.domain.repository.ProductSearchRepository;
 import com.example.product.infrastructure.messaging.kafka.message.ProductCreatedMessage;
 import com.example.product.infrastructure.messaging.kafka.message.ProductDeletedMessage;
 import com.example.product.infrastructure.messaging.kafka.message.ProductUpdatedMessage;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
