@@ -237,13 +237,14 @@ public class Order {
         this.updatedAt = LocalDateTime.now();
     }
 
-    public void cancel(boolean hasReturnItems) {
-        if (!hasReturnItems) {
+    public void cancel(boolean hasRemainingItems) {
+        if (!hasRemainingItems) {
             this.status = OrderStatus.CANCELED;
             this.updatedAt = LocalDateTime.now();
             return;
         }
         if (isFlowState(this.status)) {
+            recomputeFlowStatus();
             this.updatedAt = LocalDateTime.now();
             return;
         }
@@ -258,6 +259,38 @@ public class Order {
                 || status == OrderStatus.COMPLETED;
     }
 
+    private void recomputeFlowStatus() {
+        List<OrderItem> active = this.items.stream()
+                .filter(item -> item.getStatus() != OrderItemStatus.CANCELED)
+                .toList();
+        if (active.isEmpty()) {
+            return;
+        }
+
+        boolean allCompleted = active.stream()
+                .allMatch(item -> item.getStatus() == OrderItemStatus.COMPLETED);
+        if (allCompleted) {
+            this.status = OrderStatus.COMPLETED;
+            return;
+        }
+
+        boolean allDelivered = active.stream()
+                .allMatch(item -> item.getStatus() == OrderItemStatus.DELIVERED
+                        || item.getStatus() == OrderItemStatus.RETURN_REQUESTED
+                        || item.getStatus() == OrderItemStatus.COMPLETED);
+        if (allDelivered) {
+            this.status = OrderStatus.DELIVERED;
+            if (this.deliveredAt == null) {
+                this.deliveredAt = LocalDateTime.now();
+            }
+            return;
+        }
+
+        boolean allShipping = active.stream()
+                .allMatch(item -> item.getStatus() == OrderItemStatus.SHIPPING);
+        this.status = allShipping ? OrderStatus.SHIPPING : OrderStatus.PARTIAL_SHIPPING;
+    }
+
     public void markShipping() {
         boolean allShipping = this.items.stream()
                 .filter(item -> item.getStatus() != OrderItemStatus.CANCELED)
@@ -270,7 +303,9 @@ public class Order {
     public void markDelivered() {
         boolean allDelivered = this.items.stream()
                 .filter(item -> item.getStatus() != OrderItemStatus.CANCELED)
-                .allMatch(item -> item.getStatus() == OrderItemStatus.DELIVERED);
+                .allMatch(item -> item.getStatus() == OrderItemStatus.DELIVERED
+                        || item.getStatus() == OrderItemStatus.RETURN_REQUESTED
+                        || item.getStatus() == OrderItemStatus.COMPLETED);
 
         if (allDelivered) {
             this.status = OrderStatus.DELIVERED;
