@@ -25,6 +25,13 @@ spec:
           env:
             - name: JAVA_TOOL_OPTIONS
               value: "-Xms192m -Xmx384m -Duser.timezone=Asia/Seoul"
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "768Mi"
           envFrom:
             - configMapRef:
                 name: common-config
