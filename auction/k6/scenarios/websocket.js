@@ -10,9 +10,10 @@
  *       STOMP 연결 실패 시 ws-stomp 라이브러리 추가 검토 필요.
  */
 import ws from 'k6/ws';
-import { check, sleep } from 'k6';
+import { check } from 'k6';
 import { Counter, Rate } from 'k6/metrics';
 import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
+import { WS_URL } from '../config/thresholds.js';
 import { SEED_AUCTIONS } from '../helpers/data.js';
 
 const messagesReceived = new Counter('ws_messages_received');
@@ -20,7 +21,6 @@ const connectionErrors = new Rate('ws_connection_error_rate');
 
 const TARGET_CONNECTIONS = parseInt(__ENV.CONNECTIONS || '100');
 const AUCTION_ID = SEED_AUCTIONS.ONGOING;
-const WS_URL = `ws://localhost:8090/api/auctions/ws`;
 
 export const options = {
   scenarios: {

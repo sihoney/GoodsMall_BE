@@ -9,6 +9,7 @@ import com.example.product.domain.entity.ProductImage;
 import com.example.product.domain.repository.ProductImageRepository;
 import com.example.product.domain.repository.ProductRepository;
 import com.example.product.domain.repository.FileStorageRepository;
+import com.example.product.infrastructure.messaging.kafka.ProductOutboxEventService;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ public class ProductImageDeleteService implements ProductImageDeleteUseCase {
     private final ProductRepository productRepository;
     private final ProductImageRepository productImageRepository;
     private final FileStorageRepository fileStorageRepository;
+    private final ProductOutboxEventService productOutboxEventService;
 
     @Override
     public void deleteImage(UUID productId, UUID imageId) {
@@ -66,8 +68,10 @@ public class ProductImageDeleteService implements ProductImageDeleteUseCase {
             ProductImage firstImage = remainingImages.getFirst();
             firstImage.markAsThumbnail();
             productImageRepository.save(firstImage);
+            productOutboxEventService.saveThumbnailChangedEvent(productId, firstImage.getS3Key());
             log.info("Thumbnail reassigned: imageId={}, productId={}", firstImage.getImageId(), productId);
         } else {
+            productOutboxEventService.saveThumbnailChangedEvent(productId, "");
             log.info("No images left for product: productId={}", productId);
         }
     }

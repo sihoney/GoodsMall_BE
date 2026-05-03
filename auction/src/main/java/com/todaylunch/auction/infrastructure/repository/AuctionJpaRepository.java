@@ -45,4 +45,11 @@ public interface AuctionJpaRepository extends JpaRepository<Auction, UUID> {
             """)
     List<Auction> findEndable(LocalDateTime now);
 
+    @Query("""
+            SELECT a
+            FROM Auction a
+            WHERE a.productId = :productId AND a.status IN ('WAITING', 'ONGOING')
+            """)
+    List<Auction> findActiveByProductId(@Param("productId") UUID productId);
+
 }

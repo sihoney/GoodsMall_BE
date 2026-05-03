@@ -47,6 +47,7 @@ public class ProductImageUpdateService implements ProductImageUpdateUseCase {
         productImageRepository.save(newThumbnail);
 
         productOutboxEventService.saveUpdatedEvent(product);
+        productOutboxEventService.saveThumbnailChangedEvent(productId, newThumbnail.getS3Key());
 
         log.info("Thumbnail changed: productId={}, imageId={}", productId, imageId);
     }

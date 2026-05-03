@@ -23,4 +23,6 @@ public interface AuctionRepository {
     List<Auction> findStartable(LocalDateTime now);
 
     List<Auction> findEndable(LocalDateTime now);
+
+    List<Auction> findActiveByProductId(UUID productId);
 }

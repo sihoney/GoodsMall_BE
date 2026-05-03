@@ -6,6 +6,7 @@ import com.example.product.domain.entity.Product;
 import com.example.product.domain.repository.OutboxEventRepository;
 import com.example.product.infrastructure.messaging.kafka.message.ProductCreatedMessage;
 import com.example.product.infrastructure.messaging.kafka.message.ProductDeletedMessage;
+import com.example.product.infrastructure.messaging.kafka.message.ProductThumbnailChangedMessage;
 import com.example.product.infrastructure.messaging.kafka.message.ProductUpdatedMessage;
 import tools.jackson.databind.ObjectMapper;
 import java.time.Instant;
@@ -66,6 +67,21 @@ public class ProductOutboxEventService {
         saveOutboxEvent(product.getProductId(),
                         ProductEventTypes.PRODUCT_UPDATED,
                         KafkaTopics.PRODUCT_UPDATED,
+                        serialize(message));
+    }
+
+    public void saveThumbnailChangedEvent(UUID productId, String thumbnailKey) {
+        String now = Instant.now().toString();
+        ProductThumbnailChangedMessage message = new ProductThumbnailChangedMessage(
+                UUID.randomUUID().toString(),
+                productId.toString(),
+                thumbnailKey,
+                now
+        );
+
+        saveOutboxEvent(productId,
+                        ProductEventTypes.PRODUCT_THUMBNAIL_CHANGED,
+                        KafkaTopics.PRODUCT_THUMBNAIL_CHANGED,
                         serialize(message));
     }
 

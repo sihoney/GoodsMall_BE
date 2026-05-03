@@ -68,6 +68,9 @@ public class ProductImageUploadService implements ProductImageUploadUseCase {
         log.info("ProductImage saved: imageId={}", savedImage.getImageId());
 
         productOutboxEventService.saveUpdatedEvent(product);
+        if (savedImage.isThumbnail()) {
+            productOutboxEventService.saveThumbnailChangedEvent(productId, savedImage.getS3Key());
+        }
 
         return ProductImageResponse.from(savedImage);
     }
