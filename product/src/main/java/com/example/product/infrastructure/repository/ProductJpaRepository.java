@@ -3,6 +3,7 @@ package com.example.product.infrastructure.repository;
 import com.example.product.domain.entity.Product;
 import com.example.product.domain.enumtype.ProductStatus;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -57,4 +58,7 @@ public interface ProductJpaRepository extends JpaRepository<Product, UUID> {
     Optional<Product> findByIdWithLock(@Param("productId") UUID productId);
 
     List<Product> findAllByProductIdIn(List<UUID> productIds);
+
+    @Query("SELECT p.productId FROM Product p WHERE p.updatedAt >= :since AND p.deletedAt IS NULL")
+    List<UUID> findIdsByUpdatedAtAfter(@Param("since") LocalDateTime since);
 }

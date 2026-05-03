@@ -11,12 +11,16 @@ import com.example.product.domain.repository.ProductSearchRepository;
 import com.example.product.infrastructure.elasticsearch.document.ProductDocument;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
@@ -97,6 +101,31 @@ public class ProductSearchRepositoryImpl implements ProductSearchRepository {
             log.error("상품 인덱스 삭제 실패: productId={}, error={}", productId, e.getMessage());
             throw new RuntimeException("상품 인덱스 삭제 실패", e);
         }
+    }
+
+    @Override
+    public Set<UUID> findExistingIds(Collection<UUID> productIds) {
+        if (productIds == null || productIds.isEmpty()) {
+            return new HashSet<>();
+        }
+
+        List<String> stringIds = productIds.stream().map(UUID::toString).toList();
+
+        Query query = Query.of(q -> q.ids(ids -> ids.values(stringIds)));
+
+        NativeQuery nativeQuery = NativeQuery.builder()
+                .withQuery(query)
+                .withPageable(PageRequest.of(0, stringIds.size()))
+                .build();
+
+        SearchHits<ProductDocument> hits = operations.search(
+                nativeQuery, ProductDocument.class, IndexCoordinates.of(INDEX_NAME));
+
+        Set<UUID> existing = new HashSet<>();
+        for (SearchHit<ProductDocument> hit : hits) {
+            existing.add(UUID.fromString(hit.getContent().getProductId()));
+        }
+        return existing;
     }
 
     private List<SortOptions> buildSort(Pageable pageable) {
