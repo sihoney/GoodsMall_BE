@@ -267,6 +267,13 @@ public class Order {
             return;
         }
 
+        boolean allCompleted = active.stream()
+                .allMatch(item -> item.getStatus() == OrderItemStatus.COMPLETED);
+        if (allCompleted) {
+            this.status = OrderStatus.COMPLETED;
+            return;
+        }
+
         boolean allDelivered = active.stream()
                 .allMatch(item -> item.getStatus() == OrderItemStatus.DELIVERED
                         || item.getStatus() == OrderItemStatus.RETURN_REQUESTED
@@ -296,7 +303,9 @@ public class Order {
     public void markDelivered() {
         boolean allDelivered = this.items.stream()
                 .filter(item -> item.getStatus() != OrderItemStatus.CANCELED)
-                .allMatch(item -> item.getStatus() == OrderItemStatus.DELIVERED);
+                .allMatch(item -> item.getStatus() == OrderItemStatus.DELIVERED
+                        || item.getStatus() == OrderItemStatus.RETURN_REQUESTED
+                        || item.getStatus() == OrderItemStatus.COMPLETED);
 
         if (allDelivered) {
             this.status = OrderStatus.DELIVERED;
