@@ -1,6 +1,7 @@
 package com.example.order.presentation.dto.response;
 
 import com.example.order.domain.entity.Order;
+import com.example.order.domain.enumtype.OrderItemStatus;
 import com.example.order.domain.enumtype.OrderStatus;
 
 import java.math.BigDecimal;
@@ -20,6 +21,7 @@ public record OrderDetailResponse(
         String receiverPhone,
         Integer itemCount,
         OrderStatus status,
+        boolean hasOngoingReturn,
         List<OrderItemDetailResponse> items
 ) {
 
@@ -27,6 +29,8 @@ public record OrderDetailResponse(
             Order order,
             List<OrderItemDetailResponse> items
     ) {
+        boolean hasOngoingReturn = items.stream()
+                .anyMatch(item -> item.status() == OrderItemStatus.RETURN_REQUESTED);
         return new OrderDetailResponse(
                 order.getOrderId(),
                 order.getOrderNumber(),
@@ -39,6 +43,7 @@ public record OrderDetailResponse(
                 order.getReceiverPhone(),
                 order.getItemCount(),
                 order.getStatus(),
+                hasOngoingReturn,
                 items
         );
     }
