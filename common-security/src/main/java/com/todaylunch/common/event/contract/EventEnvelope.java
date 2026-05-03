@@ -1,10 +1,8 @@
 package com.todaylunch.common.event.contract;
 
-import tools.jackson.annotation.JsonIgnoreProperties;
 import java.time.Instant;
 import java.util.UUID;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
 public record EventEnvelope<T>(
         UUID eventId,
         String eventType,
