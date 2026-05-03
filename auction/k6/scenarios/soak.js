@@ -16,10 +16,9 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Rate, Counter } from 'k6/metrics';
-import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 import { BASE_URL } from '../config/thresholds.js';
-import { SEED_AUCTIONS, LOAD_TEST_AUCTION_IDS } from '../helpers/data.js';
-import { publicHeaders } from '../helpers/auth.js';
+import { SEED_AUCTIONS, LOAD_TEST_AUCTION_IDS, BASELINE_BIDDER_IDS } from '../helpers/data.js';
+import { publicHeaders, buyerHeaders } from '../helpers/auth.js';
 import { fetchCurrentBidPrice } from '../helpers/bid.js';
 
 const totalErrors = new Counter('soak_total_errors');
@@ -70,19 +69,17 @@ export default function () {
     sleep(0.5);
 
   } else {
-    // 20% 입찰 (현재 최고가 기반 동적 bidPrice)
+    // 20% 입찰 (wallet 보유 시드 입찰자 풀에서 VU별 배정)
+    // 장시간 실행이라 잔액 소진 가능 — 필요 시 refill_wallet.sql 별도 실행
+    const bidderId = BASELINE_BIDDER_IDS[(__VU - 1) % BASELINE_BIDDER_IDS.length];
     const bidPrice = fetchCurrentBidPrice(auctionId);
     if (bidPrice !== null) {
       const res = http.post(
         `${BASE_URL}/api/auctions/${auctionId}/bids`,
         JSON.stringify({ bidPrice }),
         {
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Member-Id': uuidv4(),
-            'X-Member-Role': 'USER',
-            'X-Session-Id': uuidv4(),
-          },
+          headers: buyerHeaders(bidderId),
+          responseCallback: http.expectedStatuses(201, 400, 409, 422),
         }
       );
       const isError = res.status >= 500;

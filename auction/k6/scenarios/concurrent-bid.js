@@ -20,9 +20,9 @@
 import http from 'k6/http';
 import { check } from 'k6';
 import { Counter, Trend } from 'k6/metrics';
-import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 import { BASE_URL } from '../config/thresholds.js';
-import { CONCURRENT_BID_AUCTION_ID } from '../helpers/data.js';
+import { CONCURRENT_BID_AUCTION_ID, BASELINE_BIDDER_IDS } from '../helpers/data.js';
+import { buyerHeaders } from '../helpers/auth.js';
 import { fetchCurrentBidPrice } from '../helpers/bid.js';
 
 const successfulBids = new Counter('successful_bids');
@@ -52,8 +52,10 @@ export const options = {
 };
 
 export default function () {
-  // 각 VU가 고유한 memberId 사용 (같은 최고입찰자 재입찰 금지 정책 우회)
-  const memberId = uuidv4();
+  // VU별 고정 입찰자 — wallet 보유 + 동일 입찰자 충돌 회피 (HIGHEST_BIDDER_CANNOT_REBID 룰 우회)
+  // 풀(30명)을 초과하는 VU 수에서는 modulo로 중복 사용되어 422가 발생할 수 있음
+  // → 락 직렬화 측정의 정확도가 떨어지므로 VUS<=30 권장
+  const bidderId = BASELINE_BIDDER_IDS[(__VU - 1) % BASELINE_BIDDER_IDS.length];
 
   // 현재 최고가 조회 — 여러 VU가 동시에 같은 값을 읽으면 동일 bidPrice 계산 → 락 경합 발생
   const bidPrice = fetchCurrentBidPrice(CONCURRENT_BID_AUCTION_ID);
@@ -66,12 +68,8 @@ export default function () {
     `${BASE_URL}/api/auctions/${CONCURRENT_BID_AUCTION_ID}/bids`,
     JSON.stringify({ bidPrice }),
     {
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Member-Id': memberId,
-        'X-Member-Role': 'USER',
-        'X-Session-Id': uuidv4(),
-      },
+      headers: buyerHeaders(bidderId),
+      responseCallback: http.expectedStatuses(201, 400, 409, 422),
     }
   );
 
