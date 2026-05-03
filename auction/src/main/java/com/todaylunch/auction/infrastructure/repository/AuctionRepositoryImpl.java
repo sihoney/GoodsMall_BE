@@ -54,4 +54,9 @@ public class AuctionRepositoryImpl implements AuctionRepository {
     public boolean existsBySellerIdAndStatus(UUID sellerId, AuctionStatus status) {
         return jpaRepository.existsBySellerIdAndStatus(sellerId, status);
     }
+
+    @Override
+    public List<Auction> findActiveByProductId(UUID productId) {
+        return jpaRepository.findActiveByProductId(productId);
+    }
 }
