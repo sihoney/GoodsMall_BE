@@ -136,13 +136,12 @@ WHERE auction_id IN (
     'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa201'
 );
 
--- 6) current_highest_price 초기화
+-- 6) current_highest_price 초기화 (부하테스트 경매 — 시간 그대로 유지)
 UPDATE auction.auction
 SET current_highest_price = NULL,
     ended_at              = scheduled_close_at,
     updated_at            = NOW()
 WHERE auction_id IN (
-    'eeeeeeee-eeee-eeee-eeee-eeeeeeeee001',
     'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa101',
     'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa102',
     'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa103',
@@ -150,3 +149,13 @@ WHERE auction_id IN (
     'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa105',
     'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa201'
 );
+
+-- 7) smoke 전용 경매 상태 + 시간 리셋 (스케줄러가 만료시켜도 항상 ONGOING으로 복원)
+UPDATE auction.auction
+SET status                = 'ONGOING',
+    current_highest_price = NULL,
+    started_at            = NOW() - INTERVAL '1 hour',
+    scheduled_close_at    = NOW() + INTERVAL '2 day',
+    ended_at              = NOW() + INTERVAL '2 day',
+    updated_at            = NOW()
+WHERE auction_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeee001';

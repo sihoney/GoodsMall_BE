@@ -19,6 +19,7 @@ import com.example.order.domain.repository.DeliveryRepository;
 import com.example.order.domain.repository.OutboxRepository;
 import com.example.order.domain.repository.ReturnRequestRepository;
 import com.example.order.infrastructure.kafka.KafkaTopics;
+import com.example.order.infrastructure.kafka.event.OrderCanceledEvent;
 import com.example.order.infrastructure.kafka.event.OrderReturnCompletedEvent;
 import com.example.order.presentation.dto.request.ReturnInspectRequest;
 import com.example.order.presentation.dto.response.ReturnInspectResponse;
@@ -110,6 +111,7 @@ public class ReturnInspectService implements ReturnInspectUseCase {
         claim.complete();
 
         publishReturnCompletedEvent(order, returnRequest, orderItem, refundResult.refundedAmount());
+        publishCanceledEventForReturn(order, orderItem, refundResult);
 
         return new ReturnInspectResponse(
                 returnRequest.getReturnRequestId(),
@@ -153,6 +155,21 @@ public class ReturnInspectService implements ReturnInspectUseCase {
 
     private boolean isCanceled(OrderItem item) {
         return item.getStatus() == OrderItemStatus.CANCELED;
+    }
+
+    private void publishCanceledEventForReturn(Order order, OrderItem orderItem, PaymentRefundResult refundResult) {
+        try {
+            String payload = objectMapper.writeValueAsString(
+                    OrderCanceledEvent.envelopeOf(order, List.of(orderItem), refundResult.canceledAt())
+            );
+            outboxRepository.save(OutboxEvent.create(
+                    KafkaTopics.ORDER_CANCELED,
+                    order.getOrderId().toString(),
+                    payload
+            ));
+        } catch (Exception e) {
+            log.error("반품 완료 재고 복원 이벤트 저장 실패. orderId={}", order.getOrderId(), e);
+        }
     }
 
     private void publishReturnCompletedEvent(
