@@ -7,8 +7,7 @@ import com.example.product.domain.repository.OutboxEventRepository;
 import com.example.product.infrastructure.messaging.kafka.message.ProductCreatedMessage;
 import com.example.product.infrastructure.messaging.kafka.message.ProductDeletedMessage;
 import com.example.product.infrastructure.messaging.kafka.message.ProductUpdatedMessage;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -107,7 +106,7 @@ public class ProductOutboxEventService {
     private String serialize(Object message) {
         try {
             return objectMapper.writeValueAsString(message);
-        } catch (JsonProcessingException e) {
+        } catch (Exception e) {
             throw new IllegalStateException("Product outbox 이벤트 직렬화에 실패했습니다.", e);
         }
     }
