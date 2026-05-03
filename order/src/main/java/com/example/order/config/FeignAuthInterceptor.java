@@ -1,6 +1,9 @@
 package com.example.order.config;
 
+import com.todaylunch.common.security.auth.constant.AuthHeaders;
 import feign.RequestInterceptor;
+import feign.RequestTemplate;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -8,8 +11,6 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 @Configuration
 public class FeignAuthInterceptor {
-
-    private static final String AUTHORIZATION_HEADER = "Authorization";
 
     @Bean
     public RequestInterceptor authForwardInterceptor() {
@@ -19,10 +20,18 @@ public class FeignAuthInterceptor {
             if (attributes == null) {
                 return;
             }
-            String authHeader = attributes.getRequest().getHeader(AUTHORIZATION_HEADER);
-            if (authHeader != null && !authHeader.isBlank()) {
-                template.header(AUTHORIZATION_HEADER, authHeader);
-            }
+            HttpServletRequest request = attributes.getRequest();
+
+            forward(template, request, AuthHeaders.MEMBER_ID);
+            forward(template, request, AuthHeaders.MEMBER_ROLE);
+            forward(template, request, AuthHeaders.SESSION_ID);
         };
+    }
+
+    private void forward(RequestTemplate template, HttpServletRequest request, String name) {
+        String value = request.getHeader(name);
+        if (value != null && !value.isBlank()) {
+            template.header(name, value);
+        }
     }
 }
