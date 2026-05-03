@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
@@ -63,15 +64,43 @@ public class ProductEsReconciliationJob implements ApplicationRunner {
             return;
         }
 
-        List<UUID> missing = recentIds.stream()
-                .filter(id -> !existing.contains(id))
+        List<Product> recentProducts = productRepository.findAllByProductIdIn(recentIds);
+
+        List<Product> staleInEs = recentProducts.stream()
+                .filter(Product::isDeleted)
+                .filter(p -> existing.contains(p.getProductId()))
                 .toList();
 
-        if (missing.isEmpty()) {
+        Set<UUID> deletedIds = recentProducts.stream()
+                .filter(Product::isDeleted)
+                .map(Product::getProductId)
+                .collect(Collectors.toSet());
+
+        List<UUID> missing = recentIds.stream()
+                .filter(id -> !existing.contains(id))
+                .filter(id -> !deletedIds.contains(id))
+                .toList();
+
+        if (missing.isEmpty() && staleInEs.isEmpty()) {
             return;
         }
 
-        log.warn("ES 동기화 누락 감지: count={}, since={}", missing.size(), since);
+        if (!staleInEs.isEmpty()) {
+            log.warn("ES stale doc 감지(삭제됐는데 ES에 살아있음): count={}, since={}", staleInEs.size(), since);
+        }
+        if (!missing.isEmpty()) {
+            log.warn("ES 동기화 누락 감지: count={}, since={}", missing.size(), since);
+        }
+
+        int removed = 0;
+        for (Product product : staleInEs) {
+            try {
+                productSearchRepository.delete(product.getProductId());
+                removed++;
+            } catch (Exception e) {
+                log.error("ES stale doc 삭제 실패: productId={}", product.getProductId(), e);
+            }
+        }
 
         int recovered = 0;
         for (UUID productId : missing) {
@@ -83,7 +112,8 @@ public class ProductEsReconciliationJob implements ApplicationRunner {
             }
         }
 
-        log.info("ES 재동기화 완료: recovered={}/{}", recovered, missing.size());
+        log.info("ES 재동기화 완료: recovered={}/{}, removed={}/{}",
+                recovered, missing.size(), removed, staleInEs.size());
     }
 
     private void indexOne(UUID productId) {
