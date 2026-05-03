@@ -4,6 +4,7 @@ import com.example.product.domain.entity.Product;
 import com.example.product.domain.entity.ProductImage;
 import com.example.product.domain.enumtype.ProductStatus;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -37,4 +38,6 @@ public interface ProductRepository {
     List<Product> findAllByProductIdIn(List<UUID> productIds);
 
     Optional<ProductImage> findThumbnailImageByProductId(UUID productId);
+
+    List<UUID> findIdsByUpdatedAtAfter(LocalDateTime since);
 }
