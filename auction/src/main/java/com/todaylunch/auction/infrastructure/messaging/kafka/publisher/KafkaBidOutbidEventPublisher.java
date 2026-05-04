@@ -1,7 +1,5 @@
 package com.todaylunch.auction.infrastructure.messaging.kafka.publisher;
 
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
 import com.todaylunch.auction.infrastructure.messaging.kafka.AuctionEventTypes;
 import com.todaylunch.auction.infrastructure.messaging.kafka.KafkaTopics;
 import com.todaylunch.common.event.contract.EventEnvelope;
@@ -11,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 @Slf4j
 @Component

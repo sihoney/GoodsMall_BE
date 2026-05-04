@@ -206,6 +206,13 @@ public class Auction {
         this.updatedAt = now;
     }
 
+    public boolean isHigherThanCurrentBid(BigDecimal bidPrice) {
+        if (this.currentHighestPrice == null) {
+            return bidPrice.compareTo(this.startPrice) >= 0;
+        }
+        return bidPrice.compareTo(this.currentHighestPrice) > 0;
+    }
+
     public void updateHighestPrice(BigDecimal bidPrice) {
         this.currentHighestPrice = bidPrice;
         this.updatedAt = LocalDateTime.now();

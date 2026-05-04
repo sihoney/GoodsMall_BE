@@ -1,19 +1,19 @@
 package com.todaylunch.auction.infrastructure.messaging.kafka.consumer;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willDoNothing;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 
-import com.todaylunch.auction.application.event.BidPlacedEvent;
+import com.todaylunch.auction.application.service.BidConfirmService;
 import com.todaylunch.auction.domain.entity.Auction;
 import com.todaylunch.auction.domain.entity.Bid;
 import com.todaylunch.auction.domain.enumtype.BidStatus;
-import com.todaylunch.auction.domain.repository.AuctionRepository;
 import com.todaylunch.auction.domain.repository.BidRepository;
 import com.todaylunch.auction.infrastructure.messaging.kafka.message.BidFeeChargeCompletedMessage;
-import com.todaylunch.auction.infrastructure.messaging.kafka.publisher.KafkaBidOutbidEventPublisher;
 import com.todaylunch.common.event.contract.EventEnvelope;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -35,11 +35,7 @@ class BidFeeChargeCompletedConsumerTest {
     @Mock
     BidRepository bidRepository;
     @Mock
-    AuctionRepository auctionRepository;
-    @Mock
-    ApplicationEventPublisher applicationEventPublisher;
-    @Mock
-    KafkaBidOutbidEventPublisher bidOutbidEventPublisher;
+    BidConfirmService bidConfirmService;
 
     BidFeeChargeCompletedConsumer consumer;
     ObjectMapper objectMapper;
@@ -49,74 +45,65 @@ class BidFeeChargeCompletedConsumerTest {
     @BeforeEach
     void setUp() {
         objectMapper = JsonMapper.builder().build();
-
-        consumer = new BidFeeChargeCompletedConsumer(bidRepository,
-                                                     auctionRepository,
-                                                     applicationEventPublisher,
-                                                     bidOutbidEventPublisher,
-                                                     objectMapper);
+        consumer = new BidFeeChargeCompletedConsumer(bidRepository, bidConfirmService, objectMapper);
 
         LocalDateTime now = LocalDateTime.now();
-
         auction = Auction.create(UUID.randomUUID(),
-                                 "테스트 상품",
-                                 "test/thumbnail.jpg",
-                                 UUID.randomUUID(),
-                                 new BigDecimal("10000"),
-                                 new BigDecimal("1000"),
-                                 now,
-                                 now.plusHours(1));
+                "테스트 상품",
+                "test/thumbnail.jpg",
+                UUID.randomUUID(),
+                new BigDecimal("10000"),
+                new BigDecimal("1000"),
+                now,
+                now.plusHours(1));
         auction.start();
     }
 
     @Test
-    void PENDING_입찰_수신시_ACTIVE로_전이하고_이벤트_발행() throws Exception {
-        Bid bid = Bid.placePending(auction,
-                                   UUID.randomUUID(),
-                                   new BigDecimal("11000"));
-
-        given(bidRepository.findById(bid.getBidId())).willReturn(Optional.of(bid));
-        given(auctionRepository.findByIdWithLock(auction.getAuctionId())).willReturn(auction);
-        given(bidRepository.findActiveByAuctionId(auction.getAuctionId())).willReturn(Optional.empty());
-
-        consumer.handle(toEnvelopeJson(bid.getBidId(), auction.getAuctionId()));
-
-        assertThat(bid.getStatus()).isEqualTo(BidStatus.ACTIVE);
-        then(applicationEventPublisher).should().publishEvent(any(BidPlacedEvent.class));
-    }
-
-    @Test
-    void 이전_ACTIVE_입찰이_있으면_OUTBID_처리() throws Exception {
-        Bid previousBid = Bid.place(auction,
-                                    UUID.randomUUID(),
-                                    new BigDecimal("11000"));
-
-        Bid newBid = Bid.placePending(auction,
-                                      UUID.randomUUID(),
-                                      new BigDecimal("12000"));
-
-        given(bidRepository.findById(newBid.getBidId())).willReturn(Optional.of(newBid));
-        given(auctionRepository.findByIdWithLock(auction.getAuctionId())).willReturn(auction);
-        given(bidRepository.findActiveByAuctionId(auction.getAuctionId())).willReturn(Optional.of(previousBid));
-
-        consumer.handle(toEnvelopeJson(newBid.getBidId(), auction.getAuctionId()));
-
-        assertThat(newBid.getStatus()).isEqualTo(BidStatus.ACTIVE);
-        assertThat(previousBid.getStatus()).isEqualTo(BidStatus.OUTBID);
-    }
-
-    @Test
-    void PENDING이_아닌_상태면_무시() throws Exception {
-        Bid bid = Bid.place(auction,
-                            UUID.randomUUID(),
-                            new BigDecimal("11000"));
-
+    void PENDING_입찰_수신시_activate_호출() throws Exception {
+        Bid bid = Bid.placePending(auction, UUID.randomUUID(), new BigDecimal("11000"));
         given(bidRepository.findById(bid.getBidId())).willReturn(Optional.of(bid));
 
         consumer.handle(toEnvelopeJson(bid.getBidId(), auction.getAuctionId()));
 
-        assertThat(bid.getStatus()).isEqualTo(BidStatus.ACTIVE);
-        then(applicationEventPublisher).should(never()).publishEvent(any(BidPlacedEvent.class));
+        then(bidConfirmService).should().activate(bid.getBidId());
+    }
+
+    @Test
+    void PENDING이_아닌_상태면_activate_호출_안함() throws Exception {
+        Bid bid = Bid.place(auction, UUID.randomUUID(), new BigDecimal("11000"));
+        given(bidRepository.findById(bid.getBidId())).willReturn(Optional.of(bid));
+
+        consumer.handle(toEnvelopeJson(bid.getBidId(), auction.getAuctionId()));
+
+        then(bidConfirmService).should(never()).activate(any());
+    }
+
+    @Test
+    void 낙관락_충돌시_MAX_RETRY만큼_재시도() throws Exception {
+        Bid bid = Bid.placePending(auction, UUID.randomUUID(), new BigDecimal("11000"));
+        given(bidRepository.findById(bid.getBidId())).willReturn(Optional.of(bid));
+        willThrow(new ObjectOptimisticLockingFailureException(Auction.class, bid.getBidId()))
+                .given(bidConfirmService).activate(bid.getBidId());
+
+        consumer.handle(toEnvelopeJson(bid.getBidId(), auction.getAuctionId()));
+
+        then(bidConfirmService).should(times(3)).activate(bid.getBidId());
+        then(bidConfirmService).should().cancel(bid.getBidId());
+    }
+
+    @Test
+    void 낙관락_충돌_후_성공하면_cancel_호출_안함() throws Exception {
+        Bid bid = Bid.placePending(auction, UUID.randomUUID(), new BigDecimal("11000"));
+        given(bidRepository.findById(bid.getBidId())).willReturn(Optional.of(bid));
+        willThrow(new ObjectOptimisticLockingFailureException(Auction.class, bid.getBidId()))
+                .willDoNothing()
+                .given(bidConfirmService).activate(bid.getBidId());
+
+        consumer.handle(toEnvelopeJson(bid.getBidId(), auction.getAuctionId()));
+
+        then(bidConfirmService).should(times(2)).activate(bid.getBidId());
+        then(bidConfirmService).should(never()).cancel(any());
     }
 
     private String toEnvelopeJson(UUID bidId, UUID auctionId) throws Exception {

@@ -1,7 +1,5 @@
 package com.todaylunch.auction.infrastructure.messaging.kafka.consumer;
 
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
 import com.todaylunch.auction.common.exception.application.BidNotFoundException;
 import com.todaylunch.auction.domain.entity.Bid;
 import com.todaylunch.auction.domain.enumtype.BidStatus;
@@ -18,6 +16,8 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * payment에서 수수료 차감이 실패했을 때 발행하는 이벤트를 소비한다.

@@ -1,7 +1,5 @@
 package com.todaylunch.auction.infrastructure.messaging.kafka.consumer;
 
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
 import com.todaylunch.auction.domain.entity.Auction;
 import com.todaylunch.auction.domain.enumtype.AuctionStatus;
 import com.todaylunch.auction.domain.repository.AuctionRepository;
@@ -13,6 +11,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 @Slf4j
 @Component
