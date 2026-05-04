@@ -11,6 +11,7 @@ CREATE TABLE auction
     scheduled_close_at    TIMESTAMP      NOT NULL,
     ended_at              TIMESTAMP      NOT NULL,
     status                VARCHAR(30)    NOT NULL DEFAULT 'WAITING',
+    version               BIGINT         NOT NULL DEFAULT 0,
     created_at            TIMESTAMP      NOT NULL,
     updated_at            TIMESTAMP      NOT NULL,
 
