@@ -23,9 +23,9 @@ data:
   MAIL_FROM: "no-reply@goods-mall.shop"
   MAIL_FROM_NAME: "Goods Mall"
 
-  EMAIL_VERIFICATION_FRONTEND_URL: "https://goodsmall.vercel.app/email-verification"
+  EMAIL_VERIFICATION_FRONTEND_URL: "https://www.goods-mall.shop/email-verification"
 
-  PASSWORD_RESET_FRONTEND_URL: "https://goodsmall.vercel.app/password-reset"
+  PASSWORD_RESET_FRONTEND_URL: "https://www.goods-mall.shop/password-reset"
 
   KAKAO_REDIRECT_URI: "http://3.36.235.7/api/auth/oauth/kakao/callback"
   KAKAO_CLIENT_ID: "40bcc2744d37da5ed008a7a22fe45b7a"

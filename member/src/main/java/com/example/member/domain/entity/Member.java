@@ -149,6 +149,11 @@ public class Member {
         this.updatedAt = Objects.requireNonNull(updatedAt);
     }
 
+    public void withdraw(String anonymizedEmail, LocalDateTime updatedAt) {
+        this.email = Objects.requireNonNull(anonymizedEmail);
+        changeStatus(MemberStatus.WITHDRAWN, updatedAt);
+    }
+
     public void changeStatus(MemberStatus status, LocalDateTime updatedAt) {
         MemberStatus nextStatus = Objects.requireNonNull(status);
         validateStatusTransition(nextStatus);

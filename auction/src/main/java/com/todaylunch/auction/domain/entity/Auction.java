@@ -178,6 +178,11 @@ public class Auction {
         this.currentHighestPrice = previousHighestPrice;
     }
 
+    public void updateThumbnailKey(String newThumbnailKey) {
+        this.thumbnailKey = newThumbnailKey == null ? "" : newThumbnailKey;
+        this.updatedAt = LocalDateTime.now();
+    }
+
     public void validatePendingBid(UUID bidderId, BigDecimal bidPrice, LocalDateTime now, UUID currentHighestBidderId) {
         if (this.status != AuctionStatus.ONGOING) {
             throw new AuctionNotOngoingException();

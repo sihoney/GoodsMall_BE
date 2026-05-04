@@ -13,10 +13,9 @@
 import http from 'k6/http';
 import { check } from 'k6';
 import { Counter, Rate, Trend } from 'k6/metrics';
-import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 import { BASE_URL } from '../config/thresholds.js';
-import { SEED_AUCTIONS, LOAD_TEST_AUCTION_IDS } from '../helpers/data.js';
-import { publicHeaders } from '../helpers/auth.js';
+import { SEED_AUCTIONS, LOAD_TEST_AUCTION_IDS, BASELINE_BIDDER_IDS } from '../helpers/data.js';
+import { publicHeaders, buyerHeaders } from '../helpers/auth.js';
 import { fetchCurrentBidPrice } from '../helpers/bid.js';
 
 // 5xx 전체 비율 — 한계점 판정용 (5% 초과 구간이 실질적 한계점)
@@ -79,19 +78,18 @@ export default function () {
     check(res, { 'detail ok': (r) => r.status < 500 });
 
   } else {
-    // 30% 입찰 (현재 최고가 기반 동적 bidPrice)
+    // 30% 입찰 (wallet 보유 시드 입찰자 풀에서 VU별 배정)
+    // 200 VU > 풀 30명: 동일 입찰자가 여러 VU에 할당되어 422가 자주 나오나
+    // stress는 한계점 탐색이라 도메인 충돌도 부하의 일부로 간주
+    const bidderId = BASELINE_BIDDER_IDS[(__VU - 1) % BASELINE_BIDDER_IDS.length];
     const bidPrice = fetchCurrentBidPrice(auctionId);
     if (bidPrice !== null) {
       const res = http.post(
         `${BASE_URL}/api/auctions/${auctionId}/bids`,
         JSON.stringify({ bidPrice }),
         {
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Member-Id': uuidv4(),
-            'X-Member-Role': 'USER',
-            'X-Session-Id': uuidv4(),
-          },
+          headers: buyerHeaders(bidderId),
+          responseCallback: http.expectedStatuses(201, 400, 409, 422),
         }
       );
       bidTrend.add(res.timings.duration);

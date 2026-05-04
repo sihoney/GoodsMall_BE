@@ -9,6 +9,7 @@ public record CreateMemberCommand(
         String phone,
         String address,
         String profileImageKey,
-        MemberRole role
+        MemberRole role,
+        String kakaoLinkToken
 ) {
 }

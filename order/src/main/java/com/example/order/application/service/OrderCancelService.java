@@ -6,22 +6,29 @@ import com.example.order.application.usecase.OrderCancelUseCase;
 import com.example.order.common.exception.CustomException;
 import com.example.order.common.exception.ErrorCode;
 import com.example.order.domain.entity.Claim;
+import com.example.order.domain.entity.Delivery;
 import com.example.order.domain.entity.Order;
 import com.example.order.domain.entity.OrderItem;
 import com.example.order.domain.entity.OutboxEvent;
+import com.example.order.domain.entity.ReturnRequest;
 import com.example.order.domain.enumtype.ClaimType;
+import com.example.order.domain.enumtype.OrderItemStatus;
 import com.example.order.domain.enumtype.PaymentStatus;
+import com.example.order.domain.enumtype.PickupType;
+import com.example.order.domain.enumtype.ResponsibilityType;
 import com.example.order.domain.repository.ClaimRepository;
+import com.example.order.domain.repository.DeliveryRepository;
 import com.example.order.domain.repository.OrderRepository;
 import com.example.order.domain.repository.OutboxRepository;
+import com.example.order.domain.repository.ReturnRequestRepository;
 import com.example.order.infrastructure.kafka.KafkaTopics;
 import com.example.order.infrastructure.kafka.event.OrderCanceledEvent;
 import com.example.order.infrastructure.kafka.event.OrderReturnRequestedEvent;
+import com.example.order.presentation.dto.request.ClaimItemRequest;
 import com.example.order.presentation.dto.request.OrderCancelRequest;
 import com.example.order.presentation.dto.response.OrderCancelResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
@@ -33,6 +40,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -41,42 +49,64 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class OrderCancelService implements OrderCancelUseCase {
 
+    private static final String MOCK_CARRIER = "MOCK_CARRIER";
+    private static final String MOCK_RETURN_ADDRESS = "TBD";
+
     private final OrderRepository orderRepository;
     private final ClaimRepository claimRepository;
+    private final ReturnRequestRepository returnRequestRepository;
+    private final DeliveryRepository deliveryRepository;
     private final PaymentProcessor paymentProcessor;
     private final OutboxRepository outboxRepository;
     private final ObjectMapper objectMapper;
 
     @Override
     @Transactional
-    @CacheEvict(cacheNames = "order:detail", key = "#orderId + ':' + #memberId")
     public OrderCancelResponse cancelOrder(UUID orderId, UUID memberId, OrderCancelRequest request) {
         Order order = findOrder(orderId);
         validateOrderOwner(order, memberId);
 
-        Map<Boolean, List<OrderItem>> partitioned = partitionItems(order);
-        List<OrderItem> canceledItems = partitioned.get(true);
-        List<OrderItem> returnItems = partitioned.get(false);
+        Map<UUID, OrderItem> itemMap = toItemMap(order);
+        List<RequestedItem> requested = resolveRequestedItems(request.items(), itemMap);
 
-        order.cancel(!returnItems.isEmpty());
-        saveClaims(canceledItems, returnItems, request);
+        List<RequestedItem> toCancel = filterCancelable(requested);
+        List<RequestedItem> toReturn = filterReturnable(requested);
 
-        if (!returnItems.isEmpty()) {
-            publishReturnRequestedEvent(order, returnItems);
-        }
+        validateReturnNotDuplicated(toReturn);
+
+        List<OrderItem> canceledItems = applyCancel(toCancel);
+        applyReturnRequest(toReturn);
+
+        List<Claim> claims = new ArrayList<>(buildClaims(toCancel, ClaimType.CANCEL, request, request.requesterType().toResponsibility()));
+        claims.addAll(buildClaims(toReturn, ClaimType.RETURN, request, null));
+        claimRepository.saveAll(claims);
+
+        List<ReturnRequest> returnRequests = createReturnRequestsWithMockPickup(toReturn, claims);
+        returnRequestRepository.saveAll(returnRequests);
+
+        BigDecimal refundedAmount = BigDecimal.ZERO;
+        LocalDateTime processedAt = LocalDateTime.now();
 
         if (!canceledItems.isEmpty()) {
-            PaymentRefundResult refundResult = paymentProcessor.refund(order, canceledItems, returnItems, request.reason());
+            order.cancel(hasRemainingItems(order));
+            PaymentRefundResult refundResult = paymentProcessor.refund(order, canceledItems, firstReason(toCancel));
             validateRefundResult(refundResult);
+            refundedAmount = refundResult.refundedAmount();
+            processedAt = LocalDateTime.ofInstant(refundResult.canceledAt(), ZoneId.systemDefault());
             publishCanceledEvent(order, canceledItems, refundResult);
-            return new OrderCancelResponse(
-                    order.getOrderId(),
-                    refundResult.refundedAmount(),
-                    LocalDateTime.ofInstant(refundResult.canceledAt(), ZoneId.systemDefault())
-            );
         }
 
-        return new OrderCancelResponse(order.getOrderId(), BigDecimal.ZERO, LocalDateTime.now());
+        if (!toReturn.isEmpty()) {
+            publishReturnRequestedEvent(order, toReturn.stream().map(RequestedItem::item).toList());
+        }
+
+        return new OrderCancelResponse(
+                order.getOrderId(),
+                refundedAmount,
+                canceledItems.size(),
+                toReturn.size(),
+                processedAt
+        );
     }
 
     private Order findOrder(UUID orderId) {
@@ -90,35 +120,128 @@ public class OrderCancelService implements OrderCancelUseCase {
         }
     }
 
+    private Map<UUID, OrderItem> toItemMap(Order order) {
+        return order.getItems().stream()
+                .collect(Collectors.toMap(OrderItem::getOrderItemId, Function.identity()));
+    }
+
+    private List<RequestedItem> resolveRequestedItems(List<ClaimItemRequest> requests, Map<UUID, OrderItem> itemMap) {
+        return requests.stream()
+                .map(req -> {
+                    OrderItem item = itemMap.get(req.orderItemId());
+                    if (item == null) {
+                        throw new CustomException(ErrorCode.ORDER_ITEM_NOT_FOUND);
+                    }
+                    log.info("[cancelOrder] requested orderItemId={}, status={}, canCancel={}, canReturn={}",
+                            item.getOrderItemId(), item.getStatus(), item.canCancel(), item.canReturn());
+                    if (!item.canCancel() && !item.canReturn()) {
+                        throw new CustomException(ErrorCode.ORDER_ITEM_NOT_CLAIMABLE);
+                    }
+                    return new RequestedItem(item, req.reason(), req.detailReason());
+                })
+                .toList();
+    }
+
+    private List<RequestedItem> filterCancelable(List<RequestedItem> requested) {
+        return requested.stream()
+                .filter(r -> r.item().canCancel())
+                .toList();
+    }
+
+    private List<RequestedItem> filterReturnable(List<RequestedItem> requested) {
+        return requested.stream()
+                .filter(r -> r.item().canReturn())
+                .toList();
+    }
+
+    private void validateReturnNotDuplicated(List<RequestedItem> toReturn) {
+        for (RequestedItem r : toReturn) {
+            if (returnRequestRepository.existsActiveByOrderItemId(r.item().getOrderItemId())) {
+                log.warn("[cancelOrder] RETURN_ALREADY_REQUESTED blocked. orderItemId={}, itemStatus={}",
+                        r.item().getOrderItemId(), r.item().getStatus());
+                throw new CustomException(ErrorCode.RETURN_ALREADY_REQUESTED);
+            }
+        }
+    }
+
+    private List<OrderItem> applyCancel(List<RequestedItem> toCancel) {
+        return toCancel.stream()
+                .peek(r -> {
+                    r.item().cancel();
+                    cancelDelivery(r.item().getOrderItemId());
+                })
+                .map(RequestedItem::item)
+                .toList();
+    }
+
+    private void cancelDelivery(UUID orderItemId) {
+        deliveryRepository.findByOrderItemId(orderItemId).ifPresent(Delivery::cancel);
+    }
+
+    private void applyReturnRequest(List<RequestedItem> toReturn) {
+        toReturn.forEach(r -> r.item().requestReturn());
+    }
+
+    private boolean hasRemainingItems(Order order) {
+        return order.getItems().stream()
+                .anyMatch(item -> item.getStatus() != OrderItemStatus.CANCELED);
+    }
+
+    private List<Claim> buildClaims(
+            List<RequestedItem> requested,
+            ClaimType type,
+            OrderCancelRequest request,
+            ResponsibilityType responsibilityType
+    ) {
+        return requested.stream()
+                .map(r -> Claim.create(
+                        r.item(),
+                        r.item().getSellerId(),
+                        type,
+                        r.reason(),
+                        r.detailReason(),
+                        request.requesterType(),
+                        responsibilityType
+                ))
+                .toList();
+    }
+
+    private List<ReturnRequest> createReturnRequestsWithMockPickup(List<RequestedItem> toReturn, List<Claim> claims) {
+        Map<UUID, Claim> claimByOrderItemId = claims.stream()
+                .filter(c -> c.getType() == ClaimType.RETURN)
+                .collect(Collectors.toMap(c -> c.getOrderItem().getOrderItemId(), Function.identity()));
+
+        return toReturn.stream()
+                .map(r -> {
+                    Claim claim = claimByOrderItemId.get(r.item().getOrderItemId());
+                    ReturnRequest returnRequest = ReturnRequest.create(
+                            claim,
+                            r.item(),
+                            r.item().getSellerId(),
+                            PickupType.PICKUP_REQUEST,
+                            MOCK_RETURN_ADDRESS
+                    );
+                    // TODO: 실제 운영에선 carrier API 연동으로 송장 발급 + 상태 전이
+                    returnRequest.registerTracking(MOCK_CARRIER, generateMockTrackingNumber());
+                    returnRequest.requestPickup();
+                    returnRequest.confirmPickup();
+                    return returnRequest;
+                })
+                .toList();
+    }
+
+    private String generateMockTrackingNumber() {
+        return "MOCK-" + UUID.randomUUID().toString().substring(0, 12).toUpperCase();
+    }
+
+    private String firstReason(List<RequestedItem> items) {
+        return items.isEmpty() ? "" : items.get(0).reason();
+    }
+
     private void validateRefundResult(PaymentRefundResult refundResult) {
         if (refundResult.status() != PaymentStatus.SUCCESS) {
             throw new CustomException(ErrorCode.REFUND_FAILED);
         }
-    }
-
-    private Map<Boolean, List<OrderItem>> partitionItems(Order order) {
-        return order.getItems().stream()
-                .collect(Collectors.partitioningBy(OrderItem::cancel));
-    }
-
-    private void saveClaims(List<OrderItem> canceledItems, List<OrderItem> returnItems, OrderCancelRequest request) {
-        List<Claim> claimsToSave = new ArrayList<>();
-        claimsToSave.addAll(buildClaims(canceledItems, ClaimType.CANCEL, request));
-        claimsToSave.addAll(buildClaims(returnItems, ClaimType.RETURN, request));
-        claimRepository.saveAll(claimsToSave);
-    }
-
-    private List<Claim> buildClaims(List<OrderItem> items, ClaimType claimType, OrderCancelRequest request) {
-        return items.stream()
-                .map(item -> Claim.create(
-                        item,
-                        item.getSellerId(),
-                        claimType,
-                        request.reason(),
-                        request.detailReason(),
-                        request.requesterType()
-                ))
-                .toList();
     }
 
     private void publishCanceledEvent(Order order, List<OrderItem> canceledItems, PaymentRefundResult refundResult) {
@@ -137,5 +260,8 @@ public class OrderCancelService implements OrderCancelUseCase {
         } catch (Exception e) {
             log.error("OrderReturnRequestedEvent Outbox 저장 실패. orderId={}", order.getOrderId(), e);
         }
+    }
+
+    private record RequestedItem(OrderItem item, String reason, String detailReason) {
     }
 }

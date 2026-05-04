@@ -13,6 +13,7 @@ import com.example.member.application.port.in.AuthUsecase;
 import com.example.member.application.port.in.MemberUsecase;
 import com.example.member.application.port.out.MemberWithdrawalCheckPort;
 import com.example.member.application.port.out.MemberEventPort;
+import com.example.member.application.port.out.MemberOauthAccountPersistencePort;
 import com.example.member.application.port.out.MemberPersistencePort;
 import com.example.member.application.port.out.ProfileImageUrlPort;
 import com.example.member.common.exception.DuplicateMemberEmailException;
@@ -21,9 +22,11 @@ import com.example.member.common.exception.MemberWithdrawalException;
 import com.example.member.common.exception.MemberNotFoundException;
 import com.example.member.config.MemberSignupProperties;
 import com.example.member.domain.entity.Member;
+import com.example.member.domain.entity.MemberOauthAccount;
 import com.example.member.domain.enumtype.MemberStatus;
 import com.todaylunch.common.security.auth.enumtype.MemberRole;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -40,8 +43,10 @@ public class MemberService implements MemberUsecase {
     private final PasswordEncoder passwordEncoder;
     private final MemberEventPort memberEventPort;
     private final MemberWithdrawalCheckPort memberWithdrawalCheckPort;
+    private final MemberOauthAccountPersistencePort memberOauthAccountPersistencePort;
     private final ProfileImageUrlPort profileImageUrlPort;
     private final EmailVerificationService emailVerificationService;
+    private final KakaoOAuthService kakaoOAuthService;
     private final MemberSignupProperties memberSignupProperties;
     private final AuthUsecase authUsecase;
 
@@ -75,6 +80,7 @@ public class MemberService implements MemberUsecase {
         );
 
         Member savedMember = memberPersistencePort.save(member);
+        linkPendingKakaoAccountIfPresent(savedMember.getMemberId(), command.kakaoLinkToken());
         if (memberSignupProperties.requireEmailVerification()) {
             emailVerificationService.createSignupVerification(savedMember);
         }
@@ -166,7 +172,8 @@ public class MemberService implements MemberUsecase {
         }
 
         LocalDateTime withdrawnAt = LocalDateTime.now();
-        member.changeStatus(MemberStatus.WITHDRAWN, withdrawnAt);
+        deleteOauthAccounts(member.getMemberId());
+        member.withdraw(createWithdrawnEmail(member), withdrawnAt);
         authUsecase.logoutAllSessions(normalizeRequired(command.authorizationHeader(), "authorizationHeader"));
 
         return new WithdrawMemberResult(
@@ -274,6 +281,24 @@ public class MemberService implements MemberUsecase {
 
     private String resolveProfileImageUrl(Member member) {
         return profileImageUrlPort.resolve(member.getProfileImageKey());
+    }
+
+    private String createWithdrawnEmail(Member member) {
+        return "withdrawn+" + member.getMemberId() + "@deleted.local";
+    }
+
+    private void deleteOauthAccounts(UUID memberId) {
+        List<MemberOauthAccount> oauthAccounts = memberOauthAccountPersistencePort.findAllByMemberId(memberId);
+        oauthAccounts.forEach(memberOauthAccountPersistencePort::delete);
+    }
+
+    private void linkPendingKakaoAccountIfPresent(UUID memberId, String kakaoLinkToken) {
+        String normalizedLinkToken = normalizeNullable(kakaoLinkToken);
+        if (normalizedLinkToken == null) {
+            return;
+        }
+
+        kakaoOAuthService.linkPendingSignupMember(memberId, normalizedLinkToken);
     }
 
     private CreateMemberResult toCreateMemberResult(Member member) {

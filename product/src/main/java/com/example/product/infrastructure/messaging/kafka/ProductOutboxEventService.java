@@ -6,9 +6,9 @@ import com.example.product.domain.entity.Product;
 import com.example.product.domain.repository.OutboxEventRepository;
 import com.example.product.infrastructure.messaging.kafka.message.ProductCreatedMessage;
 import com.example.product.infrastructure.messaging.kafka.message.ProductDeletedMessage;
+import com.example.product.infrastructure.messaging.kafka.message.ProductThumbnailChangedMessage;
 import com.example.product.infrastructure.messaging.kafka.message.ProductUpdatedMessage;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -70,6 +70,21 @@ public class ProductOutboxEventService {
                         serialize(message));
     }
 
+    public void saveThumbnailChangedEvent(UUID productId, String thumbnailKey) {
+        String now = Instant.now().toString();
+        ProductThumbnailChangedMessage message = new ProductThumbnailChangedMessage(
+                UUID.randomUUID().toString(),
+                productId.toString(),
+                thumbnailKey,
+                now
+        );
+
+        saveOutboxEvent(productId,
+                        ProductEventTypes.PRODUCT_THUMBNAIL_CHANGED,
+                        KafkaTopics.PRODUCT_THUMBNAIL_CHANGED,
+                        serialize(message));
+    }
+
     public void saveDeletedEvent(Product product) {
         String sourceUpdatedAt = formatNullable(product.getUpdatedAt());
         String now = Instant.now().toString();
@@ -107,7 +122,7 @@ public class ProductOutboxEventService {
     private String serialize(Object message) {
         try {
             return objectMapper.writeValueAsString(message);
-        } catch (JsonProcessingException e) {
+        } catch (Exception e) {
             throw new IllegalStateException("Product outbox 이벤트 직렬화에 실패했습니다.", e);
         }
     }

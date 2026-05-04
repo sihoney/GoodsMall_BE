@@ -22,7 +22,9 @@ CREATE TABLE order_service.order_items
                                   'PREPARING',
                                   'SHIPPING',
                                   'DELIVERED',
-                                  'CANCELED'
+                                  'COMPLETED',
+                                  'CANCELED',
+                                  'RETURN_REQUESTED'
                 )
             )
 );

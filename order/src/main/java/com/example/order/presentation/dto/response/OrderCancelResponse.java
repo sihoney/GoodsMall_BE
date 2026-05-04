@@ -7,6 +7,8 @@ import java.util.UUID;
 public record OrderCancelResponse(
         UUID orderId,
         BigDecimal refundedAmount,
-        LocalDateTime canceledAt
+        int canceledItemCount,
+        int returnRequestedItemCount,
+        LocalDateTime processedAt
 ) {
 }

@@ -1,6 +1,7 @@
 package com.example.order.presentation.dto.response;
 
 import com.example.order.domain.entity.Order;
+import com.example.order.domain.enumtype.OrderItemStatus;
 import com.example.order.domain.enumtype.OrderStatus;
 import com.example.order.domain.enumtype.OrderType;
 
@@ -17,13 +18,16 @@ public record OrderSummaryResponse(
         LocalDateTime createdAt,
         String representativeProductName,
         String representativeThumbnailKey,
-        Integer itemCount
+        Integer itemCount,
+        boolean hasOngoingReturn
 ) {
     public static OrderSummaryResponse from(Order order, String s3BaseUrl) {
         String thumbnailKey = order.getRepresentativeThumbnailKey();
         String thumbnailUrl = (thumbnailKey != null && !thumbnailKey.isBlank())
                 ? s3BaseUrl + "/" + thumbnailKey
                 : null;
+        boolean hasOngoingReturn = order.getItems().stream()
+                .anyMatch(item -> item.getStatus() == OrderItemStatus.RETURN_REQUESTED);
         return new OrderSummaryResponse(
                 order.getOrderId(),
                 order.getOrderNumber(),
@@ -33,6 +37,7 @@ public record OrderSummaryResponse(
                 order.getCreatedAt(),
                 order.getRepresentativeProductName(),
                 thumbnailUrl,
-                order.getItemCount());
+                order.getItemCount(),
+                hasOngoingReturn);
     }
 }

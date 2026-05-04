@@ -5,6 +5,7 @@ import com.example.product.domain.entity.ProductImage;
 import com.example.product.domain.enumtype.ProductStatus;
 import com.example.product.domain.repository.ProductRepository;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -79,5 +80,10 @@ public class ProductRepositoryImpl implements ProductRepository {
     @Override
     public Optional<ProductImage> findThumbnailImageByProductId(UUID productId) {
         return imageJpaRepository.findThumbnailByProductId(productId);
+    }
+
+    @Override
+    public List<UUID> findIdsByUpdatedAtAfter(LocalDateTime since) {
+        return jpaRepository.findIdsByUpdatedAtAfter(since);
     }
 }

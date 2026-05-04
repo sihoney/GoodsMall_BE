@@ -98,6 +98,11 @@ spring:
               predicates:
                 - Path=/api/deliveries/**
 
+            - id: order-return-request-service
+              uri: http://order:8084
+              predicates:
+                - Path=/api/return-requests/**
+
             - id: payment-service
               uri: http://payment:8082
               predicates:
@@ -197,6 +202,7 @@ gateway:
       - /api/auth/oauth/kakao/result
       - /api/auth/email-verifications
       - /api/auth/email-verifications/confirm
+      - /api/auth/email-verifications/auto-login
       - /api/auth/profile-images/presign
       - /api/auctions/ws
       - /swagger/**
@@ -269,6 +275,9 @@ gateway:
       - methods: [GET]
         pattern: /api/deliveries/**
         allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [GET, POST]
+        pattern: /api/return-requests/**
+        allowed-roles: [SELLER, ADMIN]
       - methods: [GET, POST]
         pattern: /api/payments/**
         allowed-roles: [USER, SELLER, ADMIN]

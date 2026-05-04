@@ -23,6 +23,8 @@ import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -74,7 +76,7 @@ public class OrderController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-            @ParameterObject Pageable pageable
+            @ParameterObject @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         UUID memberId = authenticatedMember.memberId();
         LocalDateTime startDateTime = startDate != null ? startDate.atStartOfDay() : null;
@@ -131,22 +133,22 @@ public class OrderController {
     }
 
     @PostMapping("/auction/deposit")
-    public ResponseEntity<Void> acceptAuctionWinByDeposit(
+    public ResponseEntity<ApiResponse<OrderCreateResponse>> acceptAuctionWinByDeposit(
             @CurrentMember AuthenticatedMember authenticatedMember,
             @Valid @RequestBody AuctionWinAcceptRequest request
     ) {
         UUID memberId = authenticatedMember.memberId();
-        auctionWinAcceptUseCase.acceptWinByDeposit(memberId, request);
-        return ResponseEntity.noContent().build();
+        OrderCreateResponse response = auctionWinAcceptUseCase.acceptWinByDeposit(memberId, request);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @PostMapping("/auction/pg")
-    public ResponseEntity<Void> acceptAuctionWinByPg(
+    public ResponseEntity<ApiResponse<OrderCreateResponse>> acceptAuctionWinByPg(
             @CurrentMember AuthenticatedMember authenticatedMember,
             @Valid @RequestBody AuctionWinAcceptRequest request
     ) {
         UUID memberId = authenticatedMember.memberId();
-        auctionWinAcceptUseCase.acceptWinByPg(memberId, request);
-        return ResponseEntity.noContent().build();
+        OrderCreateResponse response = auctionWinAcceptUseCase.acceptWinByPg(memberId, request);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

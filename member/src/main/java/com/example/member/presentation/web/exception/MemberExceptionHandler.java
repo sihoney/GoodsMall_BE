@@ -14,6 +14,7 @@ import com.example.member.common.exception.ExpiredAccountVerificationException;
 import com.example.member.common.exception.ExpiredEmailVerificationException;
 import com.example.member.common.exception.InvalidAccountVerificationCodeException;
 import com.example.member.common.exception.InvalidCurrentPasswordException;
+import com.example.member.common.exception.InvalidEmailVerificationAutoLoginTokenException;
 import com.example.member.common.exception.InvalidEmailVerificationTokenException;
 import com.example.member.common.exception.InvalidLoginException;
 import com.example.member.common.exception.InvalidPasswordResetTokenException;
@@ -23,6 +24,7 @@ import com.example.member.common.exception.MemberOauthAccountNotFoundException;
 import com.example.member.common.exception.MemberReportNotFoundException;
 import com.example.member.common.exception.MemberRestrictedException;
 import com.example.member.common.exception.MemberRestrictionNotFoundException;
+import com.example.member.common.exception.MemberWithdrawnException;
 import com.example.member.common.exception.MemberWithdrawalException;
 import com.example.member.common.exception.RefreshTokenNotFoundException;
 import com.example.member.common.exception.SelfReportNotAllowedException;
@@ -112,6 +114,14 @@ public class MemberExceptionHandler {
                 .body(ApiResponse.fail("EMAIL_VERIFICATION_TOKEN_INVALID", exception.getMessage()));
     }
 
+    @ExceptionHandler(InvalidEmailVerificationAutoLoginTokenException.class)
+    public ResponseEntity<ApiResponse<Object>> handleInvalidEmailVerificationAutoLoginToken(
+            InvalidEmailVerificationAutoLoginTokenException exception
+    ) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.fail("EMAIL_VERIFICATION_AUTO_LOGIN_TOKEN_INVALID", exception.getMessage()));
+    }
+
     @ExceptionHandler(ExpiredEmailVerificationException.class)
     public ResponseEntity<ApiResponse<Object>> handleExpiredEmailVerification(
             ExpiredEmailVerificationException exception
@@ -138,6 +148,12 @@ public class MemberExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleMemberRestricted(MemberRestrictedException exception) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(ApiResponse.fail("MEMBER_RESTRICTED", exception.getMessage()));
+    }
+
+    @ExceptionHandler(MemberWithdrawnException.class)
+    public ResponseEntity<ApiResponse<Object>> handleMemberWithdrawn(MemberWithdrawnException exception) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.fail("MEMBER_WITHDRAWN", exception.getMessage()));
     }
 
     @ExceptionHandler(MemberWithdrawalException.class)

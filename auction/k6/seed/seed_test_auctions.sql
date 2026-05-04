@@ -65,10 +65,13 @@ VALUES
         NOW() - INTERVAL '1 day'
     )
 ON CONFLICT (auction_id) DO UPDATE
-    SET product_title = EXCLUDED.product_title,
-        thumbnail_key = EXCLUDED.thumbnail_key,
-        status        = EXCLUDED.status,
-        updated_at    = NOW();
+    SET product_title      = EXCLUDED.product_title,
+        thumbnail_key      = EXCLUDED.thumbnail_key,
+        status             = EXCLUDED.status,
+        started_at         = EXCLUDED.started_at,
+        scheduled_close_at = EXCLUDED.scheduled_close_at,
+        ended_at           = EXCLUDED.ended_at,
+        updated_at         = NOW();
 
 -- 확인
 SELECT auction_id, product_title, thumbnail_key, status
