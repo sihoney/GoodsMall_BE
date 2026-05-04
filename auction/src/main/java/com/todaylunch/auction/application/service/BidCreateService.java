@@ -44,13 +44,14 @@ public class BidCreateService implements BidCreateUseCase {
     @Override
     public BidResponse place(UUID auctionId, UUID bidderId, BidPlaceRequest request) {
 
-        Auction auction = auctionRepository.findByIdWithLock(auctionId);
+        Auction auction = auctionRepository.findById(auctionId);
 
         if (bidRepository.findPendingByAuctionId(auctionId).isPresent()) {
             throw new BidAlreadyPendingException();
         }
 
         Optional<Bid> previousBid = bidRepository.findActiveByAuctionId(auctionId);
+
         auction.validatePendingBid(bidderId,
                                    request.bidPrice(),
                                    LocalDateTime.now(),

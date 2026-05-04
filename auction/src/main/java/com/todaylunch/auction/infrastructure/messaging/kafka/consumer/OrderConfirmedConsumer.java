@@ -33,7 +33,7 @@ public class OrderConfirmedConsumer {
             return;
         }
 
-        Auction auction = auctionRepository.findByIdWithLock(message.auctionId());
+        Auction auction = auctionRepository.findById(message.auctionId());
 
         if (auction.getStatus() != AuctionStatus.PENDING_PAYMENT) {
             log.warn("중복 이벤트 또는 잘못된 상태 — 무시: auctionId={}, status={}",

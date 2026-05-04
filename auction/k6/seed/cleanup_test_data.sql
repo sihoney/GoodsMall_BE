@@ -478,5 +478,5 @@ WHERE member_id IN (
 -- 아래 ROLLBACK 을 COMMIT 으로 변경하여 재실행
 -- ============================================================
 
-ROLLBACK;
--- COMMIT;
+-- ROLLBACK;
+COMMIT;
