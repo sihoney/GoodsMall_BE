@@ -155,12 +155,14 @@ POST /api/auctions/{id}/bids  { bidPrice: currentHighestPrice + bidUnit }
 
 | 메트릭 | 의미 |
 |---|---|
-| `successful_bids` | 201 누적. 동시 입찰 시 1건이 아니라 N건 통과됨 (결함 가시화) |
-| `failed_bids` | 4xx/5xx 누적 |
-| `pending_overrun` | 낭비된 PENDING 수 = `successful_bids - 1`. Payment 호출/wallet 차감이 N-1번 헛돌았다는 의미 |
+| `bid_success` | 입찰 성공 (201) 누적 |
+| `bid_rejected` | 비즈니스 규칙 거부 (400/409/422) 누적 — 높아도 정상, 동시성 보호 로직이 작동한다는 신호 |
+| `bid_server_error` | 서버 오류 (5xx) 누적 — 0이어야 정상. 락 데드락/타임아웃 없음을 의미 |
 | `bid_duration` p99/p99.9 | 락 직렬화로 인한 꼬리 지연 — VU 증가 시 급등 예상 |
 
-> **왜 409가 아닌 `pending_overrun` 인가**: 현재 코드는 `currentHighestPrice` 갱신이 Payment Kafka 응답 후라서 락이 풀려도 다음 입찰자는 여전히 NULL을 본다. 동시 입찰이 모두 PENDING 통과되므로 409는 거의 발생하지 않는다. 자세한 분석은 Notion `Auction - 비관적 락만으로 부족한 이유` 노트 참조.
+> **테스트 종료 후 DB 무결성 쿼리 필수**: k6 메트릭만으로는 동시성 정확성을 완전히 검증할 수 없다.
+> 테스트 종료 시 `handleSummary`가 자동으로 콘솔에 검증 쿼리를 출력한다.
+> PENDING 중복 / ACTIVE 중복 / 낙찰가 역전 — 세 쿼리 모두 0행이어야 동시성 처리 정상.
 
 ### 예상 현상
 
@@ -419,19 +421,32 @@ k6 run ~/k6/scenarios/soak.js -e DURATION=60m -e VUS=30 --out json=results/soak.
 | 2s ~ 5s | 위험 — DB 커넥션 포화 또는 락 타임아웃 임박 |
 | > 5s | 한계 초과 |
 
-### `pending_overrun` 해석 (concurrent-bid 전용)
+### `bid_server_error` 해석 (concurrent-bid 핵심 지표)
 
-> 보정값 = `successful_bids - 1`. 한 경매당 최종 ACTIVE는 1건뿐이므로 그 외는 모두 헛돈 Payment.
-
-| 보정값 / 요청 수 | 해석 |
+| 값 | 해석 |
 |---|---|
-| ≈ 0 | currentHighestPrice가 동기 갱신되도록 수정된 상태 (개선 후 기대값) |
-| < 10% | 락이 충분히 직렬화하여 비효율이 작음 |
-| 10 ~ 50% | 대다수 동시 입찰이 같은 가격으로 통과 — 룰 우회 발생 |
-| > 50% | 거의 모든 입찰이 헛돈 Payment 호출 — 동시성 결함 명확 |
+| 0 | 비관적 락이 데드락/타임아웃 없이 정상 직렬화 처리됨 |
+| 1~3 | 간헐적 타임아웃 — 락 대기 시간 또는 HikariCP pool 크기 검토 |
+| > 3 | 락 구현 문제 또는 커넥션 포화 — 즉시 원인 분석 필요 |
 
-> 이 메트릭이 0에 가까워지는 게 개선 목표.
-> 결함 분석은 Notion `Auction - 비관적 락만으로 부족한 이유` 노트 참조.
+### DB 무결성 검증 (concurrent-bid 필수)
+
+테스트 종료 시 자동으로 출력되는 쿼리를 DB에서 실행한다. 세 쿼리 모두 0행이어야 정상.
+
+```sql
+-- 1. 동시에 PENDING이 2개 이상 생성된 경우
+SELECT auction_id, COUNT(*) FROM auction.bid
+WHERE status = 'PENDING' GROUP BY auction_id HAVING COUNT(*) > 1;
+
+-- 2. 중복 낙찰 (ACTIVE가 2개 이상)
+SELECT auction_id, COUNT(*) FROM auction.bid
+WHERE status = 'ACTIVE' GROUP BY auction_id HAVING COUNT(*) > 1;
+
+-- 3. 낙찰가 역전 (낮은 가격이 낙찰된 경우)
+SELECT b1.auction_id, b1.bid_price AS winner, b2.bid_price AS should_have_won
+FROM auction.bid b1 JOIN auction.bid b2 ON b1.auction_id = b2.auction_id
+WHERE b1.status = 'ACTIVE' AND b2.status = 'OUTBID' AND b2.bid_price > b1.bid_price;
+```
 
 ### 5xx 에러 원인 분류
 

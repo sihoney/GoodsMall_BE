@@ -1,6 +1,10 @@
 /**
- * 시나리오 B: 부하 테스트 (Load Test)
- * 목적: 실제 사용 패턴(읽기 70% + 입찰 30%) 에서 안정성 측정
+ * 부하 테스트 (Load Test)
+ *
+ * 목적:
+ *   실제 사용 패턴(읽기 70% + 입찰 30%)에서 시스템이 안정적으로 동작하는지 측정한다.
+ *   baseline에서 측정한 기준선 대비 부하 증가 시 응답시간 변화를 확인한다.
+ *
  * 실행: k6 run auction/k6/scenarios/load.js --out json=results/load.json
  * 전제: reset_test_auctions.sql 실행 후 시작
  *
@@ -10,34 +14,34 @@
  */
 import http from 'k6/http';
 import { check, sleep } from 'k6';
-import { Trend, Rate } from 'k6/metrics';
+import { Trend } from 'k6/metrics';
 import { BASE_URL } from '../config/thresholds.js';
 import { SEED_AUCTIONS, LOAD_TEST_AUCTION_IDS, BASELINE_BIDDER_IDS } from '../helpers/data.js';
 import { publicHeaders, buyerHeaders } from '../helpers/auth.js';
 import { fetchCurrentBidPrice } from '../helpers/bid.js';
+import { recordBidResult } from '../helpers/metrics.js';
 
-const bidTrend = new Trend('load_bid_duration', true);
+const bidTrend  = new Trend('load_bid_duration', true);
 const readTrend = new Trend('load_read_duration', true);
-const errorRate = new Rate('load_error_rate');
 
 export const options = {
   stages: [
-    { duration: '2m', target: 20 },  // ramp-up
-    { duration: '5m', target: 50 },  // 목표 부하 유지
-    { duration: '2m', target: 0 },   // ramp-down
+    { duration: '2m', target: 20 }, // ramp-up
+    { duration: '5m', target: 50 }, // 목표 부하 유지
+    { duration: '2m', target: 0 },  // ramp-down
   ],
   thresholds: {
-    load_bid_duration: ['p(90)<500', 'p(99)<2000'],
+    load_bid_duration:  ['p(90)<500', 'p(99)<2000'],
     load_read_duration: ['p(90)<300', 'p(99)<1000'],
-    load_error_rate: ['rate<0.01'],
-    http_req_failed: ['rate<0.05'],
+    bid_server_error:   ['count<3'],
+    http_req_failed:    ['rate<0.05'],
   },
 };
 
 const AUCTION_IDS = [SEED_AUCTIONS.ONGOING, ...LOAD_TEST_AUCTION_IDS];
 
 export default function () {
-  const rand = Math.random();
+  const rand      = Math.random();
   const auctionId = AUCTION_IDS[Math.floor(Math.random() * AUCTION_IDS.length)];
 
   if (rand < 0.40) {
@@ -47,7 +51,6 @@ export default function () {
       { headers: publicHeaders() }
     );
     readTrend.add(res.timings.duration);
-    errorRate.add(res.status >= 500 ? 1 : 0);
     check(res, { 'list 200': (r) => r.status === 200 });
     sleep(0.3);
 
@@ -58,12 +61,11 @@ export default function () {
       { headers: publicHeaders() }
     );
     readTrend.add(res.timings.duration);
-    errorRate.add(res.status >= 500 ? 1 : 0);
     check(res, { 'detail 200': (r) => r.status === 200 });
     sleep(0.2);
 
   } else {
-    // 30% 입찰 (wallet 보유 시드 입찰자 풀에서 VU별 배정)
+    // 30% 입찰
     const bidderId = BASELINE_BIDDER_IDS[(__VU - 1) % BASELINE_BIDDER_IDS.length];
     const bidPrice = fetchCurrentBidPrice(auctionId);
     if (bidPrice !== null) {
@@ -76,7 +78,7 @@ export default function () {
         }
       );
       bidTrend.add(res.timings.duration);
-      errorRate.add(res.status >= 500 ? 1 : 0);
+      recordBidResult(res);
       check(res, { 'bid 5xx 없음': (r) => r.status < 500 });
     }
     sleep(1);

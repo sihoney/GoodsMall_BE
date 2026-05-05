@@ -19,6 +19,7 @@ repositories {
 
 dependencies {
     implementation project(':common-security')
+    implementation project(':common-monitoring')
     // Web
     implementation 'org.springframework.boot:spring-boot-starter-web'
     // JPA
