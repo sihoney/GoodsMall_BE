@@ -1,51 +1,50 @@
 /**
- * 시나리오 C: 스파이크 테스트 (Spike Test)
- * 목적: 경매 마감 직전 폭발적 트래픽(입찰 러시) 재현
- *       평상시 10 VU → 갑자기 100 VU (30초) → 다시 10 VU
- *       스파이크 시 에러율, 응답시간 저하, 회복 시간 측정
+ * 스파이크 테스트 (Spike Test)
+ *
+ * 목적:
+ *   경매 마감 직전 폭발적 트래픽(입찰 러시)을 재현한다.
+ *   평상시 10 VU → 갑자기 100 VU (30초) → 다시 10 VU 로 전환 시
+ *   - 스파이크 구간에서 서버 오류(5xx)가 허용 범위 내인지 확인
+ *   - 스파이크 해소 후 응답시간이 정상으로 회복되는지 확인
+ *
  * 실행: k6 run auction/k6/scenarios/spike.js --out json=results/spike.json
  * 전제: reset_test_auctions.sql 실행 후 시작
- *
- * VU 스케일 근거 (HikariCP max=5):
- *   100 VU 스파이크면 평상시 대비 10배 — 토이 서비스 기준 충분한 임팩트
- *   스파이크 효과는 VU 수 자체로 결정, 모든 VU 동일 패턴 사용
  */
 import http from 'k6/http';
 import { check, sleep } from 'k6';
-import { Trend, Rate, Counter } from 'k6/metrics';
+import { Trend } from 'k6/metrics';
 import { BASE_URL } from '../config/thresholds.js';
 import { SEED_AUCTIONS, LOAD_TEST_AUCTION_IDS, BASELINE_BIDDER_IDS } from '../helpers/data.js';
 import { publicHeaders, buyerHeaders } from '../helpers/auth.js';
 import { fetchCurrentBidPrice } from '../helpers/bid.js';
+import { recordBidResult } from '../helpers/metrics.js';
 
 const spikeBidDuration = new Trend('spike_bid_duration', true);
-const spikeErrorRate = new Rate('spike_error_rate');
-const bidsDuringSpike = new Counter('bids_during_spike');
 
 export const options = {
   stages: [
-    { duration: '2m', target: 10 },   // 평상시 트래픽
+    { duration: '2m',  target: 10  }, // 평상시 트래픽
     { duration: '10s', target: 100 }, // 스파이크 시작 (경매 마감 러시)
     { duration: '30s', target: 100 }, // 스파이크 지속
-    { duration: '10s', target: 10 },  // 스파이크 해소
-    { duration: '2m', target: 10 },   // 회복 관찰
-    { duration: '1m', target: 0 },    // 종료
+    { duration: '10s', target: 10  }, // 스파이크 해소
+    { duration: '2m',  target: 10  }, // 회복 관찰
+    { duration: '1m',  target: 0   }, // 종료
   ],
   thresholds: {
-    spike_error_rate: ['rate<0.10'],
-    http_req_failed: ['rate<0.10'],
+    bid_server_error:     ['count<10'],
+    spike_bid_duration:   ['p(99)<3000'],
+    http_req_failed:      ['rate<0.10'],
   },
 };
 
 const AUCTION_IDS = [SEED_AUCTIONS.ONGOING, ...LOAD_TEST_AUCTION_IDS];
 
 export default function () {
-  const rand = Math.random();
+  const rand      = Math.random();
   const auctionId = AUCTION_IDS[Math.floor(Math.random() * AUCTION_IDS.length)];
 
   if (rand < 0.30) {
-    // 30% 입찰 (스파이크 효과는 VU 수 증가로 자연스럽게 반영됨)
-    // wallet 보유 시드 입찰자 풀에서 VU별 배정 — 100 VU 스파이크 구간은 풀 modulo로 중복 사용
+    // 30% 입찰
     const bidderId = BASELINE_BIDDER_IDS[(__VU - 1) % BASELINE_BIDDER_IDS.length];
     const bidPrice = fetchCurrentBidPrice(auctionId);
     if (bidPrice !== null) {
@@ -58,8 +57,7 @@ export default function () {
         }
       );
       spikeBidDuration.add(res.timings.duration);
-      spikeErrorRate.add(res.status >= 500 ? 1 : 0);
-      bidsDuringSpike.add(1);
+      recordBidResult(res);
       check(res, { 'spike 입찰 처리됨': (r) => r.status < 500 });
     }
 
@@ -69,7 +67,6 @@ export default function () {
       `${BASE_URL}/api/auctions/${auctionId}`,
       { headers: publicHeaders() }
     );
-    spikeErrorRate.add(res.status >= 500 ? 1 : 0);
     check(res, { 'spike 조회 200': (r) => r.status === 200 });
     sleep(0.5);
   }
