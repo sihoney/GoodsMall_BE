@@ -72,4 +72,5 @@ WHERE NOT EXISTS (
     SELECT 1
     FROM ai.product_embedding existing
     WHERE existing.product_id = scored.product_id
-);
+)
+ON CONFLICT (product_id) DO NOTHING;

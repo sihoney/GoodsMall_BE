@@ -346,4 +346,5 @@ WHERE NOT EXISTS (
     WHERE existing.seller_id  = seller_member.member_id
       AND existing.deleted_at IS NULL
       AND existing.title       = seed.title
-);
+)
+ON CONFLICT (product_id) DO NOTHING;
