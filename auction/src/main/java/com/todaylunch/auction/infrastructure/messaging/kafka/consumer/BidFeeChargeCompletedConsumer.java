@@ -1,43 +1,38 @@
 package com.todaylunch.auction.infrastructure.messaging.kafka.consumer;
 
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
-import com.todaylunch.auction.application.event.BidPlacedEvent;
+import com.todaylunch.auction.application.service.BidConfirmService;
 import com.todaylunch.auction.common.exception.application.BidNotFoundException;
-import com.todaylunch.auction.domain.entity.Auction;
 import com.todaylunch.auction.domain.entity.Bid;
 import com.todaylunch.auction.domain.enumtype.BidStatus;
-import com.todaylunch.auction.domain.repository.AuctionRepository;
 import com.todaylunch.auction.domain.repository.BidRepository;
 import com.todaylunch.auction.infrastructure.messaging.kafka.KafkaTopics;
 import com.todaylunch.auction.infrastructure.messaging.kafka.message.BidFeeChargeCompletedMessage;
-import com.todaylunch.auction.infrastructure.messaging.kafka.publisher.KafkaBidOutbidEventPublisher;
 import com.todaylunch.common.event.contract.EventEnvelope;
-import java.util.Optional;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * payment에서 수수료 차감이 성공했을 때 발행하는 이벤트를 소비한다.
- * Bid PENDING → ACTIVE 전이, 이전 ACTIVE → OUTBID, WebSocket 브로드캐스트.
+ * 낙관락 충돌 시 최대 MAX_RETRY회 재시도 후 입찰 취소 처리.
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class BidFeeChargeCompletedConsumer {
 
+    private static final int MAX_RETRY = 3;
+
     private final BidRepository bidRepository;
-    private final AuctionRepository auctionRepository;
-    private final ApplicationEventPublisher applicationEventPublisher;
-    private final KafkaBidOutbidEventPublisher bidOutbidEventPublisher;
+    private final BidConfirmService bidConfirmService;
     private final ObjectMapper objectMapper;
 
     @KafkaListener(topics = KafkaTopics.BID_FEE_CHARGE_COMPLETED)
-    @Transactional
     public void handle(String payload) throws Exception {
         EventEnvelope<BidFeeChargeCompletedMessage> envelope
                 = objectMapper.readValue(payload, new TypeReference<>() {});
@@ -52,25 +47,19 @@ public class BidFeeChargeCompletedConsumer {
             return;
         }
 
-        Optional<Bid> previousActiveBid = bidRepository.findActiveByAuctionId(bid.getAuction().getAuctionId());
+        activateWithRetry(message.bidId(), message.auctionId());
+    }
 
-        bid.confirm();
-
-        Auction auction = auctionRepository.findByIdWithLock(bid.getAuction().getAuctionId());
-        auction.updateHighestPrice(bid.getBidPrice());
-
-        previousActiveBid.ifPresent(previousBid -> {
-            previousBid.outbid();
-            bidOutbidEventPublisher.publish(bid.getAuction().getAuctionId(), previousBid.getBidderId());
-        });
-
-        applicationEventPublisher.publishEvent(new BidPlacedEvent(
-                bid.getAuction().getAuctionId(),
-                bid.getBidderId(),
-                bid.getBidPrice(),
-                bid.getAuction().getEndedAt()
-        ));
-
-        log.info("Bid confirmed via kafka: bidId={}, auctionId={}", bid.getBidId(), message.auctionId());
+    private void activateWithRetry(UUID bidId, UUID auctionId) {
+        for (int attempt = 0; attempt < MAX_RETRY; attempt++) {
+            try {
+                bidConfirmService.activate(bidId);
+                log.info("Bid confirmed: bidId={}, auctionId={}", bidId, auctionId);
+                return;
+            } catch (ObjectOptimisticLockingFailureException e) {
+                log.warn("낙관락 충돌 — 재시도 {}/{}: bidId={}", attempt + 1, MAX_RETRY, bidId);
+            }
+        }
+        bidConfirmService.cancel(bidId);
     }
 }

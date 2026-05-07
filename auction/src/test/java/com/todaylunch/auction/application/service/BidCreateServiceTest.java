@@ -8,14 +8,13 @@ import static org.mockito.Mockito.times;
 
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
-import com.todaylunch.auction.application.port.dto.request.BidFeeChargeRequest;
 import com.todaylunch.auction.domain.entity.Auction;
 import com.todaylunch.auction.domain.entity.Bid;
 import com.todaylunch.auction.domain.entity.OutboxEvent;
+import com.todaylunch.auction.domain.enumtype.BidStatus;
 import com.todaylunch.auction.domain.repository.AuctionRepository;
 import com.todaylunch.auction.domain.repository.BidRepository;
 import com.todaylunch.auction.domain.repository.OutboxEventRepository;
-import com.todaylunch.auction.domain.enumtype.BidStatus;
 import com.todaylunch.auction.presentation.dto.request.BidPlaceRequest;
 import com.todaylunch.auction.presentation.dto.response.BidResponse;
 import java.math.BigDecimal;
@@ -25,7 +24,6 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -42,7 +40,7 @@ class BidCreateServiceTest {
     @Mock
     OutboxEventRepository outboxEventRepository;
     @Mock
-    ApplicationEventPublisher applicationEventPublisher;
+    ApplicationEventPublisher eventPublisher;
     @Spy
     ObjectMapper objectMapper = JsonMapper.builder().build();
 
@@ -73,10 +71,9 @@ class BidCreateServiceTest {
     @Test
     void 첫_입찰은_PENDING_상태로_저장되고_isFirst_true로_이벤트_발행() {
         BidPlaceRequest request = new BidPlaceRequest(new BigDecimal("11000"));
-        given(auctionRepository.findByIdWithLock(auctionId)).willReturn(auction);
+        given(auctionRepository.findById(auctionId)).willReturn(auction);
         given(bidRepository.findActiveByAuctionId(auctionId)).willReturn(Optional.empty());
         given(bidRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
-
         given(outboxEventRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
 
         BidResponse response = bidCreateService.place(auctionId, bidderId, request);
@@ -91,7 +88,7 @@ class BidCreateServiceTest {
         Bid previousBid = Bid.place(auction, previousBidderId, new BigDecimal("11000"));
         BidPlaceRequest request = new BidPlaceRequest(new BigDecimal("12000"));
 
-        given(auctionRepository.findByIdWithLock(auctionId)).willReturn(auction);
+        given(auctionRepository.findById(auctionId)).willReturn(auction);
         given(bidRepository.findActiveByAuctionId(auctionId)).willReturn(Optional.of(previousBid));
         given(bidRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
         given(outboxEventRepository.save(any())).willAnswer(inv -> inv.getArgument(0));

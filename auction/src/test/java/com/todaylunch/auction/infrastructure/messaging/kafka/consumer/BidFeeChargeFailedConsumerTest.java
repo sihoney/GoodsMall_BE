@@ -74,7 +74,7 @@ class BidFeeChargeFailedConsumerTest {
 
         given(bidRepository.findById(bid.getBidId())).willReturn(Optional.of(bid));
         given(bidRepository.findCurrentValidByAuctionId(auction.getAuctionId())).willReturn(Optional.empty());
-        given(auctionRepository.findByIdWithLock(auction.getAuctionId())).willReturn(auction);
+        given(auctionRepository.findById(auction.getAuctionId())).willReturn(auction);
 
         consumer.handle(toEnvelopeJson(message));
 

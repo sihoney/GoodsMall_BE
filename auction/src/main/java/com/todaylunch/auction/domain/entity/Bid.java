@@ -68,7 +68,6 @@ public class Bid {
         this.updatedAt = Objects.requireNonNull(updatedAt);
     }
 
-    /** 초기 상태(ACTIVE + 타임스탬프) 불변성을 팩토리로 강제. 입찰가 양수 검증 포함. */
     public static Bid place(Auction auction, UUID bidderId, BigDecimal bidPrice) {
         validateBidPrice(bidPrice);
         LocalDateTime now = LocalDateTime.now();
@@ -137,6 +136,16 @@ public class Bid {
             throw new InvalidBidPriceException();
         }
     }
+
+    public boolean isActive() {
+        return this.status == BidStatus.ACTIVE;
+    }
+
+    public boolean isPending() {
+        return this.status == BidStatus.PENDING;
+    }
+
+
 
     public void paid() {
         if (this.status != BidStatus.WINNING) {
