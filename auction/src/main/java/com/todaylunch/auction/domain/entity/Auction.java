@@ -13,6 +13,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -62,6 +63,10 @@ public class Auction {
 
     @Column(name = "scheduled_close_at", nullable = false, updatable = false)
     private LocalDateTime scheduledCloseAt;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
 
     @Column(name = "ended_at", nullable = false)
     private LocalDateTime endedAt;
@@ -199,6 +204,13 @@ public class Auction {
         validateBidPriceIncrement(bidPrice);
         extendTimeIfNearEnd(now);
         this.updatedAt = now;
+    }
+
+    public boolean isHigherThanCurrentBid(BigDecimal bidPrice) {
+        if (this.currentHighestPrice == null) {
+            return bidPrice.compareTo(this.startPrice) >= 0;
+        }
+        return bidPrice.compareTo(this.currentHighestPrice) > 0;
     }
 
     public void updateHighestPrice(BigDecimal bidPrice) {

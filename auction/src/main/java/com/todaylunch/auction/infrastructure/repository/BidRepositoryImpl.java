@@ -33,11 +33,6 @@ public class BidRepositoryImpl implements BidRepository {
     }
 
     @Override
-    public Optional<Bid> findPendingByAuctionId(UUID auctionId) {
-        return jpaRepository.findTopByAuctionIdAndStatus(auctionId, BidStatus.PENDING);
-    }
-
-    @Override
     public Optional<Bid> findCurrentValidByAuctionId(UUID auctionId) {
         return jpaRepository.findTopByAuctionIdAndStatusIn(
                 auctionId, List.of(BidStatus.ACTIVE, BidStatus.OUTBID));
