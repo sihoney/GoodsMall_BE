@@ -188,7 +188,7 @@ public class Auction {
         this.updatedAt = LocalDateTime.now();
     }
 
-    public void validatePendingBid(UUID bidderId, BigDecimal bidPrice, LocalDateTime now, UUID currentHighestBidderId) {
+    public void validatePendingBid(UUID bidderId, BigDecimal bidPrice, UUID currentHighestBidderId) {
         if (this.status != AuctionStatus.ONGOING) {
             throw new AuctionNotOngoingException();
         }
@@ -202,8 +202,6 @@ public class Auction {
             throw new BidPriceUnitNotMetException();
         }
         validateBidPriceIncrement(bidPrice);
-        extendTimeIfNearEnd(now);
-        this.updatedAt = now;
     }
 
     public boolean isHigherThanCurrentBid(BigDecimal bidPrice) {
@@ -254,7 +252,7 @@ public class Auction {
         }
     }
 
-    private void extendTimeIfNearEnd(LocalDateTime now) {
+    public void extendTimeIfNearEnd(LocalDateTime now) {
         long remaining = Duration.between(now, this.endedAt).toSeconds();
         if (remaining > 0 && remaining <= EXTEND_THRESHOLD_SECONDS) {
             this.endedAt = this.endedAt.plusSeconds(EXTEND_AMOUNT_SECONDS);
