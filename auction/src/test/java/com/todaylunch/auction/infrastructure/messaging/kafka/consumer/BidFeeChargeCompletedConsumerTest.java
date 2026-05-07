@@ -3,15 +3,13 @@ package com.todaylunch.auction.infrastructure.messaging.kafka.consumer;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
-import static org.mockito.BDDMockito.willDoNothing;
 import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
-import com.todaylunch.auction.application.service.BidConfirmService;
+import com.todaylunch.auction.application.service.BidUpdateService;
 import com.todaylunch.auction.domain.entity.Auction;
 import com.todaylunch.auction.domain.entity.Bid;
-import com.todaylunch.auction.domain.enumtype.BidStatus;
 import com.todaylunch.auction.domain.repository.BidRepository;
 import com.todaylunch.auction.infrastructure.messaging.kafka.message.BidFeeChargeCompletedMessage;
 import com.todaylunch.common.event.contract.EventEnvelope;
@@ -35,7 +33,7 @@ class BidFeeChargeCompletedConsumerTest {
     @Mock
     BidRepository bidRepository;
     @Mock
-    BidConfirmService bidConfirmService;
+    BidUpdateService bidUpdateService;
 
     BidFeeChargeCompletedConsumer consumer;
     ObjectMapper objectMapper;
@@ -45,7 +43,7 @@ class BidFeeChargeCompletedConsumerTest {
     @BeforeEach
     void setUp() {
         objectMapper = JsonMapper.builder().build();
-        consumer = new BidFeeChargeCompletedConsumer(bidRepository, bidConfirmService, objectMapper);
+        consumer = new BidFeeChargeCompletedConsumer(bidRepository, bidUpdateService, objectMapper);
 
         LocalDateTime now = LocalDateTime.now();
         auction = Auction.create(UUID.randomUUID(),
@@ -66,7 +64,7 @@ class BidFeeChargeCompletedConsumerTest {
 
         consumer.handle(toEnvelopeJson(bid.getBidId(), auction.getAuctionId()));
 
-        then(bidConfirmService).should().activate(bid.getBidId());
+        then(bidUpdateService).should().activate(bid.getBidId());
     }
 
     @Test
@@ -76,7 +74,7 @@ class BidFeeChargeCompletedConsumerTest {
 
         consumer.handle(toEnvelopeJson(bid.getBidId(), auction.getAuctionId()));
 
-        then(bidConfirmService).should(never()).activate(any());
+        then(bidUpdateService).should(never()).activate(any());
     }
 
     @Test
@@ -84,12 +82,12 @@ class BidFeeChargeCompletedConsumerTest {
         Bid bid = Bid.placePending(auction, UUID.randomUUID(), new BigDecimal("11000"));
         given(bidRepository.findById(bid.getBidId())).willReturn(Optional.of(bid));
         willThrow(new ObjectOptimisticLockingFailureException(Auction.class, bid.getBidId()))
-                .given(bidConfirmService).activate(bid.getBidId());
+                .given(bidUpdateService).activate(bid.getBidId());
 
         consumer.handle(toEnvelopeJson(bid.getBidId(), auction.getAuctionId()));
 
-        then(bidConfirmService).should(times(3)).activate(bid.getBidId());
-        then(bidConfirmService).should().cancel(bid.getBidId());
+        then(bidUpdateService).should(times(3)).activate(bid.getBidId());
+        then(bidUpdateService).should().cancel(bid.getBidId());
     }
 
     @Test
@@ -98,12 +96,12 @@ class BidFeeChargeCompletedConsumerTest {
         given(bidRepository.findById(bid.getBidId())).willReturn(Optional.of(bid));
         willThrow(new ObjectOptimisticLockingFailureException(Auction.class, bid.getBidId()))
                 .willDoNothing()
-                .given(bidConfirmService).activate(bid.getBidId());
+                .given(bidUpdateService).activate(bid.getBidId());
 
         consumer.handle(toEnvelopeJson(bid.getBidId(), auction.getAuctionId()));
 
-        then(bidConfirmService).should(times(2)).activate(bid.getBidId());
-        then(bidConfirmService).should(never()).cancel(any());
+        then(bidUpdateService).should(times(2)).activate(bid.getBidId());
+        then(bidUpdateService).should(never()).cancel(any());
     }
 
     private String toEnvelopeJson(UUID bidId, UUID auctionId) throws Exception {

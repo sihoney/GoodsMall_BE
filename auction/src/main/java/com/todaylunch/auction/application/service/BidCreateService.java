@@ -17,7 +17,6 @@ import com.todaylunch.auction.presentation.dto.response.BidResponse;
 import com.todaylunch.common.event.contract.EventEnvelope;
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -49,7 +48,6 @@ public class BidCreateService implements BidCreateUseCase {
 
         auction.validatePendingBid(bidderId,
                                    request.bidPrice(),
-                                   LocalDateTime.now(),
                                    previousBid.map(Bid::getBidderId).orElse(null));
 
         Bid bid = Bid.placePending(auction,
