@@ -1,12 +1,13 @@
 /**
  * 시나리오 A: 동시 입찰 경쟁 테스트 (Concurrent Bid Test)
- * 목적: PESSIMISTIC_WRITE 락 경합 시 처리량 한계 측정
+ * 목적: 낙관락 환경에서 pending_overrun(헛 Payment 호출) 규모 측정
  *       HikariCP pool(max=5) 소진 시점 확인
  *
- * 락 경합 원리:
+ * 낙관락 동작 원리:
  *   여러 VU가 동시에 경매 상세 조회 → 같은 currentHighestPrice 읽음
- *   → 동일 bidPrice로 동시 POST → DB 락 경합 발생 → 1건 성공, 나머지 409
- *   bid_conflict_rate = 409 비율 (락 경합 지표)
+ *   → 동일 bidPrice로 동시 POST → 입찰 생성은 모두 PENDING 통과 (409 거의 없음)
+ *   → Payment Kafka 응답 후 BidConfirmService가 @Version 충돌 시 재시도(MAX_RETRY=3)
+ *   → 최종 ACTIVE는 1건, 나머지는 자동 취소 — pending_overrun이 핵심 지표
  *
  * 사전 조건:
  *   1) load_test_auctions.sql 실행
@@ -18,11 +19,11 @@
  *   k6 run auction/k6/scenarios/concurrent-bid.js -e VUS=100
  */
 import http from 'k6/http';
-import { check } from 'k6';
+import { check, sleep } from 'k6';
 import { Counter, Trend } from 'k6/metrics';
 import { BASE_URL } from '../config/thresholds.js';
 import { CONCURRENT_BID_AUCTION_ID, BASELINE_BIDDER_IDS } from '../helpers/data.js';
-import { buyerHeaders } from '../helpers/auth.js';
+import { buyerHeaders, publicHeaders } from '../helpers/auth.js';
 import { fetchCurrentBidPrice } from '../helpers/bid.js';
 
 const successfulBids = new Counter('successful_bids');
@@ -91,5 +92,37 @@ export default function () {
   check(res, {
     '서버 에러 없음': (r) => r.status < 500,
     '입찰 처리됨 (성공 또는 비즈니스 에러)': (r) => r.status < 500,
+  });
+}
+
+/**
+ * 낙관락 정확성 검증 (테스트 종료 후 1회 실행)
+ *
+ * k6로 검증 가능한 범위:
+ *   currentHighestPrice != null → BidConfirmService가 ACTIVE를 1건 이상 확정했다는 증거
+ *
+ * k6로 검증 불가한 범위 (DB 직접 확인 필요):
+ *   ACTIVE가 정확히 1건인지, PENDING이 모두 소진됐는지는 전체 페이지를 봐야 알 수 있음.
+ *   테스트 후 아래 SQL로 직접 확인:
+ *   SELECT status, COUNT(*) FROM auction.bid
+ *   WHERE auction_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa201' GROUP BY status;
+ *   → ACTIVE=1, CANCELLED=N, PENDING=0 이면 낙관락 정상 동작
+ */
+export function teardown() {
+  // Outbox 스케줄러(10s 주기) + Kafka 발행 + Payment 처리 + BidConfirmService retry 완료 대기
+  const waitSeconds = parseInt(__ENV.TEARDOWN_WAIT || '20');
+  console.log(`[teardown] ${waitSeconds}초 대기 — Kafka 비동기 처리 완료 대기 중...`);
+  sleep(waitSeconds);
+
+  const auctionRes = http.get(
+    `${BASE_URL}/api/auctions/${CONCURRENT_BID_AUCTION_ID}`,
+    { headers: publicHeaders() }
+  );
+  const auction = auctionRes.json('data');
+  console.log(`[teardown] auction currentHighestPrice=${auction?.currentHighestPrice ?? null}`);
+  console.log('[teardown] ACTIVE=1 여부는 DB 직접 확인: SELECT status, COUNT(*) FROM auction.bid WHERE auction_id=\'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa201\' GROUP BY status;');
+
+  check(auction, {
+    '낙관락 보장: currentHighestPrice 확정됨 (ACTIVE bid 존재 증거)': (a) => a?.currentHighestPrice != null,
   });
 }
