@@ -158,7 +158,7 @@ VALUES
         '서울시 중구 세종대로 110',
         NULL, 'ADMIN', 'ACTIVE', NOW(), NOW()
     )
-ON CONFLICT (email) DO NOTHING;
+ON CONFLICT (member_id) DO NOTHING;
 
 -- 판매자 5명 seller 테이블 등록
 INSERT INTO member.seller (
@@ -183,7 +183,7 @@ FROM (
         ('92000000-0000-0000-0000-000000000005', 'seller5@todaylunchmenu.com', '카카오뱅크', '333-444-555555')
 ) AS seed(seller_id, email, bank_name, account)
 JOIN member.member member_row ON member_row.email = seed.email
-ON CONFLICT (member_id) DO NOTHING;
+ON CONFLICT (seller_id) DO NOTHING;
 
 -- 구매자·판매자 지갑 생성
 INSERT INTO payment.wallet (
@@ -218,7 +218,7 @@ FROM (
         ('93000000-0000-0000-0000-000000000015', 'admin5@todaylunchmenu.com',  1000000.00)
 ) AS seed(wallet_id, email, balance)
 JOIN member.member member_row ON member_row.email = seed.email
-ON CONFLICT (member_id) DO NOTHING;
+ON CONFLICT (wallet_id) DO NOTHING;
 
 -- 이미 존재하는 회원 중 wallet 누락 시 1:1 관계를 보장합니다.
 WITH members_without_wallet AS (

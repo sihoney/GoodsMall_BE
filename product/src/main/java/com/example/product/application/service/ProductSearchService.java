@@ -48,9 +48,15 @@ public class ProductSearchService implements ProductSearchUseCase {
 
     private ProductResponse toProductResponse(ProductSearchResult result) {
         List<ProductImageResponse> images;
-        if (result.thumbnailS3Key() != null) {
-            String presignedUrl = fileStorageRepository.generatePresignedUrl(result.thumbnailS3Key());
-            images = List.of(ProductImageResponse.ofThumbnail(result.thumbnailS3Key(), presignedUrl));
+        String thumbnailS3Key = result.thumbnailS3Key();
+        if (thumbnailS3Key == null) {
+            thumbnailS3Key = productImageRepository.findThumbnailByProductId(result.productId())
+                    .map(ProductImage::getS3Key)
+                    .orElse(null);
+        }
+        if (thumbnailS3Key != null) {
+            String presignedUrl = fileStorageRepository.generatePresignedUrl(thumbnailS3Key);
+            images = List.of(ProductImageResponse.ofThumbnail(thumbnailS3Key, presignedUrl));
         } else {
             images = List.of();
         }

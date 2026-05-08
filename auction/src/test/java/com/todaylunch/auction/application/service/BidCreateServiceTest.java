@@ -72,7 +72,6 @@ class BidCreateServiceTest {
     void 첫_입찰은_PENDING_상태로_저장되고_isFirst_true로_이벤트_발행() {
         BidPlaceRequest request = new BidPlaceRequest(new BigDecimal("11000"));
         given(auctionRepository.findById(auctionId)).willReturn(auction);
-        given(bidRepository.findPendingByAuctionId(auctionId)).willReturn(Optional.empty());
         given(bidRepository.findActiveByAuctionId(auctionId)).willReturn(Optional.empty());
         given(bidRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
         given(outboxEventRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
@@ -90,7 +89,6 @@ class BidCreateServiceTest {
         BidPlaceRequest request = new BidPlaceRequest(new BigDecimal("12000"));
 
         given(auctionRepository.findById(auctionId)).willReturn(auction);
-        given(bidRepository.findPendingByAuctionId(auctionId)).willReturn(Optional.empty());
         given(bidRepository.findActiveByAuctionId(auctionId)).willReturn(Optional.of(previousBid));
         given(bidRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
         given(outboxEventRepository.save(any())).willAnswer(inv -> inv.getArgument(0));

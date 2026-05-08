@@ -7,6 +7,7 @@ import com.todaylunch.auction.domain.entity.Bid;
 import com.todaylunch.auction.domain.repository.AuctionRepository;
 import com.todaylunch.auction.domain.repository.BidRepository;
 import com.todaylunch.auction.infrastructure.messaging.kafka.publisher.KafkaBidOutbidEventPublisher;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class BidConfirmService {
+public class BidUpdateService {
 
     private final BidRepository bidRepository;
     private final AuctionRepository auctionRepository;
@@ -43,6 +44,7 @@ public class BidConfirmService {
 
         bid.confirm();
         auction.updateHighestPrice(bid.getBidPrice());
+        auction.extendTimeIfNearEnd(LocalDateTime.now());
 
         previousActiveBid.ifPresent(prev -> {
             prev.outbid();

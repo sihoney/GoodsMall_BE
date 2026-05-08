@@ -1,6 +1,10 @@
 /**
  * 기준선 측정 (Baseline Test)
- * 목적: 정상 부하에서 p50/p90/p99 응답시간 측정 → 이후 테스트 비교 기준
+ *
+ * 목적:
+ *   부하 테스트 전 정상 트래픽 구간에서의 응답시간 기준선을 측정한다.
+ *   이후 load/stress/spike 테스트 결과와 비교할 기준(p50/p90/p99)을 확보한다.
+ *
  * 실행: k6 run auction/k6/scenarios/baseline.js --out json=results/baseline.json
  * 전제:
  *   1) seed_baseline_wallets.sql 최초 1회 실행 (입찰자 wallet 생성)
@@ -9,34 +13,33 @@
  * 입찰자 전략:
  *   - BASELINE_BIDDER_IDS 풀(30명)에서 (__VU-1) % 30 으로 배정
  *   - VU마다 전담 입찰자를 가지므로 동일 입찰자 동시 사용 없음
- *   - 422(최고입찰자 재입찰 불가) / 409(동시 충돌)는 정상 비즈니스 케이스로 허용
+ *   - 400/409/422는 정상 비즈니스 케이스로 허용 (expectedStatuses로 명시)
  *   - 실제 wallet 예치금 hold → Kafka 이벤트 → 결제 서비스 전체 흐름 측정
  */
 import http from 'k6/http';
 import { check, sleep } from 'k6';
-import { Trend, Counter } from 'k6/metrics';
+import { Trend } from 'k6/metrics';
 import { BASE_URL } from '../config/thresholds.js';
 import { buyerHeaders, publicHeaders } from '../helpers/auth.js';
 import { SEED_AUCTIONS, BASELINE_BIDDER_IDS } from '../helpers/data.js';
 import { fetchCurrentBidPrice } from '../helpers/bid.js';
+import { recordBidResult } from '../helpers/metrics.js';
 
-const bidDuration = new Trend('bid_duration', true);
-const listDuration = new Trend('list_duration', true);
+const bidDuration    = new Trend('bid_duration', true);
+const listDuration   = new Trend('list_duration', true);
 const detailDuration = new Trend('detail_duration', true);
-const bidSuccess = new Counter('bid_success');
-const bidRejected = new Counter('bid_rejected');
 
 export const options = {
   stages: [
-    { duration: '1m', target: 10 },  // warm-up
-    { duration: '3m', target: 30 },  // 기준 부하
-    { duration: '1m', target: 0 },   // cool-down
+    { duration: '1m', target: 10 }, // warm-up
+    { duration: '3m', target: 30 }, // 기준 부하
+    { duration: '1m', target: 0 },  // cool-down
   ],
   thresholds: {
-    bid_duration: ['p(90)<500', 'p(99)<2000'],
-    list_duration: ['p(90)<300', 'p(99)<1000'],
+    bid_duration:    ['p(90)<500', 'p(99)<2000'],
+    list_duration:   ['p(90)<300', 'p(99)<1000'],
     detail_duration: ['p(90)<200', 'p(99)<500'],
-    http_req_failed: ['rate<0.01'],
+    bid_server_error: ['count==0'],
   },
 };
 
@@ -69,12 +72,13 @@ export default function () {
       const res = http.post(
         `${BASE_URL}/api/auctions/${SEED_AUCTIONS.ONGOING}/bids`,
         JSON.stringify({ bidPrice }),
-        { headers: buyerHeaders(bidderId) }
+        {
+          headers: buyerHeaders(bidderId),
+          responseCallback: http.expectedStatuses(201, 400, 409, 422),
+        }
       );
       bidDuration.add(res.timings.duration);
-      if (res.status === 201) bidSuccess.add(1);
-      // 422: 최고입찰자 재입찰 불가 / 409: 동시 충돌 → 정상 비즈니스 케이스
-      if (res.status === 422 || res.status === 409) bidRejected.add(1);
+      recordBidResult(res);
       check(res, { '입찰 5xx 없음': (r) => r.status < 500 });
     }
   }

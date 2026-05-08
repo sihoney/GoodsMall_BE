@@ -1,0 +1,104 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: monitoring
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+
+    scrape_configs:
+      - job_name: 'auction'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['auction.goods-mall.svc.cluster.local:8090']
+
+      - job_name: 'ai'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['ai.goods-mall.svc.cluster.local:8088']
+
+      - job_name: 'cart'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['cart.goods-mall.svc.cluster.local:8086']
+
+      - job_name: 'gateway'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['gateway.goods-mall.svc.cluster.local:8080']
+
+      - job_name: 'member'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['member.goods-mall.svc.cluster.local:8083']
+
+      - job_name: 'notification'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['notification.goods-mall.svc.cluster.local:8087']
+
+      - job_name: 'order'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['order.goods-mall.svc.cluster.local:8084']
+
+      - job_name: 'payment'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['payment.goods-mall.svc.cluster.local:8082']
+
+      - job_name: 'product'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['product.goods-mall.svc.cluster.local:8081']
+
+      - job_name: 'settlement'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['settlement.goods-mall.svc.cluster.local:8085']
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v2.51.0
+          args:
+            - "--config.file=/etc/prometheus/prometheus.yml"
+          ports:
+            - containerPort: 9090
+          volumeMounts:
+            - name: config
+              mountPath: /etc/prometheus
+      volumes:
+        - name: config
+          configMap:
+            name: prometheus-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: monitoring
+spec:
+  type: NodePort
+  selector:
+    app: prometheus
+  ports:
+    - port: 9090
+      targetPort: 9090
+      nodePort: 30090

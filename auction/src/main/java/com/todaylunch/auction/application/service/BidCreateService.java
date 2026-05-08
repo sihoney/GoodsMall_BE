@@ -3,7 +3,6 @@ package com.todaylunch.auction.application.service;
 import com.todaylunch.auction.application.event.OutboxEventPendingTrigger;
 import com.todaylunch.auction.application.port.dto.request.BidFeeChargeRequest;
 import com.todaylunch.auction.application.usecase.BidCreateUseCase;
-
 import com.todaylunch.auction.domain.entity.Auction;
 import com.todaylunch.auction.domain.entity.Bid;
 import com.todaylunch.auction.domain.entity.BidPolicy;
@@ -18,7 +17,6 @@ import com.todaylunch.auction.presentation.dto.response.BidResponse;
 import com.todaylunch.common.event.contract.EventEnvelope;
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -50,7 +48,6 @@ public class BidCreateService implements BidCreateUseCase {
 
         auction.validatePendingBid(bidderId,
                                    request.bidPrice(),
-                                   LocalDateTime.now(),
                                    previousBid.map(Bid::getBidderId).orElse(null));
 
         Bid bid = Bid.placePending(auction,

@@ -1,6 +1,6 @@
 package com.todaylunch.auction.infrastructure.messaging.kafka.consumer;
 
-import com.todaylunch.auction.application.service.BidConfirmService;
+import com.todaylunch.auction.application.service.BidUpdateService;
 import com.todaylunch.auction.common.exception.application.BidNotFoundException;
 import com.todaylunch.auction.domain.entity.Bid;
 import com.todaylunch.auction.domain.enumtype.BidStatus;
@@ -29,7 +29,7 @@ public class BidFeeChargeCompletedConsumer {
     private static final int MAX_RETRY = 3;
 
     private final BidRepository bidRepository;
-    private final BidConfirmService bidConfirmService;
+    private final BidUpdateService bidUpdateService;
     private final ObjectMapper objectMapper;
 
     @KafkaListener(topics = KafkaTopics.BID_FEE_CHARGE_COMPLETED)
@@ -53,13 +53,13 @@ public class BidFeeChargeCompletedConsumer {
     private void activateWithRetry(UUID bidId, UUID auctionId) {
         for (int attempt = 0; attempt < MAX_RETRY; attempt++) {
             try {
-                bidConfirmService.activate(bidId);
+                bidUpdateService.activate(bidId);
                 log.info("Bid confirmed: bidId={}, auctionId={}", bidId, auctionId);
                 return;
             } catch (ObjectOptimisticLockingFailureException e) {
                 log.warn("낙관락 충돌 — 재시도 {}/{}: bidId={}", attempt + 1, MAX_RETRY, bidId);
             }
         }
-        bidConfirmService.cancel(bidId);
+        bidUpdateService.cancel(bidId);
     }
 }
