@@ -35,4 +35,9 @@ public class AuctionDepositRepositoryImpl implements AuctionDepositRepository {
     public Optional<AuctionDeposit> findHeldByAuctionIdForUpdate(UUID auctionId) {
         return auctionDepositJpaRepository.findWithLockByAuctionIdAndStatus(auctionId, AuctionDepositStatus.HELD);
     }
+
+    @Override
+    public Optional<AuctionDeposit> findByBidId(UUID bidId) {
+        return auctionDepositJpaRepository.findByBidId(bidId);
+    }
 }
