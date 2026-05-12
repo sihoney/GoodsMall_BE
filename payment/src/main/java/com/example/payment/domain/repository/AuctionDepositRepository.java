@@ -14,5 +14,5 @@ public interface AuctionDepositRepository {
 
     Optional<AuctionDeposit> findHeldByAuctionIdForUpdate(UUID auctionId);
 
-    Optional<AuctionDeposit> findByBidId(UUID bidId);
+    Optional<AuctionDeposit> findByBidIdForUpdate(UUID bidId);
 }
