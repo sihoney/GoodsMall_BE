@@ -41,8 +41,8 @@ export const options = {
       rate: TARGET_RATE,
       timeUnit: '1s',
       duration: '2m',
-      preAllocatedVUs: 15,
-      maxVUs: 30,
+      preAllocatedVUs: 50,
+      maxVUs: 150,
     },
   },
   thresholds: {
@@ -61,9 +61,9 @@ export default function () {
     return;
   }
 
-  // VU마다 다른 입찰가: minBidPrice + 0~4 × bidUnit
-  // → 동시 입찰에서 가격 다양성 확보, 더 높은 입찰이 ACTIVE 쟁취
-  const extra = Math.floor(Math.random() * 5);
+  // VU마다 다른 입찰가: minBidPrice + 0~9 × bidUnit
+  // → 10단계 분산으로 동일가격 충돌 감소, 더 높은 입찰이 ACTIVE 쟁취
+  const extra = Math.floor(Math.random() * 10);
   const bidPrice = state.minBidPrice + (state.bidUnit * extra);
 
   const res = http.post(
