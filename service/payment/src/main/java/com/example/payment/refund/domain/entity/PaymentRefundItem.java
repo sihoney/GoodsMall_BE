@@ -1,0 +1,119 @@
+package com.example.payment.refund.domain.entity;
+
+import com.example.payment.refund.domain.enumtype.PaymentRefundItemStatus;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import java.time.LocalDateTime;
+import java.math.BigDecimal;
+import java.util.Objects;
+import java.util.UUID;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@Entity
+@Table(name = "payment_refund_item", schema = "payment")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class PaymentRefundItem {
+
+    @Id
+    @Column(name = "refund_item_id", nullable = false, updatable = false)
+    private UUID refundItemId;
+
+    @Column(name = "refund_id", nullable = false, updatable = false)
+    private UUID refundId;
+
+    @Column(name = "order_item_id", nullable = false, updatable = false)
+    private UUID orderItemId;
+
+    @Column(name = "refund_amount", nullable = false, updatable = false)
+    private BigDecimal refundAmount;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 30)
+    private PaymentRefundItemStatus status;
+
+    @Column(name = "failure_reason", length = 255)
+    private String failureReason;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
+
+    private PaymentRefundItem(
+            UUID refundItemId,
+            UUID refundId,
+            UUID orderItemId,
+            BigDecimal refundAmount,
+            PaymentRefundItemStatus status,
+            String failureReason,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt
+    ) {
+        this.refundItemId = Objects.requireNonNull(refundItemId);
+        this.refundId = Objects.requireNonNull(refundId);
+        this.orderItemId = Objects.requireNonNull(orderItemId);
+        this.refundAmount = validateNonNegativeAmount(refundAmount);
+        this.status = Objects.requireNonNull(status);
+        this.failureReason = failureReason;
+        this.createdAt = Objects.requireNonNull(createdAt);
+        this.updatedAt = Objects.requireNonNull(updatedAt);
+    }
+
+    public static PaymentRefundItem createRequested(
+            UUID refundItemId,
+            UUID refundId,
+            UUID orderItemId,
+            BigDecimal refundAmount,
+            LocalDateTime requestedAt
+    ) {
+        LocalDateTime now = Objects.requireNonNull(requestedAt);
+        return new PaymentRefundItem(
+                refundItemId,
+                refundId,
+                orderItemId,
+                refundAmount,
+                PaymentRefundItemStatus.REQUESTED,
+                null,
+                now,
+                now
+        );
+    }
+
+    public void markSucceeded(LocalDateTime updatedAt) {
+        if (status == PaymentRefundItemStatus.SUCCEEDED) {
+            return;
+        }
+        if (status == PaymentRefundItemStatus.FAILED) {
+            throw new IllegalStateException("?ㅽ뙣???섎텋 ??ぉ? ?깃났?쇰줈 蹂寃쏀븷 ???놁뒿?덈떎.");
+        }
+        this.status = PaymentRefundItemStatus.SUCCEEDED;
+        this.failureReason = null;
+        this.updatedAt = Objects.requireNonNull(updatedAt);
+    }
+
+    public void markFailed(String failureReason, LocalDateTime updatedAt) {
+        if (status == PaymentRefundItemStatus.SUCCEEDED) {
+            throw new IllegalStateException("?깃났???섎텋 ??ぉ? ?ㅽ뙣濡?蹂寃쏀븷 ???놁뒿?덈떎.");
+        }
+        this.status = PaymentRefundItemStatus.FAILED;
+        this.failureReason = Objects.requireNonNull(failureReason);
+        this.updatedAt = Objects.requireNonNull(updatedAt);
+    }
+
+    private static BigDecimal validateNonNegativeAmount(BigDecimal amount) {
+        Objects.requireNonNull(amount);
+        if (amount.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("?섎텋 湲덉븸? ?뚯닔?????놁뒿?덈떎.");
+        }
+        return amount;
+    }
+}
+

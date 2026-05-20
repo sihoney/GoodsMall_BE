@@ -1,0 +1,44 @@
+package com.example.payment.refund.infrastructure.repository;
+
+import com.example.payment.refund.domain.entity.PaymentRefund;
+import com.example.payment.refund.domain.enumtype.PaymentRefundStatus;
+import com.example.payment.refund.domain.repository.PaymentRefundRepository;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public class PaymentRefundRepositoryImpl implements PaymentRefundRepository {
+
+    private final PaymentRefundJpaRepository paymentRefundJpaRepository;
+
+    public PaymentRefundRepositoryImpl(PaymentRefundJpaRepository paymentRefundJpaRepository) {
+        this.paymentRefundJpaRepository = paymentRefundJpaRepository;
+    }
+
+    @Override
+    public PaymentRefund save(PaymentRefund paymentRefund) {
+        return paymentRefundJpaRepository.save(paymentRefund);
+    }
+
+    @Override
+    public Optional<PaymentRefund> findByRefundId(UUID refundId) {
+        return paymentRefundJpaRepository.findById(refundId);
+    }
+
+    @Override
+    public Optional<PaymentRefund> findByOrderCancelRequestId(UUID orderCancelRequestId) {
+        return paymentRefundJpaRepository.findByOrderCancelRequestId(orderCancelRequestId);
+    }
+
+    @Override
+    public Optional<PaymentRefund> findLatestByOrderId(UUID orderId) {
+        return paymentRefundJpaRepository.findFirstByOrderIdOrderByCreatedAtDesc(orderId);
+    }
+
+    @Override
+    public List<PaymentRefund> findAllByOrderIdAndRefundStatus(UUID orderId, PaymentRefundStatus refundStatus) {
+        return paymentRefundJpaRepository.findAllByOrderIdAndRefundStatus(orderId, refundStatus);
+    }
+}
