@@ -1,3 +1,5 @@
+name: goods-mall
+
 services:
   postgres:
     image: pgvector/pgvector:pg18
@@ -18,7 +20,7 @@ services:
     volumes:
       - goods_mall_postgres_data:/var/lib/postgresql
       # 스키마 기준은 Flyway로 단일화합니다. seed SQL은 로컬 테스트 시 수동 실행용으로만 사용합니다.
-      - ./db-migration/src/main/resources/db/seed/dev_seed_payment_settlement.sql:/opt/seed/dev_seed_payment_settlement.sql:ro
+      - ../../db-migration/src/main/resources/db/seed/dev_seed_payment_settlement.sql:/opt/seed/dev_seed_payment_settlement.sql:ro
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
@@ -79,8 +81,8 @@ services:
 
   elasticsearch:
     build:
-      context: .
-      dockerfile: product/docker/elasticsearch/Dockerfile
+      context: ../..
+      dockerfile: service/product/docker/elasticsearch/Dockerfile
     container_name: goods-mall-elasticsearch
     environment:
       - discovery.type=single-node
@@ -91,11 +93,11 @@ services:
 
   db-migration:
     build:
-      context: .
+      context: ../..
       dockerfile: db-migration/Dockerfile
     container_name: goods-mall-db-migration
     env_file:
-      - .env
+      - ../../.env
     depends_on:
       postgres:
         condition: service_healthy
@@ -110,11 +112,11 @@ services:
 
   payment:
     build:
-      context: .
-      dockerfile: payment/Dockerfile
+      context: ../..
+      dockerfile: service/payment/Dockerfile
     container_name: goods-mall-payment
     env_file:
-      - .env
+      - ../../.env
     depends_on:
       postgres:
         condition: service_healthy
@@ -138,11 +140,11 @@ services:
 
   settlement:
     build:
-      context: .
-      dockerfile: settlement/Dockerfile
+      context: ../..
+      dockerfile: service/settlement/Dockerfile
     container_name: goods-mall-settlement
     env_file:
-      - .env
+      - ../../.env
     depends_on:
       postgres:
         condition: service_healthy
@@ -160,11 +162,11 @@ services:
 
   gateway:
     build:
-      context: .
-      dockerfile: gateway/Dockerfile
+      context: ../..
+      dockerfile: service/gateway/Dockerfile
     container_name: goods-mall-gateway
     env_file:
-      - .env
+      - ../../.env
     environment:
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
     ports:
@@ -172,11 +174,11 @@ services:
 
   member:
     build:
-      context: .
-      dockerfile: member/Dockerfile
+      context: ../..
+      dockerfile: service/member/Dockerfile
     container_name: goods-mall-member
     env_file:
-      - .env
+      - ../../.env
     depends_on:
       postgres:
         condition: service_healthy
@@ -216,11 +218,11 @@ services:
 
   product:
     build:
-      context: .
-      dockerfile: product/Dockerfile
+      context: ../..
+      dockerfile: service/product/Dockerfile
     container_name: goods-mall-product
     env_file:
-      - .env
+      - ../../.env
     depends_on:
       postgres:
         condition: service_healthy
@@ -238,11 +240,11 @@ services:
 
   cart:
     build:
-      context: .
-      dockerfile: cart/Dockerfile
+      context: ../..
+      dockerfile: service/cart/Dockerfile
     container_name: goods-mall-cart
     env_file:
-      - .env
+      - ../../.env
     depends_on:
       postgres:
         condition: service_healthy
@@ -257,11 +259,11 @@ services:
 
   order:
     build:
-      context: .
-      dockerfile: order/Dockerfile
+      context: ../..
+      dockerfile: service/order/Dockerfile
     container_name: goods-mall-order
     env_file:
-      - .env
+      - ../../.env
     depends_on:
       postgres:
         condition: service_healthy
@@ -283,11 +285,11 @@ services:
 
   notification:
     build:
-      context: .
-      dockerfile: notification/Dockerfile
+      context: ../..
+      dockerfile: service/notification/Dockerfile
     container_name: goods-mall-notification
     env_file:
-      - .env
+      - ../../.env
     depends_on:
       postgres:
         condition: service_healthy
@@ -305,11 +307,11 @@ services:
 
   auction:
     build:
-      context: .
-      dockerfile: auction/Dockerfile
+      context: ../..
+      dockerfile: service/auction/Dockerfile
     container_name: goods-mall-auction
     env_file:
-      - .env
+      - ../../.env
     depends_on:
       postgres:
         condition: service_healthy
@@ -327,11 +329,11 @@ services:
 
   ai:
     build:
-      context: .
-      dockerfile: ai/Dockerfile
+      context: ../..
+      dockerfile: service/ai/Dockerfile
     container_name: goods-mall-ai
     env_file:
-      - .env
+      - ../../.env
     depends_on:
       postgres:
         condition: service_healthy
