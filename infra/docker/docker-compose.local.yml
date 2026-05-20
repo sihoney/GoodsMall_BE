@@ -90,32 +90,6 @@ services:
     ports:
       - "9200:9200"
 
-  discovery:
-    build:
-      context: ../..
-      dockerfile: discovery/Dockerfile
-    container_name: goods-mall-discovery
-    env_file:
-      - ../../.env
-    ports:
-      - "8761:8761"
-
-  config:
-    build:
-      context: ../..
-      dockerfile: config/Dockerfile
-    container_name: goods-mall-config
-    env_file:
-      - ../../.env
-    depends_on:
-      discovery:
-        condition: service_started
-    environment:
-      EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
-      EUREKA_INSTANCE_IP: ${EUREKA_INSTANCE_IP}
-    ports:
-      - "8888:8888"
-
   db-migration:
     build:
       context: ../..
@@ -143,14 +117,10 @@ services:
     env_file:
       - ../../.env
     depends_on:
-      discovery:
-        condition: service_started
       postgres:
         condition: service_healthy
       kafka:
         condition: service_healthy
-      config:
-        condition: service_started
       db-migration:
         condition: service_completed_successfully
     environment:
@@ -158,16 +128,12 @@ services:
       DB_USER_NAME: ${DB_USER_NAME}
       DB_USER_PASSWORD: ${DB_USER_PASSWORD}
       KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
-      EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
-      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "false"
-      EUREKA_INSTANCE_HOSTNAME: payment
       TOSS_PAYMENTS_BASE_URL: ${TOSS_PAYMENTS_BASE_URL}
       TOSS_PAYMENTS_CLIENT_KEY: ${TOSS_PAYMENTS_CLIENT_KEY}
       TOSS_PAYMENTS_SECRET_KEY: ${TOSS_PAYMENTS_SECRET_KEY}
       TOSS_PAYMENTS_SUCCESS_URL: ${TOSS_PAYMENTS_SUCCESS_URL}
       TOSS_PAYMENTS_FAIL_URL: ${TOSS_PAYMENTS_FAIL_URL}
       TOSS_PAYMENTS_WIDGET_ENABLED: ${TOSS_PAYMENTS_WIDGET_ENABLED}
-      CONFIG_SERVER_URL: http://config:8888
     ports:
       - "8082:8082"
 
@@ -179,14 +145,10 @@ services:
     env_file:
       - ../../.env
     depends_on:
-      discovery:
-        condition: service_started
       postgres:
         condition: service_healthy
       kafka:
         condition: service_healthy
-      config:
-        condition: service_started
       db-migration:
         condition: service_completed_successfully
     environment:
@@ -194,10 +156,6 @@ services:
       DB_USER_NAME: ${DB_USER_NAME}
       DB_USER_PASSWORD: ${DB_USER_PASSWORD}
       KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
-      EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
-      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "false"
-      EUREKA_INSTANCE_HOSTNAME: settlement
-      CONFIG_SERVER_URL: http://config:8888
     ports:
       - "8085:8085"
 
@@ -208,14 +166,8 @@ services:
     container_name: goods-mall-gateway
     env_file:
       - ../../.env
-    depends_on:
-      discovery:
-        condition: service_started
     environment:
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
-      EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
-      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "false"
-      EUREKA_INSTANCE_HOSTNAME: gateway
     ports:
       - "8080:8080"
 
@@ -231,16 +183,12 @@ services:
     env_file:
       - ../../.env
     depends_on:
-      discovery:
-        condition: service_started
       postgres:
         condition: service_healthy
       kafka:
         condition: service_healthy
       redis:
         condition: service_healthy
-      config:
-        condition: service_started
       db-migration:
         condition: service_completed_successfully
     environment:
@@ -255,11 +203,7 @@ services:
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_KEY}
       AWS_S3_BUCKET: ${AWS_S3_BUCKET}
-      EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
-      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "false"
-      EUREKA_INSTANCE_HOSTNAME: member
       API_GATEWAY_HOST: http://gateway:8080
-      CONFIG_SERVER_URL: http://config:8888
       # 이메일 발송을 위한 설정
       EMAIL_PROVIDER: ${EMAIL_PROVIDER}
       SMTP_HOST: ${SMTP_HOST}
@@ -282,27 +226,17 @@ services:
     env_file:
       - ../../.env
     depends_on:
-      discovery:
-        condition: service_started
       postgres:
         condition: service_healthy
-      config:
-        condition: service_started
       db-migration:
         condition: service_completed_successfully
     environment:
       DB_URL: ${DB_URL}
       DB_USER_NAME: ${DB_USER_NAME}
       DB_USER_PASSWORD: ${DB_USER_PASSWORD}
-      EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
-      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "false"
-      EUREKA_INSTANCE_HOSTNAME: product
-      EUREKA_CLIENT_REGISTER_WITH_EUREKA: "true"
-      EUREKA_CLIENT_FETCH_REGISTRY: "true"
       AWS_ACCESS_KEY: ${AWS_ACCESS_KEY}
       AWS_SECRET_KEY: ${AWS_SECRET_KEY}
       AWS_S3_BUCKET: ${AWS_S3_BUCKET}
-      CONFIG_SERVER_URL: http://config:8888
     ports:
       - "8081:8081"
 
@@ -314,22 +248,14 @@ services:
     env_file:
       - ../../.env
     depends_on:
-      discovery:
-        condition: service_started
       postgres:
         condition: service_healthy
-      config:
-        condition: service_started
       db-migration:
         condition: service_completed_successfully
     environment:
       DB_URL: ${DB_URL}
       DB_USER_NAME: ${DB_USER_NAME}
       DB_USER_PASSWORD: ${DB_USER_PASSWORD}
-      EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
-      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "false"
-      EUREKA_INSTANCE_HOSTNAME: cart
-      CONFIG_SERVER_URL: http://config:8888
     ports:
       - "8086:8086"
 
@@ -341,16 +267,12 @@ services:
     env_file:
       - ../../.env
     depends_on:
-      discovery:
-        condition: service_started
       postgres:
         condition: service_healthy
       kafka:
         condition: service_healthy
       redis:
         condition: service_healthy
-      config:
-        condition: service_started
       db-migration:
         condition: service_completed_successfully
     environment:
@@ -360,10 +282,6 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
-      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "false"
-      EUREKA_INSTANCE_HOSTNAME: order
-      CONFIG_SERVER_URL: http://config:8888
     ports:
       - "8084:8084"
 
@@ -375,14 +293,10 @@ services:
     env_file:
       - ../../.env
     depends_on:
-      discovery:
-        condition: service_started
       postgres:
         condition: service_healthy
       kafka:
         condition: service_healthy
-      config:
-        condition: service_started
       db-migration:
         condition: service_completed_successfully
     environment:
@@ -390,10 +304,6 @@ services:
       DB_USER_NAME: ${DB_USER_NAME}
       DB_USER_PASSWORD: ${DB_USER_PASSWORD}
       KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
-      EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
-      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "false"
-      EUREKA_INSTANCE_HOSTNAME: notification
-      CONFIG_SERVER_URL: http://config:8888
     ports:
       - "8087:8087"
 
@@ -405,14 +315,10 @@ services:
     env_file:
       - ../../.env
     depends_on:
-      discovery:
-        condition: service_started
       postgres:
         condition: service_healthy
       kafka:
         condition: service_healthy
-      config:
-        condition: service_started
       db-migration:
         condition: service_completed_successfully
     environment:
@@ -420,10 +326,6 @@ services:
       DB_USER_NAME: ${DB_USER_NAME}
       DB_USER_PASSWORD: ${DB_USER_PASSWORD}
       KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
-      EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
-      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "false"
-      EUREKA_INSTANCE_HOSTNAME: auction
-      CONFIG_SERVER_URL: http://config:8888
     ports:
       - "8090:8090"
 
@@ -435,16 +337,12 @@ services:
     env_file:
       - ../../.env
     depends_on:
-      discovery:
-        condition: service_started
       postgres:
         condition: service_healthy
       kafka:
         condition: service_healthy
       redis:
         condition: service_healthy
-      config:
-        condition: service_started
       db-migration:
         condition: service_completed_successfully
     environment:
@@ -458,10 +356,6 @@ services:
       AI_PRODUCT_API_PAGE_SIZE: ${AI_PRODUCT_API_PAGE_SIZE:-200}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       AI_EMBEDDING_MODEL: ${AI_EMBEDDING_MODEL:-text-embedding-3-small}
-      EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
-      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "false"
-      EUREKA_INSTANCE_HOSTNAME: ai
-      CONFIG_SERVER_URL: http://config:8888
     ports:
       - "8088:8088"
 
