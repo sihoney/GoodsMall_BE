@@ -2,10 +2,10 @@ package com.example.payment.escrow.application.service;
 
 import com.example.payment.escrow.application.dto.EscrowReleaseCommand;
 import com.example.payment.escrow.application.dto.EscrowReleaseResult;
-import com.example.payment.settlement.application.event.SettlementCandidateCreatedEvent;
+import com.example.payment.wallet.application.event.SettlementCandidateCreatedEvent;
 import com.example.payment.escrow.application.usecase.EscrowReleaseUseCase;
-import com.example.payment.common.common.exception.EscrowNotFoundException;
-import com.example.payment.common.common.exception.InvalidOrderPaymentRequestException;
+import com.example.payment.common.exception.EscrowNotFoundException;
+import com.example.payment.common.exception.InvalidOrderPaymentRequestException;
 import com.example.payment.escrow.domain.entity.Escrow;
 import com.example.payment.escrow.domain.entity.EscrowTransaction;
 import com.example.payment.escrow.domain.enumtype.EscrowStatus;

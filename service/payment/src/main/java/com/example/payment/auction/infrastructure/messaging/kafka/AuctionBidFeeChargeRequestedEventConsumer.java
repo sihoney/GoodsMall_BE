@@ -9,9 +9,9 @@ import com.example.payment.outbox.infrastructure.messaging.kafka.AuctionBidFeeCh
 import com.example.payment.auction.application.dto.AuctionDepositCommand;
 import com.example.payment.auction.application.dto.AuctionDepositResult;
 import com.example.payment.auction.application.usecase.AuctionDepositUseCase;
-import com.example.payment.common.common.exception.AuctionBidFeeEventValidationException;
-import com.example.payment.common.common.exception.CustomException;
-import com.example.payment.common.common.exception.ErrorCode;
+import com.example.payment.common.exception.AuctionBidFeeEventValidationException;
+import com.example.payment.common.exception.CustomException;
+import com.example.payment.common.exception.ErrorCode;
 import com.example.payment.common.domain.service.IdentifierGenerator;
 import com.example.payment.common.domain.service.TimeProvider;
 import com.example.payment.common.infrastructure.messaging.kafka.contract.BidFeeChargeFailedMessage;

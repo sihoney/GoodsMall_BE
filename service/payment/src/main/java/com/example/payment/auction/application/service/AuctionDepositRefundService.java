@@ -1,7 +1,7 @@
 package com.example.payment.auction.application.service;
 
 import com.example.payment.auction.application.usecase.AuctionDepositRefundUseCase;
-import com.example.payment.common.common.exception.WalletNotFoundException;
+import com.example.payment.common.exception.WalletNotFoundException;
 import com.example.payment.auction.domain.entity.AuctionDeposit;
 import com.example.payment.wallet.domain.entity.Wallet;
 import com.example.payment.wallet.domain.entity.WalletTransaction;

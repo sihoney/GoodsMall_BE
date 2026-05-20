@@ -4,7 +4,7 @@ import com.example.payment.wallet.application.dto.CreateWalletCommand;
 import com.example.payment.wallet.application.dto.CreateWalletResult;
 import com.example.payment.wallet.application.usecase.CreateWalletUseCase;
 import com.example.payment.wallet.domain.entity.Wallet;
-import com.example.payment.common.common.exception.InvalidChargeRequestException;
+import com.example.payment.common.exception.InvalidChargeRequestException;
 import com.example.payment.wallet.domain.repository.WalletRepository;
 import com.example.payment.common.domain.service.IdentifierGenerator;
 import org.springframework.dao.DataIntegrityViolationException;

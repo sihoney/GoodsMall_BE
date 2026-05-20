@@ -1,10 +1,10 @@
 package com.example.payment.common.infrastructure.client;
 
-import com.example.payment.refund.infrastructure.client.dto.request.OrderRefundCompletedRequest;
-import com.example.payment.orderpayment.infrastructure.client.dto.request.OrderPaymentValidationRequest;
+import com.example.payment.payment.infrastructure.client.dto.request.OrderRefundCompletedRequest;
+import com.example.payment.payment.infrastructure.client.dto.request.OrderPaymentValidationRequest;
 import com.example.payment.common.infrastructure.client.dto.response.OrderApiResponse;
-import com.example.payment.refund.infrastructure.client.dto.response.OrderRefundCompletedResponse;
-import com.example.payment.orderpayment.infrastructure.client.dto.response.OrderPaymentValidationResponse;
+import com.example.payment.payment.infrastructure.client.dto.response.OrderRefundCompletedResponse;
+import com.example.payment.payment.infrastructure.client.dto.response.OrderPaymentValidationResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;

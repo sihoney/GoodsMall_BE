@@ -1,6 +1,6 @@
 package com.example.payment.common.infrastructure.config;
 
-import com.example.payment.common.common.exception.WalletNotFoundException;
+import com.example.payment.common.exception.WalletNotFoundException;
 import com.example.payment.common.infrastructure.messaging.kafka.KafkaConsumerGroups;
 import com.example.payment.common.infrastructure.messaging.kafka.KafkaRetryPolicy;
 import com.example.payment.common.infrastructure.messaging.kafka.KafkaTopics;

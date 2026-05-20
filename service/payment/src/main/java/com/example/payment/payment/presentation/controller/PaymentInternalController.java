@@ -1,12 +1,12 @@
 package com.example.payment.payment.presentation.controller;
 
 import com.example.payment.common.application.dto.PagedResult;
-import com.example.payment.settlement.application.dto.PendingSellerIncomeItemResult;
-import com.example.payment.withdraw.application.dto.WithdrawListItemResult;
+import com.example.payment.wallet.application.dto.PendingSellerIncomeItemResult;
+import com.example.payment.wallet.application.dto.WithdrawListItemResult;
 import com.example.payment.payment.application.usecase.PaymentSearchUseCase;
-import com.example.payment.withdraw.domain.enumtype.WithdrawStatus;
+import com.example.payment.wallet.domain.enumtype.WithdrawStatus;
 import com.example.payment.common.presentation.dto.response.ApiResponse;
-import com.example.payment.withdraw.presentation.dto.response.PaymentSellerWithdrawalSummaryResponse;
+import com.example.payment.wallet.presentation.dto.response.PaymentSellerWithdrawalSummaryResponse;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

@@ -1,7 +1,7 @@
 package com.example.payment.common.presentation.exception;
 
-import com.example.payment.common.common.exception.CustomException;
-import com.example.payment.common.common.exception.ErrorCode;
+import com.example.payment.common.exception.CustomException;
+import com.example.payment.common.exception.ErrorCode;
 import com.example.payment.common.presentation.dto.response.ApiResponse;
 import com.todaylunch.common.security.exception.InvalidTokenException;
 import org.springframework.http.ResponseEntity;

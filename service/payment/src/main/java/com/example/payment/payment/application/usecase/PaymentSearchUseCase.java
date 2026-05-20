@@ -1,14 +1,14 @@
 package com.example.payment.payment.application.usecase;
 
-import com.example.payment.charge.application.dto.ChargeDetailResult;
-import com.example.payment.charge.application.dto.ChargeListItemResult;
+import com.example.payment.wallet.application.dto.ChargeDetailResult;
+import com.example.payment.wallet.application.dto.ChargeListItemResult;
 import com.example.payment.escrow.application.dto.EscrowTransactionItemResult;
-import com.example.payment.orderpayment.application.dto.OrderPaymentDetailResult;
+import com.example.payment.payment.application.dto.OrderPaymentDetailResult;
 import com.example.payment.common.application.dto.PagedResult;
-import com.example.payment.settlement.application.dto.PendingSellerIncomeItemResult;
+import com.example.payment.wallet.application.dto.PendingSellerIncomeItemResult;
 import com.example.payment.wallet.application.dto.WalletSummaryResult;
 import com.example.payment.wallet.application.dto.WalletTransactionItemResult;
-import com.example.payment.withdraw.application.dto.WithdrawListItemResult;
+import com.example.payment.wallet.application.dto.WithdrawListItemResult;
 import java.util.List;
 import java.util.UUID;
 

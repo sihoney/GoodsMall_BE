@@ -6,7 +6,7 @@ import com.example.payment.common.infrastructure.messaging.kafka.KafkaConsumerGr
 import com.example.payment.common.infrastructure.messaging.kafka.KafkaTopics;
 import com.example.payment.wallet.application.dto.CreateWalletCommand;
 import com.example.payment.wallet.application.usecase.CreateWalletUseCase;
-import com.example.payment.common.common.exception.InvalidChargeRequestException;
+import com.example.payment.common.exception.InvalidChargeRequestException;
 import com.example.payment.common.infrastructure.messaging.kafka.contract.MemberSignedUpPayload;
 import com.todaylunch.common.event.contract.EventEnvelope;
 import java.time.LocalDateTime;

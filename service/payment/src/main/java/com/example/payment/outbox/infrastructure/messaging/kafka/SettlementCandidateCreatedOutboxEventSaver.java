@@ -3,7 +3,7 @@ package com.example.payment.outbox.infrastructure.messaging.kafka;
 
 import com.example.payment.common.infrastructure.messaging.kafka.KafkaTopics;
 import com.example.payment.outbox.application.event.OutboxEventPendingTrigger;
-import com.example.payment.settlement.application.event.SettlementCandidateCreatedEvent;
+import com.example.payment.wallet.application.event.SettlementCandidateCreatedEvent;
 import com.example.payment.outbox.domain.entity.OutboxEvent;
 import com.example.payment.outbox.domain.repository.OutboxRepository;
 import com.example.payment.common.infrastructure.messaging.kafka.contract.SettlementCandidateCreatedMessage;
