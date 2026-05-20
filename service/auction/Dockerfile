@@ -13,7 +13,7 @@ FROM eclipse-temurin:21-jre
 
 WORKDIR /app
 
-COPY --from=builder /workspace/auction/build/libs/auction-0.0.1-SNAPSHOT.jar app.jar
+COPY --from=builder /workspace/service/auction/build/libs/auction-0.0.1-SNAPSHOT.jar app.jar
 
 EXPOSE 8090
 

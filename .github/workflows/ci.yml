@@ -7,18 +7,18 @@ on:
       - dev
       - main
     paths:
-      - "member/**"
-      - "product/**"
-      - "order/**"
-      - "payment/**"
-      - "notification/**"
-      - "settlement/**"
-      - "cart/**"
-      - "gateway/**"
+      - "service/member/**"
+      - "service/product/**"
+      - "service/order/**"
+      - "service/payment/**"
+      - "service/notification/**"
+      - "service/settlement/**"
+      - "service/cart/**"
+      - "service/gateway/**"
       - "db-migration/**"
       - "common-security/**"
-      - "ai/**"
-      - "auction/**"
+      - "service/ai/**"
+      - "service/auction/**"
 
 # 같은 PR에서 새 커밋이 올라오면 이전 실행 취소
 concurrency:
@@ -64,35 +64,35 @@ jobs:
             MODULES+=('{"module_name":"db-migration"}')
           fi
 
-          if grep -q '^member/' <<< "$CHANGED_FILES"; then
+          if grep -q '^service/member/' <<< "$CHANGED_FILES"; then
             MODULES+=('{"module_name":"member"}')
           fi
 
-          if grep -q '^product/' <<< "$CHANGED_FILES"; then
+          if grep -q '^service/product/' <<< "$CHANGED_FILES"; then
             MODULES+=('{"module_name":"product"}')
           fi
 
-          if grep -q '^order/' <<< "$CHANGED_FILES"; then
+          if grep -q '^service/order/' <<< "$CHANGED_FILES"; then
             MODULES+=('{"module_name":"order"}')
           fi
 
-          if grep -q '^payment/' <<< "$CHANGED_FILES"; then
+          if grep -q '^service/payment/' <<< "$CHANGED_FILES"; then
             MODULES+=('{"module_name":"payment"}')
           fi
 
-          if grep -q '^notification/' <<< "$CHANGED_FILES"; then
+          if grep -q '^service/notification/' <<< "$CHANGED_FILES"; then
             MODULES+=('{"module_name":"notification"}')
           fi
 
-          if grep -q '^settlement/' <<< "$CHANGED_FILES"; then
+          if grep -q '^service/settlement/' <<< "$CHANGED_FILES"; then
             MODULES+=('{"module_name":"settlement"}')
           fi
 
-          if grep -q '^cart/' <<< "$CHANGED_FILES"; then
+          if grep -q '^service/cart/' <<< "$CHANGED_FILES"; then
             MODULES+=('{"module_name":"cart"}')
           fi
 
-          if grep -q '^gateway/' <<< "$CHANGED_FILES"; then
+          if grep -q '^service/gateway/' <<< "$CHANGED_FILES"; then
             MODULES+=('{"module_name":"gateway"}')
           fi
 
@@ -100,11 +100,11 @@ jobs:
             MODULES+=('{"module_name":"common-security"}')
           fi
 
-          if grep -q '^ai/' <<< "$CHANGED_FILES"; then
+          if grep -q '^service/ai/' <<< "$CHANGED_FILES"; then
             MODULES+=('{"module_name":"ai"}')
           fi
 
-          if grep -q '^auction/' <<< "$CHANGED_FILES"; then
+          if grep -q '^service/auction/' <<< "$CHANGED_FILES"; then
             MODULES+=('{"module_name":"auction"}')
           fi
 
@@ -112,11 +112,11 @@ jobs:
             MODULES+=('{"module_name":"common-security"}')
           fi
 
-          if grep -q '^ai/' <<< "$CHANGED_FILES"; then
+          if grep -q '^service/ai/' <<< "$CHANGED_FILES"; then
             MODULES+=('{"module_name":"ai"}')
           fi
 
-          if grep -q '^auction/' <<< "$CHANGED_FILES"; then
+          if grep -q '^service/auction/' <<< "$CHANGED_FILES"; then
             MODULES+=('{"module_name":"auction"}')
           fi
 

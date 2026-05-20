@@ -5,18 +5,18 @@ on:
     branches:
       - main
     paths:
-      - "member/**"
-      - "product/**"
-      - "order/**"
-      - "payment/**"
-      - "notification/**"
-      - "settlement/**"
-      - "cart/**"
-      - "gateway/**"
+      - "service/member/**"
+      - "service/product/**"
+      - "service/order/**"
+      - "service/payment/**"
+      - "service/notification/**"
+      - "service/settlement/**"
+      - "service/cart/**"
+      - "service/gateway/**"
       - "db-migration/**"
-      - "ai/**"
-      - "auction/**"
-      - "k8s/**"
+      - "service/ai/**"
+      - "service/auction/**"
+      - "infra/k8s/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -68,43 +68,43 @@ jobs:
             MODULES+=('{"module_name":"db-migration"}')
           fi
 
-          if grep -q '^member/' <<< "$CHANGED_FILES"; then
+          if grep -q '^service/member/' <<< "$CHANGED_FILES"; then
             MODULES+=('{"module_name":"member"}')
           fi
 
-          if grep -q '^product/' <<< "$CHANGED_FILES"; then
+          if grep -q '^service/product/' <<< "$CHANGED_FILES"; then
             MODULES+=('{"module_name":"product"}')
           fi
 
-          if grep -q '^order/' <<< "$CHANGED_FILES"; then
+          if grep -q '^service/order/' <<< "$CHANGED_FILES"; then
             MODULES+=('{"module_name":"order"}')
           fi
 
-          if grep -q '^payment/' <<< "$CHANGED_FILES"; then
+          if grep -q '^service/payment/' <<< "$CHANGED_FILES"; then
             MODULES+=('{"module_name":"payment"}')
           fi
 
-          if grep -q '^notification/' <<< "$CHANGED_FILES"; then
+          if grep -q '^service/notification/' <<< "$CHANGED_FILES"; then
             MODULES+=('{"module_name":"notification"}')
           fi
 
-          if grep -q '^settlement/' <<< "$CHANGED_FILES"; then
+          if grep -q '^service/settlement/' <<< "$CHANGED_FILES"; then
             MODULES+=('{"module_name":"settlement"}')
           fi
 
-          if grep -q '^cart/' <<< "$CHANGED_FILES"; then
+          if grep -q '^service/cart/' <<< "$CHANGED_FILES"; then
             MODULES+=('{"module_name":"cart"}')
           fi
 
-          if grep -q '^gateway/' <<< "$CHANGED_FILES"; then
+          if grep -q '^service/gateway/' <<< "$CHANGED_FILES"; then
             MODULES+=('{"module_name":"gateway"}')
           fi
 
-          if grep -q '^ai/' <<< "$CHANGED_FILES"; then
+          if grep -q '^service/ai/' <<< "$CHANGED_FILES"; then
             MODULES+=('{"module_name":"ai"}')
           fi
 
-          if grep -q '^auction/' <<< "$CHANGED_FILES"; then
+          if grep -q '^service/auction/' <<< "$CHANGED_FILES"; then
             MODULES+=('{"module_name":"auction"}')
           fi
 
@@ -144,7 +144,7 @@ jobs:
             echo "migration_changed=false" >> "$GITHUB_OUTPUT"
           fi
 
-          if grep -q '^k8s/' <<< "$CHANGED_FILES"; then
+          if grep -q '^infra/k8s/' <<< "$CHANGED_FILES"; then
             echo "k8s_changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "k8s_changed=false" >> "$GITHUB_OUTPUT"
@@ -153,7 +153,7 @@ jobs:
           # k8s 서비스 폴더별 변경 감지
           K8S_SERVICES=()
           for service in member product order payment notification settlement cart gateway ai auction; do
-            if grep -q "^k8s/$service/" <<< "$CHANGED_FILES"; then
+            if grep -q "^infra/k8s/$service/" <<< "$CHANGED_FILES"; then
               K8S_SERVICES+=("$service")
             fi
           done
@@ -199,7 +199,7 @@ jobs:
           docker build \
             -t $IMAGE_PREFIX/${{ matrix.module_name }}:latest \
             -t $IMAGE_PREFIX/${{ matrix.module_name }}:sha-$SHORT_SHA \
-            -f ./${{ matrix.module_name }}/Dockerfile .
+            -f ./service/${{ matrix.module_name }}/Dockerfile .
 
       - name: push docker image
         run: |
@@ -230,7 +230,7 @@ jobs:
       # goods-mall 네임스페이스가 없으면 생성
       # 이후 모든 리소스가 이 네임스페이스에 배포되므로 가장 먼저 실행
       - name: apply namespace
-        run: kubectl apply -f k8s/infra/namespace.yaml
+        run: kubectl apply -f infra/k8s/infra/namespace.yaml
 
       # GHCR private 이미지를 k3s가 pull할 수 있도록 docker-registry 타입 Secret 생성
       # --dry-run=client -o yaml | kubectl apply -f - 패턴으로 이미 존재하면 업데이트, 없으면 생성 (멱등)
@@ -289,9 +289,9 @@ jobs:
             --dry-run=client -o yaml | kubectl apply -f -
 
       # postgres, redis, kafka, elasticsearch, ingress 등 인프라 리소스 적용
-      # --recursive로 k8s/infra/ 하위 모든 yaml 파일 적용
+      # --recursive로 infra/k8s/infra/ 하위 모든 yaml 파일 적용
       - name: apply infra
-        run: kubectl apply --recursive -f k8s/infra/
+        run: kubectl apply --recursive -f infra/k8s/infra/
 
       # db-migration 파일이 변경된 경우에만 실행
       # k8s Job은 immutable이므로 기존 Job 삭제 후 재생성
@@ -300,7 +300,7 @@ jobs:
         if: needs.detect-changes.outputs.migration_changed == 'true'
         run: |
           kubectl delete job/db-migration -n goods-mall --ignore-not-found
-          kubectl apply -f k8s/db-migration/ -n goods-mall
+          kubectl apply -f infra/k8s/db-migration/ -n goods-mall
           kubectl wait --for=condition=complete job/db-migration -n goods-mall --timeout=300s
 
       # 코드 변경 서비스 + k8s 파일 변경 서비스를 합쳐서 해당 서비스 yaml만 적용
@@ -311,7 +311,7 @@ jobs:
           ALL_SERVICES=$(echo "$SERVICES $K8S_SERVICES" | tr ' ' '\n' | sort -u | xargs)
           if [ -n "$ALL_SERVICES" ]; then
             for service in $ALL_SERVICES; do
-              kubectl apply -f k8s/$service/ -n goods-mall
+              kubectl apply -f infra/k8s/$service/ -n goods-mall
             done
           fi
 

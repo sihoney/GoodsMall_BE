@@ -11,7 +11,7 @@ FROM eclipse-temurin:21-jre
 
 WORKDIR /app
 
-COPY --from=builder /workspace/gateway/build/libs/gateway-0.0.1-SNAPSHOT.jar app.jar
+COPY --from=builder /workspace/service/gateway/build/libs/gateway-0.0.1-SNAPSHOT.jar app.jar
 
 EXPOSE 8080
 

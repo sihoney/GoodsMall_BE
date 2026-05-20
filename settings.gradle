@@ -13,3 +13,7 @@ include 'common-monitoring'
 include 'db-migration'
 include 'auction'
 include 'ai'
+
+['product', 'cart', 'member', 'order', 'payment', 'settlement', 'notification', 'gateway', 'auction', 'ai'].each {
+    project(":$it").projectDir = file("service/$it")
+}

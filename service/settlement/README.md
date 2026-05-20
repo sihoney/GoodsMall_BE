@@ -87,7 +87,7 @@ http://localhost:8080
 
 ### 3.1 컨테이너 빌드/실행 방식
 
-`settlement/Dockerfile`은 멀티 스테이지 빌드입니다.
+`service/settlement/Dockerfile`은 멀티 스테이지 빌드입니다.
 
 - 빌드 스테이지: `eclipse-temurin:21-jdk`
 - 런타임 스테이지: `eclipse-temurin:21-jre`
@@ -565,4 +565,3 @@ Settlement Kafka 토픽, 컨슈머 그룹, retry 값은 현재 코드 상수로 
 - 로컬 Docker 실행 기준 파일명을 `docker-compose.dev.yml`로 정정했습니다.
 - `settlement` 컨테이너의 실제 환경변수 주입 방식과 Kafka 설정 키를 현재 구현 기준으로 정정했습니다.
 - 현재 저장소 기준 `prod` 실행 경로에서 Eureka, Config Server가 직접 사용되지 않는다는 점을 명확히 했습니다.
-

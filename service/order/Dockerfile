@@ -11,7 +11,7 @@ FROM eclipse-temurin:21-jre
 
 WORKDIR /app
 
-COPY --from=builder /workspace/order/build/libs/order-0.0.1-SNAPSHOT.jar app.jar
+COPY --from=builder /workspace/service/order/build/libs/order-0.0.1-SNAPSHOT.jar app.jar
 
 EXPOSE 8084
 

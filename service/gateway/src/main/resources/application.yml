@@ -5,7 +5,7 @@ spring:
   application:
     name: gateway-service
   config:
-    import: optional:file:gateway/.env[.properties],optional:file:.env[.properties]
+    import: optional:file:service/gateway/.env[.properties],optional:file:.env[.properties]
   data:
     redis:
       host: ${REDIS_HOST:localhost}

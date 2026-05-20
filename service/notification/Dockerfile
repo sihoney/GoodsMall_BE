@@ -11,7 +11,7 @@ FROM eclipse-temurin:21-jre
 
 WORKDIR /app
 
-COPY --from=builder /workspace/notification/build/libs/notification-0.0.1-SNAPSHOT.jar app.jar
+COPY --from=builder /workspace/service/notification/build/libs/notification-0.0.1-SNAPSHOT.jar app.jar
 
 EXPOSE 8087
 

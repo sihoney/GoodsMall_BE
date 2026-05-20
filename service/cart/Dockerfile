@@ -17,7 +17,7 @@ FROM eclipse-temurin:21-jre
 WORKDIR /app
 
 # 빌드 스테이지에서 생성된 JAR 파일만 복사 (빌드 도구 제외)
-COPY --from=builder /workspace/cart/build/libs/cart-0.0.1-SNAPSHOT.jar app.jar
+COPY --from=builder /workspace/service/cart/build/libs/cart-0.0.1-SNAPSHOT.jar app.jar
 
 # 컨테이너가 사용할 포트 명시 (문서화 목적)
 EXPOSE 8086
