@@ -38,6 +38,8 @@ import com.example.member.auth.presentation.web.dto.TokenRefreshRequest;
 import com.example.member.auth.presentation.web.dto.TokenRefreshResponse;
 import com.todaylunch.common.security.auth.annotation.CurrentMember;
 import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
+import com.todaylunch.common.security.auth.enumtype.MemberRole;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -85,7 +87,7 @@ public class AuthController {
                         request.phone(),
                         request.address(),
                         request.profileImageKey(),
-                        request.role(),
+                        MemberRole.USER,
                         request.kakaoLinkToken()
                 )))
         ));

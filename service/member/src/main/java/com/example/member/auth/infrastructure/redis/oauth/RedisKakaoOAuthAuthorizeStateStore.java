@@ -18,13 +18,16 @@ public class RedisKakaoOAuthAuthorizeStateStore implements KakaoOAuthAuthorizeSt
     private static final String PENDING_LINK_KEY_PREFIX = "oauth:kakao:pending-link:";
     private static final String RESULT_KEY_PREFIX = "oauth:kakao:result:";
 
+    // pending link
     private static final String FIELD_PROVIDER_USER_ID = "providerUserId";
     private static final String FIELD_EMAIL = "email";
     private static final String FIELD_NICKNAME = "nickname";
     private static final String FIELD_PROFILE_IMAGE_URL = "profileImageUrl";
     private static final String FIELD_CREATED_AT = "createdAt";
+    // kakao authorize state
     private static final String FIELD_FLOW_TYPE = "flowType";
     private static final String FIELD_MEMBER_ID = "memberId";
+    // oauth result
     private static final String FIELD_STATUS = "status";
     private static final String FIELD_LINK_REQUIRED = "linkRequired";
     private static final String FIELD_LINK_TOKEN = "linkToken";
