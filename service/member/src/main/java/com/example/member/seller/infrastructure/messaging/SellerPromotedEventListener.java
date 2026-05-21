@@ -1,7 +1,5 @@
 package com.example.member.seller.infrastructure.messaging;
 
-import com.example.member.common.infrastructure.messaging.MemberEventKafkaProducer;
-
 import com.example.member.seller.application.event.SellerPromotedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,11 +12,11 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @RequiredArgsConstructor
 public class SellerPromotedEventListener {
 
-    private final MemberEventKafkaProducer memberEventKafkaProducer;
+    private final SellerEventKafkaProducer sellerEventKafkaProducer;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handle(SellerPromotedEvent event) {
         log.info("Handling SellerPromotedEvent after commit. memberId={} sellerId={}", event.memberId(), event.sellerId());
-        memberEventKafkaProducer.sendSellerPromoted(event);
+        sellerEventKafkaProducer.sendSellerPromoted(event);
     }
 }

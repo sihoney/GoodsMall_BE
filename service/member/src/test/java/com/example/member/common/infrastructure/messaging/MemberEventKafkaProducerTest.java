@@ -10,8 +10,12 @@ import static org.mockito.Mockito.when;
 import com.example.member.verification.application.event.AccountVerificationExpiredEvent;
 import com.example.member.verification.application.event.AccountVerificationFailedEvent;
 import com.example.member.auth.application.event.MemberOauthLinkedEvent;
+import com.example.member.auth.infrastructure.messaging.MemberOauthEventKafkaProducer;
 import com.example.member.member.application.event.MemberSignedUpEvent;
+import com.example.member.member.infrastructure.messaging.MemberEventKafkaProducer;
 import com.example.member.seller.application.event.SellerPromotedEvent;
+import com.example.member.seller.infrastructure.messaging.SellerEventKafkaProducer;
+import com.example.member.verification.infrastructure.messaging.AccountVerificationEventKafkaProducer;
 import com.todaylunch.common.event.contract.EventEnvelope;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -22,7 +26,6 @@ import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.support.SendResult;
@@ -37,9 +40,6 @@ class MemberEventKafkaProducerTest {
 
     @Mock
     private org.springframework.kafka.core.KafkaTemplate<String, String> kafkaTemplate;
-
-    @InjectMocks
-    private MemberEventKafkaProducer memberEventKafkaProducer;
 
     @Test
     void sendMemberSignedUp_serializesContractMessage() throws Exception {
@@ -61,7 +61,8 @@ class MemberEventKafkaProducerTest {
         when(kafkaTemplate.send(anyString(), anyString(), anyString()))
                 .thenReturn(CompletableFuture.completedFuture(sendResult));
 
-        memberEventKafkaProducer.sendMemberSignedUp(payload);
+        MemberEventKafkaProducer producer = new MemberEventKafkaProducer(kafkaTemplate, objectMapper);
+        producer.sendMemberSignedUp(payload);
 
         ArgumentCaptor<Object> messageCaptor = ArgumentCaptor.forClass(Object.class);
         verify(objectMapper).writeValueAsString(messageCaptor.capture());
@@ -103,7 +104,8 @@ class MemberEventKafkaProducerTest {
         when(kafkaTemplate.send(anyString(), anyString(), anyString()))
                 .thenReturn(CompletableFuture.completedFuture(sendResult));
 
-        memberEventKafkaProducer.sendSellerPromoted(payload);
+        SellerEventKafkaProducer producer = new SellerEventKafkaProducer(kafkaTemplate, objectMapper);
+        producer.sendSellerPromoted(payload);
 
         ArgumentCaptor<Object> messageCaptor = ArgumentCaptor.forClass(Object.class);
         verify(objectMapper).writeValueAsString(messageCaptor.capture());
@@ -145,7 +147,9 @@ class MemberEventKafkaProducerTest {
         when(kafkaTemplate.send(anyString(), anyString(), anyString()))
                 .thenReturn(CompletableFuture.completedFuture(sendResult));
 
-        memberEventKafkaProducer.sendAccountVerificationExpired(payload);
+        AccountVerificationEventKafkaProducer producer =
+                new AccountVerificationEventKafkaProducer(kafkaTemplate, objectMapper);
+        producer.sendAccountVerificationExpired(payload);
 
         ArgumentCaptor<Object> messageCaptor = ArgumentCaptor.forClass(Object.class);
         verify(objectMapper).writeValueAsString(messageCaptor.capture());
@@ -185,7 +189,9 @@ class MemberEventKafkaProducerTest {
         when(kafkaTemplate.send(anyString(), anyString(), anyString()))
                 .thenReturn(CompletableFuture.completedFuture(sendResult));
 
-        memberEventKafkaProducer.sendAccountVerificationFailed(payload);
+        AccountVerificationEventKafkaProducer producer =
+                new AccountVerificationEventKafkaProducer(kafkaTemplate, objectMapper);
+        producer.sendAccountVerificationFailed(payload);
 
         ArgumentCaptor<Object> messageCaptor = ArgumentCaptor.forClass(Object.class);
         verify(objectMapper).writeValueAsString(messageCaptor.capture());
@@ -233,7 +239,8 @@ class MemberEventKafkaProducerTest {
         when(kafkaTemplate.send(anyString(), anyString(), anyString()))
                 .thenReturn(CompletableFuture.completedFuture(sendResult));
 
-        memberEventKafkaProducer.sendMemberOauthLinked(payload);
+        MemberOauthEventKafkaProducer producer = new MemberOauthEventKafkaProducer(kafkaTemplate, objectMapper);
+        producer.sendMemberOauthLinked(payload);
 
         ArgumentCaptor<Object> messageCaptor = ArgumentCaptor.forClass(Object.class);
         verify(objectMapper).writeValueAsString(messageCaptor.capture());

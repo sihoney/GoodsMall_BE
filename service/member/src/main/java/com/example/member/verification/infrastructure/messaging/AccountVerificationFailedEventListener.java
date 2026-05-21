@@ -1,7 +1,5 @@
 package com.example.member.verification.infrastructure.messaging;
 
-import com.example.member.common.infrastructure.messaging.MemberEventKafkaProducer;
-
 import com.example.member.verification.application.event.AccountVerificationFailedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,7 +12,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @RequiredArgsConstructor
 public class AccountVerificationFailedEventListener {
 
-    private final MemberEventKafkaProducer memberEventKafkaProducer;
+    private final AccountVerificationEventKafkaProducer accountVerificationEventKafkaProducer;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handle(AccountVerificationFailedEvent event) {
@@ -24,6 +22,6 @@ public class AccountVerificationFailedEventListener {
                 event.sessionId(),
                 event.reason()
         );
-        memberEventKafkaProducer.sendAccountVerificationFailed(event);
+        accountVerificationEventKafkaProducer.sendAccountVerificationFailed(event);
     }
 }

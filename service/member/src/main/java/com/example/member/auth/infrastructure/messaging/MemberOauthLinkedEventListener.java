@@ -1,7 +1,5 @@
 package com.example.member.auth.infrastructure.messaging;
 
-import com.example.member.common.infrastructure.messaging.MemberEventKafkaProducer;
-
 import com.example.member.auth.application.event.MemberOauthLinkedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,7 +12,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @RequiredArgsConstructor
 public class MemberOauthLinkedEventListener {
 
-    private final MemberEventKafkaProducer memberEventKafkaProducer;
+    private final MemberOauthEventKafkaProducer memberOauthEventKafkaProducer;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handle(MemberOauthLinkedEvent event) {
@@ -24,6 +22,6 @@ public class MemberOauthLinkedEventListener {
                 event.provider(),
                 event.providerUserId()
         );
-        memberEventKafkaProducer.sendMemberOauthLinked(event);
+        memberOauthEventKafkaProducer.sendMemberOauthLinked(event);
     }
 }

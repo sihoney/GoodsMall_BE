@@ -1,4 +1,4 @@
-package com.example.member.common.infrastructure.messaging;
+package com.example.member.member.infrastructure.messaging;
 
 import com.example.member.member.application.event.MemberSignedUpEvent;
 import lombok.RequiredArgsConstructor;
