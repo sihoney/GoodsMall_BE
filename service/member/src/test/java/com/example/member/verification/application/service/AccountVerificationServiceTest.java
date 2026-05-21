@@ -15,10 +15,10 @@ import com.example.member.verification.application.dto.command.AccountVerificati
 import com.example.member.auth.application.dto.command.AuthSessionMetadata;
 import com.example.member.verification.application.dto.result.AccountVerificationConfirmResult;
 import com.example.member.verification.application.dto.result.AccountVerificationSendResult;
-import com.example.member.common.application.port.out.MemberEventPort;
-import com.example.member.common.exception.AccountVerificationAttemptLimitExceededException;
-import com.example.member.common.exception.ExpiredAccountVerificationException;
-import com.example.member.common.exception.InvalidAccountVerificationCodeException;
+import com.example.member.verification.application.port.out.AccountVerificationEventPort;
+import com.example.member.verification.exception.AccountVerificationAttemptLimitExceededException;
+import com.example.member.verification.exception.ExpiredAccountVerificationException;
+import com.example.member.verification.exception.InvalidAccountVerificationCodeException;
 import com.example.member.common.config.AccountVerificationProperties;
 import com.example.member.member.domain.entity.Member;
 import com.example.member.seller.application.service.SellerPromotionService;
@@ -66,7 +66,7 @@ class AccountVerificationServiceTest {
     private RefreshTokenStore refreshTokenStore;
 
     @Mock
-    private MemberEventPort memberEventPort;
+    private AccountVerificationEventPort memberEventPort;
 
     private final AccountVerificationProperties properties = new AccountVerificationProperties(
             Duration.ofMinutes(5),

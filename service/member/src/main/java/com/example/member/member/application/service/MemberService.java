@@ -16,14 +16,14 @@ import com.example.member.member.application.dto.result.WithdrawMemberResult;
 import com.example.member.auth.application.port.in.AuthUsecase;
 import com.example.member.member.application.port.in.MemberUsecase;
 import com.example.member.member.application.port.out.MemberWithdrawalCheckPort;
-import com.example.member.common.application.port.out.MemberEventPort;
+import com.example.member.member.application.port.out.MemberEventPort;
 import com.example.member.auth.application.port.out.MemberOauthAccountPersistencePort;
 import com.example.member.member.application.port.out.MemberPersistencePort;
 import com.example.member.member.application.port.out.ProfileImageUrlPort;
-import com.example.member.common.exception.DuplicateMemberEmailException;
-import com.example.member.common.exception.InvalidCurrentPasswordException;
-import com.example.member.common.exception.MemberWithdrawalException;
-import com.example.member.common.exception.MemberNotFoundException;
+import com.example.member.member.exception.DuplicateMemberEmailException;
+import com.example.member.member.exception.InvalidCurrentPasswordException;
+import com.example.member.member.exception.MemberWithdrawalException;
+import com.example.member.member.exception.MemberNotFoundException;
 import com.example.member.common.config.MemberSignupProperties;
 import com.example.member.member.domain.entity.Member;
 import com.example.member.auth.domain.entity.MemberOauthAccount;
@@ -57,13 +57,18 @@ public class MemberService implements MemberUsecase {
     @Transactional
     @Override
     public CreateMemberResult createMember(CreateMemberCommand command) {
+        // 1. command == null
         validateCreateCommand(command);
 
+        // 2. 필수값 정규화
         String email = normalizeRequired(command.email(), "email");
+
+        // 3. 중복 이메일 확인
         if (memberPersistencePort.existsByEmail(email)) {
             throw new DuplicateMemberEmailException();
         }
 
+        // 4. 이메일 검증 on/off에 따른 status 값 초기화
         LocalDateTime now = LocalDateTime.now();
         MemberStatus initialStatus = memberSignupProperties.requireEmailVerification()
                 ? MemberStatus.PENDING_VERIFICATION
@@ -83,11 +88,18 @@ public class MemberService implements MemberUsecase {
                 now
         );
 
+        // 5. 영속 저장
         Member savedMember = memberPersistencePort.save(member);
+
+        // 6. 대기 중인 카카오 계정 연동
         linkPendingKakaoAccountIfPresent(savedMember.getMemberId(), command.kakaoLinkToken());
+
+        // 7. 이메일 검증 on/off에 따른 이메일 발송
         if (memberSignupProperties.requireEmailVerification()) {
             emailVerificationService.createSignupVerification(savedMember);
         }
+
+        // 8. 회원 생성 이벤트 발행 (payment 서비스 지갑 생성)
         memberEventPort.publishMemberSignedUp(savedMember);
 
         return toCreateMemberResult(savedMember);

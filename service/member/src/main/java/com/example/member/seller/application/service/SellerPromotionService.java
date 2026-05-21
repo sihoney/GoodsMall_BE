@@ -1,11 +1,11 @@
 package com.example.member.seller.application.service;
 
-import com.example.member.common.application.port.out.MemberEventPort;
 import com.example.member.member.application.port.out.MemberPersistencePort;
+import com.example.member.seller.application.port.out.SellerEventPort;
 import com.example.member.seller.application.port.out.SellerPersistencePort;
-import com.example.member.common.exception.AccountVerificationNotAllowedException;
-import com.example.member.common.exception.AccountVerificationNotFoundException;
-import com.example.member.common.exception.MemberNotFoundException;
+import com.example.member.verification.exception.AccountVerificationNotAllowedException;
+import com.example.member.verification.exception.AccountVerificationNotFoundException;
+import com.example.member.member.exception.MemberNotFoundException;
 import com.example.member.member.domain.entity.Member;
 import com.example.member.seller.domain.entity.Seller;
 import com.example.member.seller.infrastructure.crypto.AccountEncryptionService;
@@ -29,7 +29,7 @@ public class SellerPromotionService {
     private final SellerPersistencePort sellerPersistencePort;
     private final MemberPersistencePort memberPersistencePort;
     private final AccountEncryptionService accountEncryptionService;
-    private final MemberEventPort memberEventPort;
+    private final SellerEventPort sellerEventPort;
 
     @Transactional
     public void promoteAfterAccountVerified(UUID memberId, String sessionId) {
@@ -66,7 +66,7 @@ public class SellerPromotionService {
 
         sellerPersistencePort.save(seller);
         member.changeRole(MemberRole.SELLER, now);
-        memberEventPort.publishSellerPromoted(member, seller);
+        sellerEventPort.publishSellerPromoted(member, seller);
 
         sellerDraftStore.deleteDraft(draft.getDraftId());
         sellerDraftStore.deleteCurrentDraft(memberId);

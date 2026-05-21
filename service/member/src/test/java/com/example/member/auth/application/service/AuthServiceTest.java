@@ -13,9 +13,9 @@ import com.example.member.auth.application.dto.command.LoginCommand;
 import com.example.member.auth.application.dto.command.TokenRefreshCommand;
 import com.example.member.auth.application.dto.result.AuthSessionListResult;
 import com.example.member.auth.application.dto.result.AuthTokenResult;
-import com.example.member.common.exception.InvalidLoginException;
-import com.example.member.common.exception.MemberRestrictedException;
-import com.example.member.common.exception.MemberWithdrawnException;
+import com.example.member.auth.exception.InvalidLoginException;
+import com.example.member.restriction.exception.MemberRestrictedException;
+import com.example.member.member.exception.MemberWithdrawnException;
 import com.example.member.member.domain.entity.Member;
 import com.example.member.restriction.domain.entity.MemberRestriction;
 import com.example.member.restriction.application.service.MemberRestrictionService;
@@ -139,7 +139,7 @@ class AuthServiceTest {
         when(memberPersistencePort.findByEmail("member@test.com")).thenReturn(Optional.of(member));
         when(passwordEncoder.matches("plain-password", "encoded-password")).thenReturn(true);
 
-        assertThrows(com.example.member.common.exception.EmailVerificationRequiredException.class, () -> authService.login(command, AuthSessionMetadata.empty()));
+        assertThrows(com.example.member.verification.exception.EmailVerificationRequiredException.class, () -> authService.login(command, AuthSessionMetadata.empty()));
 
         verify(jwtTokenProvider, never()).createAccessToken(eq(member), any(UUID.class));
         verify(refreshTokenStore, never()).createSession(any(UUID.class), any(UUID.class), any(String.class), any(Duration.class), any(AuthSessionMetadata.class));

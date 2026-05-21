@@ -6,8 +6,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.example.member.common.application.port.out.MemberEventPort;
-import com.example.member.common.exception.AccountVerificationNotAllowedException;
+import com.example.member.seller.application.port.out.SellerEventPort;
+import com.example.member.verification.exception.AccountVerificationNotAllowedException;
 import com.example.member.member.domain.entity.Member;
 import com.example.member.seller.domain.entity.Seller;
 import com.example.member.member.domain.enumtype.MemberStatus;
@@ -47,7 +47,7 @@ class SellerPromotionServiceTest {
     private AccountEncryptionService accountEncryptionService;
 
     @Mock
-    private MemberEventPort memberEventPort;
+    private SellerEventPort memberEventPort;
 
     @Test
     void promoteAfterAccountVerified_success_createsSellerAndUpdatesMemberRole() {

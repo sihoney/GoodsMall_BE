@@ -5,9 +5,12 @@ import com.example.member.verification.application.event.AccountVerificationFail
 import com.example.member.auth.application.event.MemberOauthLinkedEvent;
 import com.example.member.member.application.event.MemberSignedUpEvent;
 import com.example.member.seller.application.event.SellerPromotedEvent;
-import com.example.member.common.application.port.out.MemberEventPort;
+import com.example.member.auth.application.port.out.MemberOauthEventPort;
+import com.example.member.member.application.port.out.MemberEventPort;
 import com.example.member.member.domain.entity.Member;
+import com.example.member.seller.application.port.out.SellerEventPort;
 import com.example.member.seller.domain.entity.Seller;
+import com.example.member.verification.application.port.out.AccountVerificationEventPort;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +19,11 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class SpringMemberEventPublisher implements MemberEventPort {
+public class SpringMemberEventPublisher implements
+        MemberEventPort,
+        SellerEventPort,
+        AccountVerificationEventPort,
+        MemberOauthEventPort {
 
     private final ApplicationEventPublisher applicationEventPublisher;
 

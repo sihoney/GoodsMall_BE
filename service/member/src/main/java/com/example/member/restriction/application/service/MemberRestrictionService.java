@@ -5,9 +5,9 @@ import com.example.member.restriction.application.dto.result.MemberRestrictionRe
 import com.example.member.member.application.port.out.MemberPersistencePort;
 import com.example.member.restriction.application.port.out.MemberRestrictionPersistencePort;
 import com.example.member.restriction.application.port.in.MemberRestrictionUsecase;
-import com.example.member.common.exception.DuplicateActiveRestrictionException;
-import com.example.member.common.exception.MemberNotFoundException;
-import com.example.member.common.exception.MemberRestrictionNotFoundException;
+import com.example.member.restriction.exception.DuplicateActiveRestrictionException;
+import com.example.member.member.exception.MemberNotFoundException;
+import com.example.member.restriction.exception.MemberRestrictionNotFoundException;
 import com.example.member.member.domain.entity.Member;
 import com.example.member.restriction.domain.entity.MemberRestriction;
 import com.example.member.restriction.domain.enumtype.RestrictionType;

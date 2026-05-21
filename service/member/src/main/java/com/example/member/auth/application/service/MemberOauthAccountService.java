@@ -6,9 +6,9 @@ import com.example.member.auth.application.dto.result.MemberOauthAccountUnlinkRe
 import com.example.member.auth.application.port.out.MemberOauthAccountPersistencePort;
 import com.example.member.member.application.port.out.MemberPersistencePort;
 import com.example.member.auth.application.port.in.MemberOauthAccountUsecase;
-import com.example.member.common.exception.LastLoginMethodRemovalNotAllowedException;
-import com.example.member.common.exception.MemberNotFoundException;
-import com.example.member.common.exception.MemberOauthAccountNotFoundException;
+import com.example.member.auth.exception.LastLoginMethodRemovalNotAllowedException;
+import com.example.member.member.exception.MemberNotFoundException;
+import com.example.member.auth.exception.MemberOauthAccountNotFoundException;
 import com.example.member.member.domain.entity.Member;
 import com.example.member.auth.domain.entity.MemberOauthAccount;
 import com.example.member.auth.domain.enumtype.OAuthProvider;

@@ -10,14 +10,14 @@ import com.example.member.verification.application.dto.result.AccountVerificatio
 import com.example.member.verification.application.dto.result.AccountVerificationCurrentResult;
 import com.example.member.verification.application.dto.result.AccountVerificationSendResult;
 import com.example.member.verification.application.port.in.AccountVerificationUsecase;
-import com.example.member.common.application.port.out.MemberEventPort;
+import com.example.member.verification.application.port.out.AccountVerificationEventPort;
 import com.example.member.member.application.port.out.MemberPersistencePort;
-import com.example.member.common.exception.AccountVerificationAttemptLimitExceededException;
-import com.example.member.common.exception.AccountVerificationNotAllowedException;
-import com.example.member.common.exception.AccountVerificationNotFoundException;
-import com.example.member.common.exception.AccountVerificationResendLimitExceededException;
-import com.example.member.common.exception.ExpiredAccountVerificationException;
-import com.example.member.common.exception.InvalidAccountVerificationCodeException;
+import com.example.member.verification.exception.AccountVerificationAttemptLimitExceededException;
+import com.example.member.verification.exception.AccountVerificationNotAllowedException;
+import com.example.member.verification.exception.AccountVerificationNotFoundException;
+import com.example.member.verification.exception.AccountVerificationResendLimitExceededException;
+import com.example.member.verification.exception.ExpiredAccountVerificationException;
+import com.example.member.verification.exception.InvalidAccountVerificationCodeException;
 import com.example.member.common.config.AccountVerificationProperties;
 import com.example.member.member.domain.entity.Member;
 import com.example.member.verification.domain.enumtype.AccountVerificationStatus;
@@ -57,7 +57,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenStore refreshTokenStore;
     private final AccountVerificationProperties properties;
-    private final MemberEventPort memberEventPort;
+    private final AccountVerificationEventPort accountVerificationEventPort;
 
     @Override
     @Transactional
@@ -157,7 +157,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
                 if (session.getAttemptCount() >= properties.maxAttempts()) {
                     session.markExpired("ATTEMPT_LIMIT_EXCEEDED");
                     sessionStore.saveSession(session, Duration.ZERO);
-                    memberEventPort.publishAccountVerificationFailed(
+                    accountVerificationEventPort.publishAccountVerificationFailed(
                             memberId,
                             session.getSessionId(),
                             "ATTEMPT_LIMIT_EXCEEDED"
@@ -447,7 +447,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
         }
 
         session.markExpired(reason);
-        memberEventPort.publishAccountVerificationExpired(
+        accountVerificationEventPort.publishAccountVerificationExpired(
                 session.getMemberId(),
                 session.getSessionId(),
                 reason

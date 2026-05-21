@@ -9,7 +9,7 @@ import static org.mockito.Mockito.when;
 
 import com.example.member.auth.application.dto.result.KakaoOAuthLinkResult;
 import com.example.member.auth.application.dto.result.KakaoOAuthResult;
-import com.example.member.common.application.port.out.MemberEventPort;
+import com.example.member.auth.application.port.out.MemberOauthEventPort;
 import com.example.member.common.config.KakaoOAuthProperties;
 import com.example.member.member.domain.entity.Member;
 import com.example.member.auth.domain.entity.MemberOauthAccount;
@@ -56,7 +56,7 @@ class KakaoOAuthServiceTest {
     private AuthService authService;
 
     @Mock
-    private MemberEventPort memberEventPort;
+    private MemberOauthEventPort memberEventPort;
 
     @InjectMocks
     private KakaoOAuthService kakaoOAuthService;

@@ -5,9 +5,9 @@ import com.example.member.verification.application.dto.result.EmailVerificationC
 import com.example.member.verification.application.port.out.EmailSenderPort;
 import com.example.member.verification.application.port.out.EmailVerificationPersistencePort;
 import com.example.member.member.application.port.out.MemberPersistencePort;
-import com.example.member.common.exception.EmailVerificationNotAllowedException;
-import com.example.member.common.exception.ExpiredEmailVerificationException;
-import com.example.member.common.exception.InvalidEmailVerificationTokenException;
+import com.example.member.verification.exception.EmailVerificationNotAllowedException;
+import com.example.member.verification.exception.ExpiredEmailVerificationException;
+import com.example.member.verification.exception.InvalidEmailVerificationTokenException;
 import com.example.member.common.config.EmailVerificationProperties;
 import com.example.member.verification.domain.entity.EmailVerification;
 import com.example.member.member.domain.entity.Member;

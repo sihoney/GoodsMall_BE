@@ -6,7 +6,7 @@ import com.example.member.auth.application.dto.result.PasswordResetConfirmResult
 import com.example.member.auth.application.dto.result.PasswordResetSendResult;
 import com.example.member.verification.application.port.out.EmailSenderPort;
 import com.example.member.member.application.port.out.MemberPersistencePort;
-import com.example.member.common.exception.InvalidPasswordResetTokenException;
+import com.example.member.auth.exception.InvalidPasswordResetTokenException;
 import com.example.member.common.config.PasswordResetProperties;
 import com.example.member.member.domain.entity.Member;
 import com.example.member.auth.infrastructure.redis.passwordreset.PasswordResetToken;

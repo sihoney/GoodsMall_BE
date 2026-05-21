@@ -12,9 +12,9 @@ import com.example.member.restriction.application.dto.command.CreateMemberRestri
 import com.example.member.restriction.application.service.MemberRestrictionService;
 import com.example.member.report.application.dto.command.ReviewMemberReportCommand;
 import com.example.member.report.application.dto.result.MemberReportResult;
-import com.example.member.common.exception.DuplicateMemberReportException;
-import com.example.member.common.exception.MemberReportNotFoundException;
-import com.example.member.common.exception.SelfReportNotAllowedException;
+import com.example.member.report.exception.DuplicateMemberReportException;
+import com.example.member.report.exception.MemberReportNotFoundException;
+import com.example.member.report.exception.SelfReportNotAllowedException;
 import com.example.member.member.domain.entity.Member;
 import com.example.member.report.domain.entity.MemberReport;
 import com.example.member.member.domain.enumtype.MemberStatus;

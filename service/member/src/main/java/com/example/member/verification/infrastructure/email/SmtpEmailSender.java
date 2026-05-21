@@ -1,6 +1,6 @@
 package com.example.member.verification.infrastructure.email;
 
-import com.example.member.common.exception.EmailSendFailedException;
+import com.example.member.verification.exception.EmailSendFailedException;
 import com.example.member.common.config.EmailProperties;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;

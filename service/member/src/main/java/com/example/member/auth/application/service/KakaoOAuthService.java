@@ -3,10 +3,10 @@ package com.example.member.auth.application.service;
 import com.example.member.auth.application.dto.command.AuthSessionMetadata;
 import com.example.member.auth.application.dto.result.KakaoOAuthLinkResult;
 import com.example.member.auth.application.dto.result.KakaoOAuthResult;
-import com.example.member.common.application.port.out.MemberEventPort;
+import com.example.member.auth.application.port.out.MemberOauthEventPort;
 import com.example.member.auth.application.port.out.MemberOauthAccountPersistencePort;
 import com.example.member.member.application.port.out.MemberPersistencePort;
-import com.example.member.common.exception.InvalidLoginException;
+import com.example.member.auth.exception.InvalidLoginException;
 import com.example.member.common.config.KakaoOAuthProperties;
 import com.example.member.member.domain.entity.Member;
 import com.example.member.auth.domain.entity.MemberOauthAccount;
@@ -37,7 +37,7 @@ public class KakaoOAuthService {
     private final MemberPersistencePort memberPersistencePort;
     private final MemberOauthAccountPersistencePort memberOauthAccountPersistencePort;
     private final AuthService authService;
-    private final MemberEventPort memberEventPort;
+    private final MemberOauthEventPort memberOauthEventPort;
 
     public String createLoginAuthorizeState() {
         String state = UUID.randomUUID().toString();
@@ -316,7 +316,7 @@ public class KakaoOAuthService {
                 linkedAt
         ));
 
-        memberEventPort.publishMemberOauthLinked(
+        memberOauthEventPort.publishMemberOauthLinked(
                 memberId,
                 PROVIDER.name(),
                 providerUserId,
