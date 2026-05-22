@@ -57,6 +57,7 @@ public class GatewayJwtValidator {
             throw new AuthException(AuthErrorCode.INVALID_TOKEN);
         }
 
+        // TODO: session blacklist 삭제 시 auth:session:{sessionId} whitelist 검증 방식으로 전환 검토
         if (tokenBlacklistStore.isAccessTokenBlacklisted(accessTokenId)
                 || tokenBlacklistStore.isSessionBlacklisted(UUID.fromString(sessionId))) {
             throw new AuthException(AuthErrorCode.INVALID_TOKEN);

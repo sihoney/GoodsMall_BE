@@ -41,6 +41,7 @@ public class AuthTokenRefreshService implements AuthTokenRefreshUsecase {
 
         if (!Objects.equals(authSession.memberId(), parsedRefreshToken.memberId())
                 || !Objects.equals(authSession.refreshTokenId(), parsedRefreshToken.refreshTokenId())) {
+            // TODO: refresh token 탈취 감지 시 session blacklist 등록 또는 전체 세션 강제 로그아웃 처리 검토
             refreshTokenStore.deleteSession(parsedRefreshToken.memberId(), parsedRefreshToken.sessionId());
             throw new InvalidTokenException();
         }
