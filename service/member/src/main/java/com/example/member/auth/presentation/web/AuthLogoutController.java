@@ -1,6 +1,6 @@
 package com.example.member.auth.presentation.web;
 
-import com.example.member.auth.application.port.in.AuthUsecase;
+import com.example.member.auth.application.port.in.AuthSessionUsecase;
 import com.example.member.common.presentation.web.dto.ApiResponse;
 import com.example.member.auth.presentation.web.dto.AuthSessionListResponse;
 import com.todaylunch.common.security.auth.annotation.CurrentMember;
@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AuthLogoutController {
 
-    private final AuthUsecase authUsecase;
+    private final AuthSessionUsecase authSessionUsecase;
 
     @GetMapping("/sessions")
     @Operation(summary = "로그인 세션 목록 조회", description = "현재 회원의 활성 로그인 세션 목록을 조회합니다.")
@@ -32,7 +32,7 @@ public class AuthLogoutController {
     ) {
         return ResponseEntity.ok(ApiResponse.success(
                 AuthSessionListResponse.from(
-                        authUsecase.getSessions(authenticatedMember.memberId(), authenticatedMember.sessionId())
+                        authSessionUsecase.getSessions(authenticatedMember.memberId(), authenticatedMember.sessionId())
                 )
         ));
     }
@@ -44,7 +44,7 @@ public class AuthLogoutController {
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader,
             @PathVariable UUID sessionId
     ) {
-        authUsecase.logoutSession(
+        authSessionUsecase.logoutSession(
                 authorizationHeader,
                 authenticatedMember.memberId(),
                 authenticatedMember.sessionId(),
@@ -58,7 +58,7 @@ public class AuthLogoutController {
     public ResponseEntity<ApiResponse<Void>> logoutCurrentSession(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader
     ) {
-        authUsecase.logoutCurrentSession(authorizationHeader);
+        authSessionUsecase.logoutCurrentSession(authorizationHeader);
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 
@@ -67,7 +67,7 @@ public class AuthLogoutController {
     public ResponseEntity<ApiResponse<Void>> logoutAllSessions(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader
     ) {
-        authUsecase.logoutAllSessions(authorizationHeader);
+        authSessionUsecase.logoutAllSessions(authorizationHeader);
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 }

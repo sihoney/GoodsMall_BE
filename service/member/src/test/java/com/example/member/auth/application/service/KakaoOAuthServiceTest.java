@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import com.example.member.auth.application.dto.result.KakaoOAuthLinkResult;
 import com.example.member.auth.application.dto.result.KakaoOAuthResult;
+import com.example.member.auth.application.port.in.AuthLoginUsecase;
 import com.example.member.auth.application.port.out.MemberOauthEventPort;
 import com.example.member.common.config.KakaoOAuthProperties;
 import com.example.member.member.domain.entity.Member;
@@ -53,7 +54,7 @@ class KakaoOAuthServiceTest {
     private MemberOauthAccountJpaAdapter memberOauthAccountPersistencePort;
 
     @Mock
-    private AuthService authService;
+    private AuthLoginUsecase authLoginUsecase;
 
     @Mock
     private MemberOauthEventPort memberEventPort;

@@ -13,7 +13,7 @@ import com.example.member.auth.application.dto.result.ChangePasswordResult;
 import com.example.member.member.application.dto.result.CreateMemberResult;
 import com.example.member.member.application.dto.result.MemberResult;
 import com.example.member.member.application.dto.result.WithdrawMemberResult;
-import com.example.member.auth.application.port.in.AuthUsecase;
+import com.example.member.auth.application.port.in.AuthSessionUsecase;
 import com.example.member.member.application.port.in.MemberUsecase;
 import com.example.member.member.application.port.out.MemberWithdrawalCheckPort;
 import com.example.member.member.application.port.out.MemberEventPort;
@@ -52,7 +52,7 @@ public class MemberService implements MemberUsecase {
     private final EmailVerificationService emailVerificationService;
     private final KakaoOAuthService kakaoOAuthService;
     private final MemberSignupProperties memberSignupProperties;
-    private final AuthUsecase authUsecase;
+    private final AuthSessionUsecase authSessionUsecase;
 
     @Transactional
     @Override
@@ -190,7 +190,7 @@ public class MemberService implements MemberUsecase {
         LocalDateTime withdrawnAt = LocalDateTime.now();
         deleteOauthAccounts(member.getMemberId());
         member.withdraw(createWithdrawnEmail(member), withdrawnAt);
-        authUsecase.logoutAllSessions(normalizeRequired(command.authorizationHeader(), "authorizationHeader"));
+        authSessionUsecase.logoutAllSessions(normalizeRequired(command.authorizationHeader(), "authorizationHeader"));
 
         return new WithdrawMemberResult(
                 member.getMemberId(),

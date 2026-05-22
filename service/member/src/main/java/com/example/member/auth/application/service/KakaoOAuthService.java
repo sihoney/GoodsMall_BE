@@ -3,6 +3,7 @@ package com.example.member.auth.application.service;
 import com.example.member.common.application.dto.AuthSessionMetadata;
 import com.example.member.auth.application.dto.result.KakaoOAuthLinkResult;
 import com.example.member.auth.application.dto.result.KakaoOAuthResult;
+import com.example.member.auth.application.port.in.AuthLoginUsecase;
 import com.example.member.auth.application.port.out.MemberOauthEventPort;
 import com.example.member.auth.application.port.out.MemberOauthAccountPersistencePort;
 import com.example.member.member.application.port.out.MemberPersistencePort;
@@ -36,7 +37,7 @@ public class KakaoOAuthService {
     private final KakaoOAuthAuthorizeStateStore kakaoOAuthAuthorizeStateStore;
     private final MemberPersistencePort memberPersistencePort;
     private final MemberOauthAccountPersistencePort memberOauthAccountPersistencePort;
-    private final AuthService authService;
+    private final AuthLoginUsecase authLoginUsecase;
     private final MemberOauthEventPort memberOauthEventPort;
 
     public String createLoginAuthorizeState() {
@@ -169,7 +170,7 @@ public class KakaoOAuthService {
                     if (!member.isActive()) {
                         throw new InvalidLoginException();
                     }
-                    var loginResponse = authService.login(member, metadata);
+                    var loginResponse = authLoginUsecase.login(member, metadata);
                     return KakaoOAuthResult.success(
                             PROVIDER.name(),
                             providerUserId,

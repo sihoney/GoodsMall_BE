@@ -1,6 +1,6 @@
 package com.example.member.verification.application.service;
 
-import com.example.member.auth.application.service.AuthService;
+import com.example.member.auth.application.port.in.AuthLoginUsecase;
 
 import com.example.member.common.application.dto.AuthSessionMetadata;
 import com.example.member.auth.application.dto.result.AuthTokenResult;
@@ -23,7 +23,7 @@ public class EmailVerificationAutoLoginService {
 
     private final EmailVerificationAutoLoginTokenStore emailVerificationAutoLoginTokenStore;
     private final MemberPersistencePort memberPersistencePort;
-    private final AuthService authService;
+    private final AuthLoginUsecase authLoginUsecase;
     private final com.example.member.common.config.EmailVerificationProperties emailVerificationProperties;
 
     @Transactional
@@ -54,7 +54,7 @@ public class EmailVerificationAutoLoginService {
         Member member = memberPersistencePort.findById(storedToken.memberId())
                 .orElseThrow(InvalidEmailVerificationAutoLoginTokenException::new);
 
-        return authService.login(member, metadata == null ? AuthSessionMetadata.empty() : metadata);
+        return authLoginUsecase.login(member, metadata == null ? AuthSessionMetadata.empty() : metadata);
     }
 
     private String normalizeRequired(String value, String fieldName) {

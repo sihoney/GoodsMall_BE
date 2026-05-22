@@ -35,9 +35,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -63,8 +63,32 @@ class AuthServiceTest {
     @Mock
     private MemberRestrictionService memberRestrictionService;
 
-    @InjectMocks
-    private AuthService authService;
+    private AuthLoginService authLoginService;
+    private AuthTokenRefreshService authTokenRefreshService;
+    private AuthSessionService authSessionService;
+
+    @BeforeEach
+    void setUp() {
+        LoginEligibilityValidator loginEligibilityValidator = new LoginEligibilityValidator(memberRestrictionService);
+        AuthTokenIssuer authTokenIssuer = new AuthTokenIssuer(jwtTokenProvider, refreshTokenStore);
+        authLoginService = new AuthLoginService(
+                memberPersistencePort,
+                passwordEncoder,
+                loginEligibilityValidator,
+                authTokenIssuer
+        );
+        authTokenRefreshService = new AuthTokenRefreshService(
+                memberPersistencePort,
+                jwtTokenProvider,
+                refreshTokenStore,
+                loginEligibilityValidator
+        );
+        authSessionService = new AuthSessionService(
+                jwtTokenProvider,
+                refreshTokenStore,
+                tokenBlacklistStore
+        );
+    }
 
     @Test
     void login_success_returnsTokensWhenNoActiveLoginBan() {
@@ -82,7 +106,7 @@ class AuthServiceTest {
         when(jwtTokenProvider.getAccessExpiration()).thenReturn(3600L);
         when(jwtTokenProvider.getRefreshExpiration()).thenReturn(7200L);
 
-        AuthTokenResult response = authService.login(command);
+        AuthTokenResult response = authLoginService.login(command);
 
         assertEquals("access-token", response.accessToken());
         assertEquals("refresh-token", response.refreshToken());
@@ -114,7 +138,7 @@ class AuthServiceTest {
         when(memberRestrictionService.getActiveLoginRestriction(eq(member.getMemberId()), any()))
                 .thenReturn(restriction);
 
-        assertThrows(MemberRestrictedException.class, () -> authService.login(command));
+        assertThrows(MemberRestrictedException.class, () -> authLoginService.login(command));
 
         verify(jwtTokenProvider, never()).createAccessToken(eq(member), any(UUID.class));
         verify(refreshTokenStore, never()).createSession(any(UUID.class), any(UUID.class), any(String.class), any(Duration.class), any(AuthSessionMetadata.class));
@@ -128,7 +152,7 @@ class AuthServiceTest {
         when(memberPersistencePort.findByEmail("member@test.com")).thenReturn(Optional.of(member));
         when(passwordEncoder.matches("plain-password", "encoded-password")).thenReturn(false);
 
-        assertThrows(InvalidLoginException.class, () -> authService.login(command));
+        assertThrows(InvalidLoginException.class, () -> authLoginService.login(command));
     }
 
     @Test
@@ -139,7 +163,7 @@ class AuthServiceTest {
         when(memberPersistencePort.findByEmail("member@test.com")).thenReturn(Optional.of(member));
         when(passwordEncoder.matches("plain-password", "encoded-password")).thenReturn(true);
 
-        assertThrows(com.example.member.verification.exception.EmailVerificationRequiredException.class, () -> authService.login(command));
+        assertThrows(com.example.member.verification.exception.EmailVerificationRequiredException.class, () -> authLoginService.login(command));
 
         verify(jwtTokenProvider, never()).createAccessToken(eq(member), any(UUID.class));
         verify(refreshTokenStore, never()).createSession(any(UUID.class), any(UUID.class), any(String.class), any(Duration.class), any(AuthSessionMetadata.class));
@@ -166,7 +190,7 @@ class AuthServiceTest {
         when(jwtTokenProvider.getAccessExpiration()).thenReturn(3600L);
         when(jwtTokenProvider.getRefreshExpiration()).thenReturn(7200L);
 
-        AuthTokenResult response = authService.refresh(command);
+        AuthTokenResult response = authTokenRefreshService.refresh(command);
 
         assertEquals("new-access-token", response.accessToken());
         assertEquals("new-refresh-token", response.refreshToken());
@@ -195,7 +219,7 @@ class AuthServiceTest {
         when(memberPersistencePort.findById(memberId)).thenReturn(Optional.of(member));
 
         assertThrows(MemberWithdrawnException.class, () ->
-                authService.refresh(command));
+                authTokenRefreshService.refresh(command));
 
         verify(jwtTokenProvider, never()).createAccessToken(eq(member), eq(sessionId));
     }
@@ -214,7 +238,7 @@ class AuthServiceTest {
         when(refreshTokenStore.findBySessionId(sessionId))
                 .thenReturn(Optional.of(new AuthSession(memberId, sessionId, "different-token-id", java.time.Instant.now(), java.time.Instant.now(), java.time.Instant.now(), null, null)));
 
-        assertThrows(InvalidTokenException.class, () -> authService.refresh(command));
+        assertThrows(InvalidTokenException.class, () -> authTokenRefreshService.refresh(command));
 
         verify(refreshTokenStore).deleteSession(memberId, sessionId);
         verify(memberPersistencePort, never()).findById(any());
@@ -224,7 +248,7 @@ class AuthServiceTest {
     void logout_deletesAllSessionsForMember() {
         UUID memberId = UUID.randomUUID();
 
-        authService.logout(memberId);
+        authSessionService.logout(memberId);
 
         verify(refreshTokenStore).deleteAllSessions(memberId);
     }
@@ -259,7 +283,7 @@ class AuthServiceTest {
                 )
         ));
 
-        AuthSessionListResult result = authService.getSessions(memberId, currentSessionId);
+        AuthSessionListResult result = authSessionService.getSessions(memberId, currentSessionId);
 
         assertEquals(2, result.sessions().size());
         assertEquals(currentSessionId, result.sessions().get(0).sessionId());
@@ -287,7 +311,7 @@ class AuthServiceTest {
                 )));
         when(jwtTokenProvider.getRefreshExpiration()).thenReturn(7200L);
 
-        authService.logoutSession("Bearer current-access-token", memberId, currentSessionId, targetSessionId);
+        authSessionService.logoutSession("Bearer current-access-token", memberId, currentSessionId, targetSessionId);
 
         verify(refreshTokenStore).deleteSession(memberId, targetSessionId);
         verify(tokenBlacklistStore).blacklistSession(targetSessionId, Duration.ofMillis(7200L));
@@ -309,7 +333,7 @@ class AuthServiceTest {
                 ));
         when(jwtTokenProvider.getRefreshExpiration()).thenReturn(7200L);
 
-        authService.logoutSession(token, memberId, currentSessionId, currentSessionId);
+        authSessionService.logoutSession(token, memberId, currentSessionId, currentSessionId);
 
         verify(refreshTokenStore).deleteSession(memberId, currentSessionId);
         verify(tokenBlacklistStore).blacklistAccessToken(any(), any(Duration.class));
@@ -332,7 +356,7 @@ class AuthServiceTest {
                 ));
         when(jwtTokenProvider.getRefreshExpiration()).thenReturn(7200L);
 
-        authService.logoutCurrentSession(token);
+        authSessionService.logoutCurrentSession(token);
 
         verify(refreshTokenStore).deleteSession(memberId, sessionId);
         verify(tokenBlacklistStore).blacklistAccessToken(any(), any(Duration.class));
@@ -357,7 +381,7 @@ class AuthServiceTest {
         when(refreshTokenStore.findSessionIdsByMemberId(memberId)).thenReturn(java.util.Set.of(sessionId1, sessionId2));
         when(jwtTokenProvider.getRefreshExpiration()).thenReturn(7200L);
 
-        authService.logoutAllSessions(token);
+        authSessionService.logoutAllSessions(token);
 
         verify(tokenBlacklistStore).blacklistSession(sessionId1, Duration.ofMillis(7200L));
         verify(tokenBlacklistStore).blacklistSession(sessionId2, Duration.ofMillis(7200L));

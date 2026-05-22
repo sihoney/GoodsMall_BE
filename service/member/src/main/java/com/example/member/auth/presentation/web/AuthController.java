@@ -2,7 +2,8 @@ package com.example.member.auth.presentation.web;
 
 import com.example.member.auth.application.dto.command.LoginCommand;
 import com.example.member.auth.application.dto.command.TokenRefreshCommand;
-import com.example.member.auth.application.port.in.AuthUsecase;
+import com.example.member.auth.application.port.in.AuthLoginUsecase;
+import com.example.member.auth.application.port.in.AuthTokenRefreshUsecase;
 import com.example.member.auth.presentation.web.dto.LoginRequest;
 import com.example.member.auth.presentation.web.dto.LoginResponse;
 import com.example.member.auth.presentation.web.dto.TokenRefreshRequest;
@@ -26,7 +27,8 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "인증", description = "로그인 및 토큰 API")
 public class AuthController {
 
-    private final AuthUsecase authUsecase;
+    private final AuthLoginUsecase authLoginUsecase;
+    private final AuthTokenRefreshUsecase authTokenRefreshUsecase;
 
     @PostMapping("/login")
     @Operation(summary = "로그인", description = "이메일과 비밀번호로 로그인합니다.")
@@ -35,7 +37,7 @@ public class AuthController {
             HttpServletRequest httpServletRequest
     ) {
         return ResponseEntity.ok(ApiResponse.success(
-                LoginResponse.from(authUsecase.login(new LoginCommand(
+                LoginResponse.from(authLoginUsecase.login(new LoginCommand(
                         request.email(),
                         request.password(),
                         AuthSessionMetadataExtractor.extract(httpServletRequest)
@@ -50,7 +52,7 @@ public class AuthController {
             HttpServletRequest httpServletRequest
     ) {
         return ResponseEntity.ok(ApiResponse.success(
-                TokenRefreshResponse.from(authUsecase.refresh(new TokenRefreshCommand(
+                TokenRefreshResponse.from(authTokenRefreshUsecase.refresh(new TokenRefreshCommand(
                         request.refreshToken(),
                         AuthSessionMetadataExtractor.extract(httpServletRequest)
                 )))
