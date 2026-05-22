@@ -102,11 +102,6 @@ public class AuthSessionService implements AuthSessionUsecase {
         );
     }
 
-    @Override
-    public void logout(UUID memberId) {
-        refreshTokenStore.deleteAllSessions(memberId);
-    }
-
     private ParsedAccessToken parseRequiredAccessToken(String accessToken) {
         if (accessToken == null || accessToken.isBlank()) {
             throw new IllegalArgumentException("Authorization 헤더는 필수입니다.");

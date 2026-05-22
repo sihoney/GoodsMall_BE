@@ -12,6 +12,4 @@ public interface AuthSessionUsecase {
     void logoutCurrentSession(String accessToken);
 
     void logoutAllSessions(String accessToken);
-
-    void logout(UUID memberId);
 }

@@ -260,15 +260,6 @@ class AuthServiceTest {
     }
 
     @Test
-    void logout_deletesAllSessionsForMember() {
-        UUID memberId = UUID.randomUUID();
-
-        authSessionService.logout(memberId);
-
-        verify(refreshTokenStore).deleteAllSessions(memberId);
-    }
-
-    @Test
     void getSessions_marksCurrentSessionAndSortsByLastAccessedAtDesc() {
         UUID memberId = UUID.randomUUID();
         UUID currentSessionId = UUID.randomUUID();
