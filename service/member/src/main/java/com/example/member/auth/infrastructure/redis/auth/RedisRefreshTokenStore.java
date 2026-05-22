@@ -1,6 +1,6 @@
 package com.example.member.auth.infrastructure.redis.auth;
 
-import com.example.member.auth.application.dto.command.AuthSessionMetadata;
+import com.example.member.common.application.dto.AuthSessionMetadata;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;

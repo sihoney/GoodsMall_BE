@@ -1,4 +1,4 @@
-package com.example.member.auth.application.dto.command;
+package com.example.member.common.application.dto;
 
 public record AuthSessionMetadata(
         String userAgent,

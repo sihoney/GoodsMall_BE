@@ -1,6 +1,6 @@
 package com.example.member.auth.application.service;
 
-import com.example.member.auth.application.dto.command.AuthSessionMetadata;
+import com.example.member.common.application.dto.AuthSessionMetadata;
 import com.example.member.auth.application.dto.result.KakaoOAuthLinkResult;
 import com.example.member.auth.application.dto.result.KakaoOAuthResult;
 import com.example.member.auth.application.port.out.MemberOauthEventPort;

@@ -12,7 +12,7 @@ import static org.mockito.Mockito.when;
 
 import com.example.member.verification.application.dto.command.AccountVerificationConfirmCommand;
 import com.example.member.verification.application.dto.command.AccountVerificationCreateCommand;
-import com.example.member.auth.application.dto.command.AuthSessionMetadata;
+import com.example.member.common.application.dto.AuthSessionMetadata;
 import com.example.member.verification.application.dto.result.AccountVerificationConfirmResult;
 import com.example.member.verification.application.dto.result.AccountVerificationSendResult;
 import com.example.member.verification.application.port.out.AccountVerificationEventPort;

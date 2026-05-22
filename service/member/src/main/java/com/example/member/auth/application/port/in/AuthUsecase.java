@@ -1,6 +1,5 @@
 package com.example.member.auth.application.port.in;
 
-import com.example.member.auth.application.dto.command.AuthSessionMetadata;
 import com.example.member.auth.application.dto.command.LoginCommand;
 import com.example.member.auth.application.dto.command.TokenRefreshCommand;
 import com.example.member.auth.application.dto.result.AuthSessionListResult;
@@ -9,9 +8,9 @@ import java.util.UUID;
 
 public interface AuthUsecase {
 
-    AuthTokenResult login(LoginCommand command, AuthSessionMetadata metadata);
+    AuthTokenResult login(LoginCommand command);
 
-    AuthTokenResult refresh(TokenRefreshCommand command, AuthSessionMetadata metadata);
+    AuthTokenResult refresh(TokenRefreshCommand command);
 
     AuthSessionListResult getSessions(UUID memberId, UUID currentSessionId);
 

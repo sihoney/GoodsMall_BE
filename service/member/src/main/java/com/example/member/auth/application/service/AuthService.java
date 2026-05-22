@@ -2,7 +2,7 @@ package com.example.member.auth.application.service;
 
 import com.example.member.restriction.application.service.MemberRestrictionService;
 
-import com.example.member.auth.application.dto.command.AuthSessionMetadata;
+import com.example.member.common.application.dto.AuthSessionMetadata;
 import com.example.member.auth.application.dto.command.LoginCommand;
 import com.example.member.auth.application.dto.command.TokenRefreshCommand;
 import com.example.member.auth.application.dto.result.AuthSessionListResult;
@@ -49,7 +49,7 @@ public class AuthService implements AuthUsecase {
     private final MemberRestrictionService memberRestrictionService;
 
     @Override
-    public AuthTokenResult login(LoginCommand command, AuthSessionMetadata metadata) {
+    public AuthTokenResult login(LoginCommand command) {
         validateLoginCommand(command);
 
         String email = normalizeRequired(command.email(), "email");
@@ -63,7 +63,7 @@ public class AuthService implements AuthUsecase {
         validateActiveMember(member);
         validateLoginRestriction(member);
 
-        return issueLoginResponse(member, metadata);
+        return issueLoginResponse(member, command.authSessionMetadata());
     }
 
     public AuthTokenResult login(Member member, AuthSessionMetadata metadata) {
@@ -73,7 +73,7 @@ public class AuthService implements AuthUsecase {
     }
 
     @Override
-    public AuthTokenResult refresh(TokenRefreshCommand command, AuthSessionMetadata metadata) {
+    public AuthTokenResult refresh(TokenRefreshCommand command) {
         validateRefreshCommand(command);
 
         String refreshToken = normalizeRequired(command.refreshToken(), "refreshToken");
@@ -108,7 +108,7 @@ public class AuthService implements AuthUsecase {
                 parsedRefreshToken.sessionId(),
                 rotatedRefreshToken.refreshTokenId(),
                 Duration.ofMillis(jwtTokenProvider.getRefreshExpiration()),
-                metadataOrEmpty(metadata)
+                metadataOrEmpty(command.authSessionMetadata())
         );
 
         return new AuthTokenResult(
@@ -281,4 +281,3 @@ public class AuthService implements AuthUsecase {
         return metadata == null ? AuthSessionMetadata.empty() : metadata;
     }
 }
-

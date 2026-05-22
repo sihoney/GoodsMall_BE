@@ -2,7 +2,7 @@ package com.example.member.verification.application.service;
 
 import com.example.member.auth.application.service.AuthService;
 
-import com.example.member.auth.application.dto.command.AuthSessionMetadata;
+import com.example.member.common.application.dto.AuthSessionMetadata;
 import com.example.member.auth.application.dto.result.AuthTokenResult;
 import com.example.member.auth.application.dto.result.EmailVerificationAutoLoginTokenResult;
 import com.example.member.verification.application.port.out.EmailVerificationAutoLoginTokenStore;
