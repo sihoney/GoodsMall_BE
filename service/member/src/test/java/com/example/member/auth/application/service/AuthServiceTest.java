@@ -15,6 +15,7 @@ import com.example.member.auth.application.dto.result.AuthSessionListResult;
 import com.example.member.auth.application.dto.result.AuthTokenResult;
 import com.example.member.auth.exception.InvalidLoginException;
 import com.example.member.restriction.exception.MemberRestrictedException;
+import com.example.member.member.exception.MemberSuspendedException;
 import com.example.member.member.exception.MemberWithdrawnException;
 import com.example.member.member.domain.entity.Member;
 import com.example.member.restriction.domain.entity.MemberRestriction;
@@ -164,6 +165,20 @@ class AuthServiceTest {
         when(passwordEncoder.matches("plain-password", "encoded-password")).thenReturn(true);
 
         assertThrows(com.example.member.verification.exception.EmailVerificationRequiredException.class, () -> authLoginService.login(command));
+
+        verify(jwtTokenProvider, never()).createAccessToken(eq(member), any(UUID.class));
+        verify(refreshTokenStore, never()).createSession(any(UUID.class), any(UUID.class), any(String.class), any(Duration.class), any(AuthSessionMetadata.class));
+    }
+
+    @Test
+    void login_suspendedMember_throwsMemberSuspendedException() {
+        Member member = createMember(MemberStatus.SUSPENDED);
+        LoginCommand command = new LoginCommand("member@test.com", "plain-password", AuthSessionMetadata.empty());
+
+        when(memberPersistencePort.findByEmail("member@test.com")).thenReturn(Optional.of(member));
+        when(passwordEncoder.matches("plain-password", "encoded-password")).thenReturn(true);
+
+        assertThrows(MemberSuspendedException.class, () -> authLoginService.login(command));
 
         verify(jwtTokenProvider, never()).createAccessToken(eq(member), any(UUID.class));
         verify(refreshTokenStore, never()).createSession(any(UUID.class), any(UUID.class), any(String.class), any(Duration.class), any(AuthSessionMetadata.class));

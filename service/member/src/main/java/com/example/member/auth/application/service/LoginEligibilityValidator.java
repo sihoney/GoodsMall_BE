@@ -2,6 +2,7 @@ package com.example.member.auth.application.service;
 
 import com.example.member.member.domain.entity.Member;
 import com.example.member.member.domain.enumtype.MemberStatus;
+import com.example.member.member.exception.MemberSuspendedException;
 import com.example.member.member.exception.MemberWithdrawnException;
 import com.example.member.restriction.application.service.MemberRestrictionService;
 import com.example.member.restriction.domain.entity.MemberRestriction;
@@ -34,12 +35,12 @@ public class LoginEligibilityValidator {
     }
 
     public void validateActiveMember(Member member) {
-        if (member.getStatus() == MemberStatus.WITHDRAWN) {
-            throw new MemberWithdrawnException();
-        }
-
-        if (!member.isActive()) {
-            throw new EmailVerificationRequiredException();
+        switch (member.getStatus()) {
+            case ACTIVE -> {
+            }
+            case PENDING_VERIFICATION -> throw new EmailVerificationRequiredException();
+            case SUSPENDED -> throw new MemberSuspendedException();
+            case WITHDRAWN, DELETED -> throw new MemberWithdrawnException();
         }
     }
 }
