@@ -17,7 +17,7 @@
 
 | Method | Path Pattern                       | Access Policy | 비고                            |
 | ------ | ---------------------------------- | ------------- | ------------------------------- |
-| `POST` | `/api/auth`                        | `PUBLIC`      | 회원가입                        |
+| `POST` | `/api/members`                     | `PUBLIC`      | 회원가입                        |
 | `POST` | `/api/auth/login`                  | `PUBLIC`      | 로그인                          |
 | `POST` | `/api/auth/refresh`                | `PUBLIC`      | 토큰 재발급                     |
 | `POST` | `/api/auth/profile-images/presign` | `PUBLIC`      | 회원가입/프로필 업로드 사전 URL |

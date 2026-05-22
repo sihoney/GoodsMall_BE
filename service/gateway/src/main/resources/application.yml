@@ -192,7 +192,6 @@ gateway:
   auth:
     jwt-validation-enabled: ${GATEWAY_JWT_VALIDATION_ENABLED:true}
     public-paths:
-      - /api/auth
       - /api/auth/login
       - /api/auth/refresh
       - /api/auth/password-resets
@@ -208,6 +207,8 @@ gateway:
       - /swagger/**
       - /swagger-ui.html
     public-rules:
+      - methods: [POST]
+        pattern: /api/members
       - methods: [GET]
         pattern: /api/members/**
       - methods: [GET]

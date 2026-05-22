@@ -21,7 +21,7 @@
 | `JwtProperties` | JWT secret, issuer 설정 |
 
 ## 3.4. 공개 경로
-- `/api/auth`
+- `POST /api/members`
 - `/api/auth/login`
 - `/api/auth/refresh`
 - `/api/auth/profile-images/presign`
