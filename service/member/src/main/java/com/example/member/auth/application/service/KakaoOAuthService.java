@@ -170,7 +170,7 @@ public class KakaoOAuthService {
                     if (!member.isActive()) {
                         throw new InvalidLoginException();
                     }
-                    var loginResponse = authLoginUsecase.login(member, metadata);
+                    var loginResponse = authLoginUsecase.loginAuthenticatedMember(member, metadata);
                     return KakaoOAuthResult.success(
                             PROVIDER.name(),
                             providerUserId,

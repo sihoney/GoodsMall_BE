@@ -9,5 +9,5 @@ public interface AuthLoginUsecase {
 
     AuthTokenResult login(LoginCommand command);
 
-    AuthTokenResult login(Member member, AuthSessionMetadata metadata);
+    AuthTokenResult loginAuthenticatedMember(Member member, AuthSessionMetadata metadata);
 }

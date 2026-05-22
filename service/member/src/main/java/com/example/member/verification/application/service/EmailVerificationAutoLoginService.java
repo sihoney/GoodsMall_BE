@@ -54,7 +54,10 @@ public class EmailVerificationAutoLoginService {
         Member member = memberPersistencePort.findById(storedToken.memberId())
                 .orElseThrow(InvalidEmailVerificationAutoLoginTokenException::new);
 
-        return authLoginUsecase.login(member, metadata == null ? AuthSessionMetadata.empty() : metadata);
+        return authLoginUsecase.loginAuthenticatedMember(
+                member,
+                metadata == null ? AuthSessionMetadata.empty() : metadata
+        );
     }
 
     private String normalizeRequired(String value, String fieldName) {

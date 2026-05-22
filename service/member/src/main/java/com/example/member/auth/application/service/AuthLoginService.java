@@ -37,7 +37,7 @@ public class AuthLoginService implements AuthLoginUsecase {
     }
 
     @Override
-    public AuthTokenResult login(Member member, AuthSessionMetadata metadata) {
+    public AuthTokenResult loginAuthenticatedMember(Member member, AuthSessionMetadata metadata) {
         loginEligibilityValidator.validate(member);
         return authTokenIssuer.issue(member, metadata);
     }
