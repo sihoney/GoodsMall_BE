@@ -1,0 +1,133 @@
+name: goods-mall
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg18
+    container_name: goods-mall-postgres
+    environment:
+      POSTGRES_DB: goods_mall
+      POSTGRES_USER: ${DB_USER_NAME}
+      POSTGRES_PASSWORD: ${DB_USER_PASSWORD}
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+      TZ: Asia/Seoul
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER_NAME} -d goods_mall"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - goods_mall_postgres_data:/var/lib/postgresql
+      - ../../db-migration/src/main/resources/db/seed/dev_seed_payment_settlement.sql:/opt/seed/dev_seed_payment_settlement.sql:ro
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: goods-mall-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: goods-mall-kafka
+    depends_on:
+      zookeeper:
+        condition: service_started
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+    healthcheck:
+      test: ["CMD-SHELL", "cub kafka-ready -b localhost:9092 1 20"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: goods-mall-kafka-ui
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8089:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      DYNAMIC_CONFIG_ENABLED: "true"
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: goods-mall-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  elasticsearch:
+    build:
+      context: ../..
+      dockerfile: service/product/docker/elasticsearch/Dockerfile
+    container_name: goods-mall-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+
+  db-migration:
+    build:
+      context: ../..
+      dockerfile: db-migration/Dockerfile
+    container_name: goods-mall-db-migration
+    env_file:
+      - ../../.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://postgres:5432/goods_mall
+      DB_USER_NAME: ${DB_USER_NAME}
+      DB_USER_PASSWORD: ${DB_USER_PASSWORD}
+      DB_SEED_ENABLED: "true"
+      DB_SEED_LOCATIONS: classpath:db/seed/dev_seed_member.sql,classpath:db/seed/dev_seed_category.sql,classpath:db/seed/dev_seed_product.sql,classpath:db/seed/dev_seed_cart.sql,classpath:db/seed/dev_seed_wallet.sql,classpath:db/seed/dev_seed_payment_settlement.sql,classpath:db/seed/dev_seed_ai_product_embedding.sql,classpath:db/seed/dev_seed_auction.sql
+    restart: "no"
+
+  prometheus:
+    image: prom/prometheus:v2.51.2
+    container_name: goods-mall-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: goods-mall-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    depends_on:
+      - prometheus
+
+volumes:
+  goods_mall_postgres_data:
