@@ -46,7 +46,7 @@ cloud:
     region:
       static: ap-northeast-2
     s3:
-      bucket: ${AWS_S3_BUCKET:todaylunchmenu}
+      bucket: todaylunchmenu
 
 logging:
   level:

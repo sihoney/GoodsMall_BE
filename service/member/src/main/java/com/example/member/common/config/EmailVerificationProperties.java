@@ -12,7 +12,7 @@ public record EmailVerificationProperties(
 
     public EmailVerificationProperties {
         expiration = expiration == null ? Duration.ofHours(24) : expiration;
-        frontendConfirmUrl = normalize(frontendConfirmUrl, "http://localhost:3000/email-verification");
+        frontendConfirmUrl = normalize(frontendConfirmUrl, "http://localhost:5173/email-verification");
         autoLoginExpiration = autoLoginExpiration == null ? Duration.ofMinutes(3) : autoLoginExpiration;
     }
 

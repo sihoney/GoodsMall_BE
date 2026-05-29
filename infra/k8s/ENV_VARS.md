@@ -12,8 +12,8 @@
 |---|---|---|---|
 | auction | `cloud.elasticsearch.uris` | `http://localhost:9200` | `${ELASTICSEARCH_URI:http://localhost:9200}` |
 | product | `cloud.elasticsearch.uris` | `http://localhost:9200` | `${ELASTICSEARCH_URI:http://localhost:9200}` |
-| payment | `toss.payments.success-url` | `http://localhost:3000/payments/toss/success` | `${TOSS_PAYMENTS_SUCCESS_URL:http://localhost:3000/payments/toss/success}` |
-| payment | `toss.payments.fail-url` | `http://localhost:3000/payments/toss/fail` | `${TOSS_PAYMENTS_FAIL_URL:http://localhost:3000/payments/toss/fail}` |
+| payment | `toss.payments.success-url` | `${FRONTEND_BASE_URL}/payments/toss/success` | `${FRONTEND_BASE_URL:http://localhost:5173}/payments/toss/success` |
+| payment | `toss.payments.fail-url` | `${FRONTEND_BASE_URL}/payments/toss/fail` | `${FRONTEND_BASE_URL:http://localhost:5173}/payments/toss/fail` |
 | payment | `toss.payments.widget-enabled` | `true` | `${TOSS_PAYMENTS_WIDGET_ENABLED:true}` |
 | member | `member.email.from-name` | `TodayLunch` | `${MAIL_FROM_NAME:TodayLunch}` |
 
@@ -51,11 +51,8 @@
 
 | 환경변수 | k8s 값 | 로컬 기본값 |
 |---|---|---|
-| `AI_EMBEDDING_MODEL` | `text-embedding-3-small` | `text-embedding-3-small` |
 | `PROJECT_OPENAI_BASE_URL` | `https://api.openai.com` | `https://api.openai.com` |
 | `AI_RECOMMENDATION_RERANK_MODEL` | `gpt-5.4-nano` | `gpt-5.4-nano` |
-| `AI_PRODUCT_DRAFT_ASSIST_MODEL` | `gpt-5.4-nano` | `gpt-5.4-nano` |
-| `AI_AUCTION_PRICE_RECOMMENDATION_MODEL` | `gpt-5.4-nano` | `gpt-5.4-nano` |
 
 ### Secret (`ai-secret`)
 
@@ -85,7 +82,6 @@
 
 | 환경변수 | k8s 값 | 로컬 기본값 |
 |---|---|---|
-| `AWS_S3_BUCKET` | `todaylunchmenu` | `test-bucket` |
 | `ELASTICSEARCH_URI` | `http://elasticsearch:9200` | `http://localhost:9200` |
 
 > **변경 이력**: `cloud.elasticsearch.uris`가 하드코딩(`http://localhost:9200`)에서 `${ELASTICSEARCH_URI:...}` 환경변수 참조로 변경됨.
@@ -129,7 +125,7 @@
 |---|---|---|
 | `API_GATEWAY_HOST` | `http://gateway:8080` | `http://localhost:8080` |
 | `AWS_REGION` | `ap-northeast-2` | `ap-northeast-2` |
-| `AWS_S3_BUCKET` | `todaylunchmenu` | `todaylunch-local` |
+| `FRONTEND_BASE_URL` | `https://www.goods-mall.shop` | `http://localhost:5173` |
 | `EMAIL_PROVIDER` | `smtp` | `logging` |
 | `SMTP_HOST` | `sandbox.smtp.mailtrap.io` | `localhost` |
 | `SMTP_PORT` | `2525` | `1025` |
@@ -137,7 +133,6 @@
 | `SMTP_STARTTLS_ENABLE` | `true` | `false` |
 | `MAIL_FROM` | `no-reply@todaylunch.local` | `no-reply@todaylunch.local` |
 | `MAIL_FROM_NAME` | `TodayLunch` | `TodayLunch` |
-| `EMAIL_VERIFICATION_FRONTEND_URL` | `https://goodsmall.vercel.app/email-verification` | (기본값 없음 — 반드시 설정) |
 | `KAKAO_REDIRECT_URI` | `http://3.36.235.7/api/auth/oauth/kakao/callback` | `http://localhost:8083/api/auth/oauth/kakao/callback` |
 | `KAKAO_CLIENT_ID` | `40bcc2744d37da5ed008a7a22fe45b7a` | (빈 값) |
 
@@ -190,8 +185,7 @@
 | `SERVICES_ORDER_URL` | `http://order:8084` | `http://localhost:8084` |
 | `TOSS_PAYMENTS_BASE_URL` | `https://api.tosspayments.com` | `https://api.tosspayments.com` |
 | `TOSS_PAYMENTS_CLIENT_KEY` | `test_ck_DLJOpm5QrldyeOMlna9QrPNdxbWn` | `test-client-key` |
-| `TOSS_PAYMENTS_SUCCESS_URL` | `https://goodsmall.vercel.app/payments/toss/success` | `http://localhost:3000/payments/toss/success` |
-| `TOSS_PAYMENTS_FAIL_URL` | `https://goodsmall.vercel.app/payments/toss/fail` | `http://localhost:3000/payments/toss/fail` |
+| `FRONTEND_BASE_URL` | `https://www.goods-mall.shop` | `http://localhost:5173` |
 | `TOSS_PAYMENTS_WIDGET_ENABLED` | `true` | `true` |
 
 > **변경 이력**: `toss.payments.success-url`, `fail-url`, `widget-enabled`가 하드코딩에서 `${TOSS_PAYMENTS_*:...}` 환경변수 참조로 변경됨.
@@ -211,7 +205,6 @@
 
 | 환경변수 | k8s 값 | 로컬 기본값 |
 |---|---|---|
-| `AWS_S3_BUCKET` | `todaylunchmenu` | `test-bucket` |
 | `ELASTICSEARCH_URI` | `http://elasticsearch:9200` | `http://localhost:9200` |
 
 > **변경 이력**: `cloud.elasticsearch.uris`가 하드코딩(`http://localhost:9200`)에서 `${ELASTICSEARCH_URI:...}` 환경변수 참조로 변경됨.
@@ -249,7 +242,6 @@
 | `SMTP_USERNAME` | member | `member/secret.example` |
 | `SMTP_PASSWORD` | member | `member/secret.example` |
 | `ACCOUNT_VERIFICATION_SECRET_KEY` | member | `member/secret.example` |
-| `EMAIL_VERIFICATION_FRONTEND_URL` | member | `member/configmap.yaml` (이미 설정됨) |
 | `TOSS_PAYMENTS_SECRET_KEY` | payment | `payment/secret.example` |
 | `PAYMENT_WITHDRAW_CRYPTO_SECRET_KEY` | payment | `payment/secret.example` |
 | `SWEET_TRACKER_API_KEY` | order | `order/secret.example` |

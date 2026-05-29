@@ -4,5 +4,4 @@ metadata:
   name: product-config
   namespace: goods-mall
 data:
-  AWS_S3_BUCKET: "todaylunchmenu"
   ELASTICSEARCH_URI: "http://elasticsearch:9200"

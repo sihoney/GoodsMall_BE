@@ -51,12 +51,12 @@ springdoc:
 # --- Toss Payments 설정 (로컬 기본값) ---
 toss:
   payments:
-    base-url: ${TOSS_PAYMENTS_BASE_URL:https://api.tosspayments.com}
+    base-url: https://api.tosspayments.com
     client-key: ${TOSS_PAYMENTS_CLIENT_KEY:test-client-key}
     secret-key: ${TOSS_PAYMENTS_SECRET_KEY:test-secret-key}
-    success-url: ${TOSS_PAYMENTS_SUCCESS_URL:http://localhost:3000/payments/toss/success}
-    fail-url: ${TOSS_PAYMENTS_FAIL_URL:http://localhost:3000/payments/toss/fail}
-    widget-enabled: ${TOSS_PAYMENTS_WIDGET_ENABLED:true}
+    success-url: ${FRONTEND_BASE_URL:http://localhost:5173}/payments/toss/success
+    fail-url: ${FRONTEND_BASE_URL:http://localhost:5173}/payments/toss/fail
+    widget-enabled: true
 
 services:
   order:

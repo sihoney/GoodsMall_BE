@@ -43,7 +43,7 @@ cloud:
     region:
       static: ap-northeast-2
     s3:
-      bucket: ${AWS_S3_BUCKET:test-bucket}
+      bucket: todaylunchmenu
 
   # --- Elasticsearch 설정 (로컬 기본값) ---
   elasticsearch:
@@ -68,8 +68,7 @@ logging:
 
 services:
   payment:
-    url: ${PAYMENT_SERVICE_URL:http://localhost:8082}
+    url: ${SERVICES_PAYMENT_URL:http://localhost:8082}
 
 websocket:
   allowed-origins: ${WEBSOCKET_ALLOWED_ORIGINS:http://localhost:5173,https://www.goods-mall.shop}
-
