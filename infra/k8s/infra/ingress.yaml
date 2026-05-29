@@ -1,3 +1,5 @@
+# [1] goods-mall-ingress (HTTP)
+# 주소 직접 입력할 때 접근되는 포트, Traefik 설정을 통해 자동으로 HTTPS port로 redirect
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -6,10 +8,11 @@ metadata:
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: web
 spec:
-  ingressClassName: traefik
+  ingressClassName: traefik         # traefik: Ingress Controller
   rules:
     - http:
         paths:
+          # 도메인 이름 없이 서버의 실제 외부 IP 주소만 쳐도 통과
           - path: /
             pathType: Prefix
             backend:
@@ -18,29 +21,30 @@ spec:
                 port:
                   number: 8080
 ---
+# [2] goods-mall-ingress-tls (HTTPS)
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: goods-mall-ingress-tls
   namespace: goods-mall
   annotations:
-    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure   # 암호화된 HTTPS(442 port) 전용 입구
     traefik.ingress.kubernetes.io/router.tls: "true"
-    traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt
+    traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt # Let's Encrypt(인증서 발급 기관) 연동 설정
 spec:
   ingressClassName: traefik
   tls:
     - hosts:
-        - 3.36.235.7.nip.io
-      secretName: nip-io-tls
+        - 3.36.235.7.nip.io   # nip.io: Let's Encrypt 인증서를 발급받을 수 있는 '무료 와일드카드 도메인 서비스'
+      secretName: nip-io-tls  # 발급받은 SSL/TLS 인증서 파일을 Secret(k8s 메모리)에 저장
   rules:
-    - host: 3.36.235.7.nip.io
+    - host: 3.36.235.7.nip.io       # 사용자가 접속할 도메인
       http:
         paths:
-          - path: /
+          - path: /                 # 모든 경로 (최상위 루트)
             pathType: Prefix
             backend:
               service:
-                name: gateway
+                name: gateway       # Gateway 주소록 이름
                 port:
                   number: 8080

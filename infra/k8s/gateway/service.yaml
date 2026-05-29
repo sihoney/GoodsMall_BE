@@ -1,12 +1,12 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: gateway
+  name: gateway             # Ingress가 찾아올 주소록 이름
   namespace: goods-mall
 spec:
   type: ClusterIP
   selector:
-    app: gateway
+    app: gateway            # 내 Gateway Pod들을 묶어주는 라벨
   ports:
-    - port: 8080
-      targetPort: 8080
+    - port: 8080            # Ingress가 보낼 포트 (추상 서비스의 포트)
+      targetPort: 8080      # Gateway Spring Boot가 듣고 있는 포트 (타겟이 되는 Pod의 포트)

@@ -1,5 +1,6 @@
 apiVersion: apps/v1
 kind: Deployment
+# [1] Metadata & Replicas (기본 인적 사항 및 방 배정)
 metadata:
   name: member
   namespace: goods-mall
@@ -13,19 +14,22 @@ spec:
       labels:
         app: member
     spec:
+      # [2] Scheduling & Secret (문지기 패스 & 격리 구역 지정)
       nodeSelector:
         role: app
       imagePullSecrets:
         - name: ghcr-secret
       containers:
+        # [3] Container & JVM (진짜 도커 알맹이와 메모리 설정)
         - name: member
           image: ghcr.io/prgrms-be-adv-devcourse/beadv5_2_todaylunchmenu_be/member:latest
           ports:
             - containerPort: 8083
           env:
-            - name: JAVA_TOOL_OPTIONS
+            - name: JAVA_TOOL_OPTIONS # 제한된 서버 메모리를 효율적으로 쓰기 위한 JVM 세팅
               value: "-Xms192m -Xmx384m -Duser.timezone=Asia/Seoul"
-          envFrom:
+          # [4] EnvFrom (설정 파일 및 비밀번호 자동 주입)
+          envFrom:            # envFrom: ConfigMap, Secret 값들을 서버에 주입(Injection)
             - configMapRef:
                 name: common-config
             - secretRef:
@@ -34,18 +38,19 @@ spec:
                 name: member-config
             - secretRef:
                 name: member-secret
-          startupProbe:
+          # [5] Probes (3중 헬스체크)
+          startupProbe:       # 1단계: 초기 가동 검사
             tcpSocket:
               port: 8083
-            failureThreshold: 30
             periodSeconds: 10
-          livenessProbe:
+            failureThreshold: 30
+          livenessProbe:      # 2단계: 생존 검사
             tcpSocket:
               port: 8083
             initialDelaySeconds: 60
             periodSeconds: 10
             failureThreshold: 3
-          readinessProbe:
+          readinessProbe:     # 3단계: 준비 완료 검사
             tcpSocket:
               port: 8083
             initialDelaySeconds: 30
