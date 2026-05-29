@@ -47,7 +47,7 @@
 
 ### 3.2 docker-compose 기준 역할
 
-`infra/docker/docker-compose.yml` 기준으로 `db-migration`은 아래 성격으로 사용됩니다.
+`infra/docker/docker-compose.infra.yml` 기준으로 `db-migration`은 아래 성격으로 사용됩니다.
 
 - 컨테이너 이름: `goods-mall-db-migration`
 - `depends_on`: `postgres`

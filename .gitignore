@@ -51,7 +51,6 @@ infra/k8s/**/secret.yaml
 
 private_docs/
 docs_private/
-/docs/
 temp_api.json
 
 ### setting ###
