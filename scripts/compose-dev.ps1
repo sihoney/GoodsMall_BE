@@ -1,9 +1,22 @@
-﻿param(
+param(
     [string]$Action = "",
     [switch]$DryRun
 )
+
+# DEPRECATED:
+# 이 스크립트는 infra/docker/docker-compose.yml 기반의
+# 구형 전체 애플리케이션 docker compose 실행 흐름을 대상으로 합니다.
+#
+# 현재 권장 로컬 개발 방식은 아래와 같습니다.
+# 1) docker compose --env-file .env -f infra/docker/docker-compose.infra.yml up -d
+# 2) ./gradlew :{module-name}:bootRun
+#
+# payment / settlement / gateway를 컨테이너로 함께 실행하려는 경우에만
+# 이 스크립트를 사용하세요.
+
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+
 function Invoke-ComposeCommand {
     param(
         [string[]]$CmdArgs
@@ -15,6 +28,7 @@ function Invoke-ComposeCommand {
     }
     & docker compose @CmdArgs
 }
+
 # No action argument: show menu
 if ($Action -eq "") {
     Write-Host ""
@@ -50,11 +64,13 @@ if ($Action -eq "") {
         }
     }
 }
+
 Write-Host ""
 Write-Host "[compose-dev] Action: $Action" -ForegroundColor Green
 if ($DryRun) {
     Write-Host "[compose-dev] DryRun mode: print commands only." -ForegroundColor Yellow
 }
+
 switch ($Action) {
     "status" {
         Invoke-ComposeCommand -CmdArgs @("ps")

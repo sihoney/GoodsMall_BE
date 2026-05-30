@@ -345,10 +345,11 @@ services:
       AI_PRODUCT_API_BASE_URL: ${AI_PRODUCT_API_BASE_URL:-http://product:8081}
       AI_PRODUCT_API_PAGE_SIZE: ${AI_PRODUCT_API_PAGE_SIZE:-200}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
-      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "false"
-      EUREKA_INSTANCE_HOSTNAME: ai
-      CONFIG_SERVER_URL: http://config:8888
+        # Legacy: Eureka / Config Server 구성 흔적. 현재는 사용하지 않음.
+        # EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
+        # EUREKA_INSTANCE_PREFER_IP_ADDRESS: "false"
+        # EUREKA_INSTANCE_HOSTNAME: ai
+        # CONFIG_SERVER_URL: http://config:8888
     ports:
       - "8088:8088"
 

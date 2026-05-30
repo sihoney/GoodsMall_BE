@@ -2,6 +2,17 @@
 chcp 65001 > nul
 setlocal
 
+rem DEPRECATED:
+rem 이 스크립트는 infra/docker/docker-compose.yml 기반의
+rem 구형 전체 애플리케이션 docker compose 실행 흐름을 대상으로 합니다.
+rem
+rem 현재 권장 로컬 개발 방식은 아래와 같습니다.
+rem 1) docker compose --env-file .env -f infra/docker/docker-compose.infra.yml up -d
+rem 2) ./gradlew :{module-name}:bootRun
+rem
+rem payment / settlement / gateway를 컨테이너로 함께 실행하려는 경우에만
+rem 이 스크립트를 사용하세요.
+
 set ACTION=%1
 
 if "%ACTION%"=="" goto :SHOW_MENU
