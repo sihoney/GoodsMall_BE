@@ -42,13 +42,14 @@
 
 기본 기준 파일:
 
-- root: [`.env.example`](/C:/my_project/GoodsMall_BE/.env.example)
+- root infra: [`.env.infra.example`](/C:/my_project/GoodsMall_BE/.env.infra.example)
+- root compose: [`.env.example`](/C:/my_project/GoodsMall_BE/.env.example)
 - local runtime: `.env`
 
 로컬 실행 전에는 보통 아래 명령으로 준비한다.
 
 ```bash
-cp .env.example .env
+cp .env.infra.example .env
 ```
 
 대부분 서비스는 root `.env`를 기준으로 Docker Compose 또는 실행 환경에서 값을 읽는다.
@@ -59,7 +60,7 @@ cp .env.example .env
 
 로컬 개발 기준은 다음과 같다.
 
-1. `.env.example`을 `.env`로 복사한다.
+1. `.env.infra.example`을 `.env`로 복사한다.
 2. `docker-compose.infra.yml`로 PostgreSQL, Kafka, Redis, Elasticsearch, `db-migration`, Prometheus, Grafana를 실행한다.
 3. 각 서비스는 `bootRun`으로 실행한다.
 
@@ -184,7 +185,8 @@ cp .env.example .env
 
 ## 5. 참고사항
 
-- `.env.example`은 로컬 실행 기준의 기본 예시다.
+- `.env.infra.example`은 로컬 infra 실행과 `bootRun` 기준의 기본 예시다.
+- `.env.example`은 전체 `docker-compose.yml` 실행 기준의 예시다.
 - 운영 환경에서는 Kubernetes `ConfigMap`과 `Secret`으로 값을 주입한다.
 - `member`는 현재 `EMAIL_PROVIDER=logging` 기본값을 사용하므로 별도 설정이 없으면 메일은 로그로만 남는다.
 - `MEMBER_SIGNUP_REQUIRE_EMAIL_VERIFICATION=false`가 기본값이므로 로컬에서는 이메일 검증 없이 회원가입 흐름을 확인할 수 있다.

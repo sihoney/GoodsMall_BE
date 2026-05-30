@@ -189,7 +189,7 @@ sequenceDiagram
 ### 인프라 구동
 
 ```bash
-cp .env.example .env
+cp .env.infra.example .env
 docker compose --env-file .env -f infra/docker/docker-compose.infra.yml up -d
 ```
 

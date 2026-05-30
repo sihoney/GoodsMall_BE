@@ -130,7 +130,7 @@ Settlement Kafka 토픽, 컨슈머 그룹, retry 값은 현재 코드 상수로 
 
 ### 4.1 AWS에서 반드시 분리해야 하는 값
 
-`.env.aws.example` 기준으로 아래 값들은 Git에 두지 않고 런타임 주입해야 합니다.
+`.env.example` 기준으로 아래 값들은 Git에 두지 않고 런타임 주입해야 합니다.
 
 - `DB_URL`
 - `DB_USER_NAME`
