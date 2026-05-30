@@ -5,22 +5,14 @@ metadata:
   namespace: goods-mall
 data:
   API_GATEWAY_HOST: "http://gateway:8080"
-  FRONTEND_BASE_URL: "https://www.goods-mall.shop"
   SERVICES_ORDER_URL: "http://order:8084"
   SERVICES_PAYMENT_URL: "http://payment:8082"
   SERVICES_PRODUCT_URL: "http://product:8081"
   SERVICES_AUCTION_URL: "http://auction:8090"
   SERVICES_SETTLEMENT_URL: "http://settlement:8085"
-  AWS_REGION: "ap-northeast-2"
+  FRONTEND_BASE_URL: "https://www.goods-mall.shop"
   MEMBER_SIGNUP_REQUIRE_EMAIL_VERIFICATION: "true"
-
   EMAIL_PROVIDER: "smtp"
   SMTP_HOST: "live.smtp.mailtrap.io"
   SMTP_PORT: "587"
-
-  # TODO: 도메인 인증 완료 후 MAIL_FROM 을 실제 인증된 발신 주소로 변경
-  MAIL_FROM: "no-reply@goods-mall.shop"
-  MAIL_FROM_NAME: "Goods Mall"
-
-  KAKAO_REDIRECT_URI: "http://3.36.235.7/api/auth/oauth/kakao/callback"
   KAKAO_CLIENT_ID: "40bcc2744d37da5ed008a7a22fe45b7a"

@@ -6,6 +6,5 @@ metadata:
 data:
   FRONTEND_BASE_URL: "https://www.goods-mall.shop"
   SERVICES_ORDER_URL: "http://order:8084"
-  TOSS_PAYMENTS_BASE_URL: "https://api.tosspayments.com"
   TOSS_PAYMENTS_CLIENT_KEY: "test_ck_DLJOpm5QrldyeOMlna9QrPNdxbWn"
   HIKARI_MAX_POOL_SIZE: "20"

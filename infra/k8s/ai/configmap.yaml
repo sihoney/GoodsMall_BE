@@ -5,4 +5,3 @@ metadata:
   namespace: goods-mall
 data:
   AI_PRODUCT_API_BASE_URL: "http://product:8081"
-  PROJECT_OPENAI_BASE_URL: "https://api.openai.com"

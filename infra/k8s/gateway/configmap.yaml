@@ -4,4 +4,3 @@ metadata:
   name: gateway-config
   namespace: goods-mall
 data:
-  GATEWAY_JWT_VALIDATION_ENABLED: "true"

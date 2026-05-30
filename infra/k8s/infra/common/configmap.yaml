@@ -8,5 +8,3 @@ data:
   REDIS_HOST: "redis"
   REDIS_PORT: "6379"
   DB_URL: "jdbc:postgresql://postgres:5432/goods_mall"
-  SPRING_CLOUD_CONFIG_ENABLED: "false"
-
