@@ -1,0 +1,3761 @@
+﻿{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Member Service API",
+    "description": "회원 관리 서비스 API 문서",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "API Gateway"
+    },
+    {
+      "url": "http://localhost:8083",
+      "description": "로컬 개발 서버 (직접 접근)"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "인증",
+      "description": "로그인/토큰"
+    },
+    {
+      "name": "카카오 OAuth",
+      "description": "카카오 OAuth 로그인 및 계정 연동 API"
+    },
+    {
+      "name": "계좌 인증",
+      "description": "판매자 계좌"
+    },
+    {
+      "name": "프로필 이미지",
+      "description": "프로필 이미지 API"
+    },
+    {
+      "name": "회원 제재",
+      "description": "관리자 회원 제재 API"
+    },
+    {
+      "name": "회원",
+      "description": "가입/프로필"
+    },
+    {
+      "name": "비밀번호 재설정",
+      "description": "비밀번호 재설정 API"
+    },
+    {
+      "name": "판매자",
+      "description": "등록/프로필"
+    },
+    {
+      "name": "이메일 인증",
+      "description": "회원가입 이메일 인증 API"
+    },
+    {
+      "name": "회원 신고",
+      "description": "회원 신고 API"
+    },
+    {
+      "name": "관리자 회원 신고",
+      "description": "관리자 회원 신고 검토 API"
+    }
+  ],
+  "paths": {
+    "/api/sellers/register": {
+      "post": {
+        "tags": [
+          "판매자"
+        ],
+        "summary": "판매자 등록",
+        "description": "계좌 인증",
+        "operationId": "registerSeller",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SellerRegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "생성",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAccountVerificationSendResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "잘못된 요청",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAccountVerificationSendResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 필요",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAccountVerificationSendResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "중복/진행 중",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAccountVerificationSendResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/members": {
+      "post": {
+        "tags": [
+          "회원"
+        ],
+        "summary": "회원 가입",
+        "description": "회원 생성",
+        "operationId": "createMember",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMemberRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "생성",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseCreateMemberResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "잘못된 요청",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseCreateMemberResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "중복",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseCreateMemberResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/members/me/account-verifications": {
+      "post": {
+        "tags": [
+          "계좌 인증"
+        ],
+        "summary": "계좌 인증 생성",
+        "description": "인증 코드",
+        "operationId": "createAccountVerification",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountVerificationCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "생성",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAccountVerificationSendResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "잘못된 요청",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAccountVerificationSendResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 필요",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAccountVerificationSendResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/members/me/account-verifications/{sessionId}/resend": {
+      "post": {
+        "tags": [
+          "계좌 인증"
+        ],
+        "summary": "인증 코드 재전송",
+        "description": "새 코드",
+        "operationId": "resendAccountVerification",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "description": "인증 세션 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "av_01J4XYZ"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAccountVerificationSendResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "재전송 불가",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAccountVerificationSendResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 필요",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAccountVerificationSendResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "세션 없음",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAccountVerificationSendResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/members/me/account-verifications/{sessionId}/confirm": {
+      "post": {
+        "tags": [
+          "계좌 인증"
+        ],
+        "summary": "계좌 인증 확인",
+        "description": "코드 검증",
+        "operationId": "confirmAccountVerification",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "description": "인증 세션 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "av_01J4XYZ"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountVerificationConfirmRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAccountVerificationConfirmResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "잘못된 요청",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAccountVerificationConfirmResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 필요",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAccountVerificationConfirmResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "세션 없음",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAccountVerificationConfirmResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/members/me/account-verifications/{sessionId}/cancel": {
+      "post": {
+        "tags": [
+          "계좌 인증"
+        ],
+        "summary": "계좌 인증 취소",
+        "description": "진행 취소",
+        "operationId": "cancelAccountVerification",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "description": "인증 세션 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "av_01J4XYZ"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAccountVerificationCancelResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 필요",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAccountVerificationCancelResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "세션 없음",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAccountVerificationCancelResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/member-reports": {
+      "post": {
+        "tags": [
+          "회원 신고"
+        ],
+        "summary": "회원 신고 생성",
+        "description": "회원에 대한 신고를 생성합니다.",
+        "operationId": "createReport",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMemberReportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMemberReportResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/refresh": {
+      "post": {
+        "tags": [
+          "인증"
+        ],
+        "summary": "토큰 재발급",
+        "description": "토큰 갱신",
+        "operationId": "refresh",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenRefreshRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTokenRefreshResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "잘못된 요청",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTokenRefreshResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "토큰 오류",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTokenRefreshResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/profile-images/presign": {
+      "post": {
+        "tags": [
+          "프로필 이미지"
+        ],
+        "summary": "프로필 이미지 업로드 URL 생성",
+        "description": "프로필 이미지 업로드용 presigned URL을 생성합니다.",
+        "operationId": "createPresignedUploadUrl",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileImagePresignRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseProfileImagePresignResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/password-resets": {
+      "post": {
+        "tags": [
+          "비밀번호 재설정"
+        ],
+        "summary": "비밀번호 재설정 메일 발송",
+        "description": "입력한 이메일로 비밀번호 재설정 링크를 발송합니다.",
+        "operationId": "sendPasswordReset",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordResetSendRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePasswordResetSendResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/password-resets/confirm": {
+      "post": {
+        "tags": [
+          "비밀번호 재설정"
+        ],
+        "summary": "비밀번호 재설정 확인",
+        "description": "재설정 토큰과 새 비밀번호로 비밀번호를 변경합니다.",
+        "operationId": "confirmPasswordReset",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordResetConfirmRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePasswordResetConfirmResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/oauth/kakao/link": {
+      "post": {
+        "tags": [
+          "카카오 OAuth"
+        ],
+        "summary": "카카오 계정 연동",
+        "description": "현재 회원과 카카오 계정을 연동합니다.",
+        "operationId": "linkKakaoAccount",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KakaoOAuthLinkRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseKakaoOAuthLinkResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/logout/current": {
+      "post": {
+        "tags": [
+          "auth-logout-controller"
+        ],
+        "summary": "현재 세션 로그아웃",
+        "description": "현재 access token에 해당하는 세션을 종료합니다.",
+        "operationId": "logoutCurrentSession",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/logout/all": {
+      "post": {
+        "tags": [
+          "auth-logout-controller"
+        ],
+        "summary": "전체 세션 로그아웃",
+        "description": "현재 회원의 모든 세션을 종료합니다.",
+        "operationId": "logoutAllSessions",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": [
+          "인증"
+        ],
+        "summary": "로그인",
+        "description": "토큰 발급",
+        "operationId": "login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseLoginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "잘못된 요청",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseLoginResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 실패",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseLoginResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/email-verifications": {
+      "post": {
+        "tags": [
+          "이메일 인증"
+        ],
+        "summary": "이메일 인증 발송",
+        "description": "회원가입용 이메일 인증 코드를 발송합니다.",
+        "operationId": "sendEmailVerification",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendEmailVerificationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseEmailVerificationSendResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/email-verifications/confirm": {
+      "post": {
+        "tags": [
+          "이메일 인증"
+        ],
+        "summary": "이메일 인증 확인",
+        "description": "이메일 인증 코드를 검증하고 회원을 활성화합니다.",
+        "operationId": "confirmEmailVerification",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmEmailVerificationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseEmailVerificationConfirmResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/email-verifications/auto-login": {
+      "post": {
+        "tags": [
+          "이메일 인증"
+        ],
+        "summary": "이메일 인증 자동 로그인",
+        "description": "이메일 인증 후 발급된 1회용 토큰으로 자동 로그인을 완료합니다.",
+        "operationId": "autoLoginAfterEmailVerification",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailVerificationAutoLoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseEmailVerificationAutoLoginResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/member-restrictions": {
+      "get": {
+        "tags": [
+          "회원 제재"
+        ],
+        "summary": "전체 회원 제재 조회",
+        "description": "관리자가 전체 회원의 제재 이력을 조회합니다.",
+        "operationId": "getAllMemberRestrictions",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListMemberRestrictionResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "회원 제재"
+        ],
+        "summary": "회원 제재 생성",
+        "description": "회원 제재를 생성합니다.",
+        "operationId": "createRestriction",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMemberRestrictionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMemberRestrictionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/members/{memberId}": {
+      "get": {
+        "tags": [
+          "회원"
+        ],
+        "summary": "회원 조회",
+        "description": "회원 프로필",
+        "operationId": "getMember",
+        "parameters": [
+          {
+            "name": "memberId",
+            "in": "path",
+            "description": "회원 ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "example": "11111111-1111-1111-1111-111111111111"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "회원 없음",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "회원"
+        ],
+        "summary": "회원 수정",
+        "description": "회원 프로필",
+        "operationId": "updateMember",
+        "parameters": [
+          {
+            "name": "memberId",
+            "in": "path",
+            "description": "회원 ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "example": "11111111-1111-1111-1111-111111111111"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMemberRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "잘못된 요청",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "회원 없음",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/members/me": {
+      "get": {
+        "tags": [
+          "회원"
+        ],
+        "summary": "내 정보 조회",
+        "description": "프로필 조회",
+        "operationId": "getCurrentMember",
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMemberResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 필요",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMemberResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "회원 없음",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMemberResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "회원"
+        ],
+        "summary": "회원 탈퇴",
+        "description": "내 계정",
+        "operationId": "withdrawCurrentMember",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WithdrawMemberRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseWithdrawMemberResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "잘못된 요청",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseWithdrawMemberResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 필요",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseWithdrawMemberResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "회원"
+        ],
+        "summary": "내 정보 수정",
+        "description": "프로필 수정",
+        "operationId": "updateCurrentMember",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMemberRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMemberResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "잘못된 요청",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMemberResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 필요",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMemberResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/members/me/password": {
+      "patch": {
+        "tags": [
+          "회원"
+        ],
+        "summary": "비밀번호 변경",
+        "description": "내 비밀번호",
+        "operationId": "changeCurrentMemberPassword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseChangePasswordResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "잘못된 요청",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseChangePasswordResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 필요",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseChangePasswordResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/member-restrictions/{restrictionId}/deactivate": {
+      "patch": {
+        "tags": [
+          "회원 제재"
+        ],
+        "summary": "회원 제재 비활성화",
+        "description": "기존 회원 제재를 비활성화합니다.",
+        "operationId": "deactivateRestriction",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          },
+          {
+            "name": "restrictionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMemberRestrictionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/member-reports/{reportId}/reject": {
+      "patch": {
+        "tags": [
+          "관리자 회원 신고"
+        ],
+        "summary": "회원 신고 반려",
+        "description": "신고를 반려합니다.",
+        "operationId": "rejectReport",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          },
+          {
+            "name": "reportId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewMemberReportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMemberReportResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/member-reports/{reportId}/approve": {
+      "patch": {
+        "tags": [
+          "관리자 회원 신고"
+        ],
+        "summary": "회원 신고 승인",
+        "description": "신고를 승인하고 필요하면 제재를 생성합니다.",
+        "operationId": "approveReport",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          },
+          {
+            "name": "reportId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewMemberReportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMemberReportResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sellers/me": {
+      "get": {
+        "tags": [
+          "판매자"
+        ],
+        "summary": "내 판매자 조회",
+        "description": "판매자 프로필",
+        "operationId": "getCurrentSeller",
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSellerResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 필요",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSellerResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "판매자 없음",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSellerResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/members/me/oauth-accounts": {
+      "get": {
+        "tags": [
+          "회원"
+        ],
+        "summary": "OAuth 계정 목록",
+        "description": "연동 계정",
+        "operationId": "getCurrentMemberOauthAccounts",
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMemberOauthAccountListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 필요",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMemberOauthAccountListResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/members/me/account-verifications/current": {
+      "get": {
+        "tags": [
+          "계좌 인증"
+        ],
+        "summary": "현재 계좌 인증",
+        "description": "진행 상태",
+        "operationId": "getCurrentAccountVerification",
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAccountVerificationCurrentResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 필요",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAccountVerificationCurrentResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "세션 없음",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAccountVerificationCurrentResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/member-reports/me": {
+      "get": {
+        "tags": [
+          "회원 신고"
+        ],
+        "summary": "내 신고 조회",
+        "description": "현재 회원이 작성한 신고를 조회합니다.",
+        "operationId": "getMyReports",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListMemberReportResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/sessions": {
+      "get": {
+        "tags": [
+          "auth-logout-controller"
+        ],
+        "summary": "로그인 세션 목록 조회",
+        "description": "현재 회원의 활성 로그인 세션 목록을 조회합니다.",
+        "operationId": "getSessions",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAuthSessionListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/oauth/kakao/result": {
+      "get": {
+        "tags": [
+          "카카오 OAuth"
+        ],
+        "summary": "카카오 OAuth 결과 조회",
+        "description": "resultKey로 1회용 카카오 OAuth 결과를 조회합니다.",
+        "operationId": "getKakaoOAuthResult",
+        "parameters": [
+          {
+            "name": "resultKey",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseKakaoOAuthResultResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/oauth/kakao/link/authorize": {
+      "get": {
+        "tags": [
+          "카카오 OAuth"
+        ],
+        "summary": "카카오 계정 연동 시작",
+        "description": "카카오 계정 연동용 OAuth 인가 URL을 반환합니다.",
+        "operationId": "authorizeKakaoLink",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseKakaoOAuthAuthorizeUrlResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/oauth/kakao/link/authorize-url": {
+      "get": {
+        "tags": [
+          "카카오 OAuth"
+        ],
+        "summary": "카카오 연동 인가 URL 조회",
+        "description": "현재 회원의 카카오 OAuth 인가 URL을 조회합니다.",
+        "operationId": "getKakaoLinkAuthorizeUrl",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseKakaoOAuthAuthorizeUrlResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/oauth/kakao/callback": {
+      "get": {
+        "tags": [
+          "카카오 OAuth"
+        ],
+        "summary": "카카오 OAuth 콜백",
+        "description": "카카오 OAuth 결과를 저장하고 프론트 콜백 URL로 리다이렉트합니다.",
+        "operationId": "kakaoCallback",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "error",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "error_description",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/auth/oauth/kakao/authorize": {
+      "get": {
+        "tags": [
+          "카카오 OAuth"
+        ],
+        "summary": "카카오 로그인 시작",
+        "description": "카카오 로그인용 OAuth 인가 URL을 반환합니다.",
+        "operationId": "authorizeKakaoLogin",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseKakaoOAuthAuthorizeUrlResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/member-restrictions/members/{memberId}": {
+      "get": {
+        "tags": [
+          "회원 제재"
+        ],
+        "summary": "회원 제재 조회",
+        "description": "특정 회원의 모든 제재를 조회합니다.",
+        "operationId": "getMemberRestrictions",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          },
+          {
+            "name": "memberId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListMemberRestrictionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/member-reports": {
+      "get": {
+        "tags": [
+          "관리자 회원 신고"
+        ],
+        "summary": "전체 회원 신고 조회",
+        "description": "등록된 모든 회원 신고를 조회합니다.",
+        "operationId": "getAllReports",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListMemberReportResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/member-reports/{reportId}": {
+      "get": {
+        "tags": [
+          "관리자 회원 신고"
+        ],
+        "summary": "회원 신고 상세 조회",
+        "description": "특정 회원 신고의 상세 정보를 조회합니다.",
+        "operationId": "getReportDetail",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          },
+          {
+            "name": "reportId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMemberReportResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/member-reports/members/{memberId}": {
+      "get": {
+        "tags": [
+          "관리자 회원 신고"
+        ],
+        "summary": "회원별 신고 조회",
+        "description": "특정 회원에 대한 신고 목록을 조회합니다.",
+        "operationId": "getReportsForMember",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          },
+          {
+            "name": "memberId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListMemberReportResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/members/me/oauth-accounts/{provider}": {
+      "delete": {
+        "tags": [
+          "회원"
+        ],
+        "summary": "OAuth 연동 해제",
+        "description": "연동 해제",
+        "operationId": "unlinkCurrentMemberOauthAccount",
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "path",
+            "description": "제공자",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "KAKAO"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMemberOauthAccountUnlinkResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 필요",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMemberOauthAccountUnlinkResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "계정 없음",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMemberOauthAccountUnlinkResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/auth/sessions/{sessionId}": {
+      "delete": {
+        "tags": [
+          "auth-logout-controller"
+        ],
+        "summary": "특정 로그인 세션 종료",
+        "description": "현재 회원의 특정 활성 로그인 세션을 종료합니다.",
+        "operationId": "logoutSession",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "SellerRegisterRequest": {
+        "type": "object",
+        "description": "판매자 등록 요청",
+        "properties": {
+          "bankName": {
+            "type": "string",
+            "description": "은행명",
+            "example": "KAKAO",
+            "minLength": 1
+          },
+          "account": {
+            "type": "string",
+            "description": "계좌번호",
+            "example": 1234567890123,
+            "minLength": 1
+          }
+        },
+        "required": [
+          "account",
+          "bankName"
+        ]
+      },
+      "AccountVerificationSendResponse": {
+        "type": "object",
+        "description": "계좌 인증 발급 응답",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "description": "인증 세션 ID",
+            "example": "av_01J4XYZ"
+          },
+          "status": {
+            "type": "string",
+            "description": "인증 상태",
+            "example": "PENDING"
+          },
+          "maskedAccountNumber": {
+            "type": "string",
+            "description": "마스킹 계좌",
+            "example": "123-****-0123"
+          },
+          "verificationCode": {
+            "type": "string",
+            "description": "인증 코드",
+            "example": 482931
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "만료 시각"
+          },
+          "attemptCount": {
+            "type": "integer",
+            "format": "int32",
+            "description": "실패 횟수",
+            "example": 0
+          },
+          "resendCount": {
+            "type": "integer",
+            "format": "int32",
+            "description": "재전송 횟수",
+            "example": 0
+          }
+        }
+      },
+      "ApiResponseAccountVerificationSendResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AccountVerificationSendResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ErrorResponse"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateMemberRequest": {
+        "type": "object",
+        "description": "회원 가입 요청",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "이메일",
+            "example": "member@example.com",
+            "minLength": 1
+          },
+          "password": {
+            "type": "string",
+            "description": "비밀번호",
+            "example": "password1234",
+            "maxLength": 100,
+            "minLength": 8
+          },
+          "nickname": {
+            "type": "string",
+            "description": "닉네임",
+            "example": "goods-user",
+            "maxLength": 30,
+            "minLength": 0
+          },
+          "phone": {
+            "type": "string",
+            "description": "전화번호",
+            "example": "010-1234-5678"
+          },
+          "address": {
+            "type": "string",
+            "description": "주소",
+            "example": "서울"
+          },
+          "profileImageKey": {
+            "type": "string",
+            "description": "프로필 이미지 키",
+            "example": "members/profile/11111111/avatar.png"
+          },
+          "role": {
+            "type": "string",
+            "description": "회원 역할",
+            "enum": [
+              "USER",
+              "SELLER",
+              "ADMIN"
+            ]
+          },
+          "kakaoLinkToken": {
+            "type": "string",
+            "description": "카카오 연동 토큰"
+          }
+        },
+        "required": [
+          "email",
+          "nickname",
+          "password"
+        ]
+      },
+      "ApiResponseCreateMemberResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/CreateMemberResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ErrorResponse"
+          }
+        }
+      },
+      "CreateMemberResponse": {
+        "type": "object",
+        "description": "회원 가입 응답",
+        "properties": {
+          "memberId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "회원 ID"
+          },
+          "nickname": {
+            "type": "string",
+            "description": "닉네임",
+            "example": "goods-user"
+          },
+          "profileImageUrl": {
+            "type": "string",
+            "description": "프로필 이미지 URL"
+          },
+          "role": {
+            "type": "string",
+            "description": "회원 역할",
+            "enum": [
+              "USER",
+              "SELLER",
+              "ADMIN"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "description": "회원 상태",
+            "enum": [
+              "PENDING_VERIFICATION",
+              "ACTIVE",
+              "SUSPENDED",
+              "WITHDRAWN",
+              "DELETED"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "생성 시각"
+          }
+        }
+      },
+      "AccountVerificationCreateRequest": {
+        "type": "object",
+        "description": "계좌 인증 생성 요청",
+        "properties": {
+          "bankName": {
+            "type": "string",
+            "description": "은행명",
+            "example": "KAKAO",
+            "minLength": 1
+          },
+          "accountNumber": {
+            "type": "string",
+            "description": "계좌번호",
+            "example": 1234567890123,
+            "minLength": 1
+          }
+        },
+        "required": [
+          "accountNumber",
+          "bankName"
+        ]
+      },
+      "AccountVerificationConfirmRequest": {
+        "type": "object",
+        "description": "계좌 인증 확인 요청",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "인증 코드",
+            "example": 482931,
+            "minLength": 1
+          }
+        },
+        "required": [
+          "code"
+        ]
+      },
+      "AccountVerificationConfirmResponse": {
+        "type": "object",
+        "description": "계좌 인증 확인 응답",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "description": "인증 세션 ID",
+            "example": "av_01J4XYZ"
+          },
+          "verified": {
+            "type": "boolean",
+            "description": "인증 성공",
+            "example": true
+          },
+          "status": {
+            "type": "string",
+            "description": "인증 상태",
+            "example": "VERIFIED"
+          },
+          "verifiedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "완료 시각"
+          },
+          "attemptCount": {
+            "type": "integer",
+            "format": "int32",
+            "description": "실패 횟수",
+            "example": 0
+          },
+          "auth": {
+            "$ref": "#/components/schemas/AuthTokens",
+            "description": "인증 토큰"
+          }
+        }
+      },
+      "ApiResponseAccountVerificationConfirmResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AccountVerificationConfirmResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ErrorResponse"
+          }
+        }
+      },
+      "AuthTokens": {
+        "type": "object",
+        "description": "토큰 묶음",
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "description": "액세스 토큰"
+          },
+          "refreshToken": {
+            "type": "string",
+            "description": "리프레시 토큰"
+          },
+          "tokenType": {
+            "type": "string",
+            "description": "토큰 타입",
+            "example": "Bearer"
+          },
+          "accessTokenExpiresIn": {
+            "type": "integer",
+            "format": "int64",
+            "description": "액세스 만료ms",
+            "example": 3600000
+          },
+          "refreshTokenExpiresIn": {
+            "type": "integer",
+            "format": "int64",
+            "description": "리프레시 만료ms",
+            "example": 1209600000
+          },
+          "sessionId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "인증 세션 ID"
+          }
+        }
+      },
+      "AccountVerificationCancelResponse": {
+        "type": "object",
+        "description": "계좌 인증 취소 응답",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "description": "인증 세션 ID",
+            "example": "av_01J4XYZ"
+          },
+          "status": {
+            "type": "string",
+            "description": "인증 상태",
+            "example": "CANCELLED"
+          },
+          "cancelledAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "취소 시각"
+          }
+        }
+      },
+      "ApiResponseAccountVerificationCancelResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AccountVerificationCancelResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ErrorResponse"
+          }
+        }
+      },
+      "AuthenticatedMember": {
+        "type": "object",
+        "properties": {
+          "memberId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "USER",
+              "SELLER",
+              "ADMIN"
+            ]
+          },
+          "sessionId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "CreateMemberReportRequest": {
+        "type": "object",
+        "properties": {
+          "reportedMemberId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "reportType": {
+            "type": "string",
+            "enum": [
+              "ABUSE",
+              "FRAUD",
+              "SPAM",
+              "ETC"
+            ]
+          }
+        },
+        "required": [
+          "reportType",
+          "reportedMemberId"
+        ]
+      },
+      "ApiResponseMemberReportResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/MemberReportResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ErrorResponse"
+          }
+        }
+      },
+      "MemberReportResponse": {
+        "type": "object",
+        "properties": {
+          "reportId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reporterId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reporterNickname": {
+            "type": "string"
+          },
+          "reportedMemberId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reportedMemberNickname": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "reportType": {
+            "type": "string",
+            "enum": [
+              "ABUSE",
+              "FRAUD",
+              "SPAM",
+              "ETC"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "APPROVED",
+              "REJECTED"
+            ]
+          },
+          "reviewComment": {
+            "type": "string"
+          },
+          "reviewedBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reviewedByNickname": {
+            "type": "string"
+          },
+          "reviewedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "TokenRefreshRequest": {
+        "type": "object",
+        "description": "토큰 재발급 요청",
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "description": "리프레시 토큰",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "refreshToken"
+        ]
+      },
+      "ApiResponseTokenRefreshResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/TokenRefreshResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ErrorResponse"
+          }
+        }
+      },
+      "TokenRefreshResponse": {
+        "type": "object",
+        "description": "토큰 재발급 응답",
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "description": "액세스 토큰"
+          },
+          "refreshToken": {
+            "type": "string",
+            "description": "리프레시 토큰"
+          },
+          "tokenType": {
+            "type": "string",
+            "description": "토큰 타입",
+            "example": "Bearer"
+          },
+          "accessTokenExpiresIn": {
+            "type": "integer",
+            "format": "int64",
+            "description": "액세스 만료초",
+            "example": 3600
+          },
+          "refreshTokenExpiresIn": {
+            "type": "integer",
+            "format": "int64",
+            "description": "리프레시 만료초",
+            "example": 604800
+          },
+          "sessionId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "인증 세션 ID"
+          }
+        }
+      },
+      "ProfileImagePresignRequest": {
+        "type": "object",
+        "properties": {
+          "fileName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "contentType": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "contentType",
+          "fileName"
+        ]
+      },
+      "ApiResponseProfileImagePresignResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ProfileImagePresignResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ErrorResponse"
+          }
+        }
+      },
+      "ProfileImagePresignResponse": {
+        "type": "object",
+        "properties": {
+          "objectKey": {
+            "type": "string"
+          },
+          "uploadUrl": {
+            "type": "string"
+          },
+          "expiresIn": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "PasswordResetSendRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "ApiResponsePasswordResetSendResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PasswordResetSendResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ErrorResponse"
+          }
+        }
+      },
+      "PasswordResetSendResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "PasswordResetConfirmRequest": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 1
+          },
+          "newPassword": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 8
+          }
+        },
+        "required": [
+          "newPassword",
+          "token"
+        ]
+      },
+      "ApiResponsePasswordResetConfirmResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PasswordResetConfirmResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ErrorResponse"
+          }
+        }
+      },
+      "PasswordResetConfirmResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "KakaoOAuthLinkRequest": {
+        "type": "object",
+        "properties": {
+          "linkToken": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiResponseKakaoOAuthLinkResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/KakaoOAuthLinkResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ErrorResponse"
+          }
+        }
+      },
+      "KakaoOAuthLinkResponse": {
+        "type": "object",
+        "properties": {
+          "linked": {
+            "type": "boolean"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "providerUserId": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiResponseVoid": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {},
+          "error": {
+            "$ref": "#/components/schemas/ErrorResponse"
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "description": "로그인 요청",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "이메일",
+            "example": "member@example.com",
+            "minLength": 1
+          },
+          "password": {
+            "type": "string",
+            "description": "비밀번호",
+            "example": "password1234",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "ApiResponseLoginResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/LoginResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ErrorResponse"
+          }
+        }
+      },
+      "LoginResponse": {
+        "type": "object",
+        "description": "로그인 응답",
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "description": "액세스 토큰"
+          },
+          "refreshToken": {
+            "type": "string",
+            "description": "리프레시 토큰"
+          },
+          "tokenType": {
+            "type": "string",
+            "description": "토큰 타입",
+            "example": "Bearer"
+          },
+          "accessTokenExpiresIn": {
+            "type": "integer",
+            "format": "int64",
+            "description": "액세스 만료초",
+            "example": 3600
+          },
+          "refreshTokenExpiresIn": {
+            "type": "integer",
+            "format": "int64",
+            "description": "리프레시 만료초",
+            "example": 604800
+          },
+          "sessionId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "인증 세션 ID"
+          }
+        }
+      },
+      "SendEmailVerificationRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "ApiResponseEmailVerificationSendResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/EmailVerificationSendResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ErrorResponse"
+          }
+        }
+      },
+      "EmailVerificationSendResponse": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ConfirmEmailVerificationRequest": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "ApiResponseEmailVerificationConfirmResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/EmailVerificationConfirmResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ErrorResponse"
+          }
+        }
+      },
+      "EmailVerificationConfirmResponse": {
+        "type": "object",
+        "properties": {
+          "memberId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING_VERIFICATION",
+              "ACTIVE",
+              "SUSPENDED",
+              "WITHDRAWN",
+              "DELETED"
+            ]
+          },
+          "autoLoginToken": {
+            "type": "string"
+          },
+          "autoLoginTokenExpiresInSeconds": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "EmailVerificationAutoLoginRequest": {
+        "type": "object",
+        "properties": {
+          "autoLoginToken": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "autoLoginToken"
+        ]
+      },
+      "ApiResponseEmailVerificationAutoLoginResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/EmailVerificationAutoLoginResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ErrorResponse"
+          }
+        }
+      },
+      "EmailVerificationAutoLoginResponse": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string"
+          },
+          "refreshToken": {
+            "type": "string"
+          },
+          "tokenType": {
+            "type": "string"
+          },
+          "accessTokenExpiresIn": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "refreshTokenExpiresIn": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sessionId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "CreateMemberRestrictionRequest": {
+        "type": "object",
+        "properties": {
+          "memberId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "restrictionType": {
+            "type": "string",
+            "enum": [
+              "TRADE_BAN",
+              "LOGIN_BAN",
+              "CHAT_BAN"
+            ]
+          },
+          "durationHours": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "required": [
+          "memberId",
+          "restrictionType"
+        ]
+      },
+      "ApiResponseMemberRestrictionResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/MemberRestrictionResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ErrorResponse"
+          }
+        }
+      },
+      "MemberRestrictionResponse": {
+        "type": "object",
+        "properties": {
+          "restrictionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "memberId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "memberNickname": {
+            "type": "string"
+          },
+          "adminId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "adminNickname": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "restrictionType": {
+            "type": "string",
+            "enum": [
+              "TRADE_BAN",
+              "LOGIN_BAN",
+              "CHAT_BAN"
+            ]
+          },
+          "durationHours": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "endAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "UpdateMemberRequest": {
+        "type": "object",
+        "description": "회원 수정 요청",
+        "properties": {
+          "nickname": {
+            "type": "string",
+            "description": "닉네임",
+            "example": "updated-user",
+            "maxLength": 30,
+            "minLength": 0
+          },
+          "phone": {
+            "type": "string",
+            "description": "전화번호",
+            "example": "010-9876-5432"
+          },
+          "address": {
+            "type": "string",
+            "description": "주소",
+            "example": "부산"
+          },
+          "profileImageKey": {
+            "type": "string",
+            "description": "프로필 이미지 키",
+            "example": "members/profile/11111111/avatar.png"
+          }
+        },
+        "required": [
+          "nickname"
+        ]
+      },
+      "MemberResponse": {
+        "type": "object",
+        "description": "회원 프로필 응답",
+        "properties": {
+          "memberId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "회원 ID"
+          },
+          "email": {
+            "type": "string",
+            "description": "이메일",
+            "example": "member@example.com"
+          },
+          "nickname": {
+            "type": "string",
+            "description": "닉네임",
+            "example": "goods-user"
+          },
+          "phone": {
+            "type": "string",
+            "description": "전화번호",
+            "example": "010-1234-5678"
+          },
+          "address": {
+            "type": "string",
+            "description": "주소",
+            "example": "서울"
+          },
+          "profileImageUrl": {
+            "type": "string",
+            "description": "프로필 이미지 URL"
+          },
+          "role": {
+            "type": "string",
+            "description": "회원 역할",
+            "enum": [
+              "USER",
+              "SELLER",
+              "ADMIN"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "description": "회원 상태",
+            "enum": [
+              "PENDING_VERIFICATION",
+              "ACTIVE",
+              "SUSPENDED",
+              "WITHDRAWN",
+              "DELETED"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "생성 시각"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "수정 시각"
+          }
+        }
+      },
+      "ApiResponseMemberResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/MemberResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ErrorResponse"
+          }
+        }
+      },
+      "ChangePasswordRequest": {
+        "type": "object",
+        "description": "비밀번호 변경 요청",
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "description": "현재 비밀번호",
+            "example": "password1234",
+            "minLength": 1
+          },
+          "newPassword": {
+            "type": "string",
+            "description": "새 비밀번호",
+            "example": "newPassword1234",
+            "maxLength": 100,
+            "minLength": 8
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ]
+      },
+      "ApiResponseChangePasswordResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ChangePasswordResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ErrorResponse"
+          }
+        }
+      },
+      "ChangePasswordResponse": {
+        "type": "object",
+        "description": "비밀번호 변경 응답",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "결과 메시지",
+            "example": "비밀번호가 변경되었습니다."
+          }
+        }
+      },
+      "ReviewMemberReportRequest": {
+        "type": "object",
+        "properties": {
+          "reviewComment": {
+            "type": "string"
+          },
+          "restrictionType": {
+            "type": "string",
+            "enum": [
+              "TRADE_BAN",
+              "LOGIN_BAN",
+              "CHAT_BAN"
+            ]
+          },
+          "durationHours": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ApiResponseSellerResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/SellerResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ErrorResponse"
+          }
+        }
+      },
+      "SellerResponse": {
+        "type": "object",
+        "description": "판매자 프로필 응답",
+        "properties": {
+          "sellerId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "판매자 ID"
+          },
+          "memberId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "회원 ID"
+          },
+          "bankName": {
+            "type": "string",
+            "description": "은행명",
+            "example": "KAKAO"
+          },
+          "account": {
+            "type": "string",
+            "description": "정산 계좌"
+          },
+          "approvedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "승인 시각"
+          }
+        }
+      },
+      "ApiResponseMemberOauthAccountListResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/MemberOauthAccountListResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ErrorResponse"
+          }
+        }
+      },
+      "MemberOauthAccountListResponse": {
+        "type": "object",
+        "description": "OAuth 계정 목록 응답",
+        "properties": {
+          "accounts": {
+            "type": "array",
+            "description": "연동 계정",
+            "items": {
+              "$ref": "#/components/schemas/MemberOauthAccountResponse"
+            }
+          },
+          "hasPasswordLogin": {
+            "type": "boolean",
+            "description": "비밀번호 로그인",
+            "example": true
+          },
+          "canRemoveLastOauthAccount": {
+            "type": "boolean",
+            "description": "마지막 계정 해제 가능",
+            "example": false
+          }
+        }
+      },
+      "MemberOauthAccountResponse": {
+        "type": "object",
+        "description": "OAuth 계정",
+        "properties": {
+          "oauthAccountId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "OAuth 계정 ID",
+            "example": "22222222-2222-2222-2222-222222222222"
+          },
+          "provider": {
+            "type": "string",
+            "description": "제공자",
+            "example": "KAKAO"
+          },
+          "providerEmail": {
+            "type": "string",
+            "description": "제공자 이메일",
+            "example": "member@example.com"
+          },
+          "providerNickname": {
+            "type": "string",
+            "description": "제공자 닉네임",
+            "example": "goods-user"
+          },
+          "linkedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "연동 시각"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "수정 시각"
+          },
+          "canUnlink": {
+            "type": "boolean",
+            "description": "해제 가능",
+            "example": true
+          }
+        }
+      },
+      "AccountVerificationCurrentResponse": {
+        "type": "object",
+        "description": "현재 계좌 인증 응답",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "description": "인증 세션 ID",
+            "example": "av_01J4XYZ"
+          },
+          "status": {
+            "type": "string",
+            "description": "인증 상태",
+            "example": "PENDING"
+          },
+          "bankName": {
+            "type": "string",
+            "description": "은행명",
+            "example": "KAKAO"
+          },
+          "maskedAccountNumber": {
+            "type": "string",
+            "description": "마스킹 계좌",
+            "example": "123-****-0123"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "만료 시각"
+          },
+          "attemptCount": {
+            "type": "integer",
+            "format": "int32",
+            "description": "실패 횟수",
+            "example": 1
+          },
+          "resendCount": {
+            "type": "integer",
+            "format": "int32",
+            "description": "재전송 횟수",
+            "example": 1
+          }
+        }
+      },
+      "ApiResponseAccountVerificationCurrentResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AccountVerificationCurrentResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ErrorResponse"
+          }
+        }
+      },
+      "ApiResponseListMemberReportResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MemberReportResponse"
+            }
+          },
+          "error": {
+            "$ref": "#/components/schemas/ErrorResponse"
+          }
+        }
+      },
+      "ApiResponseAuthSessionListResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AuthSessionListResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ErrorResponse"
+          }
+        }
+      },
+      "AuthSessionListResponse": {
+        "type": "object",
+        "properties": {
+          "sessions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuthSessionResponse"
+            }
+          }
+        }
+      },
+      "AuthSessionResponse": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastAccessedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastRefreshedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "userAgent": {
+            "type": "string"
+          },
+          "ipAddress": {
+            "type": "string"
+          },
+          "current": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ApiResponseKakaoOAuthResultResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/KakaoOAuthResultResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ErrorResponse"
+          }
+        }
+      },
+      "KakaoOAuthResultResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "SUCCESS",
+              "LINK_REQUIRED",
+              "ERROR"
+            ]
+          },
+          "linkRequired": {
+            "type": "boolean"
+          },
+          "linkToken": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "providerUserId": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "nickname": {
+            "type": "string"
+          },
+          "accessToken": {
+            "type": "string"
+          },
+          "refreshToken": {
+            "type": "string"
+          },
+          "sessionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tokenType": {
+            "type": "string"
+          },
+          "accessTokenExpiresIn": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "refreshTokenExpiresIn": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "errorCode": {
+            "type": "string"
+          },
+          "errorMessage": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiResponseKakaoOAuthAuthorizeUrlResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/KakaoOAuthAuthorizeUrlResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ErrorResponse"
+          }
+        }
+      },
+      "KakaoOAuthAuthorizeUrlResponse": {
+        "type": "object",
+        "properties": {
+          "authorizeUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiResponseListMemberRestrictionResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MemberRestrictionResponse"
+            }
+          },
+          "error": {
+            "$ref": "#/components/schemas/ErrorResponse"
+          }
+        }
+      },
+      "WithdrawMemberRequest": {
+        "type": "object",
+        "description": "회원 탈퇴 요청",
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "description": "현재 비밀번호",
+            "example": "password1234",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "currentPassword"
+        ]
+      },
+      "ApiResponseWithdrawMemberResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/WithdrawMemberResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ErrorResponse"
+          }
+        }
+      },
+      "WithdrawMemberResponse": {
+        "type": "object",
+        "description": "회원 탈퇴 응답",
+        "properties": {
+          "memberId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "회원 ID",
+            "example": "11111111-1111-1111-1111-111111111111"
+          },
+          "status": {
+            "type": "string",
+            "description": "탈퇴 후 상태",
+            "enum": [
+              "PENDING_VERIFICATION",
+              "ACTIVE",
+              "SUSPENDED",
+              "WITHDRAWN",
+              "DELETED"
+            ],
+            "example": "WITHDRAWN"
+          },
+          "withdrawnAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "탈퇴 시각"
+          },
+          "message": {
+            "type": "string",
+            "description": "결과 메시지",
+            "example": "회원 탈퇴 완료"
+          }
+        }
+      },
+      "ApiResponseMemberOauthAccountUnlinkResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/MemberOauthAccountUnlinkResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ErrorResponse"
+          }
+        }
+      },
+      "MemberOauthAccountUnlinkResponse": {
+        "type": "object",
+        "description": "OAuth 해제 응답",
+        "properties": {
+          "unlinked": {
+            "type": "boolean",
+            "description": "해제 여부",
+            "example": true
+          },
+          "provider": {
+            "type": "string",
+            "description": "제공자",
+            "example": "KAKAO"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}

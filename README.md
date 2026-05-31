@@ -203,6 +203,8 @@ docker compose --env-file .env -f infra/docker/docker-compose.infra.yml up -d
 - Prometheus: `http://localhost:9090`
 - Grafana: `http://localhost:3000`
 
+API spec 운영 방식은 [docs/api/README.md](docs/api/README.md)를 본다.
+
 ### 서비스 실행
 
 각 서비스는 별도 터미널에서 `bootRun`으로 실행한다.
@@ -289,6 +291,11 @@ docker compose --env-file .env -f infra/docker/docker-compose.infra.yml up -d
 
 - [docs/06-auth-flow.md](docs/06-auth-flow.md)
 - [docs/05-event-strategy.md](docs/05-event-strategy.md)
+
+### API Spec
+
+- [docs/api/README.md](docs/api/README.md)
+- [docs/api/common.md](docs/api/common.md)
 
 ### 배포 / 운영
 

@@ -14,6 +14,10 @@
 ## Domain
 - [service/README.md](service/README.md)
 
+## API
+- [api/README.md](api/README.md)
+- [api/common.md](api/common.md)
+
 ## Infrastructure
 - [08-deployment.md](08-deployment.md)
 
