@@ -62,6 +62,7 @@ management:
       prometheus:
         enabled: true
 
+# TODO: Split log levels by environment later (local dev can use DEBUG, production should default to INFO/WARN).
 logging:
   level:
     com.todaylunch.auction: DEBUG

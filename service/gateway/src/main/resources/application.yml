@@ -340,6 +340,7 @@ gateway:
         pattern: /api/ai/recommendations/me
         allowed-roles: [USER, SELLER, ADMIN]
 
+# TODO: Split log levels by environment later (local dev can use DEBUG, production should default to INFO/WARN).
 logging:
   level:
     com.todaylunch.gateway: INFO

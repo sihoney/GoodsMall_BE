@@ -124,6 +124,7 @@ member:
     resend-cooldown: 30s
     crypto:
       secret-key: ${ACCOUNT_VERIFICATION_SECRET_KEY}
+# TODO: Split log levels by environment later (local dev can use DEBUG, production should default to INFO/WARN).
 logging:
   level:
     com.example.member: INFO

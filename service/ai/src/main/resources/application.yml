@@ -86,6 +86,7 @@ ai:
       multiplier: 2.0
       max-interval-ms: 5000
 
+# TODO: Split log levels by environment later (local dev can use DEBUG, production should default to INFO/WARN).
 logging:
   level:
     com.example.ai: DEBUG

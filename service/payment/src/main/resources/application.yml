@@ -68,6 +68,7 @@ payment:
     crypto:
       secret-key: ${PAYMENT_WITHDRAW_CRYPTO_SECRET_KEY:local-dev-payment-withdraw-secret-key}
 # --- 로깅 설정 (로컬: DEBUG) ---
+# TODO: Split log levels by environment later (local dev can use DEBUG, production should default to INFO/WARN).
 logging:
   level:
     com.example.payment: DEBUG

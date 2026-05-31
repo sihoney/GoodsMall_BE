@@ -53,6 +53,7 @@ notification:
       initial-interval-ms: 1000
       max-attempts: 3
 
+# TODO: Split log levels by environment later (local dev can use DEBUG, production should default to INFO/WARN).
 logging:
   level:
     com.example.notification: INFO
