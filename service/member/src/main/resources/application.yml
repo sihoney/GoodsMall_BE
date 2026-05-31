@@ -93,12 +93,12 @@ jwt:
   access-expiration: 3600000 
   refresh-expiration: 604800000 
 
-  aws:
-    s3:
-      bucket: todaylunchmenu
-      region: ap-northeast-2
-      access-key: ${AWS_ACCESS_KEY_ID}
-      secret-key: ${AWS_SECRET_ACCESS_KEY}
+aws:
+  s3:
+    bucket: todaylunchmenu
+    region: ap-northeast-2
+    access-key: ${AWS_ACCESS_KEY_ID}
+    secret-key: ${AWS_SECRET_ACCESS_KEY}
     profile-image-prefix: members/profile
     put-presign-expiration-seconds: 300
     get-presign-expiration-seconds: 600
