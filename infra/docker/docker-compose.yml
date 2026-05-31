@@ -166,6 +166,15 @@ services:
       - ../../.env
     environment:
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      MEMBER_SERVICE_URL: http://member:8083
+      PRODUCT_SERVICE_URL: http://product:8081
+      CART_SERVICE_URL: http://cart:8086
+      ORDER_SERVICE_URL: http://order:8084
+      PAYMENT_SERVICE_URL: http://payment:8082
+      SETTLEMENT_SERVICE_URL: http://settlement:8085
+      AUCTION_SERVICE_URL: http://auction:8090
+      NOTIFICATION_SERVICE_URL: http://notification:8087
+      AI_SERVICE_URL: http://ai:8088
     ports:
       - "8080:8080"
 

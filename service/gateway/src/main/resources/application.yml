@@ -34,151 +34,151 @@ spring:
                 allowCredentials: true
           routes:
             - id: member-auth-service
-              uri: http://member:8083
+              uri: ${MEMBER_SERVICE_URL:http://member:8083}
               predicates:
                 - Path=/api/auth/**
 
             - id: member-service-v1
-              uri: http://member:8083
+              uri: ${MEMBER_SERVICE_URL:http://member:8083}
               predicates:
                 - Path=/api/members/**
 
             - id: member-seller-service
-              uri: http://member:8083
+              uri: ${MEMBER_SERVICE_URL:http://member:8083}
               predicates:
                 - Path=/api/sellers/**
 
             - id: member-report-service
-              uri: http://member:8083
+              uri: ${MEMBER_SERVICE_URL:http://member:8083}
               predicates:
                 - Path=/api/member-reports/**
 
             - id: member-admin-report-service
-              uri: http://member:8083
+              uri: ${MEMBER_SERVICE_URL:http://member:8083}
               predicates:
                 - Path=/api/admin/member-reports/**
 
             - id: member-admin-restriction-service
-              uri: http://member:8083
+              uri: ${MEMBER_SERVICE_URL:http://member:8083}
               predicates:
                 - Path=/api/admin/member-restrictions/**
 
             - id: product-admin-service
-              uri: http://product:8081
+              uri: ${PRODUCT_SERVICE_URL:http://product:8081}
               predicates:
                 - Path=/api/admin/products/**
 
             - id: product-service
-              uri: http://product:8081
+              uri: ${PRODUCT_SERVICE_URL:http://product:8081}
               predicates:
                 - Path=/api/products/**
 
             - id: category-service
-              uri: http://product:8081
+              uri: ${PRODUCT_SERVICE_URL:http://product:8081}
               predicates:
                 - Path=/api/categories/**
 
             - id: cart-service
-              uri: http://cart:8086
+              uri: ${CART_SERVICE_URL:http://cart:8086}
               predicates:
                 - Path=/api/carts/**
 
             - id: wish-service
-              uri: http://cart:8086
+              uri: ${CART_SERVICE_URL:http://cart:8086}
               predicates:
                 - Path=/api/wishes/**
 
             - id: order-service
-              uri: http://order:8084
+              uri: ${ORDER_SERVICE_URL:http://order:8084}
               predicates:
                 - Path=/api/orders/**
 
             - id: order-delivery-service
-              uri: http://order:8084
+              uri: ${ORDER_SERVICE_URL:http://order:8084}
               predicates:
                 - Path=/api/deliveries/**
 
             - id: order-return-request-service
-              uri: http://order:8084
+              uri: ${ORDER_SERVICE_URL:http://order:8084}
               predicates:
                 - Path=/api/return-requests/**
 
             - id: payment-service
-              uri: http://payment:8082
+              uri: ${PAYMENT_SERVICE_URL:http://payment:8082}
               predicates:
                 - Path=/api/payments/**
 
             - id: settlement-service
-              uri: http://settlement:8085
+              uri: ${SETTLEMENT_SERVICE_URL:http://settlement:8085}
               predicates:
                 - Path=/api/settlements/**
 
             - id: ai-service
-              uri: http://ai:8088
+              uri: ${AI_SERVICE_URL:http://ai:8088}
               predicates:
                 - Path=/api/ai/**
 
             - id: member-service-docs
-              uri: http://member:8083
+              uri: ${MEMBER_SERVICE_URL:http://member:8083}
               predicates:
                 - Path=/swagger/member/v3/api-docs
               filters:
                 - SetPath=/v3/api-docs
 
             - id: payment-service-docs
-              uri: http://payment:8082
+              uri: ${PAYMENT_SERVICE_URL:http://payment:8082}
               predicates:
                 - Path=/swagger/payment/v3/api-docs
               filters:
                 - SetPath=/v3/api-docs
 
             - id: settlement-service-docs
-              uri: http://settlement:8085
+              uri: ${SETTLEMENT_SERVICE_URL:http://settlement:8085}
               predicates:
                 - Path=/swagger/settlement/v3/api-docs
               filters:
                 - SetPath=/v3/api-docs
 
             - id: product-service-docs
-              uri: http://product:8081
+              uri: ${PRODUCT_SERVICE_URL:http://product:8081}
               predicates:
                 - Path=/swagger/product/v3/api-docs
               filters:
                 - SetPath=/v3/api-docs
 
             - id: cart-service-docs
-              uri: http://cart:8086
+              uri: ${CART_SERVICE_URL:http://cart:8086}
               predicates:
                 - Path=/swagger/cart/v3/api-docs
               filters:
                 - SetPath=/v3/api-docs
 
             - id: order-service-docs
-              uri: http://order:8084
+              uri: ${ORDER_SERVICE_URL:http://order:8084}
               predicates:
                 - Path=/swagger/order/v3/api-docs
               filters:
                 - SetPath=/v3/api-docs
 
             - id: auction-service
-              uri: http://auction:8090
+              uri: ${AUCTION_SERVICE_URL:http://auction:8090}
               predicates:
                 - Path=/api/auctions/**
 
             - id: notification-service
-              uri: http://notification:8087
+              uri: ${NOTIFICATION_SERVICE_URL:http://notification:8087}
               predicates:
                 - Path=/api/notifications/**
 
             - id: notification-service-docs
-              uri: http://notification:8087
+              uri: ${NOTIFICATION_SERVICE_URL:http://notification:8087}
               predicates:
                 - Path=/swagger/notification/v3/api-docs
               filters:
                 - SetPath=/v3/api-docs
 
             - id: ai-service-docs
-              uri: http://ai:8088
+              uri: ${AI_SERVICE_URL:http://ai:8088}
               predicates:
                 - Path=/swagger/ai/v3/api-docs
               filters:
