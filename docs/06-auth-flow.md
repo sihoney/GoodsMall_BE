@@ -503,6 +503,6 @@ Order Service:
 - [Request Flow](04-request-flow.md)
 - [Gateway Service](service/gateway.md)
 - [Member Service](service/member-service.md)
-- [Engineering Decisions](10-engineering-decisions.md)
+- [Engineering Decisions](09-engineering-decisions.md)
 - [JWT Strategy](tech/jwt.md)
 - [Redis](tech/redis.md)

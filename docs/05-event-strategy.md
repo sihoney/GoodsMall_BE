@@ -407,5 +407,5 @@ DB transaction rollback
 - [Service Docs](service/README.md)
 - [Settlement Flow](service/07-settlement-flow.md)
 - [Kafka Strategy](tech/kafka.md)
-- [Troubleshooting](09-troubleshooting.md)
-- [Engineering Decisions](10-engineering-decisions.md)
+- [Engineering Decisions](09-engineering-decisions.md)
+- [Troubleshooting](10-troubleshooting.md)

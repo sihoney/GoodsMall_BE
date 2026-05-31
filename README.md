@@ -296,7 +296,7 @@ docker compose --env-file .env -f infra/docker/docker-compose.infra.yml up -d
 
 ### 설계 판단
 
-- [docs/10-engineering-decisions.md](docs/10-engineering-decisions.md)
+- [docs/09-engineering-decisions.md](docs/09-engineering-decisions.md)
 
 ### 서비스 문서
 

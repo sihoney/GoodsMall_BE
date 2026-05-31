@@ -203,5 +203,5 @@ cp .env.infra.example .env
 - [04-request-flow.md](04-request-flow.md)
 - [06-auth-flow.md](06-auth-flow.md)
 - [08-deployment.md](08-deployment.md)
-- [10-engineering-decisions.md](10-engineering-decisions.md)
+- [09-engineering-decisions.md](09-engineering-decisions.md)
 - [service/member-service.md](service/member-service.md)

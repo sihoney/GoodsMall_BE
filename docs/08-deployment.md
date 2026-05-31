@@ -382,4 +382,4 @@ flowchart LR
 - [Event Strategy](05-event-strategy.md)
 - [Kubernetes](tech/kubernetes.md)
 - [CI/CD](tech/cicd.md)
-- [Troubleshooting](09-troubleshooting.md)
+- [Troubleshooting](10-troubleshooting.md)
