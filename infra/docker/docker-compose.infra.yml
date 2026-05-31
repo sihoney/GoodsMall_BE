@@ -1,6 +1,25 @@
 name: goods-mall
 
 services:
+  db-migration:
+    build:
+      context: ../..
+      dockerfile: db-migration/Dockerfile
+    container_name: goods-mall-db-migration
+    env_file:
+      - ../../.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://postgres:5432/goods_mall
+      DB_USER_NAME: ${DB_USER_NAME}
+      DB_USER_PASSWORD: ${DB_USER_PASSWORD}
+      DB_SEED_ENABLED: "true"
+      DB_SEED_LOCATIONS: classpath:db/seed/dev_seed_member.sql,classpath:db/seed/dev_seed_category.sql,classpath:db/seed/dev_seed_product.sql,classpath:db/seed/dev_seed_couriers.sql,classpath:db/seed/dev_seed_cart.sql,classpath:db/seed/dev_seed_wallet.sql,classpath:db/seed/dev_seed_payment_settlement.sql,classpath:db/seed/dev_seed_ai_product_embedding.sql
+    restart: "no"
+
   postgres:
     image: pgvector/pgvector:pg18
     container_name: goods-mall-postgres
@@ -11,9 +30,9 @@ services:
       POSTGRES_HOST_AUTH_METHOD: scram-sha-256
       TZ: Asia/Seoul
     ports:
-      - "5432:5432"
+      - "15432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER_NAME} -d goods_mall"]
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -90,28 +109,11 @@ services:
     ports:
       - "9200:9200"
 
-  db-migration:
-    build:
-      context: ../..
-      dockerfile: db-migration/Dockerfile
-    container_name: goods-mall-db-migration
-    env_file:
-      - ../../.env
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      SPRING_PROFILES_ACTIVE: prod
-      DB_URL: jdbc:postgresql://postgres:5432/goods_mall
-      DB_USER_NAME: ${DB_USER_NAME}
-      DB_USER_PASSWORD: ${DB_USER_PASSWORD}
-      DB_SEED_ENABLED: "true"
-      DB_SEED_LOCATIONS: classpath:db/seed/dev_seed_member.sql,classpath:db/seed/dev_seed_category.sql,classpath:db/seed/dev_seed_product.sql,classpath:db/seed/dev_seed_cart.sql,classpath:db/seed/dev_seed_wallet.sql,classpath:db/seed/dev_seed_payment_settlement.sql,classpath:db/seed/dev_seed_ai_product_embedding.sql,classpath:db/seed/dev_seed_auction.sql
-    restart: "no"
-
   prometheus:
     image: prom/prometheus:v2.51.2
     container_name: goods-mall-prometheus
+    profiles:
+      - monitoring
     ports:
       - "9090:9090"
     volumes:
@@ -122,6 +124,8 @@ services:
   grafana:
     image: grafana/grafana:10.4.2
     container_name: goods-mall-grafana
+    profiles:
+      - monitoring
     ports:
       - "3000:3000"
     environment:
