@@ -11,6 +11,7 @@ import com.example.member.auth.presentation.web.dto.TokenRefreshResponse;
 import com.example.member.common.presentation.web.dto.ApiResponse;
 import com.example.member.common.presentation.web.support.AuthSessionMetadataExtractor;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -24,14 +25,19 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
-@Tag(name = "인증", description = "로그인 및 토큰 API")
+@Tag(name = "인증", description = "로그인/토큰")
 public class AuthController {
 
     private final AuthLoginUsecase authLoginUsecase;
     private final AuthTokenRefreshUsecase authTokenRefreshUsecase;
 
     @PostMapping("/login")
-    @Operation(summary = "로그인", description = "이메일과 비밀번호로 로그인합니다.")
+    @Operation(summary = "로그인", description = "토큰 발급")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패")
+    })
     public ResponseEntity<ApiResponse<LoginResponse>> login(
             @Valid @RequestBody LoginRequest request,
             HttpServletRequest httpServletRequest
@@ -46,7 +52,12 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    @Operation(summary = "토큰 재발급", description = "access token과 refresh token을 재발급합니다.")
+    @Operation(summary = "토큰 재발급", description = "토큰 갱신")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "토큰 오류")
+    })
     public ResponseEntity<ApiResponse<TokenRefreshResponse>> refresh(
             @Valid @RequestBody TokenRefreshRequest request,
             HttpServletRequest httpServletRequest

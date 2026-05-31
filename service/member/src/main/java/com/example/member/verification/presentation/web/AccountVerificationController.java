@@ -1,5 +1,6 @@
 package com.example.member.verification.presentation.web;
 
+import com.example.member.common.presentation.web.dto.ApiResponse;
 import com.example.member.verification.application.dto.command.AccountVerificationConfirmCommand;
 import com.example.member.verification.application.dto.command.AccountVerificationCreateCommand;
 import com.example.member.verification.application.port.in.AccountVerificationUsecase;
@@ -9,11 +10,12 @@ import com.example.member.verification.presentation.web.dto.AccountVerificationC
 import com.example.member.verification.presentation.web.dto.AccountVerificationCreateRequest;
 import com.example.member.verification.presentation.web.dto.AccountVerificationCurrentResponse;
 import com.example.member.verification.presentation.web.dto.AccountVerificationSendResponse;
-import com.example.member.common.presentation.web.dto.ApiResponse;
 import com.todaylunch.common.security.auth.annotation.CurrentMember;
 import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,18 +31,21 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/members/me/account-verifications")
-@Tag(name = "계좌 인증", description = "계좌 인증 API")
+@Tag(name = "계좌 인증", description = "판매자 계좌")
+@SecurityRequirement(name = "bearerAuth")
 public class AccountVerificationController {
 
     private final AccountVerificationUsecase accountVerificationUsecase;
 
     @PostMapping
-    @Operation(
-            summary = "계좌 인증 생성",
-            description = "계좌 인증 세션과 판매자 초안을 생성하고 인증 코드를 반환합니다."
-    )
+    @Operation(summary = "계좌 인증 생성", description = "인증 코드")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "생성"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요")
+    })
     public ResponseEntity<ApiResponse<AccountVerificationSendResponse>> createAccountVerification(
-            @CurrentMember AuthenticatedMember authenticatedMember,
+            @Parameter(hidden = true) @CurrentMember AuthenticatedMember authenticatedMember,
             @Valid @RequestBody AccountVerificationCreateRequest request
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -58,13 +63,16 @@ public class AccountVerificationController {
     }
 
     @PostMapping("/{sessionId}/confirm")
-    @Operation(
-            summary = "계좌 인증 확인",
-            description = "제출한 인증 코드를 검증하고 계좌 인증을 완료합니다."
-    )
+    @Operation(summary = "계좌 인증 확인", description = "코드 검증")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "세션 없음")
+    })
     public ResponseEntity<ApiResponse<AccountVerificationConfirmResponse>> confirmAccountVerification(
-            @CurrentMember AuthenticatedMember authenticatedMember,
-            @Parameter(description = "계좌 인증 세션 ID", example = "av_01J4XYZ")
+            @Parameter(hidden = true) @CurrentMember AuthenticatedMember authenticatedMember,
+            @Parameter(description = "인증 세션 ID", example = "av_01J4XYZ")
             @PathVariable(name = "sessionId") String sessionId,
             @Valid @RequestBody AccountVerificationConfirmRequest request
     ) {
@@ -81,12 +89,14 @@ public class AccountVerificationController {
     }
 
     @GetMapping("/current")
-    @Operation(
-            summary = "현재 계좌 인증 조회",
-            description = "현재 계좌 인증 세션과 판매자 초안 정보를 조회합니다."
-    )
+    @Operation(summary = "현재 계좌 인증", description = "진행 상태")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "세션 없음")
+    })
     public ResponseEntity<ApiResponse<AccountVerificationCurrentResponse>> getCurrentAccountVerification(
-            @CurrentMember AuthenticatedMember authenticatedMember
+            @Parameter(hidden = true) @CurrentMember AuthenticatedMember authenticatedMember
     ) {
         return ResponseEntity.ok(ApiResponse.success(
                 AccountVerificationCurrentResponse.from(
@@ -96,13 +106,16 @@ public class AccountVerificationController {
     }
 
     @PostMapping("/{sessionId}/resend")
-    @Operation(
-            summary = "인증 코드 재전송",
-            description = "기존 인증 코드를 무효화하고 새 인증 코드를 발급합니다."
-    )
+    @Operation(summary = "인증 코드 재전송", description = "새 코드")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "재전송 불가"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "세션 없음")
+    })
     public ResponseEntity<ApiResponse<AccountVerificationSendResponse>> resendAccountVerification(
-            @CurrentMember AuthenticatedMember authenticatedMember,
-            @Parameter(description = "계좌 인증 세션 ID", example = "av_01J4XYZ")
+            @Parameter(hidden = true) @CurrentMember AuthenticatedMember authenticatedMember,
+            @Parameter(description = "인증 세션 ID", example = "av_01J4XYZ")
             @PathVariable(name = "sessionId") String sessionId
     ) {
         return ResponseEntity.ok(ApiResponse.success(
@@ -113,13 +126,15 @@ public class AccountVerificationController {
     }
 
     @PostMapping("/{sessionId}/cancel")
-    @Operation(
-            summary = "계좌 인증 취소",
-            description = "진행 중인 계좌 인증 세션을 취소합니다."
-    )
+    @Operation(summary = "계좌 인증 취소", description = "진행 취소")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "세션 없음")
+    })
     public ResponseEntity<ApiResponse<AccountVerificationCancelResponse>> cancelAccountVerification(
-            @CurrentMember AuthenticatedMember authenticatedMember,
-            @Parameter(description = "계좌 인증 세션 ID", example = "av_01J4XYZ")
+            @Parameter(hidden = true) @CurrentMember AuthenticatedMember authenticatedMember,
+            @Parameter(description = "인증 세션 ID", example = "av_01J4XYZ")
             @PathVariable(name = "sessionId") String sessionId
     ) {
         return ResponseEntity.ok(ApiResponse.success(
@@ -129,5 +144,3 @@ public class AccountVerificationController {
         ));
     }
 }
-
-

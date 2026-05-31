@@ -1,17 +1,17 @@
 package com.example.member.member.presentation.web;
 
 import com.example.member.auth.application.dto.command.ChangePasswordCommand;
-import com.example.member.member.application.dto.command.CreateMemberCommand;
-import com.example.member.member.application.dto.command.UpdateMemberCommand;
-import com.example.member.member.application.dto.command.WithdrawMemberCommand;
-import com.example.member.member.application.dto.query.GetMemberQuery;
 import com.example.member.auth.application.port.in.MemberOauthAccountUsecase;
-import com.example.member.member.application.port.in.MemberUsecase;
-import com.example.member.common.presentation.web.dto.ApiResponse;
 import com.example.member.auth.presentation.web.dto.ChangePasswordRequest;
 import com.example.member.auth.presentation.web.dto.ChangePasswordResponse;
 import com.example.member.auth.presentation.web.dto.MemberOauthAccountListResponse;
 import com.example.member.auth.presentation.web.dto.MemberOauthAccountUnlinkResponse;
+import com.example.member.common.presentation.web.dto.ApiResponse;
+import com.example.member.member.application.dto.command.CreateMemberCommand;
+import com.example.member.member.application.dto.command.UpdateMemberCommand;
+import com.example.member.member.application.dto.command.WithdrawMemberCommand;
+import com.example.member.member.application.dto.query.GetMemberQuery;
+import com.example.member.member.application.port.in.MemberUsecase;
 import com.example.member.member.presentation.web.dto.CreateMemberRequest;
 import com.example.member.member.presentation.web.dto.CreateMemberResponse;
 import com.example.member.member.presentation.web.dto.MemberResponse;
@@ -22,6 +22,9 @@ import com.todaylunch.common.security.auth.annotation.CurrentMember;
 import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
 import com.todaylunch.common.security.auth.enumtype.MemberRole;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.UUID;
@@ -43,7 +46,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/members")
 @RequiredArgsConstructor
-@Tag(name = "회원", description = "회원 CRUD API")
+@Tag(name = "회원", description = "가입/프로필")
 public class MemberController {
 
     private final MemberUsecase memberUsecase;
@@ -51,7 +54,12 @@ public class MemberController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "회원 생성", description = "새 회원을 생성합니다.")
+    @Operation(summary = "회원 가입", description = "회원 생성")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "생성"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "중복")
+    })
     public ResponseEntity<ApiResponse<CreateMemberResponse>> createMember(
             @Valid @RequestBody CreateMemberRequest request
     ) {
@@ -70,9 +78,15 @@ public class MemberController {
     }
 
     @GetMapping("/me")
-    @Operation(summary = "현재 회원 조회", description = "현재 인증된 회원 정보를 조회합니다.")
+    @Operation(summary = "내 정보 조회", description = "프로필 조회")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "회원 없음")
+    })
     public ResponseEntity<ApiResponse<MemberResponse>> getCurrentMember(
-            @CurrentMember AuthenticatedMember authenticatedMember
+            @Parameter(hidden = true) @CurrentMember AuthenticatedMember authenticatedMember
     ) {
         return ResponseEntity.ok(ApiResponse.success(
                 MemberResponse.from(memberUsecase.getCurrentMember(
@@ -82,9 +96,15 @@ public class MemberController {
     }
 
     @PatchMapping("/me")
-    @Operation(summary = "현재 회원 수정", description = "현재 인증된 회원의 프로필 정보를 수정합니다.")
+    @Operation(summary = "내 정보 수정", description = "프로필 수정")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요")
+    })
     public ResponseEntity<ApiResponse<MemberResponse>> updateCurrentMember(
-            @CurrentMember AuthenticatedMember authenticatedMember,
+            @Parameter(hidden = true) @CurrentMember AuthenticatedMember authenticatedMember,
             @Valid @RequestBody UpdateMemberRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.success(
@@ -99,9 +119,15 @@ public class MemberController {
     }
 
     @PatchMapping("/me/password")
-    @Operation(summary = "현재 회원 비밀번호 변경", description = "현재 인증된 회원의 비밀번호를 변경합니다.")
+    @Operation(summary = "비밀번호 변경", description = "내 비밀번호")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요")
+    })
     public ResponseEntity<ApiResponse<ChangePasswordResponse>> changeCurrentMemberPassword(
-            @CurrentMember AuthenticatedMember authenticatedMember,
+            @Parameter(hidden = true) @CurrentMember AuthenticatedMember authenticatedMember,
             @Valid @RequestBody ChangePasswordRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.success(new ChangePasswordResponse(
@@ -114,9 +140,15 @@ public class MemberController {
     }
 
     @DeleteMapping("/me")
-    @Operation(summary = "현재 회원 탈퇴", description = "현재 인증된 회원을 탈퇴 처리하고 모든 세션을 종료합니다.")
+    @Operation(summary = "회원 탈퇴", description = "내 계정")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요")
+    })
     public ResponseEntity<ApiResponse<WithdrawMemberResponse>> withdrawCurrentMember(
-            @CurrentMember AuthenticatedMember authenticatedMember,
+            @Parameter(hidden = true) @CurrentMember AuthenticatedMember authenticatedMember,
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader,
             @Valid @RequestBody WithdrawMemberRequest request
     ) {
@@ -130,9 +162,14 @@ public class MemberController {
     }
 
     @GetMapping("/me/oauth-accounts")
-    @Operation(summary = "연동된 OAuth 계정 조회", description = "현재 회원의 연동된 OAuth 계정을 조회합니다.")
+    @Operation(summary = "OAuth 계정 목록", description = "연동 계정")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요")
+    })
     public ResponseEntity<ApiResponse<MemberOauthAccountListResponse>> getCurrentMemberOauthAccounts(
-            @CurrentMember AuthenticatedMember authenticatedMember
+            @Parameter(hidden = true) @CurrentMember AuthenticatedMember authenticatedMember
     ) {
         return ResponseEntity.ok(ApiResponse.success(
                 MemberOauthAccountListResponse.from(
@@ -142,9 +179,16 @@ public class MemberController {
     }
 
     @DeleteMapping("/me/oauth-accounts/{provider}")
-    @Operation(summary = "OAuth 계정 연동 해제", description = "현재 회원의 OAuth 계정 연동을 해제합니다.")
+    @Operation(summary = "OAuth 연동 해제", description = "연동 해제")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "계정 없음")
+    })
     public ResponseEntity<ApiResponse<MemberOauthAccountUnlinkResponse>> unlinkCurrentMemberOauthAccount(
-            @CurrentMember AuthenticatedMember authenticatedMember,
+            @Parameter(hidden = true) @CurrentMember AuthenticatedMember authenticatedMember,
+            @Parameter(description = "제공자", example = "KAKAO")
             @PathVariable(name = "provider") String provider
     ) {
         return ResponseEntity.ok(ApiResponse.success(
@@ -155,14 +199,28 @@ public class MemberController {
     }
 
     @GetMapping("/{memberId}")
-    @Operation(summary = "회원 조회", description = "특정 회원 정보를 조회합니다.")
-    public MemberResponse getMember(@PathVariable(name = "memberId") UUID memberId) {
+    @Operation(summary = "회원 조회", description = "회원 프로필")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "회원 없음")
+    })
+    public MemberResponse getMember(
+            @Parameter(description = "회원 ID", example = "11111111-1111-1111-1111-111111111111")
+            @PathVariable(name = "memberId") UUID memberId
+    ) {
         return MemberResponse.from(memberUsecase.getMember(new GetMemberQuery(memberId)));
     }
 
     @PatchMapping("/{memberId}")
-    @Operation(summary = "회원 수정", description = "특정 회원 정보를 수정합니다.")
+    @Operation(summary = "회원 수정", description = "회원 프로필")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "회원 없음")
+    })
     public MemberResponse updateMember(
+            @Parameter(description = "회원 ID", example = "11111111-1111-1111-1111-111111111111")
             @PathVariable(name = "memberId") UUID memberId,
             @Valid @RequestBody UpdateMemberRequest request
     ) {
