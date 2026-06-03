@@ -1,4 +1,4 @@
-package com.example.member.auth.application.service;
+package com.example.member.auth.application.service.session;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;

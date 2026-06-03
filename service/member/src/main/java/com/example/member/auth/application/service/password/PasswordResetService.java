@@ -1,4 +1,4 @@
-package com.example.member.auth.application.service;
+package com.example.member.auth.application.service.password;
 
 import com.example.member.auth.application.dto.command.PasswordResetConfirmCommand;
 import com.example.member.auth.application.dto.command.PasswordResetSendCommand;

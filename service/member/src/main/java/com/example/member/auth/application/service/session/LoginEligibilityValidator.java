@@ -1,4 +1,4 @@
-package com.example.member.auth.application.service;
+package com.example.member.auth.application.service.session;
 
 import com.example.member.member.domain.entity.Member;
 import com.example.member.member.domain.enumtype.MemberStatus;

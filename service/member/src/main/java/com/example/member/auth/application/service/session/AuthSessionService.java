@@ -1,4 +1,4 @@
-package com.example.member.auth.application.service;
+package com.example.member.auth.application.service.session;
 
 import com.example.member.auth.application.dto.result.AuthSessionListResult;
 import com.example.member.auth.application.dto.result.AuthSessionResult;
@@ -29,9 +29,12 @@ public class AuthSessionService implements AuthSessionUsecase {
 
     @Override
     public AuthSessionListResult getSessions(UUID memberId, UUID currentSessionId) {
+        // [1] 세션 조회
         List<AuthSessionResult> sessions = refreshTokenStore.findSessionsByMemberId(memberId).stream()
+                // [2] 최신순 정렬
                 .sorted(Comparator.comparing(AuthSession::lastAccessedAt).reversed()
                         .thenComparing(AuthSession::createdAt, Comparator.reverseOrder()))
+                // [3] 응답 변환
                 .map(session -> new AuthSessionResult(
                         session.sessionId(),
                         session.createdAt(),
@@ -42,6 +45,8 @@ public class AuthSessionService implements AuthSessionUsecase {
                         Objects.equals(session.sessionId(), currentSessionId)
                 ))
                 .toList();
+
+        // [4] 목록 반환
         return new AuthSessionListResult(sessions);
     }
 
@@ -52,19 +57,26 @@ public class AuthSessionService implements AuthSessionUsecase {
             UUID currentSessionId,
             UUID targetSessionId
     ) {
+        // [1] 현재 세션 여부 확인
         if (Objects.equals(currentSessionId, targetSessionId)) {
             logoutCurrentSession(accessToken);
             return;
         }
 
+        // [2] 대상 세션 조회
         AuthSession authSession = refreshTokenStore.findBySessionId(targetSessionId)
                 .orElseThrow(RefreshTokenNotFoundException::new);
 
+        // [3] 세션 소유자 검증
         if (!Objects.equals(authSession.memberId(), memberId)) {
             throw new RefreshTokenNotFoundException();
         }
 
+        // [4] 세션 삭제
         refreshTokenStore.deleteSession(memberId, targetSessionId);
+
+        // [5] 세션 차단
+        // TODO: auth:session:{sessionId} whitelist 검증으로 대체되면 session blacklist 저장을 제거한다.
         tokenBlacklistStore.blacklistSession(
                 targetSessionId,
                 Duration.ofMillis(jwtTokenProvider.getRefreshExpiration())
@@ -73,12 +85,20 @@ public class AuthSessionService implements AuthSessionUsecase {
 
     @Override
     public void logoutCurrentSession(String accessToken) {
+        // [1] 토큰 파싱
         ParsedAccessToken parsedAccessToken = parseRequiredAccessToken(accessToken);
+
+        // [2] 세션 삭제
         refreshTokenStore.deleteSession(parsedAccessToken.memberId(), parsedAccessToken.sessionId());
+
+        // [3] Access Token 차단
         tokenBlacklistStore.blacklistAccessToken(
                 parsedAccessToken.accessTokenId(),
                 remainingTtl(parsedAccessToken.expiresAt())
         );
+
+        // [4] 세션 차단
+        // TODO: auth:session:{sessionId} whitelist 검증으로 대체되면 session blacklist 저장을 제거한다.
         tokenBlacklistStore.blacklistSession(
                 parsedAccessToken.sessionId(),
                 Duration.ofMillis(jwtTokenProvider.getRefreshExpiration())
@@ -87,15 +107,25 @@ public class AuthSessionService implements AuthSessionUsecase {
 
     @Override
     public void logoutAllSessions(String accessToken) {
+        // [1] 토큰 파싱
         ParsedAccessToken parsedAccessToken = parseRequiredAccessToken(accessToken);
+
+        // [2] 세션 목록 조회
         Set<UUID> sessionIds = refreshTokenStore.findSessionIdsByMemberId(parsedAccessToken.memberId());
+
+        // [3] 세션 차단
         for (UUID sessionId : sessionIds) {
+            // TODO: auth:session:{sessionId} whitelist 검증으로 대체되면 session blacklist 저장을 제거한다.
             tokenBlacklistStore.blacklistSession(
                     sessionId,
                     Duration.ofMillis(jwtTokenProvider.getRefreshExpiration())
             );
         }
+
+        // [4] 전체 세션 삭제
         refreshTokenStore.deleteAllSessions(parsedAccessToken.memberId());
+
+        // [5] Access Token 차단
         tokenBlacklistStore.blacklistAccessToken(
                 parsedAccessToken.accessTokenId(),
                 remainingTtl(parsedAccessToken.expiresAt())
