@@ -1,4 +1,4 @@
-﻿{
+{
   "openapi": "3.1.0",
   "info": {
     "title": "Member Service API",
@@ -40,6 +40,10 @@
     {
       "name": "회원 제재",
       "description": "관리자 회원 제재 API"
+    },
+    {
+      "name": "OAuth 계정",
+      "description": "OAuth 연동 계정"
     },
     {
       "name": "회원",
@@ -1009,74 +1013,6 @@
             }
           }
         }
-      },
-      "patch": {
-        "tags": [
-          "회원"
-        ],
-        "summary": "회원 수정",
-        "description": "회원 프로필",
-        "operationId": "updateMember",
-        "parameters": [
-          {
-            "name": "memberId",
-            "in": "path",
-            "description": "회원 ID",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "example": "11111111-1111-1111-1111-111111111111"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateMemberRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "성공",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/MemberResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "잘못된 요청",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/MemberResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "회원 없음",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/MemberResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
       }
     },
     "/api/members/me": {
@@ -1496,7 +1432,7 @@
     "/api/members/me/oauth-accounts": {
       "get": {
         "tags": [
-          "회원"
+          "OAuth 계정"
         ],
         "summary": "OAuth 계정 목록",
         "description": "연동 계정",
@@ -1966,7 +1902,7 @@
     "/api/members/me/oauth-accounts/{provider}": {
       "delete": {
         "tags": [
-          "회원"
+          "OAuth 계정"
         ],
         "summary": "OAuth 연동 해제",
         "description": "연동 해제",

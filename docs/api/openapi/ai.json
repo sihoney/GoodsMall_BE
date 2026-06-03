@@ -1,1 +1,668 @@
-﻿{"openapi":"3.1.0","info":{"title":"AI Service API","description":"AI service API documentation","version":"v1"},"servers":[{"url":"/","description":"Gateway relative url"}],"security":[{"BearerAuth":[]}],"tags":[{"name":"AI Auction Price Recommendation","description":"경매 가격 추천 AI API"},{"name":"AI Embedding Admin","description":"AI 임베딩 관리자 API"},{"name":"AI Product Draft Assist","description":"이미지 기반 상품 등록 보조 API"},{"name":"AI Recommendation","description":"연관 상품 추천 API"}],"paths":{"/api/ai/auction-price-recommendation":{"post":{"tags":["AI Auction Price Recommendation"],"summary":"경매 가격 추천","description":"프론트엔드가 직접 호출하는 경매 가격 추천 API입니다.\n경매 화면 정보를 기반으로 예상 형성 가격과 추천 입찰가를 생성합니다.\n필수 입력: auctionId, productId, productName, currentBidPrice, startPrice,\nbidUnit, nextMinimumBidPrice, bidCount, remainingSeconds, auctionStatus\n선택 입력: hasBid\n","operationId":"recommendAuctionPrice","requestBody":{"description":"경매 가격 추천 요청 예시","content":{"application/json":{"schema":{"$ref":"#/components/schemas/AuctionPriceRecommendationRequest"},"examples":{"경매 가격 추천 요청":{"description":"경매 가격 추천 요청","value":{"auctionId":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa010","productId":"dddddddd-dddd-dddd-dddd-ddddddddd010","productName":"한정판 콜라보 후드 (경매)","currentBidPrice":72000,"startPrice":50000,"bidUnit":1000,"nextMinimumBidPrice":73000,"bidCount":8,"remainingSeconds":3600,"auctionStatus":"ACTIVE","hasBid":true}}}}},"required":true},"responses":{"200":{"description":"추천 생성 성공","content":{"application/json":{"example":{"success":true,"data":{"expectedFinalPrice":128000,"recommendedBidPrice":123000,"priceReason":"현재 입찰 흐름과 남은 시간을 기준으로 추가 상승 가능성이 있다고 판단했습니다.","notes":"참고용 추천 가격이며 실제 낙찰가는 달라질 수 있습니다."},"error":null}}}},"400":{"description":"잘못된 요청 (필수 입력 누락 또는 유효하지 않은 값)","content":{"application/json":{"example":{"success":false,"data":null,"error":{"code":"AI_AUCTION_PRICE_RECOMMENDATION_REQUEST_INVALID","message":"currentBidPrice: 0보다 커야 합니다."}}}}},"500":{"description":"내부 처리 오류","content":{"application/json":{"example":{"success":false,"data":null,"error":{"code":"INTERNAL_SERVER_ERROR","message":"서버 오류가 발생했습니다."}}}}}}}},"/api/ai/assist/product-draft-from-image":{"post":{"tags":["AI Product Draft Assist"],"summary":"이미지 기반 상품 등록 보조","description":"이미지와 초안 생성 요청 정보를 받아 상품명/설명 추천 초안을 생성합니다.\nmultipart 요청 파트는 다음 구조를 사용합니다.\n- images: 업로드할 이미지 파일 목록\n- request: JSON 요청 객체\n이미지 파일은 최대 5장까지 업로드할 수 있고, 각 파일은 5MB 이하만 허용합니다.\n요청 전체 크기는 30MB 이하만 허용합니다.\nrequest.inputFields.fieldKey 허용값은 TITLE, DESCRIPTION, PRICE 입니다.\nthumbnailIndex가 없으면 첫 번째 이미지를 대표 이미지로 사용합니다.\nOpenAI 호출 실패, 응답 파싱 실패, 중복 요청 대기 초과 시에는 fallback 초안을 반환할 수 있습니다.\n설정 누락이나 잘못된 입력 검증 실패는 에러 응답으로 반환됩니다.\n","operationId":"createProductDraft","requestBody":{"content":{"multipart/form-data":{"schema":{"type":"object","properties":{"images":{"type":"array","description":"상품 이미지 파일 목록. Swagger에서 JPG, PNG, WEBP, GIF 중 1개 이상 업로드합니다.","items":{"type":"string","format":"binary"}},"request":{"type":"string","description":"상품 초안 추천 요청 JSON"}},"required":["images","request"]}}}},"responses":{"200":{"description":"추천 생성 성공","content":{"application/json":{"example":{"success":true,"data":{"suggestedTitle":"AI 추천 상품명","suggestedDescription":"AI 추천 상품 설명","suggestedPrice":39000,"suggestedKeywords":[],"notes":"브랜드와 상품 상태는 판매자가 다시 확인해 주세요."},"error":null}}}},"400":{"description":"잘못된 요청","content":{"application/json":{"example":{"success":false,"data":null,"error":{"code":"AI_ASSIST_IMAGE_REQUIRED","message":"이미지는 최소 1개 이상 필요합니다."}}}}},"500":{"description":"설정 또는 내부 처리 오류","content":{"application/json":{"example":{"success":false,"data":null,"error":{"code":"AI_PRODUCT_DRAFT_ASSIST_CONFIGURATION_ERROR","message":"ai.product-draft.assist.openai-api-key 설정이 필요합니다."}}}}}}}},"/api/ai/admin/embeddings/reindex-all":{"post":{"tags":["AI Embedding Admin"],"summary":"전체 임베딩 재색인","operationId":"reindexAll","parameters":[{"name":"Authorization","in":"header","description":"Bearer 액세스 토큰","required":true,"example":"Bearer eyJhbGciOiJIUzI1NiJ9..."}],"responses":{"200":{"description":"재색인 성공","content":{"application/json":{"example":{"success":true,"data":{"processedCount":120,"successCount":115,"skippedCount":0,"failedCount":5},"error":null}}}},"401":{"description":"인증 실패","content":{"*/*":{"schema":{"$ref":"#/components/schemas/ApiResponseEmbeddingAdminResponse"}}}},"403":{"description":"관리자 권한 없음","content":{"*/*":{"schema":{"$ref":"#/components/schemas/ApiResponseEmbeddingAdminResponse"}}}},"500":{"description":"서버 내부 오류","content":{"*/*":{"schema":{"$ref":"#/components/schemas/ApiResponseEmbeddingAdminResponse"}}}}}}},"/api/ai/admin/embeddings/backfill-missing":{"post":{"tags":["AI Embedding Admin"],"summary":"누락 임베딩 추가","operationId":"backfillMissing","parameters":[{"name":"Authorization","in":"header","description":"Bearer 액세스 토큰","required":true,"example":"Bearer eyJhbGciOiJIUzI1NiJ9..."}],"responses":{"200":{"description":"백필 성공","content":{"application/json":{"example":{"success":true,"data":{"processedCount":120,"successCount":80,"skippedCount":35,"failedCount":5},"error":null}}}},"401":{"description":"인증 실패","content":{"application/json":{"example":{"success":false,"data":null,"error":{"code":"INVALID_TOKEN","message":"유효하지 않은 토큰입니다."}}}}},"403":{"description":"관리자 권한 없음","content":{"application/json":{"example":{"success":false,"data":null,"error":{"code":"FORBIDDEN","message":"접근 권한이 없습니다."}}}}},"500":{"description":"서버 내부 오류","content":{"*/*":{"schema":{"$ref":"#/components/schemas/ApiResponseEmbeddingAdminResponse"}}}}}}},"/api/ai/recommendations/products/{productId}":{"get":{"tags":["AI Recommendation"],"summary":"상품 연관 추천 조회","description":"기준 상품 임베딩과 pgvector 유사도를 사용해 연관 상품 Top5를 조회합니다.","operationId":"recommendProducts","parameters":[{"name":"productId","in":"path","description":"기준 상품 ID","required":true,"schema":{"type":"string","format":"uuid"},"example":"dddddddd-dddd-dddd-dddd-ddddddddd001"}],"responses":{"200":{"description":"추천 조회 성공","content":{"application/json":{"example":{"success":true,"data":[{"productId":"dddddddd-dddd-dddd-dddd-ddddddddd101","similarityScore":0.9998},{"productId":"dddddddd-dddd-dddd-dddd-ddddddddd102","similarityScore":0.9997},{"productId":"dddddddd-dddd-dddd-dddd-ddddddddd002","similarityScore":0.9996},{"productId":"dddddddd-dddd-dddd-dddd-ddddddddd103","similarityScore":0.9991},{"productId":"dddddddd-dddd-dddd-dddd-ddddddddd010","similarityScore":0.9988}],"error":null}}}},"400":{"description":"잘못된 요청","content":{"*/*":{"schema":{"$ref":"#/components/schemas/ApiResponseListRecommendedProductResponse"}}}},"422":{"description":"임베딩 처리 실패","content":{"*/*":{"schema":{"$ref":"#/components/schemas/ApiResponseListRecommendedProductResponse"}}}},"500":{"description":"서버 내부 오류","content":{"*/*":{"schema":{"$ref":"#/components/schemas/ApiResponseListRecommendedProductResponse"}}}}}}},"/api/ai/recommendations/me":{"get":{"tags":["AI Recommendation"],"summary":"사용자 맞춤 추천 조회","description":"장바구니에 담은 상품을 기반으로 사용자 맞춤 추천 상품을 조회합니다. 장바구니에 상품을 담은 이력이 없으면 빈 목록을 반환합니다.","operationId":"getMyRecommendations","parameters":[{"name":"member","in":"query","required":true,"schema":{"$ref":"#/components/schemas/AuthenticatedMember"}}],"responses":{"200":{"description":"OK","content":{"*/*":{"schema":{"$ref":"#/components/schemas/ApiResponseListRecommendedProductResponse"}}}}}}}},"components":{"schemas":{"AuctionPriceRecommendationRequest":{"type":"object","properties":{"auctionId":{"type":"string","format":"uuid","description":"경매 ID","example":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa010"},"productId":{"type":"string","format":"uuid","description":"경매 상품 ID","example":"dddddddd-dddd-dddd-dddd-ddddddddd010"},"productName":{"type":"string","description":"상품명","example":"한정판 콜라보 후드 (경매)","minLength":1},"currentBidPrice":{"type":"number","description":"현재 최고 입찰가","example":72000,"minimum":0},"startPrice":{"type":"number","description":"경매 시작가","example":50000,"minimum":0},"bidUnit":{"type":"number","description":"입찰 단위","example":1000,"minimum":0},"nextMinimumBidPrice":{"type":"number","description":"다음 최소 입찰가","example":73000,"minimum":0},"bidCount":{"type":"integer","format":"int32","description":"현재 입찰 횟수","example":8},"remainingSeconds":{"type":"integer","format":"int64","description":"남은 시간(초)","example":3600},"auctionStatus":{"type":"string","description":"경매 상태","example":"ACTIVE","minLength":1},"hasBid":{"type":"boolean","description":"현재 입찰 존재 여부","example":true}},"required":["auctionId","auctionStatus","bidCount","bidUnit","currentBidPrice","nextMinimumBidPrice","productId","productName","remainingSeconds","startPrice"]},"ApiErrorResponse":{"type":"object","properties":{"code":{"type":"string"},"message":{"type":"string"}}},"ApiResponseEmbeddingAdminResponse":{"type":"object","properties":{"success":{"type":"boolean"},"data":{"$ref":"#/components/schemas/EmbeddingAdminResponse"},"error":{"$ref":"#/components/schemas/ApiErrorResponse"}}},"EmbeddingAdminResponse":{"type":"object","properties":{"processedCount":{"type":"integer","format":"int32"},"successCount":{"type":"integer","format":"int32"},"skippedCount":{"type":"integer","format":"int32"},"failedCount":{"type":"integer","format":"int32"}}},"ApiResponseListRecommendedProductResponse":{"type":"object","properties":{"success":{"type":"boolean"},"data":{"type":"array","items":{"$ref":"#/components/schemas/RecommendedProductResponse"}},"error":{"$ref":"#/components/schemas/ApiErrorResponse"}}},"RecommendedProductResponse":{"type":"object","properties":{"productId":{"type":"string","format":"uuid"},"similarityScore":{"type":"number","format":"double"}}},"AuthenticatedMember":{"type":"object","properties":{"memberId":{"type":"string","format":"uuid"},"role":{"type":"string","enum":["USER","SELLER","ADMIN"]},"sessionId":{"type":"string","format":"uuid"}}}},"securitySchemes":{"BearerAuth":{"type":"http","scheme":"bearer","bearerFormat":"JWT"}}}}
+﻿{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "AI Service API",
+    "description": "AI service API documentation",
+    "version": "v1"
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "Gateway relative url"
+    }
+  ],
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "AI Auction Price Recommendation",
+      "description": "경매 가격 추천 AI API"
+    },
+    {
+      "name": "AI Embedding Admin",
+      "description": "AI 임베딩 관리자 API"
+    },
+    {
+      "name": "AI Product Draft Assist",
+      "description": "이미지 기반 상품 등록 보조 API"
+    },
+    {
+      "name": "AI Recommendation",
+      "description": "연관 상품 추천 API"
+    }
+  ],
+  "paths": {
+    "/api/ai/auction-price-recommendation": {
+      "post": {
+        "tags": [
+          "AI Auction Price Recommendation"
+        ],
+        "summary": "경매 가격 추천",
+        "description": "프론트엔드가 직접 호출하는 경매 가격 추천 API입니다.\n경매 화면 정보를 기반으로 예상 형성 가격과 추천 입찰가를 생성합니다.\n필수 입력: auctionId, productId, productName, currentBidPrice, startPrice,\nbidUnit, nextMinimumBidPrice, bidCount, remainingSeconds, auctionStatus\n선택 입력: hasBid\n",
+        "operationId": "recommendAuctionPrice",
+        "requestBody": {
+          "description": "경매 가격 추천 요청 예시",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuctionPriceRecommendationRequest"
+              },
+              "examples": {
+                "경매 가격 추천 요청": {
+                  "description": "경매 가격 추천 요청",
+                  "value": {
+                    "auctionId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa010",
+                    "productId": "dddddddd-dddd-dddd-dddd-ddddddddd010",
+                    "productName": "한정판 콜라보 후드 (경매)",
+                    "currentBidPrice": 72000,
+                    "startPrice": 50000,
+                    "bidUnit": 1000,
+                    "nextMinimumBidPrice": 73000,
+                    "bidCount": 8,
+                    "remainingSeconds": 3600,
+                    "auctionStatus": "ACTIVE",
+                    "hasBid": true
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "추천 생성 성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "expectedFinalPrice": 128000,
+                    "recommendedBidPrice": 123000,
+                    "priceReason": "현재 입찰 흐름과 남은 시간을 기준으로 추가 상승 가능성이 있다고 판단했습니다.",
+                    "notes": "참고용 추천 가격이며 실제 낙찰가는 달라질 수 있습니다."
+                  },
+                  "error": null
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "잘못된 요청 (필수 입력 누락 또는 유효하지 않은 값)",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "data": null,
+                  "error": {
+                    "code": "AI_AUCTION_PRICE_RECOMMENDATION_REQUEST_INVALID",
+                    "message": "currentBidPrice: 0보다 커야 합니다."
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "내부 처리 오류",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "data": null,
+                  "error": {
+                    "code": "INTERNAL_SERVER_ERROR",
+                    "message": "서버 오류가 발생했습니다."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/assist/product-draft-from-image": {
+      "post": {
+        "tags": [
+          "AI Product Draft Assist"
+        ],
+        "summary": "이미지 기반 상품 등록 보조",
+        "description": "이미지와 초안 생성 요청 정보를 받아 상품명/설명 추천 초안을 생성합니다.\nmultipart 요청 파트는 다음 구조를 사용합니다.\n- images: 업로드할 이미지 파일 목록\n- request: JSON 요청 객체\n이미지 파일은 최대 5장까지 업로드할 수 있고, 각 파일은 5MB 이하만 허용합니다.\n요청 전체 크기는 30MB 이하만 허용합니다.\nrequest.inputFields.fieldKey 허용값은 TITLE, DESCRIPTION, PRICE 입니다.\nthumbnailIndex가 없으면 첫 번째 이미지를 대표 이미지로 사용합니다.\nOpenAI 호출 실패, 응답 파싱 실패, 중복 요청 대기 초과 시에는 fallback 초안을 반환할 수 있습니다.\n설정 누락이나 잘못된 입력 검증 실패는 에러 응답으로 반환됩니다.\n",
+        "operationId": "createProductDraft",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "images": {
+                    "type": "array",
+                    "description": "상품 이미지 파일 목록. Swagger에서 JPG, PNG, WEBP, GIF 중 1개 이상 업로드합니다.",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    }
+                  },
+                  "request": {
+                    "type": "string",
+                    "description": "상품 초안 추천 요청 JSON"
+                  }
+                },
+                "required": [
+                  "images",
+                  "request"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "추천 생성 성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "suggestedTitle": "AI 추천 상품명",
+                    "suggestedDescription": "AI 추천 상품 설명",
+                    "suggestedPrice": 39000,
+                    "suggestedKeywords": [],
+                    "notes": "브랜드와 상품 상태는 판매자가 다시 확인해 주세요."
+                  },
+                  "error": null
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "잘못된 요청",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "data": null,
+                  "error": {
+                    "code": "AI_ASSIST_IMAGE_REQUIRED",
+                    "message": "이미지는 최소 1개 이상 필요합니다."
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "설정 또는 내부 처리 오류",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "data": null,
+                  "error": {
+                    "code": "AI_PRODUCT_DRAFT_ASSIST_CONFIGURATION_ERROR",
+                    "message": "ai.product-draft.assist.openai-api-key 설정이 필요합니다."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/admin/embeddings/reindex-all": {
+      "post": {
+        "tags": [
+          "AI Embedding Admin"
+        ],
+        "summary": "전체 임베딩 재색인",
+        "operationId": "reindexAll",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "Bearer 액세스 토큰",
+            "required": true,
+            "example": "Bearer eyJhbGciOiJIUzI1NiJ9..."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "재색인 성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "processedCount": 120,
+                    "successCount": 115,
+                    "skippedCount": 0,
+                    "failedCount": 5
+                  },
+                  "error": null
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 실패",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseEmbeddingAdminResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "관리자 권한 없음",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseEmbeddingAdminResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "서버 내부 오류",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseEmbeddingAdminResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/admin/embeddings/backfill-missing": {
+      "post": {
+        "tags": [
+          "AI Embedding Admin"
+        ],
+        "summary": "누락 임베딩 추가",
+        "operationId": "backfillMissing",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "Bearer 액세스 토큰",
+            "required": true,
+            "example": "Bearer eyJhbGciOiJIUzI1NiJ9..."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "백필 성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "processedCount": 120,
+                    "successCount": 80,
+                    "skippedCount": 35,
+                    "failedCount": 5
+                  },
+                  "error": null
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 실패",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "data": null,
+                  "error": {
+                    "code": "INVALID_TOKEN",
+                    "message": "유효하지 않은 토큰입니다."
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "관리자 권한 없음",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "data": null,
+                  "error": {
+                    "code": "FORBIDDEN",
+                    "message": "접근 권한이 없습니다."
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "서버 내부 오류",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseEmbeddingAdminResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/recommendations/products/{productId}": {
+      "get": {
+        "tags": [
+          "AI Recommendation"
+        ],
+        "summary": "상품 연관 추천 조회",
+        "description": "기준 상품 임베딩과 pgvector 유사도를 사용해 연관 상품 Top5를 조회합니다.",
+        "operationId": "recommendProducts",
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "description": "기준 상품 ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "example": "dddddddd-dddd-dddd-dddd-ddddddddd001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "추천 조회 성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": [
+                    {
+                      "productId": "dddddddd-dddd-dddd-dddd-ddddddddd101",
+                      "similarityScore": 0.9998
+                    },
+                    {
+                      "productId": "dddddddd-dddd-dddd-dddd-ddddddddd102",
+                      "similarityScore": 0.9997
+                    },
+                    {
+                      "productId": "dddddddd-dddd-dddd-dddd-ddddddddd002",
+                      "similarityScore": 0.9996
+                    },
+                    {
+                      "productId": "dddddddd-dddd-dddd-dddd-ddddddddd103",
+                      "similarityScore": 0.9991
+                    },
+                    {
+                      "productId": "dddddddd-dddd-dddd-dddd-ddddddddd010",
+                      "similarityScore": 0.9988
+                    }
+                  ],
+                  "error": null
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "잘못된 요청",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListRecommendedProductResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "임베딩 처리 실패",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListRecommendedProductResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "서버 내부 오류",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListRecommendedProductResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/recommendations/me": {
+      "get": {
+        "tags": [
+          "AI Recommendation"
+        ],
+        "summary": "사용자 맞춤 추천 조회",
+        "description": "장바구니에 담은 상품을 기반으로 사용자 맞춤 추천 상품을 조회합니다. 장바구니에 상품을 담은 이력이 없으면 빈 목록을 반환합니다.",
+        "operationId": "getMyRecommendations",
+        "parameters": [
+          {
+            "name": "member",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListRecommendedProductResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AuctionPriceRecommendationRequest": {
+        "type": "object",
+        "properties": {
+          "auctionId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "경매 ID",
+            "example": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa010"
+          },
+          "productId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "경매 상품 ID",
+            "example": "dddddddd-dddd-dddd-dddd-ddddddddd010"
+          },
+          "productName": {
+            "type": "string",
+            "description": "상품명",
+            "example": "한정판 콜라보 후드 (경매)",
+            "minLength": 1
+          },
+          "currentBidPrice": {
+            "type": "number",
+            "description": "현재 최고 입찰가",
+            "example": 72000,
+            "minimum": 0
+          },
+          "startPrice": {
+            "type": "number",
+            "description": "경매 시작가",
+            "example": 50000,
+            "minimum": 0
+          },
+          "bidUnit": {
+            "type": "number",
+            "description": "입찰 단위",
+            "example": 1000,
+            "minimum": 0
+          },
+          "nextMinimumBidPrice": {
+            "type": "number",
+            "description": "다음 최소 입찰가",
+            "example": 73000,
+            "minimum": 0
+          },
+          "bidCount": {
+            "type": "integer",
+            "format": "int32",
+            "description": "현재 입찰 횟수",
+            "example": 8
+          },
+          "remainingSeconds": {
+            "type": "integer",
+            "format": "int64",
+            "description": "남은 시간(초)",
+            "example": 3600
+          },
+          "auctionStatus": {
+            "type": "string",
+            "description": "경매 상태",
+            "example": "ACTIVE",
+            "minLength": 1
+          },
+          "hasBid": {
+            "type": "boolean",
+            "description": "현재 입찰 존재 여부",
+            "example": true
+          }
+        },
+        "required": [
+          "auctionId",
+          "auctionStatus",
+          "bidCount",
+          "bidUnit",
+          "currentBidPrice",
+          "nextMinimumBidPrice",
+          "productId",
+          "productName",
+          "remainingSeconds",
+          "startPrice"
+        ]
+      },
+      "ApiErrorResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiResponseEmbeddingAdminResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/EmbeddingAdminResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ApiErrorResponse"
+          }
+        }
+      },
+      "EmbeddingAdminResponse": {
+        "type": "object",
+        "properties": {
+          "processedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "successCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "skippedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failedCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ApiResponseListRecommendedProductResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecommendedProductResponse"
+            }
+          },
+          "error": {
+            "$ref": "#/components/schemas/ApiErrorResponse"
+          }
+        }
+      },
+      "RecommendedProductResponse": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "similarityScore": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "AuthenticatedMember": {
+        "type": "object",
+        "properties": {
+          "memberId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "USER",
+              "SELLER",
+              "ADMIN"
+            ]
+          },
+          "sessionId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}
