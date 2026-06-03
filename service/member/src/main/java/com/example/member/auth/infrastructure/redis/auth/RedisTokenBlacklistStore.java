@@ -22,6 +22,7 @@ public class RedisTokenBlacklistStore implements TokenBlacklistStore {
 
     @Override
     public void blacklistSession(UUID sessionId, Duration ttl) {
+        // TODO: 현재 검증 경로에서 사용되지 않는다. auth:session:{sessionId} whitelist 검증으로 대체 후 제거한다.
         stringRedisTemplate.opsForValue().set(buildSessionKey(sessionId), "1", ttl);
     }
 
@@ -32,6 +33,7 @@ public class RedisTokenBlacklistStore implements TokenBlacklistStore {
 
     @Override
     public boolean isSessionBlacklisted(UUID sessionId) {
+        // TODO: 현재 검증 경로에서 사용되지 않는다. auth:session:{sessionId} whitelist 검증으로 대체 후 제거한다.
         return Boolean.TRUE.equals(stringRedisTemplate.hasKey(buildSessionKey(sessionId)));
     }
 

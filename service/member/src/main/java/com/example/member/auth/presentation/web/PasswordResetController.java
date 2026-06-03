@@ -2,7 +2,7 @@ package com.example.member.auth.presentation.web;
 
 import com.example.member.auth.application.dto.command.PasswordResetConfirmCommand;
 import com.example.member.auth.application.dto.command.PasswordResetSendCommand;
-import com.example.member.auth.application.service.PasswordResetService;
+import com.example.member.auth.application.service.password.PasswordResetService;
 import com.example.member.auth.presentation.web.dto.PasswordResetConfirmRequest;
 import com.example.member.auth.presentation.web.dto.PasswordResetConfirmResponse;
 import com.example.member.auth.presentation.web.dto.PasswordResetSendRequest;

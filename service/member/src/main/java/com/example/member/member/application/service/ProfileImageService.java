@@ -35,29 +35,40 @@ public class ProfileImageService {
     }
 
     public ProfileImagePresignResult createPresignedUpload(ProfileImagePresignCommand command) {
+        // [1] 요청 검증
         validateCommand(command);
 
+        // [2] 입력 정규화
         String fileName = command.fileName().trim();
         String contentType = command.contentType().trim().toLowerCase(Locale.ROOT);
+
+        // [3] 확장자 추출
         String extension = extractExtension(fileName);
+
+        // [4] 타입 검증
         validateContentType(extension, contentType);
 
+        // [5] 키 생성
         String objectKey = buildObjectKey(extension);
 
+        // [6] S3 요청 생성
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-                .bucket(s3Properties.getBucket())
+                .bucket(s3Properties.getBucket()) // todaylunchmenu
                 .key(objectKey)
                 .contentType(contentType)
                 .build();
 
+        // [7] Presign 요청 생성
         PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
-                .signatureDuration(Duration.ofSeconds(s3Properties.getPutPresignExpirationSeconds()))
+                .signatureDuration(Duration.ofSeconds(s3Properties.getPutPresignExpirationSeconds())) // 300
                 .putObjectRequest(putObjectRequest)
                 .build();
 
+        // [8] URL 발급
         PresignedPutObjectRequest presignedRequest = s3Presigner.presignPutObject(presignRequest);
         URL uploadUrl = presignedRequest.url();
 
+        // [9] 결과 반환
         return new ProfileImagePresignResult(
                 objectKey,
                 uploadUrl.toString(),

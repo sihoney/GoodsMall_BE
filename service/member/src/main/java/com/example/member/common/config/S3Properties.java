@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 @Getter
 @Setter
 @Component
-@ConfigurationProperties(prefix = "aws.s3") // application.yml에서 aws.s3로 시작하는 프로퍼티들을 이 클래스의 필드에 매핑
+@ConfigurationProperties(prefix = "aws.s3")
 public class S3Properties {
 
     private String bucket;

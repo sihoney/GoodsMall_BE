@@ -16,6 +16,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
+// TODO: Separate persistence mapping from the domain model so this can become a pure domain entity.
 @Entity
 @Table(
         name = "member_oauth_account",

@@ -19,6 +19,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 //변경감지
 @Getter
+// TODO: Separate persistence mapping from the domain model so this can become a pure domain entity.
 @Entity
 @Table(name = "member")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
