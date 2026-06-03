@@ -2,8 +2,8 @@ package com.example.member.auth.application.dto.result;
 
 import java.util.UUID;
 
-public record KakaoOAuthResult(
-        KakaoOAuthResultStatus status,
+public record OAuthResult(
+        OAuthResultStatus status,
         boolean linkRequired,
         String linkToken,
         String provider,
@@ -19,7 +19,7 @@ public record KakaoOAuthResult(
         String errorCode,
         String errorMessage
 ) {
-    public static KakaoOAuthResult success(
+    public static OAuthResult success(
             String provider,
             String providerUserId,
             String email,
@@ -31,8 +31,8 @@ public record KakaoOAuthResult(
             long accessTokenExpiresIn,
             long refreshTokenExpiresIn
     ) {
-        return new KakaoOAuthResult(
-                KakaoOAuthResultStatus.SUCCESS,
+        return new OAuthResult(
+                OAuthResultStatus.SUCCESS,
                 false,
                 null,
                 provider,
@@ -50,35 +50,9 @@ public record KakaoOAuthResult(
         );
     }
 
-    public static KakaoOAuthResult linkRequired(
-            String linkToken,
-            String provider,
-            String providerUserId,
-            String email,
-            String nickname
-    ) {
-        return new KakaoOAuthResult(
-                KakaoOAuthResultStatus.LINK_REQUIRED,
-                true,
-                linkToken,
-                provider,
-                providerUserId,
-                email,
-                nickname,
-                null,
-                null,
-                null,
-                null,
-                0L,
-                0L,
-                null,
-                null
-        );
-    }
-
-    public static KakaoOAuthResult error(String errorCode, String errorMessage) {
-        return new KakaoOAuthResult(
-                KakaoOAuthResultStatus.ERROR,
+    public static OAuthResult error(String errorCode, String errorMessage) {
+        return new OAuthResult(
+                OAuthResultStatus.ERROR,
                 false,
                 null,
                 null,

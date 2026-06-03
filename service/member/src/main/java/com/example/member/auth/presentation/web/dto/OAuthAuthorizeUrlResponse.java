@@ -1,6 +1,6 @@
 package com.example.member.auth.presentation.web.dto;
 
-public record KakaoOAuthAuthorizeUrlResponse(
+public record OAuthAuthorizeUrlResponse(
         String authorizeUrl
 ) {
 }

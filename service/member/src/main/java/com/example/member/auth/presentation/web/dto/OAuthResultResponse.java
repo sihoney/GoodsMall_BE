@@ -1,10 +1,10 @@
 package com.example.member.auth.presentation.web.dto;
 
-import com.example.member.auth.application.dto.result.KakaoOAuthResult;
+import com.example.member.auth.application.dto.result.OAuthResult;
 import java.util.UUID;
 
-public record KakaoOAuthResultResponse(
-        KakaoOAuthResultStatus status,
+public record OAuthResultResponse(
+        OAuthResultStatus status,
         boolean linkRequired,
         String linkToken,
         String provider,
@@ -20,9 +20,9 @@ public record KakaoOAuthResultResponse(
         String errorCode,
         String errorMessage
 ) {
-    public static KakaoOAuthResultResponse from(KakaoOAuthResult result) {
-        return new KakaoOAuthResultResponse(
-                KakaoOAuthResultStatus.valueOf(result.status().name()),
+    public static OAuthResultResponse from(OAuthResult result) {
+        return new OAuthResultResponse(
+                OAuthResultStatus.valueOf(result.status().name()),
                 result.linkRequired(),
                 result.linkToken(),
                 result.provider(),
@@ -40,9 +40,9 @@ public record KakaoOAuthResultResponse(
         );
     }
 
-    public static KakaoOAuthResultResponse error(String errorCode, String errorMessage) {
-        return new KakaoOAuthResultResponse(
-                KakaoOAuthResultStatus.ERROR,
+    public static OAuthResultResponse error(String errorCode, String errorMessage) {
+        return new OAuthResultResponse(
+                OAuthResultStatus.ERROR,
                 false,
                 null,
                 null,

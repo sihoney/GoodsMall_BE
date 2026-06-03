@@ -1,12 +1,9 @@
 package com.example.member.auth.infrastructure.redis.oauth;
 
 import java.time.Instant;
-import java.util.UUID;
 
-public record KakaoOAuthAuthorizeState(
+public record OAuthAuthorizeState(
         String state,
-        KakaoOAuthFlowType flowType,
-        UUID memberId,
         Instant createdAt
 ) {
 }

@@ -1,7 +1,6 @@
 package com.example.member.auth.application.dto.result;
 
-public enum KakaoOAuthResultStatus {
+public enum OAuthResultStatus {
     SUCCESS,
-    LINK_REQUIRED,
     ERROR
 }

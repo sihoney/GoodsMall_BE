@@ -21,33 +21,34 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
 
 @RestController
-@RequestMapping("/api/auth/oauth/kakao")
+@RequestMapping("/api/auth/oauth/google")
 @RequiredArgsConstructor
-@Tag(name = "카카오 OAuth", description = "카카오 OAuth 로그인 API")
-public class KakaoOAuthController {
+@Tag(name = "Google OAuth", description = "Google OAuth 로그인 API")
+public class GoogleOAuthController {
 
-    private static final OAuthProvider PROVIDER = OAuthProvider.KAKAO;
+    private static final OAuthProvider PROVIDER = OAuthProvider.GOOGLE;
 
     private final OAuthFacade oauthFacade;
 
     @GetMapping("/authorize")
-    @Operation(summary = "카카오 로그인 시작", description = "카카오 로그인용 OAuth 인가 URL을 반환합니다.")
-    public ResponseEntity<ApiResponse<OAuthAuthorizeUrlResponse>> authorizeKakaoLogin() {
+    @Operation(summary = "Google 로그인 시작", description = "Google 로그인용 OAuth 인가 URL을 반환합니다.")
+    public ResponseEntity<ApiResponse<OAuthAuthorizeUrlResponse>> authorizeGoogleLogin() {
         return ResponseEntity.ok(ApiResponse.success(
                 new OAuthAuthorizeUrlResponse(oauthFacade.createLoginAuthorizeUrl(PROVIDER))
         ));
     }
 
     @GetMapping("/callback")
-    @Operation(summary = "카카오 OAuth 콜백", description = "카카오 OAuth 결과를 저장하고 프론트 콜백 URL로 리다이렉트합니다.")
-    public ResponseEntity<Void> kakaoCallback(
+    @Operation(summary = "Google OAuth 콜백", description = "Google OAuth 결과를 저장하고 프론트 콜백 URL로 리다이렉트합니다.")
+    public ResponseEntity<Void> googleCallback(
             @RequestParam(name = "code", required = false) String code,
             @RequestParam(name = "state", required = false) String state,
             @RequestParam(name = "error", required = false) String error,
             @RequestParam(name = "error_description", required = false) String errorDescription,
             HttpServletRequest httpServletRequest
     ) {
-        OAuthCallbackResult callbackResult = oauthFacade.handleCallback(PROVIDER,
+        OAuthCallbackResult callbackResult = oauthFacade.handleCallback(
+                PROVIDER,
                 code,
                 state,
                 error,
@@ -64,8 +65,8 @@ public class KakaoOAuthController {
     }
 
     @GetMapping("/result")
-    @Operation(summary = "카카오 OAuth 결과 조회", description = "resultKey로 1회용 카카오 OAuth 결과를 조회합니다.")
-    public ResponseEntity<ApiResponse<OAuthResultResponse>> getOAuthResult(
+    @Operation(summary = "Google OAuth 결과 조회", description = "resultKey로 1회용 Google OAuth 결과를 조회합니다.")
+    public ResponseEntity<ApiResponse<OAuthResultResponse>> getGoogleOAuthResult(
             @RequestParam(name = "resultKey") String resultKey
     ) {
         return ResponseEntity.ok(ApiResponse.success(
