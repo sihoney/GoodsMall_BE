@@ -14,8 +14,6 @@ public interface MemberUsecase {
 
     CreateMemberResult createMember(CreateMemberCommand command);
 
-    MemberResult updateMember(UpdateMemberCommand command);
-
     MemberResult getCurrentMember(GetMemberQuery query);
 
     MemberResult updateCurrentMember(UpdateMemberCommand command);

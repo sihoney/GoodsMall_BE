@@ -27,8 +27,6 @@ public record CreateMemberRequest(
         @Schema(description = "프로필 이미지 키", example = "members/profile/11111111/avatar.png")
         String profileImageKey,
         @Schema(description = "회원 역할")
-        MemberRole role,
-        @Schema(description = "카카오 연동 토큰")
-        String kakaoLinkToken
+        MemberRole role
 ) {
 }

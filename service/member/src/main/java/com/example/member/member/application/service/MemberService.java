@@ -2,8 +2,6 @@ package com.example.member.member.application.service;
 
 import com.example.member.verification.application.service.EmailVerificationService;
 
-import com.example.member.auth.application.service.KakaoOAuthService;
-
 import com.example.member.auth.application.dto.command.ChangePasswordCommand;
 import com.example.member.member.application.dto.command.CreateMemberCommand;
 import com.example.member.member.application.dto.command.UpdateMemberCommand;
@@ -50,30 +48,30 @@ public class MemberService implements MemberUsecase {
     private final MemberOauthAccountPersistencePort memberOauthAccountPersistencePort;
     private final ProfileImageUrlPort profileImageUrlPort;
     private final EmailVerificationService emailVerificationService;
-    private final KakaoOAuthService kakaoOAuthService;
     private final MemberSignupProperties memberSignupProperties;
     private final AuthSessionUsecase authSessionUsecase;
 
     @Transactional
     @Override
     public CreateMemberResult createMember(CreateMemberCommand command) {
-        // 1. command == null
+        // [1] 요청 검증
         validateCreateCommand(command);
 
-        // 2. 필수값 정규화
+        // [2] 이메일 정규화
         String email = normalizeRequired(command.email(), "email");
 
-        // 3. 중복 이메일 확인
+        // [3] 이메일 중복 확인
         if (memberPersistencePort.existsByEmail(email)) {
             throw new DuplicateMemberEmailException();
         }
 
-        // 4. 이메일 검증 on/off에 따른 status 값 초기화
+        // [4] 초기 상태 결정
         LocalDateTime now = LocalDateTime.now();
         MemberStatus initialStatus = memberSignupProperties.requireEmailVerification()
                 ? MemberStatus.PENDING_VERIFICATION
                 : MemberStatus.ACTIVE;
 
+        // [5] 회원 생성
         Member member = Member.create(
                 UUID.randomUUID(),
                 email,
@@ -88,45 +86,55 @@ public class MemberService implements MemberUsecase {
                 now
         );
 
-        // 5. 영속 저장
+        // [6] 회원 저장
         Member savedMember = memberPersistencePort.save(member);
 
-        // 6. 대기 중인 카카오 계정 연동
-        linkPendingKakaoAccountIfPresent(savedMember.getMemberId(), command.kakaoLinkToken());
-
-        // 7. 이메일 검증 on/off에 따른 이메일 발송
+        // [7] 이메일 인증 생성
         if (memberSignupProperties.requireEmailVerification()) {
             emailVerificationService.createSignupVerification(savedMember);
         }
 
-        // 8. 회원 생성 이벤트 발행 (payment 서비스 지갑 생성)
+        // [8] 가입 이벤트 발행
         memberEventPort.publishMemberSignedUp(savedMember);
 
+        // [9] 결과 반환
         return toCreateMemberResult(savedMember);
     }
 
     @Override
     public MemberResult getMember(GetMemberQuery query) {
+        // [1] 조회 조건 검증
         validateGetMemberQuery(query);
+
+        // [2] 회원 조회
         return toMemberResult(getMemberEntity(query.memberId()));
     }
 
     @Override
     public MemberResult getCurrentMember(GetMemberQuery query) {
+        // [1] 조회 조건 검증
         validateGetMemberQuery(query);
+
+        // [2] 회원 조회
         return toMemberResult(getMemberEntity(query.memberId()));
     }
 
     @Transactional
     @Override
-    public MemberResult updateMember(UpdateMemberCommand command) {
+    public MemberResult updateCurrentMember(UpdateMemberCommand command) {
+        // [1] 요청 검증
         validateUpdateCommand(command);
 
+        // [2] 회원 조회
         Member member = getMemberEntity(command.memberId());
+
+        // [3] 닉네임 변경
         member.changeNickname(
                 normalizeRequired(command.nickname(), "nickname"),
                 LocalDateTime.now()
         );
+
+        // [4] 프로필 변경
         member.updateProfile(
                 normalizeNullable(command.phone()),
                 normalizeNullable(command.address()),
@@ -136,48 +144,57 @@ public class MemberService implements MemberUsecase {
                 LocalDateTime.now()
         );
 
+        // [5] 결과 반환
         return toMemberResult(member);
     }
 
     @Transactional
     @Override
-    public MemberResult updateCurrentMember(UpdateMemberCommand command) {
-        validateUpdateCommand(command);
-        return updateMember(command);
-    }
-
-    @Transactional
-    @Override
     public ChangePasswordResult changeCurrentMemberPassword(ChangePasswordCommand command) {
+        // [1] 요청 검증
         validateChangePasswordCommand(command);
 
+        // [2] 회원 조회
         Member member = getMemberEntity(command.memberId());
+
+        // [3] 현재 비밀번호 검증
         String currentPassword = normalizeRequired(command.currentPassword(), "currentPassword");
         if (!passwordEncoder.matches(currentPassword, member.getPassword())) {
             throw new InvalidCurrentPasswordException();
         }
 
+        // [4] 새 비밀번호 검증
         String newPassword = normalizeRequired(command.newPassword(), "newPassword");
         if (newPassword.length() < 8) {
             throw new IllegalArgumentException("새 비밀번호는 8자 이상이어야 합니다.");
         }
 
+        // [5] 비밀번호 변경
         member.changePassword(passwordEncoder.encode(newPassword), LocalDateTime.now());
+
+        // [6] 결과 반환
         return new ChangePasswordResult("비밀번호가 변경되었습니다.");
     }
 
     @Transactional
     @Override
     public WithdrawMemberResult withdrawCurrentMember(WithdrawMemberCommand command) {
+        // [1] 요청 검증
         validateWithdrawCommand(command);
 
+        // [2] 회원 조회
         Member member = getMemberEntity(command.memberId());
+
+        // [3] 내부 탈퇴 조건 검증
         validateWithdrawableMember(member);
+
+        // [4] 외부 탈퇴 조건 검증
         memberWithdrawalCheckPort.validateWithdrawable(
                 member,
                 normalizeRequired(command.authorizationHeader(), "authorizationHeader")
         );
 
+        // [5] 현재 비밀번호 검증
         String currentPassword = normalizeRequired(command.currentPassword(), "currentPassword");
         if (!passwordEncoder.matches(currentPassword, member.getPassword())) {
             throw new MemberWithdrawalException(
@@ -187,11 +204,19 @@ public class MemberService implements MemberUsecase {
             );
         }
 
+        // [6] 탈퇴 시각 생성
         LocalDateTime withdrawnAt = LocalDateTime.now();
+
+        // [7] OAuth 계정 삭제
         deleteOauthAccounts(member.getMemberId());
+
+        // [8] 회원 탈퇴 처리
         member.withdraw(createWithdrawnEmail(member), withdrawnAt);
+
+        // [9] 전체 세션 로그아웃
         authSessionUsecase.logoutAllSessions(normalizeRequired(command.authorizationHeader(), "authorizationHeader"));
 
+        // [10] 결과 반환
         return new WithdrawMemberResult(
                 member.getMemberId(),
                 member.getStatus(),
@@ -306,15 +331,6 @@ public class MemberService implements MemberUsecase {
     private void deleteOauthAccounts(UUID memberId) {
         List<MemberOauthAccount> oauthAccounts = memberOauthAccountPersistencePort.findAllByMemberId(memberId);
         oauthAccounts.forEach(memberOauthAccountPersistencePort::delete);
-    }
-
-    private void linkPendingKakaoAccountIfPresent(UUID memberId, String kakaoLinkToken) {
-        String normalizedLinkToken = normalizeNullable(kakaoLinkToken);
-        if (normalizedLinkToken == null) {
-            return;
-        }
-
-        kakaoOAuthService.linkPendingSignupMember(memberId, normalizedLinkToken);
     }
 
     private CreateMemberResult toCreateMemberResult(Member member) {

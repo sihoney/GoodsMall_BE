@@ -18,9 +18,7 @@ import com.example.member.verification.exception.InvalidEmailVerificationAutoLog
 import com.example.member.verification.exception.InvalidEmailVerificationTokenException;
 import com.example.member.auth.exception.InvalidLoginException;
 import com.example.member.auth.exception.InvalidPasswordResetTokenException;
-import com.example.member.auth.exception.LastLoginMethodRemovalNotAllowedException;
 import com.example.member.member.exception.MemberNotFoundException;
-import com.example.member.auth.exception.MemberOauthAccountNotFoundException;
 import com.example.member.report.exception.MemberReportNotFoundException;
 import com.example.member.restriction.exception.MemberRestrictedException;
 import com.example.member.restriction.exception.MemberRestrictionNotFoundException;
@@ -51,12 +49,6 @@ public class MemberExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
                 .body(ApiResponse.fail("MEMBER_NOT_FOUND", exception.getMessage()));
-    }
-
-    @ExceptionHandler(MemberOauthAccountNotFoundException.class)
-    public ResponseEntity<ApiResponse<Object>> handleMemberOauthAccountNotFound(MemberOauthAccountNotFoundException exception) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(ApiResponse.fail("MEMBER_OAUTH_ACCOUNT_NOT_FOUND", exception.getMessage()));
     }
 
     @ExceptionHandler(DuplicateMemberEmailException.class)
@@ -272,14 +264,6 @@ public class MemberExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleIllegalState(IllegalStateException exception) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(ApiResponse.fail("INVALID_STATE", exception.getMessage()));
-    }
-
-    @ExceptionHandler(LastLoginMethodRemovalNotAllowedException.class)
-    public ResponseEntity<ApiResponse<Object>> handleLastLoginMethodRemovalNotAllowed(
-            LastLoginMethodRemovalNotAllowedException exception
-    ) {
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(ApiResponse.fail("LAST_LOGIN_METHOD", exception.getMessage()));
     }
 
     @ExceptionHandler(AccountVerificationNotFoundException.class)
