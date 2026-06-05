@@ -13,10 +13,11 @@ import com.example.member.auth.application.dto.command.LoginCommand;
 import com.example.member.auth.application.dto.command.TokenRefreshCommand;
 import com.example.member.auth.application.dto.result.AuthSessionListResult;
 import com.example.member.auth.application.dto.result.AuthTokenResult;
-import com.example.member.auth.exception.InvalidLoginException;
-import com.example.member.restriction.exception.MemberRestrictedException;
-import com.example.member.member.exception.MemberSuspendedException;
-import com.example.member.member.exception.MemberWithdrawnException;
+import com.example.member.auth.exception.AuthErrorCode;
+import com.example.member.common.exception.BusinessException;
+import com.example.member.member.exception.MemberErrorCode;
+import com.example.member.restriction.exception.RestrictionErrorCode;
+import com.example.member.verification.exception.VerificationErrorCode;
 import com.example.member.member.domain.entity.Member;
 import com.example.member.restriction.domain.entity.MemberRestriction;
 import com.example.member.restriction.application.service.MemberRestrictionService;
@@ -26,7 +27,6 @@ import com.example.member.member.infrastructure.persistence.jpa.MemberJpaAdapter
 import com.example.member.auth.infrastructure.redis.auth.AuthSession;
 import com.example.member.auth.infrastructure.redis.auth.ParsedRefreshToken;
 import com.example.member.auth.infrastructure.redis.auth.RefreshTokenStore;
-import com.example.member.auth.infrastructure.redis.auth.TokenBlacklistStore;
 import com.example.member.auth.infrastructure.security.jwt.JwtTokenProvider;
 import com.todaylunch.common.security.auth.enumtype.MemberRole;
 import com.todaylunch.common.security.exception.InvalidTokenException;
@@ -59,9 +59,6 @@ class AuthServiceTest {
     private RefreshTokenStore refreshTokenStore;
 
     @Mock
-    private TokenBlacklistStore tokenBlacklistStore;
-
-    @Mock
     private MemberRestrictionService memberRestrictionService;
 
     private AuthLoginService authLoginService;
@@ -86,8 +83,7 @@ class AuthServiceTest {
         );
         authSessionService = new AuthSessionService(
                 jwtTokenProvider,
-                refreshTokenStore,
-                tokenBlacklistStore
+                refreshTokenStore
         );
     }
 
@@ -121,7 +117,7 @@ class AuthServiceTest {
     }
 
     @Test
-    void login_activeLoginBan_throwsMemberRestrictedException() {
+    void login_activeLoginBan_throwsMemberRestrictedErrorCode() {
         Member member = createMember();
         LoginCommand command = new LoginCommand("member@test.com", "plain-password", AuthSessionMetadata.empty());
         MemberRestriction restriction = MemberRestriction.create(
@@ -139,21 +135,23 @@ class AuthServiceTest {
         when(memberRestrictionService.getActiveLoginRestriction(eq(member.getMemberId()), any()))
                 .thenReturn(restriction);
 
-        assertThrows(MemberRestrictedException.class, () -> authLoginService.login(command));
+        BusinessException exception = assertThrows(BusinessException.class, () -> authLoginService.login(command));
+        assertEquals(RestrictionErrorCode.MEMBER_RESTRICTED, exception.getErrorCode());
 
         verify(jwtTokenProvider, never()).createAccessToken(eq(member), any(UUID.class));
         verify(refreshTokenStore, never()).createSession(any(UUID.class), any(UUID.class), any(String.class), any(Duration.class), any(AuthSessionMetadata.class));
     }
 
     @Test
-    void login_invalidPassword_throwsInvalidLoginException() {
+    void login_invalidPassword_throwsInvalidLoginErrorCode() {
         Member member = createMember();
         LoginCommand command = new LoginCommand("member@test.com", "plain-password", AuthSessionMetadata.empty());
 
         when(memberPersistencePort.findByEmail("member@test.com")).thenReturn(Optional.of(member));
         when(passwordEncoder.matches("plain-password", "encoded-password")).thenReturn(false);
 
-        assertThrows(InvalidLoginException.class, () -> authLoginService.login(command));
+        BusinessException exception = assertThrows(BusinessException.class, () -> authLoginService.login(command));
+        assertEquals(AuthErrorCode.INVALID_LOGIN, exception.getErrorCode());
     }
 
     @Test
@@ -164,7 +162,8 @@ class AuthServiceTest {
         when(memberPersistencePort.findByEmail("member@test.com")).thenReturn(Optional.of(member));
         when(passwordEncoder.matches("plain-password", "encoded-password")).thenReturn(true);
 
-        assertThrows(com.example.member.verification.exception.EmailVerificationRequiredException.class, () -> authLoginService.login(command));
+        BusinessException exception = assertThrows(BusinessException.class, () -> authLoginService.login(command));
+        assertEquals(VerificationErrorCode.EMAIL_VERIFICATION_REQUIRED, exception.getErrorCode());
 
         verify(jwtTokenProvider, never()).createAccessToken(eq(member), any(UUID.class));
         verify(refreshTokenStore, never()).createSession(any(UUID.class), any(UUID.class), any(String.class), any(Duration.class), any(AuthSessionMetadata.class));
@@ -178,7 +177,8 @@ class AuthServiceTest {
         when(memberPersistencePort.findByEmail("member@test.com")).thenReturn(Optional.of(member));
         when(passwordEncoder.matches("plain-password", "encoded-password")).thenReturn(true);
 
-        assertThrows(MemberSuspendedException.class, () -> authLoginService.login(command));
+        BusinessException exception = assertThrows(BusinessException.class, () -> authLoginService.login(command));
+        assertEquals(MemberErrorCode.MEMBER_SUSPENDED, exception.getErrorCode());
 
         verify(jwtTokenProvider, never()).createAccessToken(eq(member), any(UUID.class));
         verify(refreshTokenStore, never()).createSession(any(UUID.class), any(UUID.class), any(String.class), any(Duration.class), any(AuthSessionMetadata.class));
@@ -233,14 +233,15 @@ class AuthServiceTest {
                 .thenReturn(Optional.of(new AuthSession(memberId, sessionId, "refresh-token-id", java.time.Instant.now(), java.time.Instant.now(), java.time.Instant.now(), null, null)));
         when(memberPersistencePort.findById(memberId)).thenReturn(Optional.of(member));
 
-        assertThrows(MemberWithdrawnException.class, () ->
+        BusinessException exception = assertThrows(BusinessException.class, () ->
                 authTokenRefreshService.refresh(command));
+        assertEquals(MemberErrorCode.MEMBER_WITHDRAWN, exception.getErrorCode());
 
         verify(jwtTokenProvider, never()).createAccessToken(eq(member), eq(sessionId));
     }
 
     @Test
-    void refresh_withRotatedTokenDeletesSessionAndThrowsInvalidTokenException() {
+    void refresh_withRotatedTokenDeletesAllSessionsAndThrowsInvalidTokenException() {
         Member member = createMember(MemberStatus.ACTIVE);
         UUID memberId = member.getMemberId();
         UUID sessionId = UUID.randomUUID();
@@ -255,7 +256,7 @@ class AuthServiceTest {
 
         assertThrows(InvalidTokenException.class, () -> authTokenRefreshService.refresh(command));
 
-        verify(refreshTokenStore).deleteSession(memberId, sessionId);
+        verify(refreshTokenStore).deleteAllSessions(memberId);
         verify(memberPersistencePort, never()).findById(any());
     }
 
@@ -299,7 +300,7 @@ class AuthServiceTest {
     }
 
     @Test
-    void logoutSession_otherSessionDeletesAndBlacklistsTargetSession() {
+    void logoutSession_otherSessionDeletesTargetSession() {
         UUID memberId = UUID.randomUUID();
         UUID currentSessionId = UUID.randomUUID();
         UUID targetSessionId = UUID.randomUUID();
@@ -315,12 +316,9 @@ class AuthServiceTest {
                         "target-agent",
                         "127.0.0.2"
                 )));
-        when(jwtTokenProvider.getRefreshExpiration()).thenReturn(7200L);
-
         authSessionService.logoutSession("Bearer current-access-token", memberId, currentSessionId, targetSessionId);
 
         verify(refreshTokenStore).deleteSession(memberId, targetSessionId);
-        verify(tokenBlacklistStore).blacklistSession(targetSessionId, Duration.ofMillis(7200L));
     }
 
     @Test
@@ -337,17 +335,13 @@ class AuthServiceTest {
                         accessTokenId.toString(),
                         LocalDateTime.now().plusMinutes(10).toInstant(java.time.ZoneOffset.UTC)
                 ));
-        when(jwtTokenProvider.getRefreshExpiration()).thenReturn(7200L);
-
         authSessionService.logoutSession(token, memberId, currentSessionId, currentSessionId);
 
         verify(refreshTokenStore).deleteSession(memberId, currentSessionId);
-        verify(tokenBlacklistStore).blacklistAccessToken(any(), any(Duration.class));
-        verify(tokenBlacklistStore).blacklistSession(currentSessionId, Duration.ofMillis(7200L));
     }
 
     @Test
-    void logoutCurrentSession_blacklistsAccessTokenAndSession() {
+    void logoutCurrentSession_deletesCurrentSession() {
         UUID memberId = UUID.randomUUID();
         UUID sessionId = UUID.randomUUID();
         UUID accessTokenId = UUID.randomUUID();
@@ -360,20 +354,15 @@ class AuthServiceTest {
                         accessTokenId.toString(),
                         LocalDateTime.now().plusMinutes(10).toInstant(java.time.ZoneOffset.UTC)
                 ));
-        when(jwtTokenProvider.getRefreshExpiration()).thenReturn(7200L);
-
         authSessionService.logoutCurrentSession(token);
 
         verify(refreshTokenStore).deleteSession(memberId, sessionId);
-        verify(tokenBlacklistStore).blacklistAccessToken(any(), any(Duration.class));
-        verify(tokenBlacklistStore).blacklistSession(any(), any(Duration.class));
     }
 
     @Test
-    void logoutAllSessions_blacklistsMemberSessions() {
+    void logoutAllSessions_deletesAllMemberSessions() {
         UUID memberId = UUID.randomUUID();
         UUID sessionId1 = UUID.randomUUID();
-        UUID sessionId2 = UUID.randomUUID();
         UUID accessTokenId = UUID.randomUUID();
         String token = "access-token";
 
@@ -384,15 +373,9 @@ class AuthServiceTest {
                         accessTokenId.toString(),
                         LocalDateTime.now().plusMinutes(10).toInstant(java.time.ZoneOffset.UTC)
                 ));
-        when(refreshTokenStore.findSessionIdsByMemberId(memberId)).thenReturn(java.util.Set.of(sessionId1, sessionId2));
-        when(jwtTokenProvider.getRefreshExpiration()).thenReturn(7200L);
-
         authSessionService.logoutAllSessions(token);
 
-        verify(tokenBlacklistStore).blacklistSession(sessionId1, Duration.ofMillis(7200L));
-        verify(tokenBlacklistStore).blacklistSession(sessionId2, Duration.ofMillis(7200L));
         verify(refreshTokenStore).deleteAllSessions(memberId);
-        verify(tokenBlacklistStore).blacklistAccessToken(any(), any(Duration.class));
     }
 
     private Member createMember() {

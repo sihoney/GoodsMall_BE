@@ -102,6 +102,13 @@ jwt:
   access-expiration: 3600000 
   refresh-expiration: 604800000 
 
+auth:
+  refresh-token-cookie:
+    name: ${REFRESH_TOKEN_COOKIE_NAME:refreshToken}
+    path: ${REFRESH_TOKEN_COOKIE_PATH:/api/auth}
+    same-site: ${REFRESH_TOKEN_COOKIE_SAME_SITE:Lax}
+    secure: ${REFRESH_TOKEN_COOKIE_SECURE:false}
+
 aws:
   s3:
     bucket: todaylunchmenu
