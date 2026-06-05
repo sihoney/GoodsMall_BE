@@ -1,6 +1,6 @@
 package com.example.member.auth.infrastructure.google;
 
-import com.example.member.common.config.GoogleOAuthProperties;
+import com.example.member.auth.config.GoogleOAuthProperties;
 import java.net.URI;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -26,7 +26,8 @@ public class GoogleOAuthClient {
                 .queryParam("response_type", "code")
                 .queryParam("scope", SCOPE)
                 .queryParam("state", state)
-                .build(true)
+                .build()
+                .encode()
                 .toUriString();
     }
 

@@ -1,5 +1,8 @@
 package com.example.member.auth.presentation.web.dto;
 
+
+import com.example.member.common.exception.BusinessException;
+import com.example.member.verification.exception.VerificationErrorCode;
 import com.example.member.auth.application.dto.result.AuthTokenResult;
 import java.util.UUID;
 

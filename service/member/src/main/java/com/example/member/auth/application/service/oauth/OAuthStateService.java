@@ -4,7 +4,7 @@ import com.example.member.auth.application.dto.result.OAuthResult;
 import com.example.member.auth.domain.enumtype.OAuthProvider;
 import com.example.member.auth.infrastructure.redis.oauth.OAuthAuthorizeState;
 import com.example.member.auth.infrastructure.redis.oauth.OAuthAuthorizeStateStore;
-import com.example.member.common.config.OAuthProviderProperties;
+import com.example.member.auth.config.OAuthProviderProperties;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;

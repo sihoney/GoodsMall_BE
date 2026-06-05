@@ -1,8 +1,10 @@
 package com.example.member.auth.application.service.oauth;
 
+
+import com.example.member.common.exception.BusinessException;
 import com.example.member.auth.application.dto.result.OAuthResult;
 import com.example.member.auth.domain.enumtype.OAuthProvider;
-import com.example.member.auth.exception.InvalidLoginException;
+import com.example.member.auth.exception.AuthErrorCode;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -21,7 +23,8 @@ public class OAuthErrorResultMapper {
             );
         }
 
-        if (exception instanceof InvalidLoginException) {
+        if (exception instanceof BusinessException businessException
+                && businessException.getErrorCode() == AuthErrorCode.INVALID_LOGIN) {
             return OAuthResult.error(
                     prefix + "_MEMBER_LOGIN_FAILED",
                     "OAuth 식별자에 연결된 회원 계정으로 로그인할 수 없습니다."

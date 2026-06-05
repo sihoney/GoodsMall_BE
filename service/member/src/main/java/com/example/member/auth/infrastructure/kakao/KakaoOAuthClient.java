@@ -1,6 +1,6 @@
 package com.example.member.auth.infrastructure.kakao;
 
-import com.example.member.common.config.KakaoOAuthProperties;
+import com.example.member.auth.config.KakaoOAuthProperties;
 import java.net.URI;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;

@@ -8,8 +8,9 @@ import com.example.member.auth.application.port.out.MemberOauthAccountPersistenc
 import com.example.member.auth.application.port.out.MemberOauthEventPort;
 import com.example.member.auth.domain.entity.MemberOauthAccount;
 import com.example.member.auth.domain.enumtype.OAuthProvider;
-import com.example.member.auth.exception.InvalidLoginException;
+import com.example.member.auth.exception.AuthErrorCode;
 import com.example.member.common.application.dto.AuthSessionMetadata;
+import com.example.member.common.exception.BusinessException;
 import com.example.member.member.application.port.out.MemberEventPort;
 import com.example.member.member.application.port.out.MemberPersistencePort;
 import com.example.member.member.domain.entity.Member;
@@ -47,11 +48,11 @@ public class OAuthLoginSignupService {
                 .map(linkedAccount -> {
                     // [4] 회원 조회
                     Member member = memberPersistencePort.findById(linkedAccount.getMemberId())
-                            .orElseThrow(InvalidLoginException::new);
+                            .orElseThrow(() -> new BusinessException(AuthErrorCode.INVALID_LOGIN));
 
                     // [5] 회원 상태 검증
                     if (!member.isActive()) {
-                        throw new InvalidLoginException();
+                        throw new BusinessException(AuthErrorCode.INVALID_LOGIN);
                     }
 
                     // [6] 인증 토큰 발급

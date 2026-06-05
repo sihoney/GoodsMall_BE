@@ -1,10 +1,12 @@
 package com.example.member.auth.presentation.web;
 
 import com.example.member.auth.application.dto.result.OAuthCallbackResult;
+import com.example.member.auth.application.dto.result.OAuthResult;
 import com.example.member.auth.application.service.oauth.OAuthFacade;
 import com.example.member.auth.domain.enumtype.OAuthProvider;
 import com.example.member.auth.presentation.web.dto.OAuthAuthorizeUrlResponse;
 import com.example.member.auth.presentation.web.dto.OAuthResultResponse;
+import com.example.member.auth.presentation.web.support.RefreshTokenCookieWriter;
 import com.example.member.common.presentation.web.dto.ApiResponse;
 import com.example.member.common.presentation.web.support.AuthSessionMetadataExtractor;
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,6 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,6 +32,7 @@ public class KakaoOAuthController {
     private static final OAuthProvider PROVIDER = OAuthProvider.KAKAO;
 
     private final OAuthFacade oauthFacade;
+    private final RefreshTokenCookieWriter refreshTokenCookieWriter;
 
     @GetMapping("/authorize")
     @Operation(summary = "카카오 로그인 시작", description = "카카오 로그인용 OAuth 인가 URL을 반환합니다.")
@@ -68,8 +72,13 @@ public class KakaoOAuthController {
     public ResponseEntity<ApiResponse<OAuthResultResponse>> getOAuthResult(
             @RequestParam(name = "resultKey") String resultKey
     ) {
-        return ResponseEntity.ok(ApiResponse.success(
-                OAuthResultResponse.from(oauthFacade.consumeOAuthResult(PROVIDER, resultKey))
-        ));
+        OAuthResult result = oauthFacade.consumeOAuthResult(PROVIDER, resultKey);
+        ResponseEntity.BodyBuilder response = ResponseEntity.ok();
+        if (result.refreshToken() != null) {
+            response.header(HttpHeaders.SET_COOKIE, refreshTokenCookieWriter
+                    .create(result.refreshToken(), result.refreshTokenExpiresIn())
+                    .toString());
+        }
+        return response.body(ApiResponse.success(OAuthResultResponse.from(result)));
     }
 }
