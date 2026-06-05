@@ -1,4 +1,4 @@
-package com.todaylunch.gateway.security;
+package com.todaylunch.gateway.auth;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -8,3 +8,4 @@ public record JwtProperties(
         String issuer
 ) {
 }
+

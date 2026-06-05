@@ -1,13 +1,13 @@
-package com.todaylunch.gateway.security;
+package com.todaylunch.gateway.auth;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
-import java.util.UUID;
 import javax.crypto.SecretKey;
 import org.springframework.stereotype.Component;
+import java.util.UUID;
 
 @Component
 public class GatewayJwtValidator {
@@ -20,11 +20,11 @@ public class GatewayJwtValidator {
 
     private final JwtProperties jwtProperties;
     private final SecretKey secretKey;
-    private final TokenBlacklistStore tokenBlacklistStore;
+    private final SessionWhitelistStore sessionWhitelistStore;
 
-    public GatewayJwtValidator(JwtProperties jwtProperties, TokenBlacklistStore tokenBlacklistStore) {
+    public GatewayJwtValidator(JwtProperties jwtProperties, SessionWhitelistStore sessionWhitelistStore) {
         this.jwtProperties = jwtProperties;
-        this.tokenBlacklistStore = tokenBlacklistStore;
+        this.sessionWhitelistStore = sessionWhitelistStore;
         String secret = jwtProperties.secret();
         if (secret == null || secret.isBlank() || secret.contains("${")) {
             throw new IllegalStateException("JWT secret is not configured for gateway-service.");
@@ -52,24 +52,35 @@ public class GatewayJwtValidator {
         }
 
         String accessTokenId = claims.getId();
+        String memberId = claims.get(MEMBER_ID_CLAIM, String.class);
         String sessionId = claims.get(SESSION_ID_CLAIM, String.class);
-        if (accessTokenId == null || accessTokenId.isBlank() || sessionId == null || sessionId.isBlank()) {
+        String role = claims.get(ROLE_CLAIM, String.class);
+        if (accessTokenId == null || accessTokenId.isBlank()
+                || memberId == null || memberId.isBlank()
+                || sessionId == null || sessionId.isBlank()
+                || role == null || role.isBlank()) {
             throw new AuthException(AuthErrorCode.INVALID_TOKEN);
         }
 
-        // TODO: session blacklist 삭제 시 auth:session:{sessionId} whitelist 검증 방식으로 전환 검토
-        if (tokenBlacklistStore.isAccessTokenBlacklisted(accessTokenId)
-                || tokenBlacklistStore.isSessionBlacklisted(UUID.fromString(sessionId))) {
+        UUID parsedMemberId;
+        UUID parsedSessionId;
+        try {
+            parsedMemberId = UUID.fromString(memberId);
+            parsedSessionId = UUID.fromString(sessionId);
+        } catch (IllegalArgumentException exception) {
+            throw new AuthException(AuthErrorCode.INVALID_TOKEN, exception);
+        }
+
+        if (!sessionWhitelistStore.hasSession(parsedMemberId, parsedSessionId)) {
             throw new AuthException(AuthErrorCode.INVALID_TOKEN);
         }
 
         return new AuthenticatedPrincipal(
-                UUID.fromString(claims.get(MEMBER_ID_CLAIM, String.class)),
-                claims.get(ROLE_CLAIM, String.class),
-                UUID.fromString(sessionId)
+                parsedMemberId,
+                role,
+                parsedSessionId
         );
     }
 
-    public record AuthenticatedPrincipal(UUID memberId, String role, UUID sessionId) {
-    }
 }
+

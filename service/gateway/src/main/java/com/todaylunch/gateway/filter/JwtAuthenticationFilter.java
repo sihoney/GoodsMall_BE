@@ -2,11 +2,12 @@ package com.todaylunch.gateway.filter;
 
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
-import com.todaylunch.gateway.security.AuthErrorCode;
-import com.todaylunch.gateway.security.AuthErrorResponse;
-import com.todaylunch.gateway.security.AuthException;
-import com.todaylunch.gateway.security.GatewayAuthProperties;
-import com.todaylunch.gateway.security.GatewayJwtValidator;
+import com.todaylunch.gateway.auth.AuthErrorCode;
+import com.todaylunch.gateway.auth.AuthErrorResponse;
+import com.todaylunch.gateway.auth.AuthException;
+import com.todaylunch.gateway.auth.AuthenticatedPrincipal;
+import com.todaylunch.gateway.auth.GatewayAuthProperties;
+import com.todaylunch.gateway.auth.GatewayJwtValidator;
 import java.nio.charset.StandardCharsets;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +24,7 @@ import org.springframework.util.AntPathMatcher;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-//변경감지
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -43,26 +44,30 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         ServerWebExchange exchange,
         GatewayFilterChain chain
     ) {
+        // [1] CORS preflight requests bypass authentication.
         HttpMethod requestMethod = exchange.getRequest().getMethod();
         if (requestMethod != null && HttpMethod.OPTIONS.equals(requestMethod)) {
             return chain.filter(exchange);
         }
 
+        // [2] Non-API requests are outside this auth filter.
         String path = exchange.getRequest().getURI().getPath();
         String method = requestMethod == null ? null : requestMethod.name();
         if (!path.startsWith("/api/")) {
             return chain.filter(exchange);
         }
 
+        // [3] Public APIs are forwarded without JWT validation.
         if (isPublic(method, path)) {
             return chain.filter(exchange);
         }
 
-        // 개발용 - JWT 검증 비활성화
+        // Local development escape hatch. Keep disabled unless explicitly needed.
         // if (!gatewayAuthProperties.jwtValidationEnabled()) {
         //     return chain.filter(exchange);
         // }
 
+        // [4] Extract Bearer token from the Authorization header.
         String authorizationHeader = exchange.getRequest()
             .getHeaders()
             .getFirst(HttpHeaders.AUTHORIZATION);
@@ -71,12 +76,16 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         }
 
         try {
+            // [5] Validate JWT and Redis session whitelist.
             String token = authorizationHeader.substring(7);
-            GatewayJwtValidator.AuthenticatedPrincipal principal = gatewayJwtValidator.validateAccessToken(token);
+            AuthenticatedPrincipal principal = gatewayJwtValidator.validateAccessToken(token);
+
+            // [6] Enforce gateway-level role rules.
             if (!isAllowed(method, path, principal.role())) {
                 return forbidden(exchange);
             }
 
+            // [7] Forward trusted identity headers to downstream services.
             ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
                     .headers(headers -> {
                         headers.remove(MEMBER_ID_HEADER);
@@ -89,9 +98,11 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                     .build();
             return chain.filter(exchange.mutate().request(mutatedRequest).build());
         } catch (AuthException exception) {
+            // [8] Domain auth failures are returned as defined auth errors.
             log.warn("[JWT] validation failed: {} - {}", exception.getErrorCode(), exception.getMessage());
             return unauthorized(exchange, exception.getErrorCode());
         } catch (Exception exception) {
+            // [9] Unexpected validation failures are treated as invalid token.
             log.warn("[JWT] validation failed: {} - {}", exception.getClass().getSimpleName(), exception.getMessage(), exception);
             return unauthorized(exchange, AuthErrorCode.INVALID_TOKEN);
         }
@@ -103,6 +114,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     }
 
     private boolean isPublic(String method, String path) {
+        // Role rules take precedence over public path configuration.
         boolean hasMatchingRoleRule = gatewayAuthProperties.roleRules().stream()
                 .anyMatch(rule -> matchesMethod(rule.methods(), method)
                         && antPathMatcher.match(rule.pattern(), path));
@@ -122,6 +134,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     }
 
     private boolean isAllowed(String method, String path, String role) {
+        // Match method/path role rules and compare them with the caller role.
         var matchedRules = gatewayAuthProperties.roleRules().stream()
                 .filter(rule -> matchesMethod(rule.methods(), method) && antPathMatcher.match(rule.pattern(), path))
                 .toList();

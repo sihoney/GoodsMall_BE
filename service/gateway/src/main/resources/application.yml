@@ -118,6 +118,16 @@ spring:
               predicates:
                 - Path=/api/ai/**
 
+            - id: auction-service
+              uri: ${AUCTION_SERVICE_URL:http://auction:8090}
+              predicates:
+                - Path=/api/auctions/**
+
+            - id: notification-service
+              uri: ${NOTIFICATION_SERVICE_URL:http://notification:8087}
+              predicates:
+                - Path=/api/notifications/**
+
             - id: member-service-docs
               uri: ${MEMBER_SERVICE_URL:http://member:8083}
               predicates:
@@ -160,16 +170,6 @@ spring:
               filters:
                 - SetPath=/v3/api-docs
 
-            - id: auction-service
-              uri: ${AUCTION_SERVICE_URL:http://auction:8090}
-              predicates:
-                - Path=/api/auctions/**
-
-            - id: notification-service
-              uri: ${NOTIFICATION_SERVICE_URL:http://notification:8087}
-              predicates:
-                - Path=/api/notifications/**
-
             - id: notification-service-docs
               uri: ${NOTIFICATION_SERVICE_URL:http://notification:8087}
               predicates:
@@ -199,6 +199,9 @@ gateway:
       - /api/auth/oauth/kakao/authorize
       - /api/auth/oauth/kakao/callback
       - /api/auth/oauth/kakao/result
+      - /api/auth/oauth/google/authorize
+      - /api/auth/oauth/google/callback
+      - /api/auth/oauth/google/result
       - /api/auth/email-verifications
       - /api/auth/email-verifications/confirm
       - /api/auth/email-verifications/auto-login

@@ -1,4 +1,4 @@
-package com.todaylunch.gateway.security;
+package com.todaylunch.gateway.auth;
 
 public class AuthException extends RuntimeException {
 
@@ -18,3 +18,4 @@ public class AuthException extends RuntimeException {
         return errorCode;
     }
 }
+

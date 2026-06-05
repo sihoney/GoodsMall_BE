@@ -1,4 +1,4 @@
-package com.todaylunch.gateway.security;
+package com.todaylunch.gateway.auth;
 
 public record AuthErrorResponse(
         String code,
@@ -8,3 +8,4 @@ public record AuthErrorResponse(
         return new AuthErrorResponse(errorCode.name(), errorCode.getMessage());
     }
 }
+

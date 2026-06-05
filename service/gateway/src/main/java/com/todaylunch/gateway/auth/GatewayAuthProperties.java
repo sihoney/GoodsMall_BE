@@ -1,4 +1,4 @@
-package com.todaylunch.gateway.security;
+package com.todaylunch.gateway.auth;
 
 import java.util.List;
 import java.util.Locale;
@@ -49,3 +49,4 @@ public record GatewayAuthProperties(
         }
     }
 }
+
