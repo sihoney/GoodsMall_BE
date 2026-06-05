@@ -1,4 +1,4 @@
-package com.example.member.common.config;
+package com.example.member.member.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

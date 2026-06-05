@@ -1,4 +1,4 @@
-package com.example.member.common.config;
+package com.example.member.member.infrastructure.storage.s3;
 
 import lombok.Getter;
 import lombok.Setter;

@@ -1,10 +1,10 @@
-package com.example.member.common.config;
+package com.example.member.auth.config;
 
 import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@ConfigurationProperties(prefix = "oauth.google")
-public record GoogleOAuthProperties(
+@ConfigurationProperties(prefix = "oauth.kakao")
+public record KakaoOAuthProperties(
         String clientId,
         String clientSecret,
         String authorizeUri,
