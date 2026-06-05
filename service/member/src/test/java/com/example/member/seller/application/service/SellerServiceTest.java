@@ -11,9 +11,9 @@ import com.example.member.seller.application.dto.command.SellerRegisterCommand;
 import com.example.member.verification.application.dto.result.AccountVerificationSendResult;
 import com.example.member.seller.application.dto.result.SellerResult;
 import com.example.member.verification.application.port.in.AccountVerificationUsecase;
-import com.example.member.member.exception.MemberNotFoundException;
-import com.example.member.seller.exception.SellerAlreadyRegisteredException;
-import com.example.member.seller.exception.SellerNotFoundException;
+import com.example.member.common.exception.BusinessException;
+import com.example.member.member.exception.MemberErrorCode;
+import com.example.member.seller.exception.SellerErrorCode;
 import com.example.member.member.domain.entity.Member;
 import com.example.member.seller.domain.entity.Seller;
 import com.example.member.member.domain.enumtype.MemberStatus;
@@ -77,10 +77,11 @@ class SellerServiceTest {
         when(memberPersistencePort.findById(memberId)).thenReturn(Optional.of(createMember(memberId)));
         when(sellerPersistencePort.existsByMemberId(memberId)).thenReturn(true);
 
-        assertThrows(
-                SellerAlreadyRegisteredException.class,
+        BusinessException exception = assertThrows(
+                BusinessException.class,
                 () -> sellerService.registerSeller(memberId, new SellerRegisterCommand("Bank", "1234"))
         );
+        assertEquals(SellerErrorCode.SELLER_ALREADY_REGISTERED, exception.getErrorCode());
 
         verify(accountVerificationUsecase, never()).createAccountVerification(any(), any());
     }
@@ -91,10 +92,11 @@ class SellerServiceTest {
         UUID memberId = UUID.randomUUID();
         when(memberPersistencePort.findById(memberId)).thenReturn(Optional.empty());
 
-        assertThrows(
-                MemberNotFoundException.class,
+        BusinessException exception = assertThrows(
+                BusinessException.class,
                 () -> sellerService.registerSeller(memberId, new SellerRegisterCommand("Bank", "1234"))
         );
+        assertEquals(MemberErrorCode.MEMBER_NOT_FOUND, exception.getErrorCode());
 
         verify(accountVerificationUsecase, never()).createAccountVerification(any(), any());
     }
@@ -127,7 +129,11 @@ class SellerServiceTest {
         when(memberPersistencePort.findById(memberId)).thenReturn(Optional.of(createMember(memberId)));
         when(sellerPersistencePort.findByMemberId(memberId)).thenReturn(Optional.empty());
 
-        assertThrows(SellerNotFoundException.class, () -> sellerService.getCurrentSeller(memberId));
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> sellerService.getCurrentSeller(memberId)
+        );
+        assertEquals(SellerErrorCode.SELLER_NOT_FOUND, exception.getErrorCode());
     }
 
     private Member createMember(UUID memberId) {
@@ -147,4 +153,3 @@ class SellerServiceTest {
         );
     }
 }
-

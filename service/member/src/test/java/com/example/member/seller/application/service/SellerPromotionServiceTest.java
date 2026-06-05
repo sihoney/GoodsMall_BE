@@ -7,7 +7,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.example.member.seller.application.port.out.SellerEventPort;
-import com.example.member.verification.exception.AccountVerificationNotAllowedException;
+import com.example.member.common.exception.BusinessException;
+import com.example.member.verification.exception.VerificationErrorCode;
 import com.example.member.member.domain.entity.Member;
 import com.example.member.seller.domain.entity.Seller;
 import com.example.member.member.domain.enumtype.MemberStatus;
@@ -130,10 +131,11 @@ class SellerPromotionServiceTest {
 
         when(sessionStore.findSession(sessionId)).thenReturn(Optional.of(session));
 
-        assertThrows(
-                AccountVerificationNotAllowedException.class,
+        BusinessException exception = assertThrows(
+                BusinessException.class,
                 () -> service.promoteAfterAccountVerified(memberId, sessionId)
         );
+        assertEquals(VerificationErrorCode.ACCOUNT_VERIFICATION_NOT_ALLOWED, exception.getErrorCode());
 
         verify(sellerDraftStore, never()).deleteDraft(org.mockito.ArgumentMatchers.anyString());
         verify(memberEventPort, never()).publishSellerPromoted(org.mockito.ArgumentMatchers.any(Member.class), org.mockito.ArgumentMatchers.any(Seller.class));

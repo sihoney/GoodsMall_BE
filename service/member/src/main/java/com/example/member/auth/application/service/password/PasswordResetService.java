@@ -1,13 +1,15 @@
 package com.example.member.auth.application.service.password;
 
+
+import com.example.member.common.exception.BusinessException;
 import com.example.member.auth.application.dto.command.PasswordResetConfirmCommand;
 import com.example.member.auth.application.dto.command.PasswordResetSendCommand;
 import com.example.member.auth.application.dto.result.PasswordResetConfirmResult;
 import com.example.member.auth.application.dto.result.PasswordResetSendResult;
 import com.example.member.verification.application.port.out.EmailSenderPort;
 import com.example.member.member.application.port.out.MemberPersistencePort;
-import com.example.member.auth.exception.InvalidPasswordResetTokenException;
-import com.example.member.common.config.PasswordResetProperties;
+import com.example.member.auth.exception.AuthErrorCode;
+import com.example.member.auth.config.PasswordResetProperties;
 import com.example.member.member.domain.entity.Member;
 import com.example.member.auth.infrastructure.redis.passwordreset.PasswordResetToken;
 import com.example.member.auth.infrastructure.redis.passwordreset.PasswordResetTokenStore;
@@ -48,10 +50,10 @@ public class PasswordResetService {
         validateNewPassword(newPassword);
 
         PasswordResetToken passwordResetToken = passwordResetTokenStore.find(token)
-                .orElseThrow(InvalidPasswordResetTokenException::new);
+                .orElseThrow(() -> new BusinessException(AuthErrorCode.INVALID_PASSWORD_RESET_TOKEN));
 
         Member member = memberPersistencePort.findById(passwordResetToken.memberId())
-                .orElseThrow(InvalidPasswordResetTokenException::new);
+                .orElseThrow(() -> new BusinessException(AuthErrorCode.INVALID_PASSWORD_RESET_TOKEN));
 
         member.changePassword(passwordEncoder.encode(newPassword), LocalDateTime.now());
         passwordResetTokenStore.delete(token);

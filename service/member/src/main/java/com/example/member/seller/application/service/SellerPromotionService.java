@@ -3,9 +3,9 @@ package com.example.member.seller.application.service;
 import com.example.member.member.application.port.out.MemberPersistencePort;
 import com.example.member.seller.application.port.out.SellerEventPort;
 import com.example.member.seller.application.port.out.SellerPersistencePort;
-import com.example.member.verification.exception.AccountVerificationNotAllowedException;
-import com.example.member.verification.exception.AccountVerificationNotFoundException;
-import com.example.member.member.exception.MemberNotFoundException;
+import com.example.member.common.exception.BusinessException;
+import com.example.member.verification.exception.VerificationErrorCode;
+import com.example.member.member.exception.MemberErrorCode;
 import com.example.member.member.domain.entity.Member;
 import com.example.member.seller.domain.entity.Seller;
 import com.example.member.seller.infrastructure.crypto.AccountEncryptionService;
@@ -34,12 +34,12 @@ public class SellerPromotionService {
     @Transactional
     public void promoteAfterAccountVerified(UUID memberId, String sessionId) {
         AccountVerificationSession session = sessionStore.findSession(sessionId)
-                .orElseThrow(AccountVerificationNotFoundException::new);
+                .orElseThrow(() -> new BusinessException(VerificationErrorCode.ACCOUNT_VERIFICATION_NOT_FOUND));
         if (!session.belongsTo(memberId)) {
-            throw new AccountVerificationNotAllowedException("계좌 인증 세션이 현재 회원에게 속하지 않습니다.");
+            throw new BusinessException(VerificationErrorCode.ACCOUNT_VERIFICATION_NOT_ALLOWED, "계좌 인증 세션이 현재 회원에게 속하지 않습니다.");
         }
         if (!session.isVerified()) {
-            throw new AccountVerificationNotAllowedException("계좌 인증 세션이 아직 검증되지 않았습니다.");
+            throw new BusinessException(VerificationErrorCode.ACCOUNT_VERIFICATION_NOT_ALLOWED, "계좌 인증 세션이 아직 검증되지 않았습니다.");
         }
 
         SellerDraft draft = sellerDraftStore.findDraft(session.getDraftId())
@@ -52,7 +52,7 @@ public class SellerPromotionService {
         }
 
         Member member = memberPersistencePort.findById(memberId)
-                .orElseThrow(MemberNotFoundException::new);
+                .orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
 
         LocalDateTime now = LocalDateTime.now();
         String accountNumber = accountEncryptionService.decrypt(draft.getEncryptedAccountNumber());

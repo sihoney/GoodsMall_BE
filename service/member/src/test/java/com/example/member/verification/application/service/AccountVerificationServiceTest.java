@@ -16,10 +16,9 @@ import com.example.member.common.application.dto.AuthSessionMetadata;
 import com.example.member.verification.application.dto.result.AccountVerificationConfirmResult;
 import com.example.member.verification.application.dto.result.AccountVerificationSendResult;
 import com.example.member.verification.application.port.out.AccountVerificationEventPort;
-import com.example.member.verification.exception.AccountVerificationAttemptLimitExceededException;
-import com.example.member.verification.exception.ExpiredAccountVerificationException;
-import com.example.member.verification.exception.InvalidAccountVerificationCodeException;
-import com.example.member.common.config.AccountVerificationProperties;
+import com.example.member.common.exception.BusinessException;
+import com.example.member.verification.exception.VerificationErrorCode;
+import com.example.member.verification.config.AccountVerificationProperties;
 import com.example.member.member.domain.entity.Member;
 import com.example.member.seller.application.service.SellerPromotionService;
 import com.example.member.seller.infrastructure.crypto.AccountEncryptionService;
@@ -149,8 +148,8 @@ class AccountVerificationServiceTest {
         when(sessionStore.acquireLock(sessionId, Duration.ofSeconds(5))).thenReturn(true);
         when(sessionStore.findSession(sessionId)).thenReturn(Optional.of(session));
 
-        assertThrows(
-                InvalidAccountVerificationCodeException.class,
+        BusinessException exception = assertThrows(
+                BusinessException.class,
                 () -> service.confirmAccountVerification(
                         memberId,
                         UUID.randomUUID(),
@@ -158,6 +157,7 @@ class AccountVerificationServiceTest {
                         new AccountVerificationConfirmCommand("111111")
                 )
         );
+        assertEquals(VerificationErrorCode.ACCOUNT_VERIFICATION_CODE_INVALID, exception.getErrorCode());
 
         verify(sessionStore).saveSession(any(AccountVerificationSession.class), any(Duration.class));
         verify(sessionStore).releaseLock(sessionId);
@@ -260,8 +260,8 @@ class AccountVerificationServiceTest {
         when(sessionStore.acquireLock(sessionId, Duration.ofSeconds(5))).thenReturn(true);
         when(sessionStore.findSession(sessionId)).thenReturn(Optional.of(session));
 
-        assertThrows(
-                ExpiredAccountVerificationException.class,
+        BusinessException exception = assertThrows(
+                BusinessException.class,
                 () -> service.confirmAccountVerification(
                         memberId,
                         UUID.randomUUID(),
@@ -269,6 +269,7 @@ class AccountVerificationServiceTest {
                         new AccountVerificationConfirmCommand("482931")
                 )
         );
+        assertEquals(VerificationErrorCode.ACCOUNT_VERIFICATION_EXPIRED, exception.getErrorCode());
 
         verify(sessionStore).saveSession(any(AccountVerificationSession.class), eq(Duration.ZERO));
         verify(memberEventPort).publishAccountVerificationExpired(memberId, sessionId, "SESSION_EXPIRED");
@@ -310,8 +311,8 @@ class AccountVerificationServiceTest {
         when(sessionStore.acquireLock(sessionId, Duration.ofSeconds(5))).thenReturn(true);
         when(sessionStore.findSession(sessionId)).thenReturn(Optional.of(session));
 
-        assertThrows(
-                AccountVerificationAttemptLimitExceededException.class,
+        BusinessException exception = assertThrows(
+                BusinessException.class,
                 () -> service.confirmAccountVerification(
                         memberId,
                         UUID.randomUUID(),
@@ -319,6 +320,7 @@ class AccountVerificationServiceTest {
                         new AccountVerificationConfirmCommand("111111")
                 )
         );
+        assertEquals(VerificationErrorCode.ACCOUNT_VERIFICATION_ATTEMPT_LIMIT_EXCEEDED, exception.getErrorCode());
 
         verify(sessionStore).saveSession(any(AccountVerificationSession.class), eq(Duration.ZERO));
         verify(memberEventPort).publishAccountVerificationFailed(memberId, sessionId, "ATTEMPT_LIMIT_EXCEEDED");

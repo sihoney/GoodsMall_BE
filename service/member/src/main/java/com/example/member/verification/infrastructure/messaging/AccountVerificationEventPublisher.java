@@ -1,5 +1,8 @@
 package com.example.member.verification.infrastructure.messaging;
 
+
+import com.example.member.common.exception.BusinessException;
+import com.example.member.verification.exception.VerificationErrorCode;
 import com.example.member.verification.application.event.AccountVerificationExpiredEvent;
 import com.example.member.verification.application.event.AccountVerificationFailedEvent;
 import com.example.member.verification.application.port.out.AccountVerificationEventPort;

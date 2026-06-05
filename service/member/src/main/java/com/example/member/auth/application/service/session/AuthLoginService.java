@@ -3,8 +3,9 @@ package com.example.member.auth.application.service.session;
 import com.example.member.auth.application.dto.command.LoginCommand;
 import com.example.member.auth.application.dto.result.AuthTokenResult;
 import com.example.member.auth.application.port.in.AuthLoginUsecase;
-import com.example.member.auth.exception.InvalidLoginException;
+import com.example.member.auth.exception.AuthErrorCode;
 import com.example.member.common.application.dto.AuthSessionMetadata;
+import com.example.member.common.exception.BusinessException;
 import com.example.member.member.application.port.out.MemberPersistencePort;
 import com.example.member.member.domain.entity.Member;
 import lombok.RequiredArgsConstructor;
@@ -30,11 +31,11 @@ public class AuthLoginService implements AuthLoginUsecase {
 
         // [3] 회원 조회
         Member member = memberPersistencePort.findByEmail(email)
-                .orElseThrow(InvalidLoginException::new);
+                .orElseThrow(() -> new BusinessException(AuthErrorCode.INVALID_LOGIN));
 
         // [4] 비밀번호 검증
         if (!passwordEncoder.matches(normalizeRequired(command.password(), "password"), member.getPassword())) {
-            throw new InvalidLoginException();
+            throw new BusinessException(AuthErrorCode.INVALID_LOGIN);
         }
 
         // [5] 로그인 가능 여부 검증

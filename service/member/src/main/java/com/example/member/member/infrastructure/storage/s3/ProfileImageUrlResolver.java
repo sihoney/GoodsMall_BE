@@ -1,7 +1,6 @@
 package com.example.member.member.infrastructure.storage.s3;
 
 import com.example.member.member.application.port.out.ProfileImageUrlPort;
-import com.example.member.common.config.S3Properties;
 import java.time.Duration;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;

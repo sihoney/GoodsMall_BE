@@ -1,5 +1,8 @@
 package com.example.member.verification.presentation.web.dto;
 
+
+import com.example.member.common.exception.BusinessException;
+import com.example.member.verification.exception.VerificationErrorCode;
 import com.example.member.verification.application.dto.result.AccountVerificationCurrentResult;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;

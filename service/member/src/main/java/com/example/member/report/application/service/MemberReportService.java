@@ -9,10 +9,9 @@ import com.example.member.report.application.dto.result.MemberReportResult;
 import com.example.member.member.application.port.out.MemberPersistencePort;
 import com.example.member.report.application.port.out.MemberReportPersistencePort;
 import com.example.member.report.application.port.in.MemberReportUsecase;
-import com.example.member.report.exception.DuplicateMemberReportException;
-import com.example.member.member.exception.MemberNotFoundException;
-import com.example.member.report.exception.MemberReportNotFoundException;
-import com.example.member.report.exception.SelfReportNotAllowedException;
+import com.example.member.common.exception.BusinessException;
+import com.example.member.member.exception.MemberErrorCode;
+import com.example.member.report.exception.ReportErrorCode;
 import com.example.member.member.domain.entity.Member;
 import com.example.member.report.domain.entity.MemberReport;
 import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
@@ -48,14 +47,14 @@ public class MemberReportService implements MemberReportUsecase {
         UUID reporterId = authenticatedMember.memberId();
         UUID reportedMemberId = command.reportedMemberId();
         if (reporterId.equals(reportedMemberId)) {
-            throw new SelfReportNotAllowedException();
+            throw new BusinessException(ReportErrorCode.SELF_REPORT_NOT_ALLOWED);
         }
 
-        memberPersistencePort.findById(reporterId).orElseThrow(MemberNotFoundException::new);
-        memberPersistencePort.findById(reportedMemberId).orElseThrow(MemberNotFoundException::new);
+        memberPersistencePort.findById(reporterId).orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
+        memberPersistencePort.findById(reportedMemberId).orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
 
         if (memberReportPersistencePort.existsPendingReport(reporterId, reportedMemberId)) {
-            throw new DuplicateMemberReportException();
+            throw new BusinessException(ReportErrorCode.DUPLICATE_MEMBER_REPORT);
         }
 
         MemberReport memberReport = MemberReport.create(
@@ -83,7 +82,7 @@ public class MemberReportService implements MemberReportUsecase {
     @Override
     public List<MemberReportResult> getReportsForMember(AuthenticatedMember authenticatedMember, UUID memberId) {
         RoleGuard.requireAdmin(authenticatedMember);
-        memberPersistencePort.findById(memberId).orElseThrow(MemberNotFoundException::new);
+        memberPersistencePort.findById(memberId).orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
         List<MemberReport> reports = memberReportPersistencePort.findAllByReportedMemberId(memberId);
         Map<UUID, String> nicknamesById = resolveNicknames(reports);
 
@@ -108,7 +107,7 @@ public class MemberReportService implements MemberReportUsecase {
         RoleGuard.requireAdmin(authenticatedMember);
         return toResult(
                 memberReportPersistencePort.findById(reportId)
-                        .orElseThrow(MemberReportNotFoundException::new)
+                        .orElseThrow(() -> new BusinessException(ReportErrorCode.MEMBER_REPORT_NOT_FOUND))
         );
     }
 
@@ -123,7 +122,7 @@ public class MemberReportService implements MemberReportUsecase {
         validateReviewCommand(command);
 
         MemberReport memberReport = memberReportPersistencePort.findById(reportId)
-                .orElseThrow(MemberReportNotFoundException::new);
+                .orElseThrow(() -> new BusinessException(ReportErrorCode.MEMBER_REPORT_NOT_FOUND));
         memberReport.approve(authenticatedMember.memberId(), command.reviewComment(), LocalDateTime.now());
 
         if (command.restrictionType() != null || command.durationHours() != null) {
@@ -156,7 +155,7 @@ public class MemberReportService implements MemberReportUsecase {
         validateReviewCommand(command);
 
         MemberReport memberReport = memberReportPersistencePort.findById(reportId)
-                .orElseThrow(MemberReportNotFoundException::new);
+                .orElseThrow(() -> new BusinessException(ReportErrorCode.MEMBER_REPORT_NOT_FOUND));
         memberReport.reject(authenticatedMember.memberId(), command.reviewComment(), LocalDateTime.now());
         return toResult(memberReport);
     }
@@ -227,4 +226,3 @@ public class MemberReportService implements MemberReportUsecase {
                 .collect(Collectors.toMap(Member::getMemberId, Member::getNickname, (left, right) -> left));
     }
 }
-

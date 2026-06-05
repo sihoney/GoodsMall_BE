@@ -10,8 +10,9 @@ import static org.mockito.Mockito.when;
 
 import com.example.member.auth.application.dto.command.PasswordResetConfirmCommand;
 import com.example.member.auth.application.dto.command.PasswordResetSendCommand;
-import com.example.member.auth.exception.InvalidPasswordResetTokenException;
-import com.example.member.common.config.PasswordResetProperties;
+import com.example.member.auth.config.PasswordResetProperties;
+import com.example.member.auth.exception.AuthErrorCode;
+import com.example.member.common.exception.BusinessException;
 import com.example.member.member.domain.entity.Member;
 import com.example.member.member.domain.enumtype.MemberStatus;
 import com.example.member.verification.infrastructure.email.EmailSender;
@@ -117,12 +118,13 @@ class PasswordResetServiceTest {
     void confirmPasswordReset_invalidToken_throwsException() {
         when(passwordResetTokenStore.find("missing-token")).thenReturn(Optional.empty());
 
-        assertThrows(
-                InvalidPasswordResetTokenException.class,
+        BusinessException exception = assertThrows(
+                BusinessException.class,
                 () -> passwordResetService.confirmPasswordReset(
                         new PasswordResetConfirmCommand("missing-token", "new-password")
                 )
         );
+        assertEquals(AuthErrorCode.INVALID_PASSWORD_RESET_TOKEN, exception.getErrorCode());
     }
 
     @Test

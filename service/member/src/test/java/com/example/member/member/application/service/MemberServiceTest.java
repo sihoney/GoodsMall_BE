@@ -20,10 +20,9 @@ import com.example.member.auth.application.port.out.MemberOauthAccountPersistenc
 import com.example.member.member.application.port.out.MemberPersistencePort;
 import com.example.member.member.application.port.out.ProfileImageUrlPort;
 import com.example.member.member.application.port.out.MemberWithdrawalCheckPort;
-import com.example.member.member.exception.DuplicateMemberEmailException;
-import com.example.member.member.exception.InvalidCurrentPasswordException;
-import com.example.member.member.exception.MemberWithdrawalException;
-import com.example.member.common.config.MemberSignupProperties;
+import com.example.member.common.exception.BusinessException;
+import com.example.member.member.exception.MemberErrorCode;
+import com.example.member.member.config.MemberSignupProperties;
 import com.example.member.verification.application.service.EmailVerificationService;
 import com.example.member.member.domain.entity.Member;
 import com.example.member.auth.domain.entity.MemberOauthAccount;
@@ -159,7 +158,8 @@ class MemberServiceTest {
 
         when(memberPersistencePort.existsByEmail("member@test.com")).thenReturn(true);
 
-        assertThrows(DuplicateMemberEmailException.class, () -> memberService.createMember(command));
+        BusinessException exception = assertThrows(BusinessException.class, () -> memberService.createMember(command));
+        assertEquals(MemberErrorCode.DUPLICATE_MEMBER_EMAIL, exception.getErrorCode());
 
         verify(memberPersistencePort, never()).save(any(Member.class));
         verify(memberEventPort, never()).publishMemberSignedUp(any(Member.class));
@@ -271,8 +271,9 @@ class MemberServiceTest {
         when(memberPersistencePort.findById(memberId)).thenReturn(Optional.of(member));
         when(passwordEncoder.matches("wrong-password", "encoded-current-password")).thenReturn(false);
 
-        assertThrows(InvalidCurrentPasswordException.class,
+        BusinessException exception = assertThrows(BusinessException.class,
                 () -> memberService.changeCurrentMemberPassword(command));
+        assertEquals(MemberErrorCode.INVALID_CURRENT_PASSWORD, exception.getErrorCode());
     }
 
     @Test
@@ -370,11 +371,11 @@ class MemberServiceTest {
 
         when(memberPersistencePort.findById(memberId)).thenReturn(Optional.of(member));
 
-        MemberWithdrawalException exception = assertThrows(
-                MemberWithdrawalException.class,
+        BusinessException exception = assertThrows(
+                BusinessException.class,
                 () -> memberService.withdrawCurrentMember(command)
         );
-        assertEquals("MEMBER_WITHDRAWAL_ADMIN_FORBIDDEN", exception.getCode());
+        assertEquals(MemberErrorCode.MEMBER_WITHDRAWAL_ADMIN_FORBIDDEN, exception.getErrorCode());
         verify(memberWithdrawalCheckPort, never()).validateWithdrawable(any(), any());
         verify(authSessionUsecase, never()).logoutAllSessions(any());
     }
@@ -404,11 +405,11 @@ class MemberServiceTest {
         when(memberPersistencePort.findById(memberId)).thenReturn(Optional.of(member));
         when(passwordEncoder.matches("wrong-password", "encoded-current-password")).thenReturn(false);
 
-        MemberWithdrawalException exception = assertThrows(
-                MemberWithdrawalException.class,
+        BusinessException exception = assertThrows(
+                BusinessException.class,
                 () -> memberService.withdrawCurrentMember(command)
         );
-        assertEquals("MEMBER_WITHDRAWAL_PASSWORD_INVALID", exception.getCode());
+        assertEquals(MemberErrorCode.MEMBER_WITHDRAWAL_PASSWORD_INVALID, exception.getErrorCode());
         verify(memberWithdrawalCheckPort).validateWithdrawable(member, "Bearer access-token");
         verify(authSessionUsecase, never()).logoutAllSessions(any());
     }
@@ -437,11 +438,11 @@ class MemberServiceTest {
 
         when(memberPersistencePort.findById(memberId)).thenReturn(Optional.of(member));
 
-        MemberWithdrawalException exception = assertThrows(
-                MemberWithdrawalException.class,
+        BusinessException exception = assertThrows(
+                BusinessException.class,
                 () -> memberService.withdrawCurrentMember(command)
         );
-        assertEquals("MEMBER_WITHDRAWAL_NOT_ACTIVE", exception.getCode());
+        assertEquals(MemberErrorCode.MEMBER_WITHDRAWAL_NOT_ACTIVE, exception.getErrorCode());
         verify(memberWithdrawalCheckPort, never()).validateWithdrawable(any(), any());
         verify(authSessionUsecase, never()).logoutAllSessions(any());
     }

@@ -12,9 +12,8 @@ import com.example.member.restriction.application.dto.command.CreateMemberRestri
 import com.example.member.restriction.application.service.MemberRestrictionService;
 import com.example.member.report.application.dto.command.ReviewMemberReportCommand;
 import com.example.member.report.application.dto.result.MemberReportResult;
-import com.example.member.report.exception.DuplicateMemberReportException;
-import com.example.member.report.exception.MemberReportNotFoundException;
-import com.example.member.report.exception.SelfReportNotAllowedException;
+import com.example.member.common.exception.BusinessException;
+import com.example.member.report.exception.ReportErrorCode;
 import com.example.member.member.domain.entity.Member;
 import com.example.member.report.domain.entity.MemberReport;
 import com.example.member.member.domain.enumtype.MemberStatus;
@@ -85,7 +84,11 @@ class MemberReportServiceTest {
                 ReportType.ETC
         );
 
-        assertThrows(SelfReportNotAllowedException.class, () -> memberReportService.createReport(reporter, command));
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> memberReportService.createReport(reporter, command)
+        );
+        assertEquals(ReportErrorCode.SELF_REPORT_NOT_ALLOWED, exception.getErrorCode());
     }
 
     @Test
@@ -103,7 +106,11 @@ class MemberReportServiceTest {
         when(memberPersistencePort.findById(reportedMemberId)).thenReturn(Optional.of(createMember(reportedMemberId)));
         when(memberReportPersistencePort.existsPendingReport(reporterId, reportedMemberId)).thenReturn(true);
 
-        assertThrows(DuplicateMemberReportException.class, () -> memberReportService.createReport(reporter, command));
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> memberReportService.createReport(reporter, command)
+        );
+        assertEquals(ReportErrorCode.DUPLICATE_MEMBER_REPORT, exception.getErrorCode());
         verify(memberReportPersistencePort, never()).save(any(MemberReport.class));
     }
 
@@ -162,8 +169,11 @@ class MemberReportServiceTest {
 
         when(memberReportPersistencePort.findById(reportId)).thenReturn(Optional.empty());
 
-        assertThrows(MemberReportNotFoundException.class,
-                () -> memberReportService.getReportDetail(admin, reportId));
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> memberReportService.getReportDetail(admin, reportId)
+        );
+        assertEquals(ReportErrorCode.MEMBER_REPORT_NOT_FOUND, exception.getErrorCode());
     }
 
     private Member createMember(UUID memberId) {

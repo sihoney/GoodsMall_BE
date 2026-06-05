@@ -1,9 +1,9 @@
 package com.example.member.auth.application.service.oauth;
 
 import com.example.member.auth.domain.enumtype.OAuthProvider;
-import com.example.member.common.config.GoogleOAuthProperties;
-import com.example.member.common.config.KakaoOAuthProperties;
-import com.example.member.common.config.OAuthProviderProperties;
+import com.example.member.auth.config.GoogleOAuthProperties;
+import com.example.member.auth.config.KakaoOAuthProperties;
+import com.example.member.auth.config.OAuthProviderProperties;
 import java.util.EnumMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;

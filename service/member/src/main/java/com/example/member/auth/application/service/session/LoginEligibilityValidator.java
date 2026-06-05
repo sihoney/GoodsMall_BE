@@ -2,12 +2,13 @@ package com.example.member.auth.application.service.session;
 
 import com.example.member.member.domain.entity.Member;
 import com.example.member.member.domain.enumtype.MemberStatus;
-import com.example.member.member.exception.MemberSuspendedException;
-import com.example.member.member.exception.MemberWithdrawnException;
+import com.example.member.common.exception.BusinessException;
+import com.example.member.verification.exception.VerificationErrorCode;
+import com.example.member.member.exception.MemberErrorCode;
+
 import com.example.member.restriction.application.service.MemberRestrictionService;
 import com.example.member.restriction.domain.entity.MemberRestriction;
-import com.example.member.restriction.exception.MemberRestrictedException;
-import com.example.member.verification.exception.EmailVerificationRequiredException;
+import com.example.member.restriction.exception.RestrictionErrorCode;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +31,10 @@ public class LoginEligibilityValidator {
                 LocalDateTime.now()
         );
         if (memberRestriction != null) {
-            throw new MemberRestrictedException(memberRestriction.getEndAt());
+            throw new BusinessException(
+                    RestrictionErrorCode.MEMBER_RESTRICTED,
+                    "회원은 " + memberRestriction.getEndAt() + "까지 이용이 제한됩니다."
+            );
         }
     }
 
@@ -38,9 +42,9 @@ public class LoginEligibilityValidator {
         switch (member.getStatus()) {
             case ACTIVE -> {
             }
-            case PENDING_VERIFICATION -> throw new EmailVerificationRequiredException();
-            case SUSPENDED -> throw new MemberSuspendedException();
-            case WITHDRAWN, DELETED -> throw new MemberWithdrawnException();
+            case PENDING_VERIFICATION -> throw new BusinessException(VerificationErrorCode.EMAIL_VERIFICATION_REQUIRED);
+            case SUSPENDED -> throw new BusinessException(MemberErrorCode.MEMBER_SUSPENDED);
+            case WITHDRAWN, DELETED -> throw new BusinessException(MemberErrorCode.MEMBER_WITHDRAWN);
         }
     }
 }

@@ -1,5 +1,8 @@
 package com.example.member.verification.application.service;
 
+
+import com.example.member.common.exception.BusinessException;
+import com.example.member.verification.exception.VerificationErrorCode;
 import com.example.member.auth.application.port.in.AuthLoginUsecase;
 
 import com.example.member.common.application.dto.AuthSessionMetadata;
@@ -7,7 +10,6 @@ import com.example.member.auth.application.dto.result.AuthTokenResult;
 import com.example.member.auth.application.dto.result.EmailVerificationAutoLoginTokenResult;
 import com.example.member.verification.application.port.out.EmailVerificationAutoLoginTokenStore;
 import com.example.member.member.application.port.out.MemberPersistencePort;
-import com.example.member.verification.exception.InvalidEmailVerificationAutoLoginTokenException;
 import com.example.member.member.domain.entity.Member;
 import java.time.Instant;
 import java.util.UUID;
@@ -24,7 +26,7 @@ public class EmailVerificationAutoLoginService {
     private final EmailVerificationAutoLoginTokenStore emailVerificationAutoLoginTokenStore;
     private final MemberPersistencePort memberPersistencePort;
     private final AuthLoginUsecase authLoginUsecase;
-    private final com.example.member.common.config.EmailVerificationProperties emailVerificationProperties;
+    private final com.example.member.verification.config.EmailVerificationProperties emailVerificationProperties;
 
     @Transactional
     public EmailVerificationAutoLoginTokenResult issueToken(Member member) {
@@ -49,10 +51,10 @@ public class EmailVerificationAutoLoginService {
     public AuthTokenResult authenticate(String autoLoginToken, AuthSessionMetadata metadata) {
         String normalizedToken = normalizeRequired(autoLoginToken, "autoLoginToken");
         EmailVerificationAutoLoginToken storedToken = emailVerificationAutoLoginTokenStore.consume(normalizedToken)
-                .orElseThrow(InvalidEmailVerificationAutoLoginTokenException::new);
+                .orElseThrow(() -> new BusinessException(VerificationErrorCode.EMAIL_VERIFICATION_AUTO_LOGIN_TOKEN_INVALID));
 
         Member member = memberPersistencePort.findById(storedToken.memberId())
-                .orElseThrow(InvalidEmailVerificationAutoLoginTokenException::new);
+                .orElseThrow(() -> new BusinessException(VerificationErrorCode.EMAIL_VERIFICATION_AUTO_LOGIN_TOKEN_INVALID));
 
         return authLoginUsecase.loginAuthenticatedMember(
                 member,

@@ -5,9 +5,9 @@ import com.example.member.restriction.application.dto.result.MemberRestrictionRe
 import com.example.member.member.application.port.out.MemberPersistencePort;
 import com.example.member.restriction.application.port.out.MemberRestrictionPersistencePort;
 import com.example.member.restriction.application.port.in.MemberRestrictionUsecase;
-import com.example.member.restriction.exception.DuplicateActiveRestrictionException;
-import com.example.member.member.exception.MemberNotFoundException;
-import com.example.member.restriction.exception.MemberRestrictionNotFoundException;
+import com.example.member.common.exception.BusinessException;
+import com.example.member.member.exception.MemberErrorCode;
+import com.example.member.restriction.exception.RestrictionErrorCode;
 import com.example.member.member.domain.entity.Member;
 import com.example.member.restriction.domain.entity.MemberRestriction;
 import com.example.member.restriction.domain.enumtype.RestrictionType;
@@ -41,12 +41,12 @@ public class MemberRestrictionService implements MemberRestrictionUsecase {
         validateCreateCommand(command);
 
         UUID memberId = command.memberId();
-        memberPersistencePort.findById(memberId).orElseThrow(MemberNotFoundException::new);
+        memberPersistencePort.findById(memberId).orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
 
         LocalDateTime now = LocalDateTime.now();
         RestrictionType restrictionType = command.restrictionType();
         if (memberRestrictionPersistencePort.existsActiveRestriction(memberId, restrictionType, now)) {
-            throw new DuplicateActiveRestrictionException();
+            throw new BusinessException(RestrictionErrorCode.DUPLICATE_ACTIVE_RESTRICTION);
         }
 
         MemberRestriction memberRestriction = MemberRestriction.create(
@@ -71,7 +71,7 @@ public class MemberRestrictionService implements MemberRestrictionUsecase {
         RoleGuard.requireAdmin(authenticatedMember);
 
         MemberRestriction memberRestriction = memberRestrictionPersistencePort.findById(restrictionId)
-                .orElseThrow(MemberRestrictionNotFoundException::new);
+                .orElseThrow(() -> new BusinessException(RestrictionErrorCode.MEMBER_RESTRICTION_NOT_FOUND));
 
         LocalDateTime now = LocalDateTime.now();
         memberRestriction.deactivate(now);
@@ -96,7 +96,7 @@ public class MemberRestrictionService implements MemberRestrictionUsecase {
             UUID memberId
     ) {
         RoleGuard.requireAdmin(authenticatedMember);
-        memberPersistencePort.findById(memberId).orElseThrow(MemberNotFoundException::new);
+        memberPersistencePort.findById(memberId).orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
 
         List<MemberRestriction> restrictions = memberRestrictionPersistencePort.findAllByMemberId(memberId);
         Map<UUID, String> nicknamesById = resolveNicknames(restrictions);
@@ -160,4 +160,3 @@ public class MemberRestrictionService implements MemberRestrictionUsecase {
                 .collect(Collectors.toMap(Member::getMemberId, Member::getNickname, (left, right) -> left));
     }
 }
-

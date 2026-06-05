@@ -1,7 +1,12 @@
 package com.example.member.verification.presentation.web;
 
+
+import com.example.member.common.exception.BusinessException;
+import com.example.member.verification.exception.VerificationErrorCode;
+import com.example.member.auth.application.dto.result.AuthTokenResult;
 import com.example.member.auth.presentation.web.dto.EmailVerificationAutoLoginRequest;
 import com.example.member.auth.presentation.web.dto.EmailVerificationAutoLoginResponse;
+import com.example.member.auth.presentation.web.support.RefreshTokenCookieWriter;
 import com.example.member.common.presentation.web.dto.ApiResponse;
 import com.example.member.common.presentation.web.support.AuthSessionMetadataExtractor;
 import com.example.member.verification.application.service.EmailVerificationAutoLoginService;
@@ -15,6 +20,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -29,6 +35,7 @@ public class EmailVerificationController {
 
     private final EmailVerificationService emailVerificationService;
     private final EmailVerificationAutoLoginService emailVerificationAutoLoginService;
+    private final RefreshTokenCookieWriter refreshTokenCookieWriter;
 
     @PostMapping
     @Operation(summary = "이메일 인증 발송", description = "회원가입용 이메일 인증 코드를 발송합니다.")
@@ -59,13 +66,15 @@ public class EmailVerificationController {
             @Valid @RequestBody EmailVerificationAutoLoginRequest request,
             HttpServletRequest httpServletRequest
     ) {
-        return ResponseEntity.ok(ApiResponse.success(
-                EmailVerificationAutoLoginResponse.from(
-                        emailVerificationAutoLoginService.authenticate(
-                                request.autoLoginToken(),
-                                AuthSessionMetadataExtractor.extract(httpServletRequest)
-                        )
-                )
-        ));
+        AuthTokenResult result = emailVerificationAutoLoginService.authenticate(
+                request.autoLoginToken(),
+                AuthSessionMetadataExtractor.extract(httpServletRequest)
+        );
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, refreshTokenCookieWriter
+                        .create(result.refreshToken(), result.refreshTokenExpiresIn())
+                        .toString())
+                .body(ApiResponse.success(EmailVerificationAutoLoginResponse.from(result)));
     }
 }

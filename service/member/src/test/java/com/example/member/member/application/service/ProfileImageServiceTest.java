@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
 import com.example.member.member.application.dto.command.ProfileImagePresignCommand;
-import com.example.member.common.config.S3Properties;
+import com.example.member.member.infrastructure.storage.s3.S3Properties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;

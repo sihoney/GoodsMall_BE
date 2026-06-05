@@ -12,17 +12,15 @@ import com.example.member.member.application.dto.result.CreateMemberResult;
 import com.example.member.member.application.dto.result.MemberResult;
 import com.example.member.member.application.dto.result.WithdrawMemberResult;
 import com.example.member.auth.application.port.in.AuthSessionUsecase;
+import com.example.member.common.exception.BusinessException;
 import com.example.member.member.application.port.in.MemberUsecase;
 import com.example.member.member.application.port.out.MemberWithdrawalCheckPort;
 import com.example.member.member.application.port.out.MemberEventPort;
 import com.example.member.auth.application.port.out.MemberOauthAccountPersistencePort;
 import com.example.member.member.application.port.out.MemberPersistencePort;
 import com.example.member.member.application.port.out.ProfileImageUrlPort;
-import com.example.member.member.exception.DuplicateMemberEmailException;
-import com.example.member.member.exception.InvalidCurrentPasswordException;
-import com.example.member.member.exception.MemberWithdrawalException;
-import com.example.member.member.exception.MemberNotFoundException;
-import com.example.member.common.config.MemberSignupProperties;
+import com.example.member.member.exception.MemberErrorCode;
+import com.example.member.member.config.MemberSignupProperties;
 import com.example.member.member.domain.entity.Member;
 import com.example.member.auth.domain.entity.MemberOauthAccount;
 import com.example.member.member.domain.enumtype.MemberStatus;
@@ -31,7 +29,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -62,7 +59,7 @@ public class MemberService implements MemberUsecase {
 
         // [3] 이메일 중복 확인
         if (memberPersistencePort.existsByEmail(email)) {
-            throw new DuplicateMemberEmailException();
+            throw new BusinessException(MemberErrorCode.DUPLICATE_MEMBER_EMAIL);
         }
 
         // [4] 초기 상태 결정
@@ -160,7 +157,7 @@ public class MemberService implements MemberUsecase {
         // [3] 현재 비밀번호 검증
         String currentPassword = normalizeRequired(command.currentPassword(), "currentPassword");
         if (!passwordEncoder.matches(currentPassword, member.getPassword())) {
-            throw new InvalidCurrentPasswordException();
+            throw new BusinessException(MemberErrorCode.INVALID_CURRENT_PASSWORD);
         }
 
         // [4] 새 비밀번호 검증
@@ -197,11 +194,7 @@ public class MemberService implements MemberUsecase {
         // [5] 현재 비밀번호 검증
         String currentPassword = normalizeRequired(command.currentPassword(), "currentPassword");
         if (!passwordEncoder.matches(currentPassword, member.getPassword())) {
-            throw new MemberWithdrawalException(
-                    "MEMBER_WITHDRAWAL_PASSWORD_INVALID",
-                    HttpStatus.BAD_REQUEST,
-                    "현재 비밀번호가 올바르지 않습니다."
-            );
+            throw new BusinessException(MemberErrorCode.MEMBER_WITHDRAWAL_PASSWORD_INVALID);
         }
 
         // [6] 탈퇴 시각 생성
@@ -227,7 +220,7 @@ public class MemberService implements MemberUsecase {
 
     private Member getMemberEntity(UUID memberId) {
         return memberPersistencePort.findById(memberId)
-                .orElseThrow(MemberNotFoundException::new);
+                .orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
     }
 
     private void validateCreateCommand(CreateMemberCommand command) {
@@ -271,25 +264,13 @@ public class MemberService implements MemberUsecase {
 
     private void validateWithdrawableMember(Member member) {
         if (member.getRole() == MemberRole.ADMIN) {
-            throw new MemberWithdrawalException(
-                    "MEMBER_WITHDRAWAL_ADMIN_FORBIDDEN",
-                    HttpStatus.FORBIDDEN,
-                    "관리자 계정은 셀프 탈퇴를 지원하지 않습니다."
-            );
+            throw new BusinessException(MemberErrorCode.MEMBER_WITHDRAWAL_ADMIN_FORBIDDEN);
         }
         if (member.getStatus() == MemberStatus.WITHDRAWN) {
-            throw new MemberWithdrawalException(
-                    "MEMBER_ALREADY_WITHDRAWN",
-                    HttpStatus.CONFLICT,
-                    "이미 탈퇴한 회원입니다."
-            );
+            throw new BusinessException(MemberErrorCode.MEMBER_ALREADY_WITHDRAWN);
         }
         if (member.getStatus() != MemberStatus.ACTIVE) {
-            throw new MemberWithdrawalException(
-                    "MEMBER_WITHDRAWAL_NOT_ACTIVE",
-                    HttpStatus.CONFLICT,
-                    "ACTIVE 상태 회원만 탈퇴할 수 있습니다."
-            );
+            throw new BusinessException(MemberErrorCode.MEMBER_WITHDRAWAL_NOT_ACTIVE);
         }
     }
 

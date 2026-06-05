@@ -1,5 +1,8 @@
 package com.example.member.verification.domain.entity;
 
+
+import com.example.member.common.exception.BusinessException;
+import com.example.member.verification.exception.VerificationErrorCode;
 import com.example.member.verification.domain.enumtype.EmailVerificationPurpose;
 import com.example.member.verification.domain.enumtype.EmailVerificationStatus;
 import jakarta.persistence.Column;

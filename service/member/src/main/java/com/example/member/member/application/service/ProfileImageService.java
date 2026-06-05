@@ -2,7 +2,7 @@ package com.example.member.member.application.service;
 
 import com.example.member.member.application.dto.command.ProfileImagePresignCommand;
 import com.example.member.member.application.dto.result.ProfileImagePresignResult;
-import com.example.member.common.config.S3Properties;
+import com.example.member.member.infrastructure.storage.s3.S3Properties;
 import java.net.URL;
 import java.time.Duration;
 import java.util.HashSet;

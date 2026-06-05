@@ -1,8 +1,13 @@
 package com.example.member.verification.presentation.web;
 
+
+import com.example.member.common.exception.BusinessException;
+import com.example.member.verification.exception.VerificationErrorCode;
+import com.example.member.auth.presentation.web.support.RefreshTokenCookieWriter;
 import com.example.member.common.presentation.web.dto.ApiResponse;
 import com.example.member.verification.application.dto.command.AccountVerificationConfirmCommand;
 import com.example.member.verification.application.dto.command.AccountVerificationCreateCommand;
+import com.example.member.verification.application.dto.result.AccountVerificationConfirmResult;
 import com.example.member.verification.application.port.in.AccountVerificationUsecase;
 import com.example.member.verification.presentation.web.dto.AccountVerificationCancelResponse;
 import com.example.member.verification.presentation.web.dto.AccountVerificationConfirmRequest;
@@ -19,6 +24,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -36,6 +42,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AccountVerificationController {
 
     private final AccountVerificationUsecase accountVerificationUsecase;
+    private final RefreshTokenCookieWriter refreshTokenCookieWriter;
 
     @PostMapping
     @Operation(summary = "계좌 인증 생성", description = "인증 코드")
@@ -76,16 +83,20 @@ public class AccountVerificationController {
             @PathVariable(name = "sessionId") String sessionId,
             @Valid @RequestBody AccountVerificationConfirmRequest request
     ) {
-        return ResponseEntity.ok(ApiResponse.success(
-                AccountVerificationConfirmResponse.from(
-                        accountVerificationUsecase.confirmAccountVerification(
-                                authenticatedMember.memberId(),
-                                authenticatedMember.sessionId(),
-                                sessionId,
-                                new AccountVerificationConfirmCommand(request.code())
-                        )
-                )
-        ));
+        AccountVerificationConfirmResult result = accountVerificationUsecase.confirmAccountVerification(
+                authenticatedMember.memberId(),
+                authenticatedMember.sessionId(),
+                sessionId,
+                new AccountVerificationConfirmCommand(request.code())
+        );
+
+        ResponseEntity.BodyBuilder response = ResponseEntity.ok();
+        if (result.auth() != null && result.auth().refreshToken() != null) {
+            response.header(HttpHeaders.SET_COOKIE, refreshTokenCookieWriter
+                    .create(result.auth().refreshToken(), result.auth().refreshTokenExpiresIn())
+                    .toString());
+        }
+        return response.body(ApiResponse.success(AccountVerificationConfirmResponse.from(result)));
     }
 
     @GetMapping("/current")

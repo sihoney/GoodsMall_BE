@@ -9,7 +9,8 @@ import static org.mockito.Mockito.when;
 
 import com.example.member.restriction.application.dto.command.CreateMemberRestrictionCommand;
 import com.example.member.restriction.application.dto.result.MemberRestrictionResult;
-import com.example.member.restriction.exception.DuplicateActiveRestrictionException;
+import com.example.member.common.exception.BusinessException;
+import com.example.member.restriction.exception.RestrictionErrorCode;
 import com.example.member.member.domain.entity.Member;
 import com.example.member.restriction.domain.entity.MemberRestriction;
 import com.example.member.member.domain.enumtype.MemberStatus;
@@ -83,8 +84,11 @@ class MemberRestrictionServiceTest {
         when(memberPersistencePort.findById(memberId)).thenReturn(Optional.of(createMember(memberId)));
         when(memberRestrictionPersistencePort.existsActiveRestriction(any(), any(), any())).thenReturn(true);
 
-        assertThrows(DuplicateActiveRestrictionException.class,
-                () -> memberRestrictionService.createRestriction(admin, command));
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> memberRestrictionService.createRestriction(admin, command)
+        );
+        assertEquals(RestrictionErrorCode.DUPLICATE_ACTIVE_RESTRICTION, exception.getErrorCode());
 
         verify(memberRestrictionPersistencePort, never()).save(any(MemberRestriction.class));
     }

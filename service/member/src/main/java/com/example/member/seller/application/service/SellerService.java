@@ -8,9 +8,9 @@ import com.example.member.member.application.port.out.MemberPersistencePort;
 import com.example.member.seller.application.port.out.SellerPersistencePort;
 import com.example.member.verification.application.port.in.AccountVerificationUsecase;
 import com.example.member.seller.application.port.in.SellerUsecase;
-import com.example.member.member.exception.MemberNotFoundException;
-import com.example.member.seller.exception.SellerAlreadyRegisteredException;
-import com.example.member.seller.exception.SellerNotFoundException;
+import com.example.member.common.exception.BusinessException;
+import com.example.member.member.exception.MemberErrorCode;
+import com.example.member.seller.exception.SellerErrorCode;
 import com.example.member.member.domain.entity.Member;
 import com.example.member.seller.domain.entity.Seller;
 import java.util.UUID;
@@ -34,7 +34,7 @@ public class SellerService implements SellerUsecase {
         getMember(memberId);
 
         if (sellerPersistencePort.existsByMemberId(memberId)) {
-            throw new SellerAlreadyRegisteredException();
+            throw new BusinessException(SellerErrorCode.SELLER_ALREADY_REGISTERED);
         }
 
         return accountVerificationUsecase.createAccountVerification(
@@ -50,7 +50,7 @@ public class SellerService implements SellerUsecase {
     public SellerResult getCurrentSeller(UUID memberId) {
         getMember(memberId);
         Seller seller = sellerPersistencePort.findByMemberId(memberId)
-                .orElseThrow(SellerNotFoundException::new);
+                .orElseThrow(() -> new BusinessException(SellerErrorCode.SELLER_NOT_FOUND));
 
         return new SellerResult(
                 seller.getSellerId(),
@@ -69,7 +69,7 @@ public class SellerService implements SellerUsecase {
 
     private Member getMember(UUID memberId) {
         return memberPersistencePort.findById(memberId)
-                .orElseThrow(MemberNotFoundException::new);
+                .orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
     }
 
     private String normalizeRequired(String value, String fieldName) {
@@ -79,4 +79,3 @@ public class SellerService implements SellerUsecase {
         return value.trim();
     }
 }
-

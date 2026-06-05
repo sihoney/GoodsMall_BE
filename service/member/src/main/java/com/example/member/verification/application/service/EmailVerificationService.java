@@ -1,14 +1,14 @@
 package com.example.member.verification.application.service;
 
+
+import com.example.member.common.exception.BusinessException;
+import com.example.member.verification.exception.VerificationErrorCode;
 import com.example.member.auth.application.dto.result.EmailVerificationAutoLoginTokenResult;
 import com.example.member.verification.application.dto.result.EmailVerificationConfirmResult;
 import com.example.member.verification.application.port.out.EmailSenderPort;
 import com.example.member.verification.application.port.out.EmailVerificationPersistencePort;
 import com.example.member.member.application.port.out.MemberPersistencePort;
-import com.example.member.verification.exception.EmailVerificationNotAllowedException;
-import com.example.member.verification.exception.ExpiredEmailVerificationException;
-import com.example.member.verification.exception.InvalidEmailVerificationTokenException;
-import com.example.member.common.config.EmailVerificationProperties;
+import com.example.member.verification.config.EmailVerificationProperties;
 import com.example.member.verification.domain.entity.EmailVerification;
 import com.example.member.member.domain.entity.Member;
 import com.example.member.verification.domain.enumtype.EmailVerificationPurpose;
@@ -62,12 +62,12 @@ public class EmailVerificationService {
     public EmailVerificationConfirmResult confirmSignupVerification(String token) {
         String normalizedToken = normalizeRequired(token, "token");
         EmailVerification emailVerification = emailVerificationPersistencePort.findByToken(normalizedToken)
-                .orElseThrow(InvalidEmailVerificationTokenException::new);
+                .orElseThrow(() -> new BusinessException(VerificationErrorCode.EMAIL_VERIFICATION_TOKEN_INVALID));
 
         LocalDateTime now = LocalDateTime.now();
         if (emailVerification.isExpiredAt(now) && emailVerification.isPending()) { 
             emailVerification.expire(now);
-            throw new ExpiredEmailVerificationException();
+            throw new BusinessException(VerificationErrorCode.EMAIL_VERIFICATION_TOKEN_EXPIRED);
         }
 
         Member member = memberPersistencePort.findById(emailVerification.getMemberId())
@@ -76,9 +76,7 @@ public class EmailVerificationService {
         if (member.getStatus() == MemberStatus.PENDING_VERIFICATION) {
             member.changeStatus(MemberStatus.ACTIVE, now);
         } else if (member.getStatus() != MemberStatus.ACTIVE) {
-            throw new EmailVerificationNotAllowedException(
-                    "현재 회원 상태에서는 이메일 인증으로 활성화할 수 없습니다."
-            );
+            throw new BusinessException(VerificationErrorCode.EMAIL_VERIFICATION_NOT_ALLOWED, "현재 회원 상태에서는 이메일 인증으로 활성화할 수 없습니다.");
         }
 
         emailVerification.verify(now);
@@ -99,12 +97,10 @@ public class EmailVerificationService {
                 .orElseThrow(() -> new IllegalArgumentException("해당 이메일의 회원을 찾을 수 없습니다."));
 
         if (member.isActive()) {
-            throw new EmailVerificationNotAllowedException("ACTIVE 상태의 회원은 이메일 인증이 필요하지 않습니다.");
+            throw new BusinessException(VerificationErrorCode.EMAIL_VERIFICATION_NOT_ALLOWED, "ACTIVE 상태의 회원은 이메일 인증이 필요하지 않습니다.");
         }
         if (member.getStatus() != MemberStatus.PENDING_VERIFICATION) {
-            throw new EmailVerificationNotAllowedException(
-                    "현재 회원 상태에서는 이메일 인증을 요청할 수 없습니다."
-            );
+            throw new BusinessException(VerificationErrorCode.EMAIL_VERIFICATION_NOT_ALLOWED, "현재 회원 상태에서는 이메일 인증을 요청할 수 없습니다.");
         }
 
         return createSignupVerification(member);
@@ -125,9 +121,7 @@ public class EmailVerificationService {
             throw new IllegalArgumentException("member는 필수입니다.");
         }
         if (member.getStatus() != MemberStatus.PENDING_VERIFICATION) {
-            throw new EmailVerificationNotAllowedException(
-                    "이메일 인증 대상은 PENDING_VERIFICATION 상태여야 합니다."
-            );
+            throw new BusinessException(VerificationErrorCode.EMAIL_VERIFICATION_NOT_ALLOWED, "이메일 인증 대상은 PENDING_VERIFICATION 상태여야 합니다.");
         }
         return member;
     }

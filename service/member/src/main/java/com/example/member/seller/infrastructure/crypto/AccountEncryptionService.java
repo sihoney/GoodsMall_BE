@@ -1,6 +1,6 @@
 package com.example.member.seller.infrastructure.crypto;
 
-import com.example.member.common.config.AccountVerificationCryptoProperties;
+import com.example.member.verification.config.AccountVerificationCryptoProperties;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;

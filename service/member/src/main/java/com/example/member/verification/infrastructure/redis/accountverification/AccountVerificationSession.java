@@ -1,5 +1,8 @@
 package com.example.member.verification.infrastructure.redis.accountverification;
 
+
+import com.example.member.common.exception.BusinessException;
+import com.example.member.verification.exception.VerificationErrorCode;
 import com.example.member.verification.domain.enumtype.AccountVerificationStatus;
 import java.time.LocalDateTime;
 import java.util.HashMap;

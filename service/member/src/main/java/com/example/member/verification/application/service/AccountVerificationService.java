@@ -1,5 +1,8 @@
 package com.example.member.verification.application.service;
 
+
+import com.example.member.common.exception.BusinessException;
+import com.example.member.verification.exception.VerificationErrorCode;
 import com.example.member.seller.application.service.SellerPromotionService;
 
 import com.example.member.verification.application.dto.command.AccountVerificationConfirmCommand;
@@ -12,13 +15,7 @@ import com.example.member.verification.application.dto.result.AccountVerificatio
 import com.example.member.verification.application.port.in.AccountVerificationUsecase;
 import com.example.member.verification.application.port.out.AccountVerificationEventPort;
 import com.example.member.member.application.port.out.MemberPersistencePort;
-import com.example.member.verification.exception.AccountVerificationAttemptLimitExceededException;
-import com.example.member.verification.exception.AccountVerificationNotAllowedException;
-import com.example.member.verification.exception.AccountVerificationNotFoundException;
-import com.example.member.verification.exception.AccountVerificationResendLimitExceededException;
-import com.example.member.verification.exception.ExpiredAccountVerificationException;
-import com.example.member.verification.exception.InvalidAccountVerificationCodeException;
-import com.example.member.common.config.AccountVerificationProperties;
+import com.example.member.verification.config.AccountVerificationProperties;
 import com.example.member.member.domain.entity.Member;
 import com.example.member.verification.domain.enumtype.AccountVerificationStatus;
 import com.example.member.seller.infrastructure.crypto.AccountEncryptionService;
@@ -139,7 +136,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
             if (session.isExpired(now)) {
                 expireSession(session, "SESSION_EXPIRED");
                 sessionStore.saveSession(session, Duration.ZERO);
-                throw new ExpiredAccountVerificationException();
+                throw new BusinessException(VerificationErrorCode.ACCOUNT_VERIFICATION_EXPIRED);
             }
 
             if (session.isVerified()) {
@@ -148,7 +145,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
             }
 
             if (!session.canConfirm()) {
-                throw new AccountVerificationNotAllowedException("계좌 인증 세션은 확인 처리할 수 없습니다.");
+                throw new BusinessException(VerificationErrorCode.ACCOUNT_VERIFICATION_NOT_ALLOWED, "계좌 인증 세션은 확인 처리할 수 없습니다.");
             }
 
             String normalizedCode = normalizeRequired(command.code(), "code");
@@ -162,10 +159,10 @@ public class AccountVerificationService implements AccountVerificationUsecase {
                             session.getSessionId(),
                             "ATTEMPT_LIMIT_EXCEEDED"
                     );
-                    throw new AccountVerificationAttemptLimitExceededException();
+                    throw new BusinessException(VerificationErrorCode.ACCOUNT_VERIFICATION_ATTEMPT_LIMIT_EXCEEDED);
                 }
                 sessionStore.saveSession(session, properties.expiration());
-                throw new InvalidAccountVerificationCodeException();
+                throw new BusinessException(VerificationErrorCode.ACCOUNT_VERIFICATION_CODE_INVALID);
             }
 
             session.markVerified(now);
@@ -212,13 +209,13 @@ public class AccountVerificationService implements AccountVerificationUsecase {
             if (session.isExpired(now)) {
                 expireSession(session, "SESSION_EXPIRED");
                 sessionStore.saveSession(session, Duration.ZERO);
-                throw new ExpiredAccountVerificationException();
+                throw new BusinessException(VerificationErrorCode.ACCOUNT_VERIFICATION_EXPIRED);
             }
             if (!session.canResend()) {
-                throw new AccountVerificationNotAllowedException("계좌 인증 세션은 재전송할 수 없습니다.");
+                throw new BusinessException(VerificationErrorCode.ACCOUNT_VERIFICATION_NOT_ALLOWED, "계좌 인증 세션은 재전송할 수 없습니다.");
             }
             if (session.getResendCount() >= properties.maxResendCount()) {
-                throw new AccountVerificationResendLimitExceededException();
+                throw new BusinessException(VerificationErrorCode.ACCOUNT_VERIFICATION_RESEND_LIMIT_EXCEEDED);
             }
 
             SellerDraft draft = getDraftBySession(session);
@@ -281,9 +278,9 @@ public class AccountVerificationService implements AccountVerificationUsecase {
 
     private AccountVerificationSession getOwnedSession(UUID memberId, String sessionId) {
         AccountVerificationSession session = sessionStore.findSession(sessionId)
-                .orElseThrow(AccountVerificationNotFoundException::new);
+                .orElseThrow(() -> new BusinessException(VerificationErrorCode.ACCOUNT_VERIFICATION_NOT_FOUND));
         if (!session.belongsTo(memberId)) {
-            throw new AccountVerificationNotAllowedException("계좌 인증 세션이 현재 회원에게 속하지 않습니다.");
+            throw new BusinessException(VerificationErrorCode.ACCOUNT_VERIFICATION_NOT_ALLOWED, "계좌 인증 세션이 현재 회원에게 속하지 않습니다.");
         }
         return session;
     }
@@ -411,7 +408,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
 
     private void acquireLockOrThrow(String sessionId) {
         if (!sessionStore.acquireLock(sessionId, LOCK_TTL)) {
-            throw new AccountVerificationNotAllowedException("다른 계좌 인증 요청이 이미 진행 중입니다.");
+            throw new BusinessException(VerificationErrorCode.ACCOUNT_VERIFICATION_NOT_ALLOWED, "다른 계좌 인증 요청이 이미 진행 중입니다.");
         }
     }
 

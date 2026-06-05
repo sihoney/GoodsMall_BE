@@ -1,5 +1,8 @@
 package com.example.member.verification.presentation.web.dto;
 
+
+import com.example.member.common.exception.BusinessException;
+import com.example.member.verification.exception.VerificationErrorCode;
 import com.example.member.verification.application.dto.result.EmailVerificationConfirmResult;
 import com.example.member.member.domain.enumtype.MemberStatus;
 import java.util.UUID;
