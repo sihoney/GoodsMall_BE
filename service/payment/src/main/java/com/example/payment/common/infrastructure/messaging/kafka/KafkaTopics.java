@@ -2,7 +2,7 @@ package com.example.payment.common.infrastructure.messaging.kafka;
 
 public final class KafkaTopics {
 
-    public static final String MEMBER_CREATED = "member-signed-up";
+    public static final String MEMBER_CREATED = "member.signed-up";
     public static final String ORDER_PAYMENT_RESULT = "payment.order-payment-result";
     public static final String ORDER_REFUND_RESULT = "payment.order-refund-result";
     public static final String ORDER_DELIVERY_COMPLETED = "order.delivery-completed";

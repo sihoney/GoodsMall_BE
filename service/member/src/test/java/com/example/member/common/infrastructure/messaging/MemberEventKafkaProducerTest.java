@@ -48,9 +48,9 @@ class MemberEventKafkaProducerTest {
 
         when(objectMapper.writeValueAsString(any())).thenReturn("{\"ok\":true}");
 
-        ProducerRecord<String, String> record = new ProducerRecord<>("member-signed-up", memberId.toString(), "{\"ok\":true}");
+        ProducerRecord<String, String> record = new ProducerRecord<>("member.signed-up", memberId.toString(), "{\"ok\":true}");
         RecordMetadata metadata = new RecordMetadata(
-                new TopicPartition("member-signed-up", 0),
+                new TopicPartition("member.signed-up", 0),
                 0L,
                 0,
                 System.currentTimeMillis(),
@@ -91,9 +91,9 @@ class MemberEventKafkaProducerTest {
 
         when(objectMapper.writeValueAsString(any())).thenReturn("{\"ok\":true}");
 
-        ProducerRecord<String, String> record = new ProducerRecord<>("member-seller-promoted", memberId.toString(), "{\"ok\":true}");
+        ProducerRecord<String, String> record = new ProducerRecord<>("member.seller-promoted", memberId.toString(), "{\"ok\":true}");
         RecordMetadata metadata = new RecordMetadata(
-                new TopicPartition("member-seller-promoted", 0),
+                new TopicPartition("member.seller-promoted", 0),
                 0L,
                 0,
                 System.currentTimeMillis(),
@@ -134,9 +134,9 @@ class MemberEventKafkaProducerTest {
 
         when(objectMapper.writeValueAsString(any())).thenReturn("{\"ok\":true}");
 
-        ProducerRecord<String, String> record = new ProducerRecord<>("member-account-verification-expired", memberId.toString(), "{\"ok\":true}");
+        ProducerRecord<String, String> record = new ProducerRecord<>("member.account-verification-expired", memberId.toString(), "{\"ok\":true}");
         RecordMetadata metadata = new RecordMetadata(
-                new TopicPartition("member-account-verification-expired", 0),
+                new TopicPartition("member.account-verification-expired", 0),
                 0L,
                 0,
                 System.currentTimeMillis(),
@@ -176,9 +176,9 @@ class MemberEventKafkaProducerTest {
 
         when(objectMapper.writeValueAsString(any())).thenReturn("{\"ok\":true}");
 
-        ProducerRecord<String, String> record = new ProducerRecord<>("member-account-verification-failed", memberId.toString(), "{\"ok\":true}");
+        ProducerRecord<String, String> record = new ProducerRecord<>("member.account-verification-failed", memberId.toString(), "{\"ok\":true}");
         RecordMetadata metadata = new RecordMetadata(
-                new TopicPartition("member-account-verification-failed", 0),
+                new TopicPartition("member.account-verification-failed", 0),
                 0L,
                 0,
                 System.currentTimeMillis(),
@@ -226,9 +226,9 @@ class MemberEventKafkaProducerTest {
 
         when(objectMapper.writeValueAsString(any())).thenReturn("{\"ok\":true}");
 
-        ProducerRecord<String, String> record = new ProducerRecord<>("member-oauth-linked", memberId.toString(), "{\"ok\":true}");
+        ProducerRecord<String, String> record = new ProducerRecord<>("member.oauth-linked", memberId.toString(), "{\"ok\":true}");
         RecordMetadata metadata = new RecordMetadata(
-                new TopicPartition("member-oauth-linked", 0),
+                new TopicPartition("member.oauth-linked", 0),
                 0L,
                 0,
                 System.currentTimeMillis(),
