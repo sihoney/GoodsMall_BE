@@ -35,6 +35,7 @@ public class SettlementExceptionHandler {
      */
     @ExceptionHandler(InvalidTokenException.class)
     public ResponseEntity<ApiResponse<Object>> handleInvalidToken(InvalidTokenException exception) {
+        // TODO: migrate common-security failures to SecurityException handler.
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(ApiResponse.fail("INVALID_TOKEN", exception.getMessage()));
     }

@@ -25,12 +25,14 @@ public class AiExceptionHandler {
 
     @ExceptionHandler(InvalidTokenException.class)
     public ResponseEntity<ApiResponse<Object>> handleInvalidToken(InvalidTokenException e) {
+        // TODO: migrate common-security failures to SecurityException handler.
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(ApiResponse.fail("INVALID_TOKEN", e.getMessage()));
     }
 
     @ExceptionHandler(AuthorizationDeniedException.class)
     public ResponseEntity<ApiResponse<Object>> handleAuthorizationDenied(AuthorizationDeniedException e) {
+        // TODO: migrate common-security failures to SecurityException handler.
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(ApiResponse.fail("FORBIDDEN", e.getMessage()));
     }
@@ -135,4 +137,3 @@ public class AiExceptionHandler {
                 .body(ApiResponse.fail(ErrorCode.INVALID_INPUT_VALUE.name(), e.getMessage()));
     }
 }
-
