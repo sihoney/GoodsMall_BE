@@ -1,9 +1,12 @@
 package com.example.member.member.application.service;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 
+import com.example.member.common.exception.BusinessException;
 import com.example.member.member.application.dto.command.ProfileImagePresignCommand;
+import com.example.member.member.exception.MemberErrorCode;
 import com.example.member.member.infrastructure.storage.s3.S3Properties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,14 +31,21 @@ class ProfileImageServiceTest {
     void createPresignedUpload_unsupportedExtension_throwsException() {
         ProfileImagePresignCommand request = new ProfileImagePresignCommand("avatar.gif", "image/gif");
 
-        assertThrows(IllegalArgumentException.class, () -> profileImageService.createPresignedUpload(request));
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> profileImageService.createPresignedUpload(request)
+        );
+        assertEquals(MemberErrorCode.INVALID_PROFILE_IMAGE_UPLOAD_REQUEST, exception.getErrorCode());
     }
 
     @Test
     void createPresignedUpload_mismatchedMimeType_throwsException() {
         ProfileImagePresignCommand request = new ProfileImagePresignCommand("avatar.png", "image/jpeg");
 
-        assertThrows(IllegalArgumentException.class, () -> profileImageService.createPresignedUpload(request));
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> profileImageService.createPresignedUpload(request)
+        );
+        assertEquals(MemberErrorCode.INVALID_PROFILE_IMAGE_UPLOAD_REQUEST, exception.getErrorCode());
     }
 }
-

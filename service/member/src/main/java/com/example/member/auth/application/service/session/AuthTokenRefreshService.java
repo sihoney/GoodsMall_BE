@@ -17,8 +17,10 @@ import java.time.Duration;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
 
 @Service
+@Validated
 @RequiredArgsConstructor
 public class AuthTokenRefreshService implements AuthTokenRefreshUsecase {
 
@@ -29,9 +31,7 @@ public class AuthTokenRefreshService implements AuthTokenRefreshUsecase {
 
     @Override
     public AuthTokenResult refresh(TokenRefreshCommand command) {
-        validateRefreshCommand(command);
-
-        String refreshToken = normalizeRequired(command.refreshToken(), "refreshToken");
+        String refreshToken = command.refreshToken().trim();
         jwtTokenProvider.validateRefreshToken(refreshToken);
 
         ParsedRefreshToken parsedRefreshToken = jwtTokenProvider.parseRefreshToken(refreshToken);
@@ -74,19 +74,6 @@ public class AuthTokenRefreshService implements AuthTokenRefreshUsecase {
                 jwtTokenProvider.getRefreshExpiration(),
                 parsedRefreshToken.sessionId()
         );
-    }
-
-    private void validateRefreshCommand(TokenRefreshCommand command) {
-        if (command == null) {
-            throw new IllegalArgumentException("Token refresh request body is required.");
-        }
-    }
-
-    private String normalizeRequired(String value, String fieldName) {
-        if (value == null || value.trim().isEmpty()) {
-            throw new IllegalArgumentException(fieldName + " is required.");
-        }
-        return value.trim();
     }
 
     private AuthSessionMetadata metadataOrEmpty(AuthSessionMetadata metadata) {

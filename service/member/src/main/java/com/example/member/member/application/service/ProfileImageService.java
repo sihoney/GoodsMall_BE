@@ -1,7 +1,9 @@
 package com.example.member.member.application.service;
 
+import com.example.member.common.exception.BusinessException;
 import com.example.member.member.application.dto.command.ProfileImagePresignCommand;
 import com.example.member.member.application.dto.result.ProfileImagePresignResult;
+import com.example.member.member.exception.MemberErrorCode;
 import com.example.member.member.infrastructure.storage.s3.S3Properties;
 import java.net.URL;
 import java.time.Duration;
@@ -10,13 +12,17 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
 @Service
+@Validated
 public class ProfileImageService {
 
     private static final Map<String, String> EXTENSION_TO_CONTENT_TYPE = Map.of(
@@ -34,11 +40,8 @@ public class ProfileImageService {
         this.s3Properties = s3Properties;
     }
 
-    public ProfileImagePresignResult createPresignedUpload(ProfileImagePresignCommand command) {
-        // [1] 요청 검증
-        validateCommand(command);
-
-        // [2] 입력 정규화
+    public ProfileImagePresignResult createPresignedUpload(@Valid @NotNull ProfileImagePresignCommand command) {
+        // [1] 입력 정규화
         String fileName = command.fileName().trim();
         String contentType = command.contentType().trim().toLowerCase(Locale.ROOT);
 
@@ -76,26 +79,14 @@ public class ProfileImageService {
         );
     }
 
-    private void validateCommand(ProfileImagePresignCommand command) {
-        if (command == null) {
-            throw new IllegalArgumentException("프로필 이미지 업로드 요청은 필수입니다.");
-        }
-        if (command.fileName() == null || command.fileName().isBlank()) {
-            throw new IllegalArgumentException("fileName은 필수입니다.");
-        }
-        if (command.contentType() == null || command.contentType().isBlank()) {
-            throw new IllegalArgumentException("contentType은 필수입니다.");
-        }
-    }
-
     private String extractExtension(String fileName) {
         int dotIndex = fileName.lastIndexOf('.');
         if (dotIndex < 0 || dotIndex == fileName.length() - 1) {
-            throw new IllegalArgumentException("fileName에는 지원하는 확장자가 포함되어야 합니다.");
+            throw new BusinessException(MemberErrorCode.INVALID_PROFILE_IMAGE_UPLOAD_REQUEST);
         }
         String extension = fileName.substring(dotIndex + 1).toLowerCase(Locale.ROOT);
         if (!EXTENSION_TO_CONTENT_TYPE.containsKey(extension)) {
-            throw new IllegalArgumentException("지원하지 않는 파일 확장자입니다.");
+            throw new BusinessException(MemberErrorCode.INVALID_PROFILE_IMAGE_UPLOAD_REQUEST);
         }
         return extension;
     }
@@ -103,11 +94,11 @@ public class ProfileImageService {
     private void validateContentType(String extension, String contentType) {
         Set<String> allowedContentTypes = new HashSet<>(EXTENSION_TO_CONTENT_TYPE.values());
         if (!allowedContentTypes.contains(contentType)) {
-            throw new IllegalArgumentException("지원하지 않는 contentType입니다.");
+            throw new BusinessException(MemberErrorCode.INVALID_PROFILE_IMAGE_UPLOAD_REQUEST);
         }
         String expectedContentType = EXTENSION_TO_CONTENT_TYPE.get(extension);
         if (!expectedContentType.equals(contentType)) {
-            throw new IllegalArgumentException("fileName 확장자와 contentType이 일치해야 합니다.");
+            throw new BusinessException(MemberErrorCode.INVALID_PROFILE_IMAGE_UPLOAD_REQUEST);
         }
     }
 
@@ -125,7 +116,7 @@ public class ProfileImageService {
             trimmed = trimmed.substring(0, trimmed.length() - 1);
         }
         if (trimmed.isBlank()) {
-            throw new IllegalArgumentException("aws.s3.profile-image-prefix는 필수입니다.");
+            throw new IllegalStateException("aws.s3.profile-image-prefix is required.");
         }
         return trimmed;
     }

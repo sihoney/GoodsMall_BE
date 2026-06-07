@@ -16,12 +16,16 @@ import com.example.member.auth.infrastructure.redis.passwordreset.PasswordResetT
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.UUID;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
 
 @Service
+@Validated
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class PasswordResetService {
@@ -32,22 +36,17 @@ public class PasswordResetService {
     private final PasswordResetProperties passwordResetProperties;
     private final PasswordEncoder passwordEncoder;
 
-    public PasswordResetSendResult sendPasswordReset(PasswordResetSendCommand command) {
-        String email = normalizeRequired(command == null ? null : command.email(), "email");
+    public PasswordResetSendResult sendPasswordReset(@Valid @NotNull PasswordResetSendCommand command) {
+        String email = command.email().trim();
 
         memberPersistencePort.findByEmail(email).ifPresent(this::createAndSendToken);
         return new PasswordResetSendResult("이메일이 존재하면 비밀번호 재설정 안내를 발송했습니다.");
     }
 
     @Transactional
-    public PasswordResetConfirmResult confirmPasswordReset(PasswordResetConfirmCommand command) {
-        if (command == null) {
-            throw new IllegalArgumentException("비밀번호 재설정 확인 요청은 필수입니다.");
-        }
-
-        String token = normalizeRequired(command.token(), "token");
-        String newPassword = normalizeRequired(command.newPassword(), "newPassword");
-        validateNewPassword(newPassword);
+    public PasswordResetConfirmResult confirmPasswordReset(@Valid @NotNull PasswordResetConfirmCommand command) {
+        String token = command.token().trim();
+        String newPassword = command.newPassword().trim();
 
         PasswordResetToken passwordResetToken = passwordResetTokenStore.find(token)
                 .orElseThrow(() -> new BusinessException(AuthErrorCode.INVALID_PASSWORD_RESET_TOKEN));
@@ -77,12 +76,6 @@ public class PasswordResetService {
                 buildBody(member.getEmail(), token),
                 true
         );
-    }
-
-    private void validateNewPassword(String newPassword) {
-        if (newPassword.length() < 8) {
-            throw new IllegalArgumentException("새 비밀번호는 8자 이상이어야 합니다.");
-        }
     }
 
     private String buildSubject() {
@@ -147,10 +140,4 @@ public class PasswordResetService {
                 """.formatted(email, resetUrl, resetUrl, expirationMinutes);
     }
 
-    private String normalizeRequired(String value, String fieldName) {
-        if (value == null || value.trim().isEmpty()) {
-            throw new IllegalArgumentException(fieldName + "은(는) 필수입니다.");
-        }
-        return value.trim();
-    }
 }

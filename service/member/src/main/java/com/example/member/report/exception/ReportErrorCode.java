@@ -7,7 +7,12 @@ public enum ReportErrorCode implements ErrorCode {
 
     SELF_REPORT_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "SELF_REPORT_NOT_ALLOWED", "자기 자신은 신고할 수 없습니다."),
     DUPLICATE_MEMBER_REPORT(HttpStatus.CONFLICT, "DUPLICATE_MEMBER_REPORT", "같은 신고자에 대해 처리 대기 중인 회원 신고가 이미 존재합니다."),
-    MEMBER_REPORT_NOT_FOUND(HttpStatus.NOT_FOUND, "MEMBER_REPORT_NOT_FOUND", "회원 신고를 찾을 수 없습니다.");
+    MEMBER_REPORT_NOT_FOUND(HttpStatus.NOT_FOUND, "MEMBER_REPORT_NOT_FOUND", "회원 신고를 찾을 수 없습니다."),
+    INVALID_REVIEW_RESTRICTION_REQUEST(
+            HttpStatus.BAD_REQUEST,
+            "INVALID_REVIEW_RESTRICTION_REQUEST",
+            "restrictionType과 durationHours는 함께 입력해야 합니다."
+    );
 
     private final HttpStatus status;
     private final String code;

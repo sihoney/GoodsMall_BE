@@ -4,6 +4,8 @@ import com.example.member.auth.domain.enumtype.OAuthProvider;
 import com.example.member.auth.config.GoogleOAuthProperties;
 import com.example.member.auth.config.KakaoOAuthProperties;
 import com.example.member.auth.config.OAuthProviderProperties;
+import com.example.member.auth.exception.AuthErrorCode;
+import com.example.member.common.exception.BusinessException;
 import java.util.EnumMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +25,7 @@ public class OAuthProviderPropertiesRegistry {
 
         OAuthProviderProperties providerProperties = properties.get(provider);
         if (providerProperties == null) {
-            throw new IllegalArgumentException("UNSUPPORTED_OAUTH_PROVIDER");
+            throw new BusinessException(AuthErrorCode.UNSUPPORTED_OAUTH_PROVIDER);
         }
         return providerProperties;
     }

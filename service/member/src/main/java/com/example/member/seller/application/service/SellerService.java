@@ -17,8 +17,10 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
 
 @Service
+@Validated
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class SellerService implements SellerUsecase {
@@ -30,7 +32,6 @@ public class SellerService implements SellerUsecase {
     @Transactional
     @Override
     public AccountVerificationSendResult registerSeller(UUID memberId, SellerRegisterCommand command) {
-        validateRegisterCommand(command);
         getMember(memberId);
 
         if (sellerPersistencePort.existsByMemberId(memberId)) {
@@ -40,8 +41,8 @@ public class SellerService implements SellerUsecase {
         return accountVerificationUsecase.createAccountVerification(
                 memberId,
                 new AccountVerificationCreateCommand(
-                        normalizeRequired(command.bankName(), "bankName"),
-                        normalizeRequired(command.account(), "account")
+                        command.bankName().trim(),
+                        command.account().trim()
                 )
         );
     }
@@ -61,21 +62,8 @@ public class SellerService implements SellerUsecase {
         );
     }
 
-    private void validateRegisterCommand(SellerRegisterCommand command) {
-        if (command == null) {
-            throw new IllegalArgumentException("판매자 등록 요청은 필수입니다.");
-        }
-    }
-
     private Member getMember(UUID memberId) {
         return memberPersistencePort.findById(memberId)
                 .orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
-    }
-
-    private String normalizeRequired(String value, String fieldName) {
-        if (value == null || value.trim().isEmpty()) {
-            throw new IllegalArgumentException(fieldName + "은(는) 필수입니다.");
-        }
-        return value.trim();
     }
 }

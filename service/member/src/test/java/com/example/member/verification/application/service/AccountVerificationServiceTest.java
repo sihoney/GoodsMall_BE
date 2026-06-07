@@ -121,6 +121,36 @@ class AccountVerificationServiceTest {
     }
 
     @Test
+    void createAccountVerification_invalidAccountNumber_throwsException() {
+        AccountVerificationService service = new AccountVerificationService(
+                memberPersistencePort,
+                sessionStore,
+                sellerDraftStore,
+                accountEncryptionService,
+                sellerPromotionService,
+                jwtTokenProvider,
+                refreshTokenStore,
+                properties,
+                memberEventPort
+        );
+        UUID memberId = UUID.randomUUID();
+        Member member = createMember(memberId);
+        AccountVerificationCreateCommand command = new AccountVerificationCreateCommand("KAKAO", "12-AB");
+
+        when(memberPersistencePort.findById(memberId)).thenReturn(Optional.of(member));
+        when(sessionStore.findCurrentSessionId(memberId)).thenReturn(Optional.empty());
+        when(sellerDraftStore.findCurrentDraftId(memberId)).thenReturn(Optional.empty());
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> service.createAccountVerification(memberId, command)
+        );
+        assertEquals(VerificationErrorCode.INVALID_ACCOUNT_NUMBER, exception.getErrorCode());
+        verify(accountEncryptionService, never()).encrypt(anyString());
+    }
+
+
+    @Test
     void confirmAccountVerification_invalidCode_throwsException() {
         AccountVerificationService service = new AccountVerificationService(
                 memberPersistencePort,

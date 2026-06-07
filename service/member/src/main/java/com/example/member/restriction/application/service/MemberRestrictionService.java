@@ -22,8 +22,10 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
 
 @Service
+@Validated
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class MemberRestrictionService implements MemberRestrictionUsecase {
@@ -38,7 +40,6 @@ public class MemberRestrictionService implements MemberRestrictionUsecase {
             CreateMemberRestrictionCommand command
     ) {
         RoleGuard.requireAdmin(authenticatedMember);
-        validateCreateCommand(command);
 
         UUID memberId = command.memberId();
         memberPersistencePort.findById(memberId).orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
@@ -109,18 +110,6 @@ public class MemberRestrictionService implements MemberRestrictionUsecase {
     public MemberRestriction getActiveLoginRestriction(UUID memberId, LocalDateTime now) {
         return memberRestrictionPersistencePort.findActiveRestriction(memberId, RestrictionType.LOGIN_BAN, now)
                 .orElse(null);
-    }
-
-    private void validateCreateCommand(CreateMemberRestrictionCommand command) {
-        if (command == null) {
-            throw new IllegalArgumentException("회원 제재 생성 요청은 필수입니다.");
-        }
-        if (command.memberId() == null) {
-            throw new IllegalArgumentException("memberId는 필수입니다.");
-        }
-        if (command.restrictionType() == null) {
-            throw new IllegalArgumentException("restrictionType은 필수입니다.");
-        }
     }
 
     private MemberRestrictionResult toResult(MemberRestriction memberRestriction, Map<UUID, String> nicknamesById) {

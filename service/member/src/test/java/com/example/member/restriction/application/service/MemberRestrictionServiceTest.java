@@ -19,7 +19,8 @@ import com.example.member.member.infrastructure.persistence.jpa.MemberJpaAdapter
 import com.example.member.restriction.infrastructure.persistence.jpa.MemberRestrictionJpaAdapter;
 import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
 import com.todaylunch.common.security.auth.enumtype.MemberRole;
-import com.todaylunch.common.security.exception.AuthorizationDeniedException;
+import com.todaylunch.common.security.exception.SecurityErrorCode;
+import com.todaylunch.common.security.exception.SecurityException;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -103,8 +104,11 @@ class MemberRestrictionServiceTest {
                 24
         );
 
-        assertThrows(AuthorizationDeniedException.class,
-                () -> memberRestrictionService.createRestriction(user, command));
+        SecurityException exception = assertThrows(
+                SecurityException.class,
+                () -> memberRestrictionService.createRestriction(user, command)
+        );
+        assertEquals(SecurityErrorCode.INSUFFICIENT_ROLE, exception.getErrorCode());
     }
 
     private Member createMember(UUID memberId) {

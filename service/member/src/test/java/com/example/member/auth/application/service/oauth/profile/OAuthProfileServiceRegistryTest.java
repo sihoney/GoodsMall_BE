@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.example.member.auth.application.dto.OAuthUserProfile;
 import com.example.member.auth.domain.enumtype.OAuthProvider;
+import com.example.member.auth.exception.AuthErrorCode;
+import com.example.member.common.exception.BusinessException;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -26,12 +28,12 @@ class OAuthProfileServiceRegistryTest {
                 new FakeOAuthProfileService(OAuthProvider.KAKAO)
         ));
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        BusinessException exception = assertThrows(
+                BusinessException.class,
                 () -> registry.get(OAuthProvider.GOOGLE)
         );
 
-        assertEquals("UNSUPPORTED_OAUTH_PROVIDER", exception.getMessage());
+        assertEquals(AuthErrorCode.UNSUPPORTED_OAUTH_PROVIDER, exception.getErrorCode());
     }
 
     @Test

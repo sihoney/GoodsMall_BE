@@ -1,6 +1,8 @@
 package com.example.member.auth.application.service.oauth.profile;
 
 import com.example.member.auth.domain.enumtype.OAuthProvider;
+import com.example.member.auth.exception.AuthErrorCode;
+import com.example.member.common.exception.BusinessException;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -26,7 +28,7 @@ public class OAuthProfileServiceRegistry {
     public OAuthProfileService get(OAuthProvider provider) {
         OAuthProfileService profileService = services.get(provider);
         if (profileService == null) {
-            throw new IllegalArgumentException("UNSUPPORTED_OAUTH_PROVIDER");
+            throw new BusinessException(AuthErrorCode.UNSUPPORTED_OAUTH_PROVIDER);
         }
         return profileService;
     }

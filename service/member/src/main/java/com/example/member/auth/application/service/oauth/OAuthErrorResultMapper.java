@@ -16,18 +16,35 @@ public class OAuthErrorResultMapper {
     ) {
         String prefix = provider.name() + "_OAUTH";
 
-        if (exception instanceof IllegalArgumentException) {
-            return OAuthResult.error(
-                    prefix + "_INVALID_REQUEST",
-                    provider.name() + " OAuth 요청이 올바르지 않거나 만료되었습니다."
-            );
-        }
 
         if (exception instanceof BusinessException businessException
                 && businessException.getErrorCode() == AuthErrorCode.INVALID_LOGIN) {
             return OAuthResult.error(
                     prefix + "_MEMBER_LOGIN_FAILED",
                     "OAuth 식별자에 연결된 회원 계정으로 로그인할 수 없습니다."
+            );
+        }
+        if (exception instanceof BusinessException businessException
+                && businessException.getErrorCode() == AuthErrorCode.OAUTH_INVALID_REQUEST) {
+            return OAuthResult.error(
+                    prefix + "_INVALID_REQUEST",
+                    provider.name() + " OAuth request is invalid."
+            );
+        }
+
+        if (exception instanceof BusinessException businessException
+                && businessException.getErrorCode() == AuthErrorCode.OAUTH_INVALID_STATE) {
+            return OAuthResult.error(
+                    prefix + "_INVALID_REQUEST",
+                    provider.name() + " OAuth request is invalid or expired."
+            );
+        }
+
+        if (exception instanceof BusinessException businessException
+                && businessException.getErrorCode() == AuthErrorCode.UNSUPPORTED_OAUTH_PROVIDER) {
+            return OAuthResult.error(
+                    prefix + "_PROVIDER_UNSUPPORTED",
+                    "Unsupported OAuth provider."
             );
         }
 
@@ -62,12 +79,6 @@ public class OAuthErrorResultMapper {
             return OAuthResult.error(
                     prefix + "_PROFILE_FETCH_FAILED",
                     provider.name() + " 사용자 프로필 조회에 실패했습니다."
-            );
-        }
-        if ("UNSUPPORTED_OAUTH_PROVIDER".equals(message)) {
-            return OAuthResult.error(
-                    prefix + "_PROVIDER_UNSUPPORTED",
-                    "지원하지 않는 OAuth provider입니다."
             );
         }
 

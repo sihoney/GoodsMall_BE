@@ -10,7 +10,10 @@ public enum AuthErrorCode implements ErrorCode {
             "INVALID_PASSWORD_RESET_TOKEN",
             "유효하지 않거나 만료된 비밀번호 재설정 링크입니다."
     ),
-    INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "INVALID_TOKEN", "유효하지 않은 토큰입니다.");
+    INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "INVALID_TOKEN", "유효하지 않은 토큰입니다."),
+    OAUTH_INVALID_REQUEST(HttpStatus.BAD_REQUEST, "OAUTH_INVALID_REQUEST", "OAuth request is invalid."),
+    OAUTH_INVALID_STATE(HttpStatus.BAD_REQUEST, "OAUTH_INVALID_STATE", "OAuth state is invalid or expired."),
+    UNSUPPORTED_OAUTH_PROVIDER(HttpStatus.BAD_REQUEST, "UNSUPPORTED_OAUTH_PROVIDER", "Unsupported OAuth provider.");
 
     private final HttpStatus status;
     private final String code;

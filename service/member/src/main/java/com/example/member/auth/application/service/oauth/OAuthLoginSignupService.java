@@ -168,7 +168,7 @@ public class OAuthLoginSignupService {
 
     private OAuthProvider requireProvider(OAuthUserProfile profile) {
         if (profile == null || profile.provider() == null) {
-            throw new IllegalArgumentException("provider is required");
+            throw new BusinessException(AuthErrorCode.OAUTH_INVALID_REQUEST);
         }
         return profile.provider();
     }
@@ -193,7 +193,7 @@ public class OAuthLoginSignupService {
     private String normalizeRequired(String value, String fieldName) {
         String normalized = normalizeNullable(value);
         if (normalized == null) {
-            throw new IllegalArgumentException(fieldName + " is required");
+            throw new BusinessException(AuthErrorCode.OAUTH_INVALID_REQUEST);
         }
         return normalized;
     }

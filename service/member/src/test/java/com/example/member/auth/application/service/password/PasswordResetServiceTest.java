@@ -1,6 +1,7 @@
 package com.example.member.auth.application.service.password;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -20,6 +21,7 @@ import com.example.member.member.infrastructure.persistence.jpa.MemberJpaAdapter
 import com.example.member.auth.infrastructure.redis.passwordreset.PasswordResetToken;
 import com.example.member.auth.infrastructure.redis.passwordreset.PasswordResetTokenStore;
 import com.todaylunch.common.security.auth.enumtype.MemberRole;
+import jakarta.validation.Validation;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -128,13 +130,12 @@ class PasswordResetServiceTest {
     }
 
     @Test
-    void confirmPasswordReset_shortPassword_throwsException() {
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> passwordResetService.confirmPasswordReset(
-                        new PasswordResetConfirmCommand("reset-token", "short")
-                )
-        );
+    void confirmPasswordResetCommand_shortPassword_hasValidationViolation() {
+        var validator = Validation.buildDefaultValidatorFactory().getValidator();
+
+        var violations = validator.validate(new PasswordResetConfirmCommand("reset-token", "short"));
+
+        assertFalse(violations.isEmpty());
     }
 
     private Member activeMember() {

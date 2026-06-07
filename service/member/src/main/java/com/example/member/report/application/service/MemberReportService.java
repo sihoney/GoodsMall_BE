@@ -16,6 +16,8 @@ import com.example.member.member.domain.entity.Member;
 import com.example.member.report.domain.entity.MemberReport;
 import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
 import com.todaylunch.common.security.auth.util.RoleGuard;
+import com.todaylunch.common.security.exception.SecurityErrorCode;
+import com.todaylunch.common.security.exception.SecurityException;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
@@ -25,8 +27,10 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
 
 @Service
+@Validated
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class MemberReportService implements MemberReportUsecase {
@@ -42,7 +46,6 @@ public class MemberReportService implements MemberReportUsecase {
             CreateMemberReportCommand command
     ) {
         validateReporter(authenticatedMember);
-        validateCreateCommand(command);
 
         UUID reporterId = authenticatedMember.memberId();
         UUID reportedMemberId = command.reportedMemberId();
@@ -119,7 +122,6 @@ public class MemberReportService implements MemberReportUsecase {
             ReviewMemberReportCommand command
     ) {
         RoleGuard.requireAdmin(authenticatedMember);
-        validateReviewCommand(command);
 
         MemberReport memberReport = memberReportPersistencePort.findById(reportId)
                 .orElseThrow(() -> new BusinessException(ReportErrorCode.MEMBER_REPORT_NOT_FOUND));
@@ -127,7 +129,7 @@ public class MemberReportService implements MemberReportUsecase {
 
         if (command.restrictionType() != null || command.durationHours() != null) {
             if (command.restrictionType() == null || command.durationHours() == null) {
-                throw new IllegalArgumentException("restrictionType과 durationHours는 함께 입력해야 합니다.");
+                throw new BusinessException(ReportErrorCode.INVALID_REVIEW_RESTRICTION_REQUEST);
             }
 
             memberRestrictionService.createRestriction(
@@ -152,7 +154,6 @@ public class MemberReportService implements MemberReportUsecase {
             ReviewMemberReportCommand command
     ) {
         RoleGuard.requireAdmin(authenticatedMember);
-        validateReviewCommand(command);
 
         MemberReport memberReport = memberReportPersistencePort.findById(reportId)
                 .orElseThrow(() -> new BusinessException(ReportErrorCode.MEMBER_REPORT_NOT_FOUND));
@@ -162,25 +163,7 @@ public class MemberReportService implements MemberReportUsecase {
 
     private void validateReporter(AuthenticatedMember authenticatedMember) {
         if (authenticatedMember == null || authenticatedMember.memberId() == null) {
-            throw new IllegalArgumentException("인증된 회원 정보는 필수입니다.");
-        }
-    }
-
-    private void validateCreateCommand(CreateMemberReportCommand command) {
-        if (command == null) {
-            throw new IllegalArgumentException("회원 신고 생성 요청은 필수입니다.");
-        }
-        if (command.reportedMemberId() == null) {
-            throw new IllegalArgumentException("reportedMemberId는 필수입니다.");
-        }
-        if (command.reportType() == null) {
-            throw new IllegalArgumentException("reportType은 필수입니다.");
-        }
-    }
-
-    private void validateReviewCommand(ReviewMemberReportCommand command) {
-        if (command == null) {
-            throw new IllegalArgumentException("회원 신고 검토 요청은 필수입니다.");
+            throw new SecurityException(SecurityErrorCode.AUTHENTICATION_REQUIRED);
         }
     }
 

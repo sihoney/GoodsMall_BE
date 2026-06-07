@@ -143,6 +143,35 @@ class MemberReportServiceTest {
     }
 
     @Test
+    void approveReport_withIncompleteRestriction_throwsException() {
+        UUID adminId = UUID.randomUUID();
+        AuthenticatedMember admin = new AuthenticatedMember(adminId, MemberRole.ADMIN, UUID.randomUUID());
+        MemberReport memberReport = MemberReport.create(
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                "abuse",
+                ReportType.ABUSE,
+                LocalDateTime.now()
+        );
+        ReviewMemberReportCommand command = new ReviewMemberReportCommand(
+                "confirmed",
+                RestrictionType.LOGIN_BAN,
+                null
+        );
+
+        when(memberReportPersistencePort.findById(memberReport.getReportId())).thenReturn(Optional.of(memberReport));
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> memberReportService.approveReport(admin, memberReport.getReportId(), command)
+        );
+        assertEquals(ReportErrorCode.INVALID_REVIEW_RESTRICTION_REQUEST, exception.getErrorCode());
+        verify(memberRestrictionService, never()).createRestriction(any(), any());
+    }
+
+
+    @Test
     void getReportDetail_success_returnsReport() {
         AuthenticatedMember admin = new AuthenticatedMember(UUID.randomUUID(), MemberRole.ADMIN, UUID.randomUUID());
         MemberReport memberReport = MemberReport.create(

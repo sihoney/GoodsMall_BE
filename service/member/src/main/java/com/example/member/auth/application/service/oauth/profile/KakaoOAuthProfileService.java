@@ -2,9 +2,11 @@ package com.example.member.auth.application.service.oauth.profile;
 
 import com.example.member.auth.application.dto.OAuthUserProfile;
 import com.example.member.auth.domain.enumtype.OAuthProvider;
+import com.example.member.auth.exception.AuthErrorCode;
 import com.example.member.auth.infrastructure.kakao.KakaoOAuthClient;
 import com.example.member.auth.infrastructure.kakao.KakaoTokenResponse;
 import com.example.member.auth.infrastructure.kakao.KakaoUserProfileResponse;
+import com.example.member.common.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -81,7 +83,7 @@ public class KakaoOAuthProfileService implements OAuthProfileService {
 
     private String normalizeRequired(String value, String fieldName) {
         if (value == null || value.trim().isEmpty()) {
-            throw new IllegalArgumentException(fieldName + "은(는) 필수입니다.");
+            throw new BusinessException(AuthErrorCode.OAUTH_INVALID_REQUEST);
         }
         return value.trim();
     }

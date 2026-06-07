@@ -9,18 +9,20 @@ import com.example.member.auth.application.dto.result.ChangePasswordResult;
 import com.example.member.member.application.dto.result.CreateMemberResult;
 import com.example.member.member.application.dto.result.MemberResult;
 import com.example.member.member.application.dto.result.WithdrawMemberResult;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 
 public interface MemberUsecase {
 
-    CreateMemberResult createMember(CreateMemberCommand command);
+    CreateMemberResult createMember(@Valid @NotNull CreateMemberCommand command);
 
-    MemberResult getCurrentMember(GetMemberQuery query);
+    MemberResult getCurrentMember(@Valid @NotNull GetMemberQuery query);
 
-    MemberResult updateCurrentMember(UpdateMemberCommand command);
+    MemberResult updateCurrentMember(@Valid @NotNull UpdateMemberCommand command);
 
-    MemberResult getMember(GetMemberQuery query);
+    MemberResult getMember(@Valid @NotNull GetMemberQuery query);
 
-    ChangePasswordResult changeCurrentMemberPassword(ChangePasswordCommand command);
+    ChangePasswordResult changeCurrentMemberPassword(@Valid @NotNull ChangePasswordCommand command);
 
-    WithdrawMemberResult withdrawCurrentMember(WithdrawMemberCommand command);
+    WithdrawMemberResult withdrawCurrentMember(@Valid @NotNull WithdrawMemberCommand command);
 }

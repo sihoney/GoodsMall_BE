@@ -1,6 +1,8 @@
 package com.example.member.member.infrastructure.storage.s3;
 
+import com.example.member.common.exception.BusinessException;
 import com.example.member.member.application.port.out.ProfileImageUrlPort;
+import com.example.member.member.exception.MemberErrorCode;
 import java.time.Duration;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
@@ -33,7 +35,7 @@ public class ProfileImageUrlResolver implements ProfileImageUrlPort {
             return null;
         }
         if (!isSupportedKey(objectKey)) {
-            throw new IllegalArgumentException("profileImageKey가 프로필 이미지 경로가 아닙니다.");
+            throw new BusinessException(MemberErrorCode.INVALID_PROFILE_IMAGE_KEY);
         }
 
         GetObjectRequest getObjectRequest = GetObjectRequest.builder()

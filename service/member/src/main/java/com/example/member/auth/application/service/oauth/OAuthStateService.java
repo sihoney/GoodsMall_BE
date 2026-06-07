@@ -1,10 +1,12 @@
 package com.example.member.auth.application.service.oauth;
 
 import com.example.member.auth.application.dto.result.OAuthResult;
+import com.example.member.auth.exception.AuthErrorCode;
 import com.example.member.auth.domain.enumtype.OAuthProvider;
 import com.example.member.auth.infrastructure.redis.oauth.OAuthAuthorizeState;
 import com.example.member.auth.infrastructure.redis.oauth.OAuthAuthorizeStateStore;
 import com.example.member.auth.config.OAuthProviderProperties;
+import com.example.member.common.exception.BusinessException;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -39,7 +41,7 @@ public class OAuthStateService {
     public OAuthAuthorizeState consumeAuthorizeState(OAuthProvider provider, String state) {
         // [1] State 조회
         return oauthAuthorizeStateStore.consumeAuthorizeState(provider, normalizeRequired(state, "state"))
-                .orElseThrow(() -> new IllegalArgumentException("Invalid or expired OAuth state."));
+                .orElseThrow(() -> new BusinessException(AuthErrorCode.OAUTH_INVALID_STATE));
     }
 
     public String createOAuthResultKey(OAuthProvider provider, OAuthResult result) {
@@ -62,7 +64,7 @@ public class OAuthStateService {
 
     private String normalizeRequired(String value, String fieldName) {
         if (value == null || value.trim().isEmpty()) {
-            throw new IllegalArgumentException(fieldName + " is required");
+            throw new BusinessException(AuthErrorCode.OAUTH_INVALID_REQUEST);
         }
         return value.trim();
     }

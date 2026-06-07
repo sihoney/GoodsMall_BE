@@ -11,6 +11,7 @@ import com.example.member.member.application.port.out.MemberPersistencePort;
 import com.example.member.verification.config.EmailVerificationProperties;
 import com.example.member.verification.domain.entity.EmailVerification;
 import com.example.member.member.domain.entity.Member;
+import com.example.member.member.exception.MemberErrorCode;
 import com.example.member.verification.domain.enumtype.EmailVerificationPurpose;
 import com.example.member.member.domain.enumtype.MemberStatus;
 import java.time.LocalDateTime;
@@ -71,7 +72,7 @@ public class EmailVerificationService {
         }
 
         Member member = memberPersistencePort.findById(emailVerification.getMemberId())
-                .orElseThrow(() -> new IllegalArgumentException("이메일 인증 대상 회원을 찾을 수 없습니다."));
+                .orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
 
         if (member.getStatus() == MemberStatus.PENDING_VERIFICATION) {
             member.changeStatus(MemberStatus.ACTIVE, now);
@@ -94,7 +95,7 @@ public class EmailVerificationService {
     public EmailVerification resendSignupVerification(String email) {
         String normalizedEmail = normalizeRequired(email, "email");
         Member member = memberPersistencePort.findByEmail(normalizedEmail)
-                .orElseThrow(() -> new IllegalArgumentException("해당 이메일의 회원을 찾을 수 없습니다."));
+                .orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
 
         if (member.isActive()) {
             throw new BusinessException(VerificationErrorCode.EMAIL_VERIFICATION_NOT_ALLOWED, "ACTIVE 상태의 회원은 이메일 인증이 필요하지 않습니다.");
@@ -118,7 +119,8 @@ public class EmailVerificationService {
 
     private Member validateSignupTarget(Member member) {
         if (member == null) {
-            throw new IllegalArgumentException("member는 필수입니다.");
+            // TODO: 이 서비스가 외부 호출 경계가 되면 중복 필수값 검증을 command validation으로 이동한다.
+            throw new BusinessException(VerificationErrorCode.EMAIL_VERIFICATION_NOT_ALLOWED);
         }
         if (member.getStatus() != MemberStatus.PENDING_VERIFICATION) {
             throw new BusinessException(VerificationErrorCode.EMAIL_VERIFICATION_NOT_ALLOWED, "이메일 인증 대상은 PENDING_VERIFICATION 상태여야 합니다.");
@@ -194,7 +196,11 @@ public class EmailVerificationService {
 
     private String normalizeRequired(String value, String fieldName) {
         if (value == null || value.trim().isEmpty()) {
-            throw new IllegalArgumentException(fieldName + "은(는) 필수입니다.");
+            // TODO: 이 서비스가 외부 호출 경계가 되면 중복 필수값 검증을 command validation으로 이동한다.
+            if ("token".equals(fieldName)) {
+                throw new BusinessException(VerificationErrorCode.EMAIL_VERIFICATION_TOKEN_INVALID);
+            }
+            throw new BusinessException(VerificationErrorCode.EMAIL_VERIFICATION_NOT_ALLOWED);
         }
         return value.trim();
     }

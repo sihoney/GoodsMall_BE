@@ -2,9 +2,11 @@ package com.example.member.auth.application.service.oauth.profile;
 
 import com.example.member.auth.application.dto.OAuthUserProfile;
 import com.example.member.auth.domain.enumtype.OAuthProvider;
+import com.example.member.auth.exception.AuthErrorCode;
 import com.example.member.auth.infrastructure.google.GoogleOAuthClient;
 import com.example.member.auth.infrastructure.google.GoogleTokenResponse;
 import com.example.member.auth.infrastructure.google.GoogleUserProfileResponse;
+import com.example.member.common.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -71,7 +73,7 @@ public class GoogleOAuthProfileService implements OAuthProfileService {
 
     private String normalizeRequired(String value, String fieldName) {
         if (value == null || value.trim().isEmpty()) {
-            throw new IllegalArgumentException(fieldName + " is required");
+            throw new BusinessException(AuthErrorCode.OAUTH_INVALID_REQUEST);
         }
         return value.trim();
     }

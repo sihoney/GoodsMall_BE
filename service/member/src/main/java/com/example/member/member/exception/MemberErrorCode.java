@@ -75,6 +75,12 @@ public enum MemberErrorCode implements ErrorCode {
             HttpStatus.SERVICE_UNAVAILABLE,
             "MEMBER_WITHDRAWAL_CHECK_UNAVAILABLE",
             "회원 탈퇴 가능 여부를 확인할 수 없습니다. 잠시 후 다시 시도해 주세요."
+    ),
+    INVALID_PROFILE_IMAGE_KEY(HttpStatus.BAD_REQUEST, "INVALID_PROFILE_IMAGE_KEY", "프로필 이미지 키가 올바르지 않습니다."),
+    INVALID_PROFILE_IMAGE_UPLOAD_REQUEST(
+            HttpStatus.BAD_REQUEST,
+            "INVALID_PROFILE_IMAGE_UPLOAD_REQUEST",
+            "프로필 이미지 업로드 요청이 올바르지 않습니다."
     );
 
     private final HttpStatus status;

@@ -1,6 +1,7 @@
 package com.example.member.member.application.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -29,6 +30,7 @@ import com.example.member.auth.domain.entity.MemberOauthAccount;
 import com.example.member.auth.domain.enumtype.OAuthProvider;
 import com.example.member.member.domain.enumtype.MemberStatus;
 import com.todaylunch.common.security.auth.enumtype.MemberRole;
+import jakarta.validation.Validation;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -180,7 +182,8 @@ class MemberServiceTest {
         when(memberPersistencePort.existsByEmail("member@test.com")).thenReturn(false);
         when(profileImageUrlPort.isSupportedKey("invalid/profile.png")).thenReturn(false);
 
-        assertThrows(IllegalArgumentException.class, () -> memberService.createMember(command));
+        BusinessException exception = assertThrows(BusinessException.class, () -> memberService.createMember(command));
+        assertEquals(MemberErrorCode.INVALID_PROFILE_IMAGE_KEY, exception.getErrorCode());
 
         verify(memberPersistencePort, never()).save(any(Member.class));
         verify(memberEventPort, never()).publishMemberSignedUp(any(Member.class));
@@ -277,28 +280,14 @@ class MemberServiceTest {
     }
 
     @Test
-    void changeCurrentMemberPassword_shortNewPassword_throwsException() {
+    void changePasswordCommand_shortNewPassword_hasValidationViolation() {
         UUID memberId = UUID.randomUUID();
-        Member member = Member.create(
-                memberId,
-                "member@test.com",
-                "encoded-current-password",
-                "tester",
-                null,
-                null,
-                null,
-                MemberRole.USER,
-                MemberStatus.ACTIVE,
-                LocalDateTime.now().minusDays(1),
-                LocalDateTime.now().minusDays(1)
-        );
         ChangePasswordCommand command = new ChangePasswordCommand(memberId, "current-password", "short");
+        var validator = Validation.buildDefaultValidatorFactory().getValidator();
 
-        when(memberPersistencePort.findById(memberId)).thenReturn(Optional.of(member));
-        when(passwordEncoder.matches("current-password", "encoded-current-password")).thenReturn(true);
+        var violations = validator.validate(command);
 
-        assertThrows(IllegalArgumentException.class,
-                () -> memberService.changeCurrentMemberPassword(command));
+        assertFalse(violations.isEmpty());
     }
 
     @Test

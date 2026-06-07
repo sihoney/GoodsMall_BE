@@ -17,6 +17,7 @@ import com.example.member.verification.application.port.out.AccountVerificationE
 import com.example.member.member.application.port.out.MemberPersistencePort;
 import com.example.member.verification.config.AccountVerificationProperties;
 import com.example.member.member.domain.entity.Member;
+import com.example.member.member.exception.MemberErrorCode;
 import com.example.member.verification.domain.enumtype.AccountVerificationStatus;
 import com.example.member.seller.infrastructure.crypto.AccountEncryptionService;
 import com.example.member.verification.infrastructure.redis.accountverification.AccountVerificationSession;
@@ -38,8 +39,10 @@ import java.util.concurrent.ThreadLocalRandom;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
 
 @Service
+@Validated
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class AccountVerificationService implements AccountVerificationUsecase {
@@ -63,7 +66,6 @@ public class AccountVerificationService implements AccountVerificationUsecase {
             AccountVerificationCreateCommand command
     ) {
         Member member = getMember(memberId);
-        validateCreateRequest(command);
 
         cleanupExistingCurrentSession(memberId);
 
@@ -81,7 +83,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
                 draftId,
                 member.getMemberId(),
                 sessionId,
-                normalizeRequired(command.bankName(), "bankName"),
+                command.bankName().trim(),
                 encryptedAccountNumber,
                 maskedAccountNumber,
                 now
@@ -127,7 +129,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
             String sessionId,
             AccountVerificationConfirmCommand command
     ) {
-        validateConfirmRequest(sessionId, command);
+        validateSessionId(sessionId);
         acquireLockOrThrow(sessionId);
         try {
             AccountVerificationSession session = getOwnedSession(memberId, sessionId);
@@ -148,7 +150,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
                 throw new BusinessException(VerificationErrorCode.ACCOUNT_VERIFICATION_NOT_ALLOWED, "계좌 인증 세션은 확인 처리할 수 없습니다.");
             }
 
-            String normalizedCode = normalizeRequired(command.code(), "code");
+            String normalizedCode = command.code().trim();
             if (!session.getCodeHash().equals(hashCode(normalizedCode))) {
                 session.markFailed("계좌 인증 코드가 일치하지 않습니다.");
                 if (session.getAttemptCount() >= properties.maxAttempts()) {
@@ -287,7 +289,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
 
     private Member getMember(UUID memberId) {
         return memberPersistencePort.findById(memberId)
-                .orElseThrow(() -> new IllegalArgumentException("회원을 찾을 수 없습니다."));
+                .orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
     }
 
     private AccountVerificationCurrentResult emptyCurrentResponse() {
@@ -371,16 +373,10 @@ public class AccountVerificationService implements AccountVerificationUsecase {
         return sellerDraftStore.findDraft(session.getDraftId()).orElse(null);
     }
 
-    private void validateCreateRequest(AccountVerificationCreateCommand command) {
-        if (command == null) {
-            throw new IllegalArgumentException("계좌 인증 요청 본문은 필수입니다.");
-        }
-    }
-
-    private void validateConfirmRequest(String sessionId, AccountVerificationConfirmCommand command) {
-        normalizeRequired(sessionId, "sessionId");
-        if (command == null) {
-            throw new IllegalArgumentException("확인 요청 본문은 필수입니다.");
+    private void validateSessionId(String sessionId) {
+        if (sessionId == null || sessionId.trim().isEmpty()) {
+            // TODO: 이 서비스가 외부 호출 경계가 되면 중복 필수값 검증을 command validation으로 이동한다.
+            throw new BusinessException(VerificationErrorCode.ACCOUNT_VERIFICATION_NOT_FOUND);
         }
     }
 
@@ -412,21 +408,17 @@ public class AccountVerificationService implements AccountVerificationUsecase {
         }
     }
 
-    private String normalizeRequired(String value, String fieldName) {
-        if (value == null || value.trim().isEmpty()) {
-            throw new IllegalArgumentException(fieldName + "은(는) 필수입니다.");
-        }
-        return value.trim();
-    }
-
     private String normalizeAccountNumber(String accountNumber) {
-        String normalized = normalizeRequired(accountNumber, "accountNumber").replace("-", "").replace(" ", "");
+        if (accountNumber == null || accountNumber.trim().isEmpty()) {
+            // TODO: 이 서비스가 외부 호출 경계가 되면 중복 필수값 검증을 command validation으로 이동한다.
+            throw new BusinessException(VerificationErrorCode.INVALID_ACCOUNT_NUMBER);
+        }
+        String normalized = accountNumber.trim().replace("-", "").replace(" ", "");
         if (!normalized.matches("\\d{6,20}")) {
-            throw new IllegalArgumentException("accountNumber는 숫자만 포함해야 하고 6자 이상 20자 이하여야 합니다.");
+            throw new BusinessException(VerificationErrorCode.INVALID_ACCOUNT_NUMBER);
         }
         return normalized;
     }
-
     private String maskAccountNumber(String normalizedAccountNumber) {
         int length = normalizedAccountNumber.length();
         if (length <= 4) {

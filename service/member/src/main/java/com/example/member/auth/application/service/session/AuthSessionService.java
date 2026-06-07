@@ -79,7 +79,7 @@ public class AuthSessionService implements AuthSessionUsecase {
 
     private ParsedAccessToken parseRequiredAccessToken(String accessToken) {
         if (accessToken == null || accessToken.isBlank()) {
-            throw new IllegalArgumentException("Authorization header is required.");
+            throw new BusinessException(AuthErrorCode.INVALID_TOKEN);
         }
         String token = accessToken.startsWith("Bearer ") ? accessToken.substring(7) : accessToken;
         return jwtTokenProvider.parseAccessToken(token);

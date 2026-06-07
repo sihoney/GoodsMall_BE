@@ -27,7 +27,12 @@ public enum VerificationErrorCode implements ErrorCode {
             "ACCOUNT_VERIFICATION_RESEND_LIMIT_EXCEEDED",
             "계좌 인증 재전송 횟수를 초과했습니다."
     ),
-    ACCOUNT_VERIFICATION_NOT_ALLOWED(HttpStatus.CONFLICT, "ACCOUNT_VERIFICATION_NOT_ALLOWED", "계좌 인증을 진행할 수 없습니다.");
+    ACCOUNT_VERIFICATION_NOT_ALLOWED(HttpStatus.CONFLICT, "ACCOUNT_VERIFICATION_NOT_ALLOWED", "계좌 인증을 진행할 수 없습니다."),
+    INVALID_ACCOUNT_NUMBER(
+            HttpStatus.BAD_REQUEST,
+            "INVALID_ACCOUNT_NUMBER",
+            "accountNumber는 숫자만 포함해야 하고 6자 이상 20자 이하여야 합니다."
+    );
 
     private final HttpStatus status;
     private final String code;

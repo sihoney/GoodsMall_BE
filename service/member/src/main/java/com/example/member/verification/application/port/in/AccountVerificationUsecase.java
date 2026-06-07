@@ -6,17 +6,19 @@ import com.example.member.verification.application.dto.result.AccountVerificatio
 import com.example.member.verification.application.dto.result.AccountVerificationConfirmResult;
 import com.example.member.verification.application.dto.result.AccountVerificationCurrentResult;
 import com.example.member.verification.application.dto.result.AccountVerificationSendResult;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
 
 public interface AccountVerificationUsecase {
 
-    AccountVerificationSendResult createAccountVerification(UUID memberId, AccountVerificationCreateCommand command);
+    AccountVerificationSendResult createAccountVerification(UUID memberId, @Valid @NotNull AccountVerificationCreateCommand command);
 
     AccountVerificationConfirmResult confirmAccountVerification(
             UUID memberId,
             UUID authSessionId,
             String sessionId,
-            AccountVerificationConfirmCommand command
+            @Valid @NotNull AccountVerificationConfirmCommand command
     );
 
     AccountVerificationCurrentResult getCurrentAccountVerification(UUID memberId);
