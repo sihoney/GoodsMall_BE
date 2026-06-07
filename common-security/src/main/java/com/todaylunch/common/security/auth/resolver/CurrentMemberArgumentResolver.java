@@ -4,7 +4,8 @@ import com.todaylunch.common.security.auth.annotation.CurrentMember;
 import com.todaylunch.common.security.auth.constant.AuthHeaders;
 import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
 import com.todaylunch.common.security.auth.enumtype.MemberRole;
-import com.todaylunch.common.security.exception.InvalidTokenException;
+import com.todaylunch.common.security.exception.SecurityErrorCode;
+import com.todaylunch.common.security.exception.SecurityException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.UUID;
 import org.springframework.core.MethodParameter;
@@ -30,7 +31,7 @@ public class CurrentMemberArgumentResolver implements HandlerMethodArgumentResol
     ) {
         HttpServletRequest request = webRequest.getNativeRequest(HttpServletRequest.class);
         if (request == null) {
-            throw new InvalidTokenException();
+            throw new SecurityException(SecurityErrorCode.AUTHENTICATION_REQUIRED);
         }
 
         String memberIdHeader = request.getHeader(AuthHeaders.MEMBER_ID);
@@ -40,7 +41,7 @@ public class CurrentMemberArgumentResolver implements HandlerMethodArgumentResol
         if (memberIdHeader == null || memberIdHeader.isBlank()
                 || roleHeader == null || roleHeader.isBlank()
                 || sessionIdHeader == null || sessionIdHeader.isBlank()) {
-            throw new InvalidTokenException();
+            throw new SecurityException(SecurityErrorCode.AUTHENTICATION_REQUIRED);
         }
 
         try {
@@ -50,7 +51,7 @@ public class CurrentMemberArgumentResolver implements HandlerMethodArgumentResol
                     UUID.fromString(sessionIdHeader)
             );
         } catch (IllegalArgumentException exception) {
-            throw new InvalidTokenException();
+            throw new SecurityException(SecurityErrorCode.INVALID_TOKEN);
         }
     }
 }
