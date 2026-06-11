@@ -94,7 +94,7 @@ jobs:
   deploy-lite:
     name: deploy lite
     needs: build-lite-images
-    runs-on: [self-hosted, linux, x64, ec2, k3s]
+    runs-on: [self-hosted, Linux, X64, ec2, k3s]
 
     steps:
       - name: checkout
