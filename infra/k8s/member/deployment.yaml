@@ -22,7 +22,7 @@ spec:
       containers:
         # [3] Container & JVM (진짜 도커 알맹이와 메모리 설정)
         - name: member
-          image: ghcr.io/prgrms-be-adv-devcourse/beadv5_2_todaylunchmenu_be/member:latest
+          image: ghcr.io/sihoney/goodsmall-be/member:latest
           ports:
             - containerPort: 8083
           env:

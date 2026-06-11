@@ -19,7 +19,7 @@ spec:
         - name: ghcr-secret
       containers:
         - name: product
-          image: ghcr.io/prgrms-be-adv-devcourse/beadv5_2_todaylunchmenu_be/product:latest
+          image: ghcr.io/sihoney/goodsmall-be/product:latest
           ports:
             - containerPort: 8081
           env:

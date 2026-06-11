@@ -19,7 +19,7 @@ spec:
         - name: ghcr-secret
       containers:
         - name: gateway
-          image: ghcr.io/prgrms-be-adv-devcourse/beadv5_2_todaylunchmenu_be/gateway:latest
+          image: ghcr.io/sihoney/goodsmall-be/gateway:latest
           ports:
             - containerPort: 8080
           env:

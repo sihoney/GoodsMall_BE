@@ -12,7 +12,7 @@ spec:
         - name: ghcr-secret
       containers:
         - name: db-migration
-          image: ghcr.io/prgrms-be-adv-devcourse/beadv5_2_todaylunchmenu_be/db-migration:latest
+          image: ghcr.io/sihoney/goodsmall-be/db-migration:latest
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: prod

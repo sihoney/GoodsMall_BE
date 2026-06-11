@@ -91,104 +91,104 @@ jobs:
           docker push "$IMAGE_PREFIX/${{ matrix.module_name }}:latest"
           docker push "$IMAGE_PREFIX/${{ matrix.module_name }}:sha-$SHORT_SHA"
 
-#  deploy-lite:
-#    name: deploy lite
-#    needs: build-lite-images
-#    runs-on: [self-hosted, linux, x64, ec2, k3s]
-#
-#    steps:
-#      - name: checkout
-#        uses: actions/checkout@v4
-#
-#      - name: sanity check
-#        run: kubectl get nodes
-#
-#      - name: apply namespace
-#        run: kubectl apply -f infra/k8s/infra/namespace.yaml
-#
-#      - name: apply ghcr pull secret
-#        run: |
-#          kubectl create secret docker-registry ghcr-secret -n "$NAMESPACE" \
-#            --docker-server=ghcr.io \
-#            --docker-username="${{ github.actor }}" \
-#            --docker-password="${{ secrets.GHCR_PAT }}" \
-#            --dry-run=client -o yaml | kubectl apply -f -
-#
-#      - name: apply lite secrets
-#        run: |
-#          kubectl create secret generic common-secret -n "$NAMESPACE" \
-#            --from-literal=DB_USER_NAME="${{ secrets.DB_USER_NAME }}" \
-#            --from-literal=DB_USER_PASSWORD="${{ secrets.DB_USER_PASSWORD }}" \
-#            --dry-run=client -o yaml | kubectl apply -f -
-#
-#          kubectl create secret generic gateway-secret -n "$NAMESPACE" \
-#            --from-literal=JWT_SECRET_KEY="${{ secrets.JWT_SECRET_KEY }}" \
-#            --dry-run=client -o yaml | kubectl apply -f -
-#
-#          kubectl create secret generic member-secret -n "$NAMESPACE" \
-#            --from-literal=JWT_SECRET_KEY="${{ secrets.JWT_SECRET_KEY }}" \
-#            --from-literal=AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY }}" \
-#            --from-literal=AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_KEY }}" \
-#            --from-literal=KAKAO_CLIENT_SECRET="${{ secrets.KAKAO_CLIENT_SECRET }}" \
-#            --from-literal=SMTP_USERNAME="${{ secrets.SMTP_USERNAME }}" \
-#            --from-literal=SMTP_PASSWORD="${{ secrets.SMTP_PASSWORD }}" \
-#            --from-literal=ACCOUNT_VERIFICATION_SECRET_KEY="${{ secrets.ACCOUNT_VERIFICATION_SECRET_KEY }}" \
-#            --dry-run=client -o yaml | kubectl apply -f -
-#
-#          kubectl create secret generic product-secret -n "$NAMESPACE" \
-#            --from-literal=AWS_ACCESS_KEY="${{ secrets.AWS_ACCESS_KEY }}" \
-#            --from-literal=AWS_SECRET_KEY="${{ secrets.AWS_SECRET_KEY }}" \
-#            --dry-run=client -o yaml | kubectl apply -f -
-#
-#          kubectl create secret generic auction-secret -n "$NAMESPACE" \
-#            --from-literal=AWS_ACCESS_KEY="${{ secrets.AWS_ACCESS_KEY }}" \
-#            --from-literal=AWS_SECRET_KEY="${{ secrets.AWS_SECRET_KEY }}" \
-#            --dry-run=client -o yaml | kubectl apply -f -
-#
-#      - name: apply lite infra
-#        if: inputs.deploy_infra == 'true'
-#        run: |
-#          kubectl apply -f infra/k8s/infra/common/configmap.yaml
-#          kubectl apply -f infra/k8s/infra/postgres/
-#          kubectl apply -f infra/k8s/infra/redis/
-#          kubectl apply -f infra/k8s/infra/kafka/zookeeper-service.yaml
-#          kubectl apply -f infra/k8s/infra/kafka/zookeeper-deployment.yaml
-#          kubectl apply -f infra/k8s/infra/kafka/kafka-configmap.yaml
-#          kubectl apply -f infra/k8s/infra/kafka/kafka-service.yaml
-#          kubectl apply -f infra/k8s/infra/kafka/kafka-deployment.yaml
-#          kubectl apply -f infra/k8s/infra/elasticsearch/
-#          kubectl apply -f infra/k8s/infra/traefik-config.yaml
-#          kubectl apply -f infra/k8s/infra/ingress.yaml
-#
-#      - name: wait for lite infra
-#        if: inputs.deploy_infra == 'true'
-#        run: |
-#          kubectl rollout status deployment/postgres -n "$NAMESPACE" --timeout=300s
-#          kubectl rollout status deployment/redis -n "$NAMESPACE" --timeout=300s
-#          kubectl rollout status deployment/zookeeper -n "$NAMESPACE" --timeout=300s
-#          kubectl rollout status deployment/kafka -n "$NAMESPACE" --timeout=300s
-#          kubectl rollout status deployment/elasticsearch -n "$NAMESPACE" --timeout=300s
-#
-#      - name: run db migration
-#        if: inputs.run_migration == 'true'
-#        run: |
-#          kubectl delete job/db-migration -n "$NAMESPACE" --ignore-not-found
-#          kubectl apply -f infra/k8s/db-migration/ -n "$NAMESPACE"
-#          kubectl wait --for=condition=complete job/db-migration -n "$NAMESPACE" --timeout=300s
-#
-#      - name: apply lite services
-#        run: |
-#          for service in $LITE_SERVICES; do
-#            kubectl apply -f "infra/k8s/$service/" -n "$NAMESPACE"
-#          done
-#
-#      - name: rollout restart lite services
-#        run: |
-#          for service in $LITE_SERVICES; do
-#            kubectl rollout restart "deployment/$service" -n "$NAMESPACE"
-#            kubectl rollout status "deployment/$service" -n "$NAMESPACE" --timeout=300s
-#          done
-#
-#      - name: show lite pods
-#        if: always()
-#        run: kubectl get pods -n "$NAMESPACE" -o wide
+  deploy-lite:
+    name: deploy lite
+    needs: build-lite-images
+    runs-on: [self-hosted, linux, x64, ec2, k3s]
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: sanity check
+        run: kubectl get nodes
+
+      - name: apply namespace
+        run: kubectl apply -f infra/k8s/infra/namespace.yaml
+
+      - name: apply ghcr pull secret
+        run: |
+          kubectl create secret docker-registry ghcr-secret -n "$NAMESPACE" \
+            --docker-server=ghcr.io \
+            --docker-username="${{ github.actor }}" \
+            --docker-password="${{ secrets.GHCR_PAT }}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: apply lite secrets
+        run: |
+          kubectl create secret generic common-secret -n "$NAMESPACE" \
+            --from-literal=DB_USER_NAME="${{ secrets.DB_USER_NAME }}" \
+            --from-literal=DB_USER_PASSWORD="${{ secrets.DB_USER_PASSWORD }}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+          kubectl create secret generic gateway-secret -n "$NAMESPACE" \
+            --from-literal=JWT_SECRET_KEY="${{ secrets.JWT_SECRET_KEY }}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+          kubectl create secret generic member-secret -n "$NAMESPACE" \
+            --from-literal=JWT_SECRET_KEY="${{ secrets.JWT_SECRET_KEY }}" \
+            --from-literal=AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY }}" \
+            --from-literal=AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_KEY }}" \
+            --from-literal=KAKAO_CLIENT_SECRET="${{ secrets.KAKAO_CLIENT_SECRET }}" \
+            --from-literal=SMTP_USERNAME="${{ secrets.SMTP_USERNAME }}" \
+            --from-literal=SMTP_PASSWORD="${{ secrets.SMTP_PASSWORD }}" \
+            --from-literal=ACCOUNT_VERIFICATION_SECRET_KEY="${{ secrets.ACCOUNT_VERIFICATION_SECRET_KEY }}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+          kubectl create secret generic product-secret -n "$NAMESPACE" \
+            --from-literal=AWS_ACCESS_KEY="${{ secrets.AWS_ACCESS_KEY }}" \
+            --from-literal=AWS_SECRET_KEY="${{ secrets.AWS_SECRET_KEY }}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+          kubectl create secret generic auction-secret -n "$NAMESPACE" \
+            --from-literal=AWS_ACCESS_KEY="${{ secrets.AWS_ACCESS_KEY }}" \
+            --from-literal=AWS_SECRET_KEY="${{ secrets.AWS_SECRET_KEY }}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: apply lite infra
+        if: inputs.deploy_infra == 'true'
+        run: |
+          kubectl apply -f infra/k8s/infra/common/configmap.yaml
+          kubectl apply -f infra/k8s/infra/postgres/
+          kubectl apply -f infra/k8s/infra/redis/
+          kubectl apply -f infra/k8s/infra/kafka/zookeeper-service.yaml
+          kubectl apply -f infra/k8s/infra/kafka/zookeeper-deployment.yaml
+          kubectl apply -f infra/k8s/infra/kafka/kafka-configmap.yaml
+          kubectl apply -f infra/k8s/infra/kafka/kafka-service.yaml
+          kubectl apply -f infra/k8s/infra/kafka/kafka-deployment.yaml
+          kubectl apply -f infra/k8s/infra/elasticsearch/
+          kubectl apply -f infra/k8s/infra/traefik-config.yaml
+          kubectl apply -f infra/k8s/infra/ingress.yaml
+
+      - name: wait for lite infra
+        if: inputs.deploy_infra == 'true'
+        run: |
+          kubectl rollout status deployment/postgres -n "$NAMESPACE" --timeout=300s
+          kubectl rollout status deployment/redis -n "$NAMESPACE" --timeout=300s
+          kubectl rollout status deployment/zookeeper -n "$NAMESPACE" --timeout=300s
+          kubectl rollout status deployment/kafka -n "$NAMESPACE" --timeout=300s
+          kubectl rollout status deployment/elasticsearch -n "$NAMESPACE" --timeout=300s
+
+      - name: run db migration
+        if: inputs.run_migration == 'true'
+        run: |
+          kubectl delete job/db-migration -n "$NAMESPACE" --ignore-not-found
+          kubectl apply -f infra/k8s/db-migration/ -n "$NAMESPACE"
+          kubectl wait --for=condition=complete job/db-migration -n "$NAMESPACE" --timeout=300s
+
+      - name: apply lite services
+        run: |
+          for service in $LITE_SERVICES; do
+            kubectl apply -f "infra/k8s/$service/" -n "$NAMESPACE"
+          done
+
+      - name: rollout restart lite services
+        run: |
+          for service in $LITE_SERVICES; do
+            kubectl rollout restart "deployment/$service" -n "$NAMESPACE"
+            kubectl rollout status "deployment/$service" -n "$NAMESPACE" --timeout=300s
+          done
+
+      - name: show lite pods
+        if: always()
+        run: kubectl get pods -n "$NAMESPACE" -o wide
