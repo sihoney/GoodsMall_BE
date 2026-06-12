@@ -13,8 +13,6 @@ spec:
       labels:
         app: settlement
     spec:
-      nodeSelector:
-        role: infra
       imagePullSecrets:
         - name: ghcr-secret
       containers:

@@ -15,8 +15,6 @@ spec:
         app: member
     spec:
       # [2] Scheduling & Secret (문지기 패스 & 격리 구역 지정)
-      nodeSelector:
-        role: app
       imagePullSecrets:
         - name: ghcr-secret
       containers:

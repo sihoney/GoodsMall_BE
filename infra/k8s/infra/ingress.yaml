@@ -35,10 +35,10 @@ spec:
   ingressClassName: traefik
   tls:
     - hosts:
-        - 3.36.235.7.nip.io   # nip.io: Let's Encrypt 인증서를 발급받을 수 있는 '무료 와일드카드 도메인 서비스'
+        - 43.200.180.86.nip.io   # nip.io: Let's Encrypt 인증서를 발급받을 수 있는 '무료 와일드카드 도메인 서비스'
       secretName: nip-io-tls  # 발급받은 SSL/TLS 인증서 파일을 Secret(k8s 메모리)에 저장
   rules:
-    - host: 3.36.235.7.nip.io       # 사용자가 접속할 도메인
+    - host: 43.200.180.86.nip.io       # 사용자가 접속할 도메인
       http:
         paths:
           - path: /                 # 모든 경로 (최상위 루트)

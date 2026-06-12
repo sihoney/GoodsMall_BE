@@ -13,8 +13,6 @@ spec:
       labels:
         app: redis
     spec:
-      nodeSelector:
-        role: infra
       containers:
         - name: redis
           image: redis:7.4-alpine
