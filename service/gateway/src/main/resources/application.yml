@@ -20,7 +20,7 @@ spring:
               "[/**]":
                 allowedOrigins:
                   - http://localhost:5173
-                  - https://goodsmall.vercel.app
+                  - https://goods-mall-fe.vercel.app
                   - https://www.goods-mall.shop
                 allowedMethods:
                   - GET

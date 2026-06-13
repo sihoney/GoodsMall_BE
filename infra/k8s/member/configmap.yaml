@@ -10,7 +10,7 @@ data:
   SERVICES_PRODUCT_URL: "http://product:8081"
   SERVICES_AUCTION_URL: "http://auction:8090"
   SERVICES_SETTLEMENT_URL: "http://settlement:8085"
-  FRONTEND_BASE_URL: "https://www.goods-mall.shop"
+  FRONTEND_BASE_URL: "https://goods-mall-fe.vercel.app"
   MEMBER_SIGNUP_REQUIRE_EMAIL_VERIFICATION: "true"
   EMAIL_PROVIDER: "smtp"
   SMTP_HOST: "live.smtp.mailtrap.io"
