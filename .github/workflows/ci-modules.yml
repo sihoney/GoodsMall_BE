@@ -1,0 +1,111 @@
+# =========================================================================
+# 모놀리식 레포지토리(Monorepo) 모듈별 조건부 빌드 및 테스트 파이프라인
+# =========================================================================
+name: ci-modules
+
+# -------------------------------------------------------------------------
+# 트리거 조건 (Trigger Events)
+# -------------------------------------------------------------------------
+on:
+  pull_request:
+    branches:
+      - dev
+      - main
+    paths:
+      - "service/**"
+      - "db-migration/**"
+      - "common-security/**"
+      - "common-monitoring/**"
+      - "build.gradle"
+      - "settings.gradle"
+      - "gradle.properties"
+      - "gradle/**"
+      - "scripts/detect-changed-modules.sh"
+      - ".github/workflows/ci-modules.yml"
+
+# -------------------------------------------------------------------------
+# 동시성 제어 (Concurrency)
+# -------------------------------------------------------------------------
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# -------------------------------------------------------------------------
+# 권한 설정 (Permissions)
+# -------------------------------------------------------------------------
+permissions:
+  contents: read
+
+jobs:
+  # =======================================================================
+  # 1. 변경 감지 작업 (Detect Changes Job)
+  # =======================================================================
+  detect-changes:
+    name: Detect changed modules
+    runs-on: ubuntu-latest
+
+    # 스크립트의 결과물(outputs)을 외부로 노출
+    outputs:
+      has_changes: ${{ steps.detect.outputs.has_changes }}
+      matrix: ${{ steps.detect.outputs.matrix }}
+
+    steps:
+      # [Step 1] 전체 Git 커밋 히스토리 체크아웃 (정확한 diff 비교를 위해 fetch-depth: 0 필수)
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # [Step 2] 변경 감지 셸 스크립트 실행
+      # - PR의 대상 브랜치 base.sha와 현재 최신 커밋 head.sha를 인자로 넘겨줍니다.
+      - name: Detect changed modules
+        id: detect
+        shell: bash
+        run: bash scripts/detect-changed-modules.sh "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"
+
+      # [Step 3] GitHub Actions 요약(Summary) 탭에 결과 기록
+      - name: Summary
+        shell: bash
+        run: |
+          {
+            echo "## Changed module detection"
+            echo ""
+            echo "- has_changes: \`${{ steps.detect.outputs.has_changes }}\`"
+            echo "- matrix: \`${{ steps.detect.outputs.matrix }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # =======================================================================
+  # 2. 변경 모듈 빌드 작업 (Build Changed Modules Job)
+  # - 전달받은 JSON Matrix를 기반으로 변경된 모듈들만 독립된 환경에서 '동시에 병렬로' 빌드를 수행
+  # =======================================================================
+  build:
+    name: Build changed modules
+    needs: detect-changes                                   # 1단계(detect-changes)가 성공적으로 끝나야 실행됨
+    if: needs.detect-changes.outputs.has_changes == 'true'  # 변경사항이 있을 때만 빌드 수행
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false                                              # 하나의 모듈 빌드가 실패하더라도, 다른 모듈의 빌드를 중단하지 않고 끝까지 진행
+      matrix: ${{ fromJson(needs.detect-changes.outputs.matrix) }}  # JSON 문자열을 Matrix 구조로 변환하여 주입
+
+    steps:
+      # [Step 1] 빌드 타겟 소스코드 체크아웃
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # [Step 2] Java 실행 환경(JDK 21) 설정 및 Gradle 의존성 캐싱 활성화
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      # [Step 3] Gradle 실행 권한 부여
+      - name: Grant execute permission
+        run: chmod +x ./gradlew
+
+      # [Step 4] 매트릭스에 할당된 해당 모듈만 핀포인트로 빌드 실행
+      # - 예: ./gradlew :gateway:build
+      - name: Build selected module
+        run: ./gradlew :${{ matrix.module_name }}:build
