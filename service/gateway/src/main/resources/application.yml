@@ -1,11 +1,11 @@
-﻿server:
+server:
   port: 8080
 
 spring:
   application:
     name: gateway-service
   config:
-    import: optional:file:service/gateway/.env[.properties],optional:file:.env[.properties]
+    import: optional:file:service/gateway/.env[.properties],optional:file:.env[.properties],optional:classpath:gateway-auth-rules.yml,optional:file:/config/gateway-auth-rules.yml
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -14,24 +14,6 @@ spring:
     gateway:
       server:
         webflux:
-          globalcors:
-            add-to-simple-url-handler-mapping: true
-            cors-configurations: #
-              "[/**]":
-                allowedOrigins:
-                  - http://localhost:5173
-                  - https://goods-mall-fe.vercel.app
-                  - https://www.goods-mall.shop
-                allowedMethods:
-                  - GET
-                  - POST
-                  - PUT
-                  - PATCH
-                  - DELETE
-                  - OPTIONS
-                allowedHeaders:
-                  - "*"
-                allowCredentials: true
           routes:
             - id: member-auth-service
               uri: ${MEMBER_SERVICE_URL:http://member:8083}
@@ -188,160 +170,8 @@ jwt:
   secret: ${JWT_SECRET_KEY}
   issuer: member-service
 
-gateway:
-  auth:
-    jwt-validation-enabled: ${GATEWAY_JWT_VALIDATION_ENABLED:true}
-    public-paths:
-      - /api/auth/login
-      - /api/auth/refresh
-      - /api/auth/password-resets
-      - /api/auth/password-resets/confirm
-      - /api/auth/oauth/kakao/authorize
-      - /api/auth/oauth/kakao/callback
-      - /api/auth/oauth/kakao/result
-      - /api/auth/oauth/google/authorize
-      - /api/auth/oauth/google/callback
-      - /api/auth/oauth/google/result
-      - /api/auth/email-verifications
-      - /api/auth/email-verifications/confirm
-      - /api/auth/email-verifications/auto-login
-      - /api/auth/profile-images/presign
-      - /api/auctions/ws
-      - /swagger/**
-      - /swagger-ui.html
-    public-rules:
-      - methods: [POST]
-        pattern: /api/members
-      - methods: [GET]
-        pattern: /api/members/**
-      - methods: [GET]
-        pattern: /api/category/**
-      - methods: [GET]
-        pattern: /api/categories/**
-      - methods: [GET]
-        pattern: /api/products/**
-      - methods: [GET]
-        pattern: /api/ai/**
-      - methods: [GET]
-        pattern: /api/auctions/**
-    role-rules:
-      - methods: [GET, PUT, PATCH, DELETE]
-        pattern: /api/members/me
-        allowed-roles: [USER, SELLER, ADMIN]
-      - methods: [PATCH]
-        pattern: /api/members/me/password
-        allowed-roles: [USER, SELLER, ADMIN]
-      - methods: [GET, POST]
-        pattern: /api/members/me/account-verifications/**
-        allowed-roles: [USER, SELLER, ADMIN]
-      - methods: [GET, DELETE]
-        pattern: /api/members/me/oauth-accounts/**
-        allowed-roles: [USER, SELLER, ADMIN]
-      - methods: [POST]
-        pattern: /api/auth/logout/**
-        allowed-roles: [USER, SELLER, ADMIN]
-      - methods: [GET, DELETE]
-        pattern: /api/auth/sessions/**
-        allowed-roles: [USER, SELLER, ADMIN]
-      - methods: [GET]
-        pattern: /api/auth/oauth/kakao/link/authorize
-        allowed-roles: [USER, SELLER, ADMIN]
-      - methods: [GET]
-        pattern: /api/auth/oauth/kakao/link/authorize-url
-        allowed-roles: [USER, SELLER, ADMIN]
-      - methods: [POST]
-        pattern: /api/auth/oauth/kakao/link
-        allowed-roles: [USER, SELLER, ADMIN]
-      - methods: [POST, GET]
-        pattern: /api/member-reports/**
-        allowed-roles: [USER, SELLER, ADMIN]
-      - methods: [GET, PATCH]
-        pattern: /api/notifications/**
-        allowed-roles: [USER, SELLER, ADMIN]
-      - methods: [GET, POST, PUT, PATCH, DELETE]
-        pattern: /api/carts/**
-        allowed-roles: [USER, SELLER, ADMIN]
-      - methods: [GET, POST, DELETE]
-        pattern: /api/wishes/**
-        allowed-roles: [USER, SELLER, ADMIN]
-      - methods: [GET, POST]
-        pattern: /api/orders/**
-        allowed-roles: [USER, SELLER, ADMIN]
-      - methods: [GET]
-        pattern: /api/deliveries/seller/**
-        allowed-roles: [SELLER, ADMIN]
-      - methods: [GET]
-        pattern: /api/deliveries/seller
-        allowed-roles: [SELLER, ADMIN]
-      - methods: [POST]
-        pattern: /api/deliveries/*/ship
-        allowed-roles: [SELLER, ADMIN]
-      - methods: [GET]
-        pattern: /api/deliveries/**
-        allowed-roles: [USER, SELLER, ADMIN]
-      - methods: [GET, POST]
-        pattern: /api/return-requests/**
-        allowed-roles: [SELLER, ADMIN]
-      - methods: [GET, POST]
-        pattern: /api/payments/**
-        allowed-roles: [USER, SELLER, ADMIN]
-      - methods: [POST]
-        pattern: /api/auctions/*/bids
-        allowed-roles: [USER, SELLER, ADMIN]
-      - methods: [POST]
-        pattern: /api/auctions
-        allowed-roles: [SELLER, ADMIN]
-      - methods: [POST, GET, PUT]
-        pattern: /api/sellers/**
-        allowed-roles: [SELLER, ADMIN]
-      - methods: [POST]
-        pattern: /api/sellers/register
-        allowed-roles: [USER, SELLER, ADMIN]
-      - methods: [GET]
-        pattern: /api/products/seller
-        allowed-roles: [SELLER, ADMIN]
-      - methods: [POST, PUT, PATCH, DELETE]
-        pattern: /api/products/**
-        allowed-roles: [SELLER, ADMIN]
-      - methods: [POST]
-        pattern: /api/categories/admin
-        allowed-roles: [ADMIN]
-      - methods: [PUT]
-        pattern: /api/categories/admin/**
-        allowed-roles: [ADMIN]
-      - methods: [POST, PUT]
-        pattern: /api/categories/**
-        allowed-roles: [SELLER, ADMIN]
-      - methods: [DELETE]
-        pattern: /api/categories/**
-        allowed-roles: [ADMIN]
-      - methods: [POST, GET]
-        pattern: /api/settlements/**
-        allowed-roles: [SELLER, ADMIN]
-      - methods: [POST]
-        pattern: /api/ai/admin/**
-        allowed-roles: [ADMIN]
-      - methods: [POST]
-        pattern: /api/admin/products/**
-        allowed-roles: [ADMIN]
-      - methods: [GET, PATCH]
-        pattern: /api/admin/member-reports/**
-        allowed-roles: [ADMIN]
-      - methods: [POST, PATCH, GET]
-        pattern: /api/admin/member-restrictions/**
-        allowed-roles: [ADMIN]
-      - methods: [POST]
-        pattern: /api/ai/admin/**
-        allowed-roles: [ADMIN]
-      - methods: [POST]
-        pattern: /api/ai/assist/**
-        allowed-roles: [SELLER, ADMIN]
-      - methods: [POST]
-        pattern: /api/ai/auction-price-recommendation
-        allowed-roles: [USER, SELLER, ADMIN]
-      - methods: [GET]
-        pattern: /api/ai/recommendations/me
-        allowed-roles: [USER, SELLER, ADMIN]
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,https://goods-mall-fe.vercel.app,https://www.goods-mall.shop}
 
 # TODO: Split log levels by environment later (local dev can use DEBUG, production should default to INFO/WARN).
 logging:

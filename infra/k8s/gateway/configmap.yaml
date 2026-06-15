@@ -4,3 +4,4 @@ metadata:
   name: gateway-config
   namespace: goods-mall
 data:
+  CORS_ALLOWED_ORIGINS: "https://goods-mall-fe.vercel.app,https://www.goods-mall.shop"

@@ -7,12 +7,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "gateway.auth")
 public record GatewayAuthProperties(
         boolean jwtValidationEnabled,
-        List<String> publicPaths,
         List<PublicRule> publicRules,
         List<RoleRule> roleRules
 ) {
     public GatewayAuthProperties {
-        publicPaths = publicPaths == null ? List.of() : List.copyOf(publicPaths);
         publicRules = publicRules == null ? List.of() : publicRules.stream()
                 .map(PublicRule::normalized)
                 .toList();
@@ -49,4 +47,3 @@ public record GatewayAuthProperties(
         }
     }
 }
-

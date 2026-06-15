@@ -32,6 +32,10 @@ spec:
                 name: gateway-config
             - secretRef:
                 name: gateway-secret
+          volumeMounts:
+            - name: gateway-auth-rules-config
+              mountPath: /config/gateway-auth-rules.yml
+              subPath: gateway-auth-rules.yml
           startupProbe:
             tcpSocket:
               port: 8080
@@ -49,3 +53,7 @@ spec:
             initialDelaySeconds: 30
             periodSeconds: 10
             failureThreshold: 3
+      volumes:
+        - name: gateway-auth-rules-config
+          configMap:
+            name: gateway-auth-rules-config
