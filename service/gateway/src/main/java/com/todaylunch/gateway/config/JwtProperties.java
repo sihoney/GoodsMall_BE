@@ -1,4 +1,4 @@
-package com.todaylunch.gateway.auth;
+package com.todaylunch.gateway.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

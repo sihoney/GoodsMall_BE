@@ -6,7 +6,7 @@ import com.todaylunch.gateway.auth.AuthErrorCode;
 import com.todaylunch.gateway.auth.AuthErrorResponse;
 import com.todaylunch.gateway.auth.AuthException;
 import com.todaylunch.gateway.auth.AuthenticatedPrincipal;
-import com.todaylunch.gateway.auth.GatewayAuthProperties;
+import com.todaylunch.gateway.config.GatewayAuthProperties;
 import com.todaylunch.gateway.auth.GatewayJwtValidator;
 import java.nio.charset.StandardCharsets;
 import lombok.RequiredArgsConstructor;

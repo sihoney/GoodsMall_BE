@@ -9,6 +9,8 @@ import javax.crypto.SecretKey;
 import org.springframework.stereotype.Component;
 import java.util.UUID;
 
+import com.todaylunch.gateway.config.JwtProperties;
+
 @Component
 public class GatewayJwtValidator {
 
