@@ -38,8 +38,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class CardPaymentConfirmService implements CardPaymentConfirmUseCase {
 
-    private static final String CARD_METHOD = "移대뱶";
-    private static final String EASY_PAY_METHOD = "媛꾪렪寃곗젣";
+    private static final String CARD_METHOD = "카드";
+    private static final String EASY_PAY_METHOD = "간편결제";
 
     private final CardTransactionRepository cardTransactionRepository;
     private final EscrowRepository escrowRepository;
@@ -234,7 +234,7 @@ public class CardPaymentConfirmService implements CardPaymentConfirmUseCase {
             throw new InvalidCardPaymentRequestException("?뱀씤??寃곗젣 湲덉븸???붿껌 湲덉븸怨??쇱튂?섏? ?딆뒿?덈떎.");
         }
         if (!isAllowedPgMethod(confirmation.method())) {
-            throw new InvalidCardPaymentRequestException("?뱀씤??寃곗젣 ?섎떒??移대뱶媛 ?꾨떃?덈떎.");
+            throw new InvalidCardPaymentRequestException("승인된 결제 수단은 카드가 아닙니다.");
         }
     }
 

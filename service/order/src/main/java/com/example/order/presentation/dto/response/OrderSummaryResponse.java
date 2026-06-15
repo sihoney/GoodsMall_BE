@@ -21,11 +21,7 @@ public record OrderSummaryResponse(
         Integer itemCount,
         boolean hasOngoingReturn
 ) {
-    public static OrderSummaryResponse from(Order order, String s3BaseUrl) {
-        String thumbnailKey = order.getRepresentativeThumbnailKey();
-        String thumbnailUrl = (thumbnailKey != null && !thumbnailKey.isBlank())
-                ? s3BaseUrl + "/" + thumbnailKey
-                : null;
+    public static OrderSummaryResponse from(Order order, String thumbnailUrl) {
         boolean hasOngoingReturn = order.getItems().stream()
                 .anyMatch(item -> item.getStatus() == OrderItemStatus.RETURN_REQUESTED);
         return new OrderSummaryResponse(

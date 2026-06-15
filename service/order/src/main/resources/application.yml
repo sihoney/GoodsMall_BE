@@ -59,8 +59,14 @@ server:
 
 cloud:
   aws:
+    credentials:
+      access-key: ${AWS_ACCESS_KEY:${AWS_ACCESS_KEY_ID:test}}
+      secret-key: ${AWS_SECRET_KEY:${AWS_SECRET_ACCESS_KEY:test}}
+    region:
+      static: ${AWS_REGION:ap-northeast-2}
     s3:
-      base-url: ${S3_BASE_URL:https://todaylunchmenu.s3.ap-northeast-2.amazonaws.com}
+      bucket: ${AWS_S3_BUCKET:goodsmall-s3-bucket}
+      base-url: ${S3_BASE_URL:https://goodsmall-s3-bucket.s3.ap-northeast-2.amazonaws.com}
 
 sweet-tracker:
   api:

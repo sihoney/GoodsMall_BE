@@ -1,4 +1,4 @@
-package com.todaylunch.gateway.auth;
+package com.todaylunch.gateway.config;
 
 import java.util.List;
 import java.util.Locale;
