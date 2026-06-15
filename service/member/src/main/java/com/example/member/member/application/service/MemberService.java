@@ -198,10 +198,6 @@ public class MemberService implements MemberUsecase {
         return normalized;
     }
 
-    private String resolveProfileImageUrl(Member member) {
-        return profileImageUrlPort.resolve(member.getProfileImageKey());
-    }
-
     private String createWithdrawnEmail(Member member) {
         return "withdrawn+" + member.getMemberId() + "@deleted.local";
     }
@@ -235,5 +231,9 @@ public class MemberService implements MemberUsecase {
                 member.getCreatedAt(),
                 member.getUpdatedAt()
         );
+    }
+
+    private String resolveProfileImageUrl(Member member) {
+        return profileImageUrlPort.resolve(member.getProfileImageKey());
     }
 }
