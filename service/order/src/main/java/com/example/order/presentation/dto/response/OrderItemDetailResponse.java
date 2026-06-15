@@ -16,11 +16,7 @@ public record OrderItemDetailResponse(
         String thumbnailKey,
         UUID deliveryId
 ) {
-    public static OrderItemDetailResponse from(OrderItem item, UUID deliveryId, String s3BaseUrl) {
-        String thumbnailKey = item.getThumbnailKeySnapshot();
-        String thumbnailUrl = (thumbnailKey != null && !thumbnailKey.isBlank())
-                ? s3BaseUrl + "/" + thumbnailKey
-                : null;
+    public static OrderItemDetailResponse from(OrderItem item, UUID deliveryId, String thumbnailUrl) {
         return new OrderItemDetailResponse(
                 item.getOrderItemId(),
                 item.getProductId(),
