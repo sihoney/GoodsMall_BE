@@ -122,13 +122,6 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             return false;
         }
 
-        boolean matchedPublicPath = gatewayAuthProperties.publicPaths().stream()
-                .anyMatch(pattern -> antPathMatcher.match(pattern, path));
-
-        if (matchedPublicPath) {
-            return true;
-        }
-
         return gatewayAuthProperties.publicRules().stream()
                 .anyMatch(rule -> matchesMethod(rule.methods(), method) && antPathMatcher.match(rule.pattern(), path));
     }
