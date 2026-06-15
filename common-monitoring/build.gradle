@@ -10,8 +10,8 @@ java {
 }
 
 dependencies {
-    api 'org.springframework.boot:spring-boot-starter-actuator'
-    api 'io.micrometer:micrometer-registry-prometheus'
+    api 'org.springframework.boot:spring-boot-starter-actuator' // Spring Boot 애플리케이션이 자기 상태를 외부에 보여주는 기능
+    api 'io.micrometer:micrometer-registry-prometheus' // 메트릭 수집기 겸 데이터베이스
 }
 
 dependencyManagement {

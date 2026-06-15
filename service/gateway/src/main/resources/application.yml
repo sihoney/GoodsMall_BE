@@ -1,0 +1,371 @@
+﻿server:
+  port: 8080
+
+spring:
+  application:
+    name: gateway-service
+  config:
+    import: optional:file:service/gateway/.env[.properties],optional:file:.env[.properties]
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  cloud:
+    gateway:
+      server:
+        webflux:
+          globalcors:
+            add-to-simple-url-handler-mapping: true
+            cors-configurations: #
+              "[/**]":
+                allowedOrigins:
+                  - http://localhost:5173
+                  - https://goods-mall-fe.vercel.app
+                  - https://www.goods-mall.shop
+                allowedMethods:
+                  - GET
+                  - POST
+                  - PUT
+                  - PATCH
+                  - DELETE
+                  - OPTIONS
+                allowedHeaders:
+                  - "*"
+                allowCredentials: true
+          routes:
+            - id: member-auth-service
+              uri: ${MEMBER_SERVICE_URL:http://member:8083}
+              predicates:
+                - Path=/api/auth/**
+
+            - id: member-service-v1
+              uri: ${MEMBER_SERVICE_URL:http://member:8083}
+              predicates:
+                - Path=/api/members/**
+
+            - id: member-seller-service
+              uri: ${MEMBER_SERVICE_URL:http://member:8083}
+              predicates:
+                - Path=/api/sellers/**
+
+            - id: member-report-service
+              uri: ${MEMBER_SERVICE_URL:http://member:8083}
+              predicates:
+                - Path=/api/member-reports/**
+
+            - id: member-admin-report-service
+              uri: ${MEMBER_SERVICE_URL:http://member:8083}
+              predicates:
+                - Path=/api/admin/member-reports/**
+
+            - id: member-admin-restriction-service
+              uri: ${MEMBER_SERVICE_URL:http://member:8083}
+              predicates:
+                - Path=/api/admin/member-restrictions/**
+
+            - id: product-admin-service
+              uri: ${PRODUCT_SERVICE_URL:http://product:8081}
+              predicates:
+                - Path=/api/admin/products/**
+
+            - id: product-service
+              uri: ${PRODUCT_SERVICE_URL:http://product:8081}
+              predicates:
+                - Path=/api/products/**
+
+            - id: category-service
+              uri: ${PRODUCT_SERVICE_URL:http://product:8081}
+              predicates:
+                - Path=/api/categories/**
+
+            - id: cart-service
+              uri: ${CART_SERVICE_URL:http://cart:8086}
+              predicates:
+                - Path=/api/carts/**
+
+            - id: wish-service
+              uri: ${CART_SERVICE_URL:http://cart:8086}
+              predicates:
+                - Path=/api/wishes/**
+
+            - id: order-service
+              uri: ${ORDER_SERVICE_URL:http://order:8084}
+              predicates:
+                - Path=/api/orders/**
+
+            - id: order-delivery-service
+              uri: ${ORDER_SERVICE_URL:http://order:8084}
+              predicates:
+                - Path=/api/deliveries/**
+
+            - id: order-return-request-service
+              uri: ${ORDER_SERVICE_URL:http://order:8084}
+              predicates:
+                - Path=/api/return-requests/**
+
+            - id: payment-service
+              uri: ${PAYMENT_SERVICE_URL:http://payment:8082}
+              predicates:
+                - Path=/api/payments/**
+
+            - id: settlement-service
+              uri: ${SETTLEMENT_SERVICE_URL:http://settlement:8085}
+              predicates:
+                - Path=/api/settlements/**
+
+            - id: ai-service
+              uri: ${AI_SERVICE_URL:http://ai:8088}
+              predicates:
+                - Path=/api/ai/**
+
+            - id: auction-service
+              uri: ${AUCTION_SERVICE_URL:http://auction:8090}
+              predicates:
+                - Path=/api/auctions/**
+
+            - id: notification-service
+              uri: ${NOTIFICATION_SERVICE_URL:http://notification:8087}
+              predicates:
+                - Path=/api/notifications/**
+
+            - id: member-service-docs
+              uri: ${MEMBER_SERVICE_URL:http://member:8083}
+              predicates:
+                - Path=/swagger/member/v3/api-docs
+              filters:
+                - SetPath=/v3/api-docs
+
+            - id: payment-service-docs
+              uri: ${PAYMENT_SERVICE_URL:http://payment:8082}
+              predicates:
+                - Path=/swagger/payment/v3/api-docs
+              filters:
+                - SetPath=/v3/api-docs
+
+            - id: settlement-service-docs
+              uri: ${SETTLEMENT_SERVICE_URL:http://settlement:8085}
+              predicates:
+                - Path=/swagger/settlement/v3/api-docs
+              filters:
+                - SetPath=/v3/api-docs
+
+            - id: product-service-docs
+              uri: ${PRODUCT_SERVICE_URL:http://product:8081}
+              predicates:
+                - Path=/swagger/product/v3/api-docs
+              filters:
+                - SetPath=/v3/api-docs
+
+            - id: cart-service-docs
+              uri: ${CART_SERVICE_URL:http://cart:8086}
+              predicates:
+                - Path=/swagger/cart/v3/api-docs
+              filters:
+                - SetPath=/v3/api-docs
+
+            - id: order-service-docs
+              uri: ${ORDER_SERVICE_URL:http://order:8084}
+              predicates:
+                - Path=/swagger/order/v3/api-docs
+              filters:
+                - SetPath=/v3/api-docs
+
+            - id: notification-service-docs
+              uri: ${NOTIFICATION_SERVICE_URL:http://notification:8087}
+              predicates:
+                - Path=/swagger/notification/v3/api-docs
+              filters:
+                - SetPath=/v3/api-docs
+
+            - id: ai-service-docs
+              uri: ${AI_SERVICE_URL:http://ai:8088}
+              predicates:
+                - Path=/swagger/ai/v3/api-docs
+              filters:
+                - SetPath=/v3/api-docs
+
+jwt:
+  secret: ${JWT_SECRET_KEY}
+  issuer: member-service
+
+gateway:
+  auth:
+    jwt-validation-enabled: ${GATEWAY_JWT_VALIDATION_ENABLED:true}
+    public-paths:
+      - /api/auth/login
+      - /api/auth/refresh
+      - /api/auth/password-resets
+      - /api/auth/password-resets/confirm
+      - /api/auth/oauth/kakao/authorize
+      - /api/auth/oauth/kakao/callback
+      - /api/auth/oauth/kakao/result
+      - /api/auth/oauth/google/authorize
+      - /api/auth/oauth/google/callback
+      - /api/auth/oauth/google/result
+      - /api/auth/email-verifications
+      - /api/auth/email-verifications/confirm
+      - /api/auth/email-verifications/auto-login
+      - /api/auth/profile-images/presign
+      - /api/auctions/ws
+      - /swagger/**
+      - /swagger-ui.html
+    public-rules:
+      - methods: [POST]
+        pattern: /api/members
+      - methods: [GET]
+        pattern: /api/members/**
+      - methods: [GET]
+        pattern: /api/category/**
+      - methods: [GET]
+        pattern: /api/categories/**
+      - methods: [GET]
+        pattern: /api/products/**
+      - methods: [GET]
+        pattern: /api/ai/**
+      - methods: [GET]
+        pattern: /api/auctions/**
+    role-rules:
+      - methods: [GET, PUT, PATCH, DELETE]
+        pattern: /api/members/me
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [PATCH]
+        pattern: /api/members/me/password
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [GET, POST]
+        pattern: /api/members/me/account-verifications/**
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [GET, DELETE]
+        pattern: /api/members/me/oauth-accounts/**
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [POST]
+        pattern: /api/auth/logout/**
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [GET, DELETE]
+        pattern: /api/auth/sessions/**
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [GET]
+        pattern: /api/auth/oauth/kakao/link/authorize
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [GET]
+        pattern: /api/auth/oauth/kakao/link/authorize-url
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [POST]
+        pattern: /api/auth/oauth/kakao/link
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [POST, GET]
+        pattern: /api/member-reports/**
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [GET, PATCH]
+        pattern: /api/notifications/**
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [GET, POST, PUT, PATCH, DELETE]
+        pattern: /api/carts/**
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [GET, POST, DELETE]
+        pattern: /api/wishes/**
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [GET, POST]
+        pattern: /api/orders/**
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [GET]
+        pattern: /api/deliveries/seller/**
+        allowed-roles: [SELLER, ADMIN]
+      - methods: [GET]
+        pattern: /api/deliveries/seller
+        allowed-roles: [SELLER, ADMIN]
+      - methods: [POST]
+        pattern: /api/deliveries/*/ship
+        allowed-roles: [SELLER, ADMIN]
+      - methods: [GET]
+        pattern: /api/deliveries/**
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [GET, POST]
+        pattern: /api/return-requests/**
+        allowed-roles: [SELLER, ADMIN]
+      - methods: [GET, POST]
+        pattern: /api/payments/**
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [POST]
+        pattern: /api/auctions/*/bids
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [POST]
+        pattern: /api/auctions
+        allowed-roles: [SELLER, ADMIN]
+      - methods: [POST, GET, PUT]
+        pattern: /api/sellers/**
+        allowed-roles: [SELLER, ADMIN]
+      - methods: [POST]
+        pattern: /api/sellers/register
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [GET]
+        pattern: /api/products/seller
+        allowed-roles: [SELLER, ADMIN]
+      - methods: [POST, PUT, PATCH, DELETE]
+        pattern: /api/products/**
+        allowed-roles: [SELLER, ADMIN]
+      - methods: [POST]
+        pattern: /api/categories/admin
+        allowed-roles: [ADMIN]
+      - methods: [PUT]
+        pattern: /api/categories/admin/**
+        allowed-roles: [ADMIN]
+      - methods: [POST, PUT]
+        pattern: /api/categories/**
+        allowed-roles: [SELLER, ADMIN]
+      - methods: [DELETE]
+        pattern: /api/categories/**
+        allowed-roles: [ADMIN]
+      - methods: [POST, GET]
+        pattern: /api/settlements/**
+        allowed-roles: [SELLER, ADMIN]
+      - methods: [POST]
+        pattern: /api/ai/admin/**
+        allowed-roles: [ADMIN]
+      - methods: [POST]
+        pattern: /api/admin/products/**
+        allowed-roles: [ADMIN]
+      - methods: [GET, PATCH]
+        pattern: /api/admin/member-reports/**
+        allowed-roles: [ADMIN]
+      - methods: [POST, PATCH, GET]
+        pattern: /api/admin/member-restrictions/**
+        allowed-roles: [ADMIN]
+      - methods: [POST]
+        pattern: /api/ai/admin/**
+        allowed-roles: [ADMIN]
+      - methods: [POST]
+        pattern: /api/ai/assist/**
+        allowed-roles: [SELLER, ADMIN]
+      - methods: [POST]
+        pattern: /api/ai/auction-price-recommendation
+        allowed-roles: [USER, SELLER, ADMIN]
+      - methods: [GET]
+        pattern: /api/ai/recommendations/me
+        allowed-roles: [USER, SELLER, ADMIN]
+
+# TODO: Split log levels by environment later (local dev can use DEBUG, production should default to INFO/WARN).
+logging:
+  level:
+    com.todaylunch.gateway: INFO
+    org.springframework.cloud.gateway: INFO
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    urls:
+      - name: member-service
+        url: /swagger/member/v3/api-docs
+      - name: payment-service
+        url: /swagger/payment/v3/api-docs
+      - name: settlement-service
+        url: /swagger/settlement/v3/api-docs
+      - name: product-service
+        url: /swagger/product/v3/api-docs
+      - name: cart-service
+        url: /swagger/cart/v3/api-docs
+      - name: order-service
+        url: /swagger/order/v3/api-docs
+      - name: notification-service
+        url: /swagger/notification/v3/api-docs
+      - name: ai-service
+        url: /swagger/ai/v3/api-docs

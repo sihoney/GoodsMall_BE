@@ -1,0 +1,2020 @@
+﻿{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "OpenAPI definition",
+    "version": "v0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8084",
+      "description": "Generated server url"
+    }
+  ],
+  "paths": {
+    "/api/return-requests/{returnRequestId}/inspect": {
+      "post": {
+        "tags": [
+          "return-request-controller"
+        ],
+        "operationId": "inspect",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          },
+          {
+            "name": "returnRequestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReturnInspectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseReturnInspectResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders/{orderId}/payment-validation": {
+      "post": {
+        "tags": [
+          "order-controller"
+        ],
+        "operationId": "getPaymentValidation",
+        "parameters": [
+          {
+            "name": "orderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentValidationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePaymentValidationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders/{orderId}/items/{orderItemId}/confirm": {
+      "post": {
+        "tags": [
+          "order-controller"
+        ],
+        "operationId": "confirmOrderItem",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          },
+          {
+            "name": "orderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "orderItemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders/{orderId}/confirm": {
+      "post": {
+        "tags": [
+          "order-controller"
+        ],
+        "operationId": "confirmOrder",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          },
+          {
+            "name": "orderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders/{orderId}/cancel": {
+      "post": {
+        "tags": [
+          "order-controller"
+        ],
+        "operationId": "cancelOrder",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          },
+          {
+            "name": "orderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderCancelRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseOrderCancelResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders/pg": {
+      "post": {
+        "tags": [
+          "order-controller"
+        ],
+        "operationId": "createByPg",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseOrderCreateResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders/deposit": {
+      "post": {
+        "tags": [
+          "order-controller"
+        ],
+        "operationId": "createByDeposit",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseOrderCreateResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders/auction/pg": {
+      "post": {
+        "tags": [
+          "order-controller"
+        ],
+        "operationId": "acceptAuctionWinByPg",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuctionWinAcceptRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseOrderCreateResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders/auction/deposit": {
+      "post": {
+        "tags": [
+          "order-controller"
+        ],
+        "operationId": "acceptAuctionWinByDeposit",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuctionWinAcceptRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseOrderCreateResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/deliveries/{deliveryId}/ship": {
+      "post": {
+        "tags": [
+          "delivery-controller"
+        ],
+        "operationId": "ship",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          },
+          {
+            "name": "deliveryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeliveryShipRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseDeliveryShipResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/orders/members/{memberId}/withdrawal-summary": {
+      "get": {
+        "tags": [
+          "order-internal-controller"
+        ],
+        "operationId": "getMemberWithdrawalSummary",
+        "parameters": [
+          {
+            "name": "memberId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMemberOrderWithdrawalSummaryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/deliveries/sellers/{sellerId}/status-counts": {
+      "get": {
+        "tags": [
+          "order-internal-controller"
+        ],
+        "operationId": "getSellerDeliveryStatusCounts",
+        "parameters": [
+          {
+            "name": "sellerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseDeliveryStatusCountResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/return-requests/seller": {
+      "get": {
+        "tags": [
+          "return-request-controller"
+        ],
+        "operationId": "findForSeller",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "REQUESTED",
+                "PICKUP_REQUESTED",
+                "PICKED_UP",
+                "RECEIVED",
+                "COMPLETED",
+                "FAILED"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Zero-based page index (0..N)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "The size of the page to be returned",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePageReturnRequestSummaryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders": {
+      "get": {
+        "tags": [
+          "order-controller"
+        ],
+        "operationId": "findOrders",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          },
+          {
+            "name": "orderType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "NORMAL",
+                "AUCTION"
+              ]
+            }
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Zero-based page index (0..N)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "The size of the page to be returned",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10,
+              "minimum": 1
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "default": [
+                "createdAt,DESC"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePageOrderSummaryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders/{orderId}": {
+      "get": {
+        "tags": [
+          "order-controller"
+        ],
+        "operationId": "getOrder",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          },
+          {
+            "name": "orderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseOrderDetailResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/deliveries/{deliveryId}/tracking": {
+      "get": {
+        "tags": [
+          "delivery-controller"
+        ],
+        "operationId": "getTrackingInfo",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          },
+          {
+            "name": "deliveryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseDeliveryTrackingResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/deliveries/seller": {
+      "get": {
+        "tags": [
+          "delivery-controller"
+        ],
+        "operationId": "getDeliveries",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PREPARING",
+                "SHIPPED",
+                "DELIVERED",
+                "CANCELED"
+              ]
+            }
+          },
+          {
+            "name": "orderNumber",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "receiver",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "productName",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "courierName",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dateFrom",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "dateTo",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "pageable",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Pageable"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePageSellerDeliveryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/deliveries/seller/counts": {
+      "get": {
+        "tags": [
+          "delivery-controller"
+        ],
+        "operationId": "getStatusCounts",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseDeliveryStatusCountResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AuthenticatedMember": {
+        "type": "object",
+        "properties": {
+          "memberId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "USER",
+              "SELLER",
+              "ADMIN"
+            ]
+          },
+          "sessionId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "ReturnInspectRequest": {
+        "type": "object",
+        "properties": {
+          "inspectionResult": {
+            "type": "string",
+            "enum": [
+              "PASS",
+              "FAIL"
+            ]
+          },
+          "responsibilityType": {
+            "type": "string",
+            "enum": [
+              "BUYER",
+              "SELLER",
+              "ADMIN"
+            ]
+          },
+          "rejectReason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "inspectionResult"
+        ]
+      },
+      "ApiErrorResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiResponseReturnInspectResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ReturnInspectResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ApiErrorResponse"
+          }
+        }
+      },
+      "ReturnInspectResponse": {
+        "type": "object",
+        "properties": {
+          "returnRequestId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "REQUESTED",
+              "PICKUP_REQUESTED",
+              "PICKED_UP",
+              "RECEIVED",
+              "COMPLETED",
+              "FAILED"
+            ]
+          },
+          "inspectionResult": {
+            "type": "string",
+            "enum": [
+              "PASS",
+              "FAIL"
+            ]
+          },
+          "refundedAmount": {
+            "type": "number"
+          },
+          "processedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PaymentValidationRequest": {
+        "type": "object",
+        "properties": {
+          "buyerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amount": {
+            "type": "number"
+          }
+        }
+      },
+      "ApiResponsePaymentValidationResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PaymentValidationResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ApiErrorResponse"
+          }
+        }
+      },
+      "OrderLine": {
+        "type": "object",
+        "properties": {
+          "orderItemId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sellerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "lineAmount": {
+            "type": "number"
+          }
+        }
+      },
+      "PaymentValidationResponse": {
+        "type": "object",
+        "properties": {
+          "totalAmount": {
+            "type": "number"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderLine"
+            }
+          }
+        }
+      },
+      "ApiResponseVoid": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {},
+          "error": {
+            "$ref": "#/components/schemas/ApiErrorResponse"
+          }
+        }
+      },
+      "ClaimItemRequest": {
+        "type": "object",
+        "properties": {
+          "orderItemId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "detailReason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "orderItemId",
+          "reason"
+        ]
+      },
+      "OrderCancelRequest": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClaimItemRequest"
+            },
+            "minItems": 1
+          },
+          "requesterType": {
+            "type": "string",
+            "enum": [
+              "BUYER",
+              "SELLER",
+              "ADMIN"
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "requesterType"
+        ]
+      },
+      "ApiResponseOrderCancelResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/OrderCancelResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ApiErrorResponse"
+          }
+        }
+      },
+      "OrderCancelResponse": {
+        "type": "object",
+        "properties": {
+          "orderId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "refundedAmount": {
+            "type": "number"
+          },
+          "canceledItemCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "returnRequestedItemCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "processedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "OrderCreateRequest": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "addressDetail": {
+            "type": "string",
+            "minLength": 1
+          },
+          "zipCode": {
+            "type": "string",
+            "minLength": 1
+          },
+          "receiver": {
+            "type": "string",
+            "minLength": 1
+          },
+          "receiverPhone": {
+            "type": "string",
+            "minLength": 1
+          },
+          "orderItemRequest": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderItemCreateRequest"
+            },
+            "minItems": 1
+          }
+        },
+        "required": [
+          "address",
+          "addressDetail",
+          "orderItemRequest",
+          "receiver",
+          "receiverPhone",
+          "zipCode"
+        ]
+      },
+      "OrderItemCreateRequest": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "productId",
+          "quantity"
+        ]
+      },
+      "ApiResponseOrderCreateResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/OrderCreateResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ApiErrorResponse"
+          }
+        }
+      },
+      "OrderCreateResponse": {
+        "type": "object",
+        "properties": {
+          "orderId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "orderNumber": {
+            "type": "string"
+          },
+          "totalPrice": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "CREATED",
+              "CONFIRMED",
+              "SHIPPING",
+              "PARTIAL_SHIPPING",
+              "DELIVERED",
+              "COMPLETED",
+              "PARTIAL_CANCELED",
+              "CANCELED"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AuctionWinAcceptRequest": {
+        "type": "object",
+        "properties": {
+          "orderId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "address": {
+            "type": "string",
+            "minLength": 1
+          },
+          "addressDetail": {
+            "type": "string",
+            "minLength": 1
+          },
+          "zipCode": {
+            "type": "string",
+            "minLength": 1
+          },
+          "receiver": {
+            "type": "string",
+            "minLength": 1
+          },
+          "receiverPhone": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "address",
+          "addressDetail",
+          "orderId",
+          "receiver",
+          "receiverPhone",
+          "zipCode"
+        ]
+      },
+      "DeliveryShipRequest": {
+        "type": "object",
+        "properties": {
+          "courier": {
+            "type": "string",
+            "minLength": 1
+          },
+          "invoiceNumber": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "courier",
+          "invoiceNumber"
+        ]
+      },
+      "ApiResponseDeliveryShipResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/DeliveryShipResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ApiErrorResponse"
+          }
+        }
+      },
+      "DeliveryShipResponse": {
+        "type": "object",
+        "properties": {
+          "courier": {
+            "type": "string"
+          },
+          "courierCode": {
+            "type": "string"
+          },
+          "invoiceNumber": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PREPARING",
+              "SHIPPED",
+              "DELIVERED",
+              "CANCELED"
+            ]
+          }
+        }
+      },
+      "ApiResponseMemberOrderWithdrawalSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/MemberOrderWithdrawalSummaryResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ApiErrorResponse"
+          }
+        }
+      },
+      "MemberOrderWithdrawalSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "hasActiveOrder": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ApiResponseDeliveryStatusCountResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/DeliveryStatusCountResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ApiErrorResponse"
+          }
+        }
+      },
+      "DeliveryStatusCountResponse": {
+        "type": "object",
+        "properties": {
+          "preparing": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "shipped": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "delivered": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ApiResponsePageReturnRequestSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageReturnRequestSummaryResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ApiErrorResponse"
+          }
+        }
+      },
+      "PageReturnRequestSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReturnRequestSummaryResponse"
+            }
+          },
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sort": {
+            "$ref": "#/components/schemas/SortObject"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
+          },
+          "numberOfElements": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageable": {
+            "$ref": "#/components/schemas/PageableObject"
+          },
+          "empty": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PageableObject": {
+        "type": "object",
+        "properties": {
+          "offset": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sort": {
+            "$ref": "#/components/schemas/SortObject"
+          },
+          "paged": {
+            "type": "boolean"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unpaged": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ReturnRequestSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "returnRequestId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "orderId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "orderItemId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "buyerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "receiver": {
+            "type": "string"
+          },
+          "productName": {
+            "type": "string"
+          },
+          "thumbnailKey": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "refundableAmount": {
+            "type": "number"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "detailReason": {
+            "type": "string"
+          },
+          "requestedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "REQUESTED",
+              "PICKUP_REQUESTED",
+              "PICKED_UP",
+              "RECEIVED",
+              "COMPLETED",
+              "FAILED"
+            ]
+          },
+          "processedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "responsibilityType": {
+            "type": "string",
+            "enum": [
+              "BUYER",
+              "SELLER",
+              "ADMIN"
+            ]
+          },
+          "refundedAmount": {
+            "type": "number"
+          },
+          "rejectReason": {
+            "type": "string"
+          }
+        }
+      },
+      "SortObject": {
+        "type": "object",
+        "properties": {
+          "empty": {
+            "type": "boolean"
+          },
+          "sorted": {
+            "type": "boolean"
+          },
+          "unsorted": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ApiResponsePageOrderSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageOrderSummaryResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ApiErrorResponse"
+          }
+        }
+      },
+      "OrderSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "orderId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "orderNumber": {
+            "type": "string"
+          },
+          "totalPrice": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "CREATED",
+              "CONFIRMED",
+              "SHIPPING",
+              "PARTIAL_SHIPPING",
+              "DELIVERED",
+              "COMPLETED",
+              "PARTIAL_CANCELED",
+              "CANCELED"
+            ]
+          },
+          "orderType": {
+            "type": "string",
+            "enum": [
+              "NORMAL",
+              "AUCTION"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "representativeProductName": {
+            "type": "string"
+          },
+          "representativeThumbnailKey": {
+            "type": "string"
+          },
+          "itemCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasOngoingReturn": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PageOrderSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderSummaryResponse"
+            }
+          },
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sort": {
+            "$ref": "#/components/schemas/SortObject"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
+          },
+          "numberOfElements": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageable": {
+            "$ref": "#/components/schemas/PageableObject"
+          },
+          "empty": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ApiResponseOrderDetailResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/OrderDetailResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ApiErrorResponse"
+          }
+        }
+      },
+      "OrderDetailResponse": {
+        "type": "object",
+        "properties": {
+          "orderId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "orderNumber": {
+            "type": "string"
+          },
+          "totalPrice": {
+            "type": "number"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "address": {
+            "type": "string"
+          },
+          "addressDetail": {
+            "type": "string"
+          },
+          "zipCode": {
+            "type": "string"
+          },
+          "receiver": {
+            "type": "string"
+          },
+          "receiverPhone": {
+            "type": "string"
+          },
+          "itemCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "CREATED",
+              "CONFIRMED",
+              "SHIPPING",
+              "PARTIAL_SHIPPING",
+              "DELIVERED",
+              "COMPLETED",
+              "PARTIAL_CANCELED",
+              "CANCELED"
+            ]
+          },
+          "hasOngoingReturn": {
+            "type": "boolean"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderItemDetailResponse"
+            }
+          }
+        }
+      },
+      "OrderItemDetailResponse": {
+        "type": "object",
+        "properties": {
+          "orderItemId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "productId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "productName": {
+            "type": "string"
+          },
+          "unitPrice": {
+            "type": "number"
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "PREPARING",
+              "SHIPPING",
+              "DELIVERED",
+              "COMPLETED",
+              "CANCELED",
+              "RETURN_REQUESTED"
+            ]
+          },
+          "thumbnailKey": {
+            "type": "string"
+          },
+          "deliveryId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "ApiResponseDeliveryTrackingResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/DeliveryTrackingResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ApiErrorResponse"
+          }
+        }
+      },
+      "DeliveryTrackingDetailResponse": {
+        "type": "object",
+        "properties": {
+          "time": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "DeliveryTrackingResponse": {
+        "type": "object",
+        "properties": {
+          "courierCode": {
+            "type": "string"
+          },
+          "invoiceNumber": {
+            "type": "string"
+          },
+          "delivered": {
+            "type": "boolean"
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeliveryTrackingDetailResponse"
+            }
+          }
+        }
+      },
+      "Pageable": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1
+          },
+          "sort": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ApiResponsePageSellerDeliveryResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageSellerDeliveryResponse"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ApiErrorResponse"
+          }
+        }
+      },
+      "PageSellerDeliveryResponse": {
+        "type": "object",
+        "properties": {
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SellerDeliveryResponse"
+            }
+          },
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sort": {
+            "$ref": "#/components/schemas/SortObject"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
+          },
+          "numberOfElements": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageable": {
+            "$ref": "#/components/schemas/PageableObject"
+          },
+          "empty": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SellerDeliveryResponse": {
+        "type": "object",
+        "properties": {
+          "deliveryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "orderId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "orderNumber": {
+            "type": "string"
+          },
+          "productName": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PREPARING",
+              "SHIPPED",
+              "DELIVERED",
+              "CANCELED"
+            ]
+          },
+          "courierCode": {
+            "type": "string"
+          },
+          "courierName": {
+            "type": "string"
+          },
+          "invoiceNumber": {
+            "type": "string"
+          },
+          "receiver": {
+            "type": "string"
+          },
+          "receiverPhone": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "addressDetail": {
+            "type": "string"
+          },
+          "zipCode": {
+            "type": "string"
+          },
+          "shippedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "deliveredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,62 @@
+# ==============================
+# Settlement Service - 로컬 개발 환경 설정
+# Config Server 미연결 시 사용되는 기본값
+# ==============================
+
+spring:
+  application:
+    name: settlement-service
+
+  # --- 데이터베이스 설정 (로컬 기본값) ---
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: "${DB_URL:jdbc:postgresql://localhost:5432/goods_mall}?currentSchema=settlement"
+    username: ${DB_USER_NAME:postgres}
+    password: ${DB_USER_PASSWORD:postgres}
+    hikari:
+      minimum-idle: 2
+      maximum-pool-size: 5
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        default_schema: settlement
+
+  # --- Kafka 설정 (로컬 기본값) ---
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:29092}
+    consumer:
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.example.settlement.infrastructure.messaging.kafka.contract
+
+# --- 서버 포트 ---
+server:
+  port: 8085
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+# --- Settlement Batch 설정 (로컬 기본값) ---
+settlement:
+  batch:
+    monthly-aggregation:
+      cron: "0 5 3 1 * *"
+      zone: Asia/Seoul
+    retryable-failed-payout:
+      cron: "0 */10 * * * *"
+      zone: Asia/Seoul
+
+# --- 로깅 설정 (로컬: DEBUG) ---
+# TODO: Split log levels by environment later (local dev can use DEBUG, production should default to INFO/WARN).
+logging:
+  level:
+    com.example.settlement: DEBUG

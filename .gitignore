@@ -33,7 +33,7 @@ replay_pid*
 ### Gradle ###
 .gradle/
 build/
-out/
+/out/
 bin/
 
 !gradle/wrapper/gradle-wrapper.jar
@@ -43,15 +43,14 @@ bin/
 
 ### Env ###
 .env
-product/.env
+service/product/.env
 docker-compose.dev.yml
 
 ### K8s Secrets ###
-k8s/**/secret.yaml
+infra/k8s/**/secret.yaml
 
 private_docs/
 docs_private/
-docs/
 temp_api.json
 
 ### setting ###

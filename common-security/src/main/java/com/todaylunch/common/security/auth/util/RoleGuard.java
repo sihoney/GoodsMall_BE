@@ -2,7 +2,8 @@ package com.todaylunch.common.security.auth.util;
 
 import com.todaylunch.common.security.auth.dto.AuthenticatedMember;
 import com.todaylunch.common.security.auth.enumtype.MemberRole;
-import com.todaylunch.common.security.exception.AuthorizationDeniedException;
+import com.todaylunch.common.security.exception.SecurityErrorCode;
+import com.todaylunch.common.security.exception.SecurityException;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.UUID;
@@ -18,7 +19,7 @@ public final class RoleGuard {
      */
     public static void requireAuthenticated(AuthenticatedMember authenticatedMember) {
         if (authenticatedMember == null) {
-            throw new AuthorizationDeniedException("Authentication is required.");
+            throw new SecurityException(SecurityErrorCode.AUTHENTICATION_REQUIRED);
         }
     }
 
@@ -33,7 +34,10 @@ public final class RoleGuard {
     ) {
         requireAuthenticated(authenticatedMember);
         if (authenticatedMember.role() != requiredRole) {
-            throw new AuthorizationDeniedException(requiredRole + " role is required.");
+            throw new SecurityException(
+                    SecurityErrorCode.INSUFFICIENT_ROLE,
+                    requiredRole + " role is required."
+            );
         }
     }
 
@@ -56,7 +60,7 @@ public final class RoleGuard {
                 .anyMatch(role -> role == authenticatedMember.role());
 
         if (!allowed) {
-            throw new AuthorizationDeniedException("Required role is missing.");
+            throw new SecurityException(SecurityErrorCode.INSUFFICIENT_ROLE);
         }
     }
 
@@ -95,7 +99,7 @@ public final class RoleGuard {
         }
 
         if (!resourceOwnerId.equals(authenticatedMember.memberId())) {
-            throw new AuthorizationDeniedException("Resource owner or ADMIN role is required.");
+            throw new SecurityException(SecurityErrorCode.RESOURCE_ACCESS_DENIED);
         }
     }
 }

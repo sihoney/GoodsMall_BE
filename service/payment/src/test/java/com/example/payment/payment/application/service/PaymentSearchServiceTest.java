@@ -1,0 +1,220 @@
+package com.example.payment.payment.application.service;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+
+import com.example.payment.wallet.application.dto.ChargeDetailResult;
+import com.example.payment.wallet.application.dto.ChargeListItemResult;
+import com.example.payment.common.application.dto.PagedResult;
+import com.example.payment.wallet.application.dto.PendingSellerIncomeItemResult;
+import com.example.payment.wallet.application.dto.WalletSummaryResult;
+import com.example.payment.wallet.application.dto.WalletTransactionItemResult;
+import com.example.payment.common.exception.ChargeNotFoundException;
+import com.example.payment.common.exception.WalletNotFoundException;
+import com.example.payment.wallet.domain.entity.Charge;
+import com.example.payment.escrow.domain.entity.Escrow;
+import com.example.payment.wallet.domain.entity.Wallet;
+import com.example.payment.wallet.domain.entity.WalletTransaction;
+import com.example.payment.wallet.domain.enumtype.ChargeStatus;
+import com.example.payment.escrow.domain.enumtype.EscrowStatus;
+import com.example.payment.wallet.domain.enumtype.WalletTransactionType;
+import com.example.payment.wallet.domain.repository.ChargeRepository;
+import com.example.payment.escrow.domain.repository.EscrowRepository;
+import com.example.payment.escrow.domain.repository.EscrowTransactionRepository;
+import com.example.payment.wallet.domain.repository.WalletRepository;
+import com.example.payment.wallet.domain.repository.WalletTransactionRepository;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+
+@ExtendWith(MockitoExtension.class)
+@DisplayName("payment test")
+class PaymentSearchServiceTest {
+
+    @Mock
+    private WalletRepository walletRepository;
+
+    @Mock
+    private ChargeRepository chargeRepository;
+
+    @Mock
+    private WalletTransactionRepository walletTransactionRepository;
+
+    @Mock
+    private EscrowRepository escrowRepository;
+
+    @Mock
+    private EscrowTransactionRepository escrowTransactionRepository;
+
+    @InjectMocks
+    private PaymentSearchService paymentSearchService;
+
+    private UUID memberId;
+    private UUID walletId;
+    private UUID chargeId;
+    private UUID transactionId;
+    private UUID escrowId;
+    private UUID orderId;
+    private LocalDateTime now;
+
+    @BeforeEach
+    void setUp() {
+        memberId = UUID.randomUUID();
+        walletId = UUID.randomUUID();
+        chargeId = UUID.randomUUID();
+        transactionId = UUID.randomUUID();
+        escrowId = UUID.randomUUID();
+        orderId = UUID.randomUUID();
+        now = LocalDateTime.of(2024, 1, 1, 12, 0, 0);
+    }
+
+    private BigDecimal amount(long value) {
+        return BigDecimal.valueOf(value);
+    }
+
+    @Nested
+    @DisplayName("payment test")
+    class FindWalletSummary {
+
+        @Test
+        @DisplayName("payment test")
+        void findWalletSummary_success_returnsWalletSummary() {
+            Wallet wallet = Wallet.create(walletId, memberId, amount(30_000L), now, now);
+            given(walletRepository.findByMemberId(memberId)).willReturn(Optional.of(wallet));
+
+            WalletSummaryResult result = paymentSearchService.findWalletSummary(memberId);
+
+            assertThat(result.walletId()).isEqualTo(walletId);
+            assertThat(result.memberId()).isEqualTo(memberId);
+            assertThat(result.balance()).isEqualTo(amount(30_000L));
+        }
+
+        @Test
+        @DisplayName("payment test")
+        void findWalletSummary_walletNotFound_throwsException() {
+            given(walletRepository.findByMemberId(memberId)).willReturn(Optional.empty());
+
+            assertThatThrownBy(() -> paymentSearchService.findWalletSummary(memberId))
+                    .isInstanceOf(WalletNotFoundException.class);
+        }
+    }
+
+    @Test
+    @DisplayName("payment test")
+    void findAllCharges_success_returnsPagedCharges() {
+        Charge charge = Charge.create(chargeId, memberId, walletId, amount(10_000L), "CHARGE-1", now);
+        charge.approve(amount(10_000L), "payment-key", now.plusMinutes(1), "92");
+        given(chargeRepository.findByMemberId(any(), any())).willReturn(
+                new PageImpl<>(List.of(charge), PageRequest.of(0, 20), 1)
+        );
+
+        PagedResult<ChargeListItemResult> result = paymentSearchService.findAllCharges(memberId, 0, 20);
+
+        assertThat(result.items()).hasSize(1);
+        assertThat(result.items().getFirst().chargeId()).isEqualTo(chargeId);
+        assertThat(result.items().getFirst().chargeStatus()).isEqualTo(ChargeStatus.CONFIRM_SUCCESS);
+        assertThat(result.items().getFirst().tossBankCode()).isEqualTo("92");
+    }
+
+    @Test
+    @DisplayName("payment test")
+    void findChargeDetail_success_returnsChargeDetail() {
+        Charge charge = Charge.create(chargeId, memberId, walletId, amount(10_000L), "CHARGE-1", now);
+        charge.approve(amount(10_000L), "payment-key", now.plusMinutes(1), "92");
+        given(chargeRepository.findByChargeIdAndMemberId(chargeId, memberId)).willReturn(Optional.of(charge));
+
+        ChargeDetailResult result = paymentSearchService.findChargeDetail(memberId, chargeId);
+
+        assertThat(result.chargeId()).isEqualTo(chargeId);
+        assertThat(result.tossBankCode()).isEqualTo("92");
+        assertThat(result.failureReason()).isNull();
+    }
+
+    @Test
+    @DisplayName("payment test")
+    void findChargeDetail_notOwned_throwsException() {
+        given(chargeRepository.findByChargeIdAndMemberId(chargeId, memberId)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> paymentSearchService.findChargeDetail(memberId, chargeId))
+                .isInstanceOf(ChargeNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("payment test")
+    void findAllTransactions_success_returnsWalletTransactions() {
+        Wallet wallet = Wallet.create(walletId, memberId, amount(20_000L), now, now);
+        WalletTransaction transaction = WalletTransaction.create(
+                transactionId,
+                walletId,
+                amount(10_000L),
+                amount(20_000L),
+                WalletTransactionType.CHARGE,
+                chargeId,
+                "CHARGE",
+                "wallet charge",
+                now
+        );
+        given(walletRepository.findByMemberId(memberId)).willReturn(Optional.of(wallet));
+        given(walletTransactionRepository.findByWalletId(any(), any())).willReturn(
+                new PageImpl<>(List.of(transaction), PageRequest.of(0, 20), 1)
+        );
+
+        PagedResult<WalletTransactionItemResult> result = paymentSearchService.findAllTransactions(memberId, 0, 20);
+
+        assertThat(result.items()).hasSize(1);
+        assertThat(result.items().getFirst().transactionId()).isEqualTo(transactionId);
+        assertThat(result.items().getFirst().transactionType()).isEqualTo(WalletTransactionType.CHARGE);
+    }
+
+    @Test
+    @DisplayName("payment test")
+    void findAllPendingSellerIncomes_success_returnsHeldEscrows() {
+        Escrow escrow = Escrow.create(
+                escrowId,
+                orderId,
+                UUID.randomUUID(),
+                memberId,
+                amount(8_000L),
+                EscrowStatus.HELD,
+                null,
+                null,
+                now.plusDays(7),
+                now,
+                now
+        );
+        given(escrowRepository.findPendingBySellerMemberId(any(), any())).willReturn(
+                new PageImpl<>(List.of(escrow), PageRequest.of(0, 20), 1)
+        );
+
+        PagedResult<PendingSellerIncomeItemResult> result = paymentSearchService.findAllPendingSellerIncomes(
+                memberId,
+                0,
+                20
+        );
+
+        assertThat(result.items()).hasSize(1);
+        assertThat(result.items().getFirst().escrowStatus()).isEqualTo(EscrowStatus.HELD);
+        assertThat(result.items().getFirst().orderId()).isEqualTo(orderId);
+    }
+
+    @Test
+    @DisplayName("payment test")
+    void findAllCharges_tooLargePageSize_throwsException() {
+        assertThatThrownBy(() -> paymentSearchService.findAllCharges(memberId, 0, 101))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+}

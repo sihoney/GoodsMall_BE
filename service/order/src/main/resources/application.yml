@@ -1,0 +1,79 @@
+spring:
+  application:
+    name: order-service
+  cloud:
+    openfeign:
+      client:
+        config:
+          product-service:
+            connectTimeout: 1000
+            readTimeout: 2000
+            loggerLevel: basic
+          payment-service:
+            connectTimeout: 2000
+            readTimeout: 10000
+            loggerLevel: basic
+
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: "${DB_URL:jdbc:postgresql://localhost:5432/goods_mall}?currentSchema=order_service"
+    username: ${DB_USER_NAME:postgres}
+    password: ${DB_USER_PASSWORD:postgres}
+    hikari:
+      minimum-idle: 2
+      maximum-pool-size: 5
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: order_service
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          time_zone: Asia/Seoul
+
+  # --- Kafka 설정 (로컬 기본값) ---
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:29092}
+    consumer:
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      retries: 3
+      properties:
+        retry.backoff.ms: 1000
+
+# --- 서버 포트 ---
+server:
+  port: 8084
+
+cloud:
+  aws:
+    s3:
+      base-url: ${S3_BASE_URL:https://todaylunchmenu.s3.ap-northeast-2.amazonaws.com}
+
+sweet-tracker:
+  api:
+    key: ${SWEET_TRACKER_API_KEY:test-api-key}
+    base-url: ${SWEET_TRACKER_API_BASE_URL:https://info.sweettracker.co.kr}
+
+services:
+  payment:
+    url: ${SERVICES_PAYMENT_URL:http://localhost:8082}
+  product:
+    url: ${SERVICES_PRODUCT_URL:http://localhost:8081}
+
+# TODO: Split log levels by environment later (local dev can use DEBUG, production should default to INFO/WARN).
+logging:
+  level:
+    com.example.order: DEBUG

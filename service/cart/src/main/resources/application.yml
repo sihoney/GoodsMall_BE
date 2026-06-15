@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: cart-service
+
+  # 로컬 개발용 기본값 (Config Server 미연결 시 사용)
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: "${DB_URL:jdbc:postgresql://localhost:5432/goods_mall}?currentSchema=cart"
+    username: ${DB_USER_NAME:goods}
+    password: ${DB_USER_PASSWORD:goods}
+    hikari:
+      minimum-idle: 2
+      maximum-pool-size: 5
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        default_schema: cart
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:29092}
+
+server:
+  port: 8086
+
+# TODO: Split log levels by environment later (local dev can use DEBUG, production should default to INFO/WARN).
+logging:
+  level:
+    com.example.cartservice: DEBUG

@@ -1,0 +1,1754 @@
+﻿{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Product Service API",
+    "description": "상품 관리 서비스 API 문서\n\n**인증 헤더 필수:**\n- X-Member-Id: 회원 UUID (예: 550e8400-e29b-41d4-a716-446655440000)\n- X-Member-Role: USER, SELLER, ADMIN 중 하나\n- 기본적으로 생성되어 있는 상품 UUID (예: 75cf9d28-ae36-4d31-a3fc-75511aac1503)\n- 기본적으로 생성되어 있는 카테고리 UUID (예: c325102d-2853-42b8-a5f4-23cd7b9adcac)",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "API Gateway"
+    },
+    {
+      "url": "http://localhost:8081",
+      "description": "로컬 개발 서버 (직접 접근)"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Product",
+      "description": "상품 관리 API"
+    },
+    {
+      "name": "Product Image",
+      "description": "상품 이미지 관리 API"
+    }
+  ],
+  "paths": {
+    "/api/products/{productId}": {
+      "get": {
+        "tags": [
+          "Product"
+        ],
+        "operationId": "findProduct",
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Product"
+        ],
+        "operationId": "updateProduct",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          },
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Product"
+        ],
+        "operationId": "deleteProduct",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          },
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/categories/{categoryId}": {
+      "get": {
+        "tags": [
+          "category-controller"
+        ],
+        "operationId": "getCategoryById",
+        "parameters": [
+          {
+            "name": "categoryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "category-controller"
+        ],
+        "operationId": "updateCategoryBySeller",
+        "parameters": [
+          {
+            "name": "categoryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "category-controller"
+        ],
+        "operationId": "deleteCategory",
+        "parameters": [
+          {
+            "name": "categoryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/categories/admin/{categoryId}": {
+      "put": {
+        "tags": [
+          "category-controller"
+        ],
+        "operationId": "updateCategoryByAdmin",
+        "parameters": [
+          {
+            "name": "categoryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/products": {
+      "get": {
+        "tags": [
+          "Product"
+        ],
+        "operationId": "findDisplayProducts",
+        "parameters": [
+          {
+            "name": "categoryId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "minPrice",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "maxPrice",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageable",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Pageable"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageProductResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Product"
+        ],
+        "summary": "상품 등록",
+        "description": "상품 정보와 이미지를 함께 등록합니다. 이미지는 필수입니다.",
+        "operationId": "createProduct",
+        "parameters": [
+          {
+            "name": "thumbnailIndex",
+            "in": "query",
+            "description": "썸네일 이미지 인덱스 (기본값: 0)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            },
+            "example": 0
+          },
+          {
+            "name": "X-Member-Id",
+            "in": "header",
+            "description": "회원 ID (UUID)",
+            "required": true,
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          {
+            "name": "X-Member-Role",
+            "in": "header",
+            "description": "회원 역할 (USER, SELLER, ADMIN)",
+            "required": true,
+            "example": "SELLER"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "productData": {
+                    "type": "string",
+                    "description": "상품 정보 (JSON 문자열)"
+                  },
+                  "images": {
+                    "type": "array",
+                    "description": "상품 이미지 파일 배열 (최대 10개)",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    }
+                  }
+                },
+                "required": [
+                  "images",
+                  "productData"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "상품 생성 성공",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "잘못된 요청",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 실패",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/products/{productId}/restore": {
+      "post": {
+        "tags": [
+          "Product"
+        ],
+        "summary": "삭제된 상품 복구",
+        "description": "소프트 삭제된 상품을 복구합니다. 복구 시 상태는 ACTIVE로 변경됩니다.",
+        "operationId": "restoreProduct",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          },
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "복구 성공",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "잘못된 요청 (이미 활성 상품 등)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "권한 없음 (판매자 불일치)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "상품을 찾을 수 없음",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/products/{productId}/images": {
+      "post": {
+        "tags": [
+          "Product Image"
+        ],
+        "summary": "상품 이미지 추가 업로드",
+        "description": "기존 상품에 이미지를 추가로 업로드합니다.",
+        "operationId": "uploadImage",
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "description": "상품 ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "in": "query",
+            "description": "정렬 순서",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            },
+            "example": 0
+          },
+          {
+            "name": "isThumbnail",
+            "in": "query",
+            "description": "썸네일 여부",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "example": false
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "업로드할 이미지 파일"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "이미지 업로드 성공",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductImageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "잘못된 요청",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductImageResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "상품을 찾을 수 없음",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductImageResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/products/check-availability": {
+      "post": {
+        "tags": [
+          "Product"
+        ],
+        "operationId": "deductStock",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ProductCheckRequest"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductAvailabilityResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/categories": {
+      "get": {
+        "tags": [
+          "category-controller"
+        ],
+        "operationId": "getCategories",
+        "parameters": [
+          {
+            "name": "depth",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CategoryResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "category-controller"
+        ],
+        "operationId": "createCategoryBySeller",
+        "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/categories/admin": {
+      "post": {
+        "tags": [
+          "category-controller"
+        ],
+        "operationId": "createCategoryByAdmin",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/products/reindex": {
+      "post": {
+        "tags": [
+          "product-reindex-controller"
+        ],
+        "operationId": "reindexAll",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "integer",
+                    "format": "int32"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/products/{productId}/stock/increase": {
+      "patch": {
+        "tags": [
+          "Product"
+        ],
+        "summary": "재고 증가",
+        "description": "상품의 재고를 증가시킵니다 (입고). 재고가 0이었다면 SOLD_OUT → ACTIVE 상태로 자동 전환됩니다.",
+        "operationId": "increaseStock",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          },
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StockAdjustmentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "재고 증가 성공",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "잘못된 요청",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "권한 없음 (판매자 불일치)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "상품을 찾을 수 없음",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/products/{productId}/stock/decrease": {
+      "patch": {
+        "tags": [
+          "Product"
+        ],
+        "summary": "재고 감소",
+        "description": "상품의 재고를 감소시킵니다 (출고, 판매 등). 재고가 부족하면 예외가 발생합니다. 재고가 0이 되면 ACTIVE → SOLD_OUT 상태로 자동 전환됩니다.",
+        "operationId": "decreaseStock",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          },
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StockAdjustmentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "재고 감소 성공",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "잘못된 요청 (재고 부족 등)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "권한 없음 (판매자 불일치)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "상품을 찾을 수 없음",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/products/{productId}/status": {
+      "patch": {
+        "tags": [
+          "Product"
+        ],
+        "summary": "상품 상태 변경",
+        "description": "상품의 판매 상태를 변경합니다 (ACTIVE: 판매중, INACTIVE: 판매중지, SOLD_OUT: 품절). 재고가 남아있는 상품은 SOLD_OUT으로 변경할 수 없습니다.",
+        "operationId": "updateStatus",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          },
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductStatusUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "상태 변경 성공",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "잘못된 요청 (재고 있는 상품을 품절로 변경 등)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "권한 없음 (판매자 불일치)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "상품을 찾을 수 없음",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/products/{productId}/images/{imageId}/thumbnail": {
+      "patch": {
+        "tags": [
+          "Product Image"
+        ],
+        "summary": "썸네일 이미지 변경",
+        "description": "지정한 이미지를 썸네일로 변경합니다. 기존 썸네일은 자동으로 해제됩니다.",
+        "operationId": "changeThumbnail",
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "description": "상품 ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "imageId",
+            "in": "path",
+            "description": "썸네일로 지정할 이미지 ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "썸네일 변경 성공"
+          },
+          "400": {
+            "description": "잘못된 요청"
+          },
+          "404": {
+            "description": "상품 또는 이미지를 찾을 수 없음"
+          }
+        }
+      }
+    },
+    "/internal/products/sellers/{sellerId}/withdrawal-summary": {
+      "get": {
+        "tags": [
+          "product-internal-controller"
+        ],
+        "operationId": "getSellerWithdrawalSummary",
+        "parameters": [
+          {
+            "name": "sellerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductSellerWithdrawalSummaryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/products/seller": {
+      "get": {
+        "tags": [
+          "Product"
+        ],
+        "operationId": "findSellerProducts",
+        "parameters": [
+          {
+            "name": "authenticatedMember",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticatedMember"
+            }
+          },
+          {
+            "name": "pageable",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Pageable"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageProductResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/products/popular": {
+      "get": {
+        "tags": [
+          "Product"
+        ],
+        "summary": "인기 상품 조회",
+        "description": "조회수 기준 인기 상품 목록을 조회합니다 (ACTIVE 상품만). 조회수가 같으면 최신 등록순으로 정렬됩니다.",
+        "operationId": "findPopularProducts",
+        "parameters": [
+          {
+            "name": "pageable",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Pageable"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "조회 성공",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/products/by-ids": {
+      "get": {
+        "tags": [
+          "Product"
+        ],
+        "operationId": "findProductsByIds",
+        "parameters": [
+          {
+            "name": "productIds",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/products/admin/all": {
+      "get": {
+        "tags": [
+          "Product"
+        ],
+        "operationId": "findAllProducts",
+        "parameters": [
+          {
+            "name": "pageable",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Pageable"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageProductResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/categories/{categoryId}/children": {
+      "get": {
+        "tags": [
+          "category-controller"
+        ],
+        "operationId": "getChildCategories",
+        "parameters": [
+          {
+            "name": "categoryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CategoryResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/products/{productId}/images/{imageId}": {
+      "delete": {
+        "tags": [
+          "Product Image"
+        ],
+        "summary": "상품 이미지 삭제",
+        "description": "상품 이미지를 삭제합니다. 썸네일 이미지 삭제 시 남은 이미지 중 첫 번째가 자동으로 썸네일로 지정됩니다.",
+        "operationId": "deleteImage",
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "description": "상품 ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "imageId",
+            "in": "path",
+            "description": "이미지 ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "이미지 삭제 성공"
+          },
+          "400": {
+            "description": "잘못된 요청"
+          },
+          "404": {
+            "description": "상품 또는 이미지를 찾을 수 없음"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AuthenticatedMember": {
+        "type": "object",
+        "properties": {
+          "memberId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "USER",
+              "SELLER",
+              "ADMIN"
+            ]
+          },
+          "sessionId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "ProductUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number"
+          },
+          "stockQuantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "categoryId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "categoryId",
+          "price",
+          "stockQuantity",
+          "title"
+        ]
+      },
+      "ProductImageResponse": {
+        "type": "object",
+        "properties": {
+          "imageId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "s3Key": {
+            "type": "string"
+          },
+          "presignedUrl": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isThumbnail": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ProductResponse": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sellerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "INACTIVE",
+              "SOLD_OUT"
+            ]
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "GENERAL",
+              "AUCTION"
+            ]
+          },
+          "categoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "categoryName": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductImageResponse"
+            }
+          }
+        }
+      },
+      "CategoryUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "required": [
+          "name",
+          "sortOrder"
+        ]
+      },
+      "CategoryResponse": {
+        "type": "object",
+        "properties": {
+          "categoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sellerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "depth": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "parentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ProductCheckRequest": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "productId",
+          "quantity"
+        ]
+      },
+      "ProductAvailabilityResponse": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sellerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number"
+          },
+          "thumbnailKeySnapshot": {
+            "type": "string"
+          },
+          "productOrderStatus": {
+            "type": "string",
+            "enum": [
+              "ORDERABLE",
+              "INSUFFICIENT_STOCK",
+              "NOT_FOR_SALE"
+            ]
+          }
+        }
+      },
+      "CategoryCreateRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "parentId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "name",
+          "sortOrder"
+        ]
+      },
+      "StockAdjustmentRequest": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "quantity"
+        ]
+      },
+      "ProductStatusUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "INACTIVE",
+              "SOLD_OUT"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "ProductSellerWithdrawalSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "hasActiveProduct": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Pageable": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1
+          },
+          "sort": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "PageProductResponse": {
+        "type": "object",
+        "properties": {
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductResponse"
+            }
+          },
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sort": {
+            "$ref": "#/components/schemas/SortObject"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
+          },
+          "numberOfElements": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageable": {
+            "$ref": "#/components/schemas/PageableObject"
+          },
+          "empty": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PageableObject": {
+        "type": "object",
+        "properties": {
+          "offset": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sort": {
+            "$ref": "#/components/schemas/SortObject"
+          },
+          "paged": {
+            "type": "boolean"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unpaged": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SortObject": {
+        "type": "object",
+        "properties": {
+          "empty": {
+            "type": "boolean"
+          },
+          "sorted": {
+            "type": "boolean"
+          },
+          "unsorted": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Page": {
+        "type": "object",
+        "properties": {
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "content": {
+            "type": "array",
+            "items": {}
+          },
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sort": {
+            "$ref": "#/components/schemas/SortObject"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
+          },
+          "numberOfElements": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageable": {
+            "$ref": "#/components/schemas/PageableObject"
+          },
+          "empty": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}

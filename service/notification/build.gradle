@@ -1,0 +1,61 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '4.0.3'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.todaylunch'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation project(':common-security')
+    implementation project(':common-monitoring')
+    // Web
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    // Actuator / Micrometer
+//    implementation 'org.springframework.boot:spring-boot-starter-actuator' // 중복 의존 (common-monitoring)
+    // JPA
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    // Kafka
+    implementation 'org.springframework.kafka:spring-kafka'
+    // Lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    // DB
+    runtimeOnly 'org.postgresql:postgresql'
+    // Swagger
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8'
+    // Eureka Client
+    // Config Server - disabled for Kubernetes-managed configuration.
+    // implementation 'org.springframework.cloud:spring-cloud-starter-config'
+    // Config Server retry - disabled with Config Client.
+    // implementation 'org.springframework.retry:spring-retry'
+    // Test
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:2025.1.1"
+    }
+}

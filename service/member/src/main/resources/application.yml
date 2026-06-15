@@ -1,0 +1,146 @@
+spring:
+  application:
+    name: member-service
+  config:
+    import:
+      - "optional:file:service/member/.env[.properties]"
+      - "optional:file:.env[.properties]"
+
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: "${DB_URL:jdbc:postgresql://localhost:5432/goods_mall}?currentSchema=member"
+    username: ${DB_USER_NAME:postgres}
+    password: ${DB_USER_PASSWORD:postgres}
+    hikari:
+      minimum-idle: 2
+      maximum-pool-size: 5
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        default_schema: member
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:1025}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:29092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        spring.json.add.type.headers: false
+
+server:
+  port: 8083
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+apigateway:
+  host: ${API_GATEWAY_HOST:http://localhost:8080}
+
+services:
+  order:
+    url: ${SERVICES_ORDER_URL:http://localhost:8084}
+  payment:
+    url: ${SERVICES_PAYMENT_URL:http://localhost:8082}
+  product:
+    url: ${SERVICES_PRODUCT_URL:http://localhost:8081}
+  auction:
+    url: ${SERVICES_AUCTION_URL:http://localhost:8090}
+  settlement:
+    url: ${SERVICES_SETTLEMENT_URL:http://localhost:8085}
+
+oauth:
+  kakao:
+    client-id: ${KAKAO_CLIENT_ID:}
+    client-secret: ${KAKAO_CLIENT_SECRET:}
+    authorize-uri: https://kauth.kakao.com/oauth/authorize
+    token-uri: https://kauth.kakao.com/oauth/token
+    user-info-uri: https://kapi.kakao.com/v2/user/me
+    redirect-uri: ${API_GATEWAY_HOST:http://localhost:8080}/api/auth/oauth/kakao/callback
+    frontend-callback-url: ${FRONTEND_BASE_URL:http://localhost:5173}/auth/kakao/callback
+    state-ttl: 10m
+    result-ttl: 3m
+  google:
+    client-id: ${GOOGLE_CLIENT_ID:}
+    client-secret: ${GOOGLE_CLIENT_SECRET:}
+    authorize-uri: https://accounts.google.com/o/oauth2/v2/auth
+    token-uri: https://oauth2.googleapis.com/token
+    user-info-uri: https://openidconnect.googleapis.com/v1/userinfo
+    redirect-uri: ${API_GATEWAY_HOST:http://localhost:8080}/api/auth/oauth/google/callback
+    frontend-callback-url: ${FRONTEND_BASE_URL:http://localhost:5173}/auth/google/callback
+    state-ttl: 10m
+    result-ttl: 3m
+
+jwt:
+  secret: ${JWT_SECRET_KEY}
+  issuer: member-service
+  access-expiration: 3600000 
+  refresh-expiration: 604800000 
+
+auth:
+  refresh-token-cookie:
+    name: ${REFRESH_TOKEN_COOKIE_NAME:refreshToken}
+    path: ${REFRESH_TOKEN_COOKIE_PATH:/api/auth}
+    same-site: ${REFRESH_TOKEN_COOKIE_SAME_SITE:Lax}
+    secure: ${REFRESH_TOKEN_COOKIE_SECURE:false}
+
+aws:
+  s3:
+    bucket: todaylunchmenu
+    region: ap-northeast-2
+    access-key: ${AWS_ACCESS_KEY_ID}
+    secret-key: ${AWS_SECRET_ACCESS_KEY}
+    profile-image-prefix: members/profile
+    put-presign-expiration-seconds: 300
+    get-presign-expiration-seconds: 600
+
+member:
+  signup:
+    require-email-verification: ${MEMBER_SIGNUP_REQUIRE_EMAIL_VERIFICATION:false}
+  email:
+    provider: ${EMAIL_PROVIDER:logging}
+    from-address: no-reply@todaylunch.local
+    from-name: TodayLunch
+  email-verification:
+    expiration: 24h
+    frontend-confirm-url: ${FRONTEND_BASE_URL:http://localhost:5173}/email-verification
+    auto-login-expiration: ${EMAIL_VERIFICATION_AUTO_LOGIN_EXPIRATION:3m}
+  password-reset:
+    expiration: ${PASSWORD_RESET_EXPIRATION:30m}
+    frontend-reset-url: ${FRONTEND_BASE_URL:http://localhost:5173}/password-reset
+  account-verification:
+    expiration: 5m
+    max-attempts: 5
+    max-resend-count: 3
+    resend-cooldown: 30s
+    crypto:
+      secret-key: ${ACCOUNT_VERIFICATION_SECRET_KEY}
+# TODO: Split log levels by environment later (local dev can use DEBUG, production should default to INFO/WARN).
+logging:
+  level:
+    com.example.member: INFO

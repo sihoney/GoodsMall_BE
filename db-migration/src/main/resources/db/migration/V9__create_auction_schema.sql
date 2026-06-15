@@ -1,0 +1,101 @@
+-- DRAFT ONLY
+-- This file is not part of the active Flyway scan path.
+-- Current active path remains classpath:db/migration.
+--
+-- Absorbed legacy migrations:
+-- V42, V43, V44, V45, V47, V100, V104
+CREATE SCHEMA IF NOT EXISTS auction;
+
+CREATE TABLE IF NOT EXISTS auction.auction (
+    auction_id             UUID           NOT NULL,
+    product_id             UUID           NOT NULL,
+    seller_id              UUID           NOT NULL,
+    start_price            DECIMAL(19,2)  NOT NULL,
+    bid_unit               DECIMAL(19,2)  NOT NULL,
+    current_highest_price  DECIMAL(19,2),
+    product_title          VARCHAR(255)   NOT NULL DEFAULT '',
+    thumbnail_key          VARCHAR(500)   NOT NULL DEFAULT '',
+    started_at             TIMESTAMP      NOT NULL,
+    scheduled_close_at     TIMESTAMP      NOT NULL,
+    ended_at               TIMESTAMP      NOT NULL,
+    status                 VARCHAR(30)    NOT NULL DEFAULT 'WAITING',
+    version                BIGINT         NOT NULL DEFAULT 0,
+    created_at             TIMESTAMP      NOT NULL,
+    updated_at             TIMESTAMP      NOT NULL,
+    CONSTRAINT pk_auction PRIMARY KEY (auction_id),
+    CONSTRAINT chk_auction_status
+        CHECK (
+            status IN (
+                'WAITING',
+                'ONGOING',
+                'PENDING_PAYMENT',
+                'COMPLETED',
+                'FAILED'
+            )
+        )
+);
+
+CREATE INDEX IF NOT EXISTS idx_auction_product_id
+    ON auction.auction (product_id);
+CREATE INDEX IF NOT EXISTS idx_auction_seller_id
+    ON auction.auction (seller_id);
+CREATE INDEX IF NOT EXISTS idx_auction_status
+    ON auction.auction (status);
+CREATE INDEX IF NOT EXISTS idx_auction_started_at
+    ON auction.auction (started_at);
+CREATE INDEX IF NOT EXISTS idx_auction_ended_at
+    ON auction.auction (ended_at);
+
+CREATE TABLE IF NOT EXISTS auction.bid (
+    bid_id       UUID           NOT NULL,
+    auction_id   UUID           NOT NULL,
+    bidder_id    UUID           NOT NULL,
+    bid_price    DECIMAL(19,2)  NOT NULL,
+    status       VARCHAR(30)    NOT NULL DEFAULT 'PENDING',
+    created_at   TIMESTAMP      NOT NULL,
+    updated_at   TIMESTAMP      NOT NULL,
+    CONSTRAINT pk_bid PRIMARY KEY (bid_id),
+    CONSTRAINT fk_bid_auction
+        FOREIGN KEY (auction_id) REFERENCES auction.auction (auction_id),
+    CONSTRAINT chk_bid_status
+        CHECK (
+            status IN (
+                'PENDING',
+                'ACTIVE',
+                'OUTBID',
+                'WINNING',
+                'CANCELED',
+                'PAYMENT_COMPLETED'
+            )
+        )
+);
+
+CREATE INDEX IF NOT EXISTS idx_bid_auction_id
+    ON auction.bid (auction_id);
+CREATE INDEX IF NOT EXISTS idx_bid_auction_price_desc
+    ON auction.bid (auction_id, bid_price DESC);
+CREATE INDEX IF NOT EXISTS idx_bid_bidder_id
+    ON auction.bid (bidder_id);
+CREATE INDEX IF NOT EXISTS idx_bid_status
+    ON auction.bid (auction_id, status);
+
+CREATE TABLE IF NOT EXISTS auction.outbox_event (
+    id              UUID         NOT NULL,
+    aggregate_id    UUID         NOT NULL,
+    aggregate_type  VARCHAR(50)  NOT NULL,
+    event_type      VARCHAR(100) NOT NULL,
+    topic           VARCHAR(200) NOT NULL,
+    partition_key   VARCHAR(100),
+    payload         TEXT         NOT NULL,
+    status          VARCHAR(20)  NOT NULL DEFAULT 'PENDING',
+    created_at      TIMESTAMP    NOT NULL,
+    published_at    TIMESTAMP,
+    CONSTRAINT pk_auction_outbox_event PRIMARY KEY (id),
+    CONSTRAINT chk_auction_outbox_status
+        CHECK (status IN ('PENDING', 'PUBLISHED', 'FAILED'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_outbox_status_created_at
+    ON auction.outbox_event (status, created_at);
+CREATE INDEX IF NOT EXISTS idx_outbox_aggregate_id
+    ON auction.outbox_event (aggregate_id);
