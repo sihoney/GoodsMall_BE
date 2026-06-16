@@ -9,6 +9,54 @@ import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
+/*
+ * Redis schema
+ *
+ * [1] 계좌 인증 세션 본문
+ * - key: account-verification:session:{sessionId}
+ * - type: Hash
+ * - ttl: 계좌 인증 만료 시간
+ * - value:
+ *   - sessionId: 계좌 인증 세션 ID
+ *   - memberId: 회원 ID
+ *   - draftId: 판매자 draft ID
+ *   - codeHash: 인증 코드 hash
+ *   - status: PENDING, FAILED, VERIFIED, EXPIRED, CANCELLED
+ *   - attemptCount: 인증 코드 확인 실패 횟수
+ *   - resendCount: 인증 코드 재발송 횟수
+ *   - requestedAt: 인증 요청 시각
+ *   - expiresAt: 인증 만료 시각
+ *   - verifiedAt: 인증 완료 시각, 없으면 빈 문자열
+ *   - cancelledAt: 인증 취소 시각, 없으면 빈 문자열
+ *   - failureReason: 실패 또는 만료 사유, 없으면 빈 문자열
+ *
+ * [2] 회원별 현재 세션
+ * - key: account-verification:member:{memberId}:current
+ * - type: String
+ * - ttl: 계좌 인증 만료 시간
+ * - value: sessionId
+ *
+ * [3] 세션 lock
+ * - key: account-verification:lock:{sessionId}
+ * - type: String
+ * - ttl: 짧은 lock 유지 시간
+ * - value: "1"
+ *
+ * [4] 저장 예시
+ * - account-verification:session:av_abc123
+ *   sessionId = av_abc123
+ *   memberId = 11111111-1111-1111-1111-111111111111
+ *   draftId = ad_abc123
+ *   codeHash = 9f86d081884c7d659a2feaa0c55ad015...
+ *   status = PENDING
+ *   attemptCount = 0
+ *   resendCount = 0
+ *   requestedAt = 2026-06-16T14:30:00
+ *   expiresAt = 2026-06-16T14:35:00
+ *   verifiedAt =
+ *   cancelledAt =
+ *   failureReason =
+ */
 @Component
 @RequiredArgsConstructor
 public class RedisAccountVerificationSessionStore implements AccountVerificationSessionStore {

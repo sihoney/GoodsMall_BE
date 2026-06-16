@@ -9,6 +9,45 @@ import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
+/*
+ * Redis schema
+ *
+ * [1] 판매자 등록 draft
+ * - key: seller-draft:draft:{draftId}
+ * - type: Hash
+ * - ttl: 판매자 등록 draft 만료 시간
+ * - value:
+ *   - draftId: 판매자 draft ID
+ *   - memberId: 회원 ID
+ *   - sessionId: 계좌 인증 세션 ID
+ *   - bankName: 은행명
+ *   - encryptedAccountNumber: 암호화된 계좌번호
+ *   - accountNumberMasked: 마스킹된 계좌번호
+ *   - status: draft 상태
+ *   - createdAt: draft 생성 시각
+ *   - updatedAt: draft 수정 시각
+ *
+ * [2] 회원별 현재 draft
+ * - key: seller-draft:member:{memberId}:current
+ * - type: String
+ * - ttl: 판매자 등록 draft 만료 시간
+ * - value: draftId
+ *
+ * [3] 저장 예시
+ * - seller-draft:draft:ad_abc123
+ *   draftId = ad_abc123
+ *   memberId = 11111111-1111-1111-1111-111111111111
+ *   sessionId = av_abc123
+ *   bankName = 국민은행
+ *   encryptedAccountNumber = encrypted-value
+ *   accountNumberMasked = 123-****-7890
+ *   status = PENDING
+ *   createdAt = 2026-06-16T14:30:00
+ *   updatedAt = 2026-06-16T14:30:00
+ *
+ * - seller-draft:member:11111111-1111-1111-1111-111111111111:current
+ *   value = ad_abc123
+ */
 @Component
 @RequiredArgsConstructor
 public class RedisSellerDraftStore implements SellerDraftStore {

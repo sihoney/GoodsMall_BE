@@ -9,6 +9,33 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
+/*
+ * Redis schema
+ *
+ * [1] 회원가입 이메일 인증 토큰
+ * - key: auth:email-verification:signup:token:{token}
+ * - type: Hash
+ * - ttl: 이메일 인증 토큰 만료 시간
+ * - value:
+ *   - memberId: 회원 ID
+ *   - email: 인증 대상 이메일
+ *   - expiresAt: 인증 만료 시각
+ *
+ * [2] 회원별 현재 이메일 인증 토큰
+ * - key: auth:email-verification:signup:member:{memberId}
+ * - type: String
+ * - ttl: 이메일 인증 토큰 만료 시간
+ * - value: token
+ *
+ * [3] 저장 예시
+ * - auth:email-verification:signup:token:email-token-abc123
+ *   memberId = 11111111-1111-1111-1111-111111111111
+ *   email = user@example.com
+ *   expiresAt = 2026-06-16T14:35:00
+ *
+ * - auth:email-verification:signup:member:11111111-1111-1111-1111-111111111111
+ *   value = email-token-abc123
+ */
 @Component
 @RequiredArgsConstructor
 public class RedisEmailVerificationTokenStore implements EmailVerificationTokenStore {

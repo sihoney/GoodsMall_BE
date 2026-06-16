@@ -7,6 +7,24 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
+/*
+ * Redis schema
+ *
+ * [1] 비밀번호 재설정 토큰
+ * - key: auth:password-reset:{token}
+ * - type: Hash
+ * - ttl: 비밀번호 재설정 토큰 만료 시간
+ * - value:
+ *   - memberId: 회원 ID
+ *   - email: 회원 이메일
+ *   - createdAt: 토큰 생성 시각
+ *
+ * [2] 저장 예시
+ * - auth:password-reset:reset-token-abc123
+ *   memberId = 11111111-1111-1111-1111-111111111111
+ *   email = user@example.com
+ *   createdAt = 2026-06-16T14:30:00Z
+ */
 @Component
 @RequiredArgsConstructor
 public class RedisPasswordResetTokenStore implements PasswordResetTokenStore {
