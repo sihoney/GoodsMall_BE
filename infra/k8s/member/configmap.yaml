@@ -4,6 +4,7 @@ metadata:
   name: member-config
   namespace: goods-mall
 data:
+  SPRING_PROFILES_ACTIVE: "prod"
   API_GATEWAY_HOST: "http://gateway:8080"
   SERVICES_ORDER_URL: "http://order:8084"
   SERVICES_PAYMENT_URL: "http://payment:8082"
@@ -12,7 +13,8 @@ data:
   SERVICES_SETTLEMENT_URL: "http://settlement:8085"
   FRONTEND_BASE_URL: "https://goods-mall-fe.vercel.app"
   MEMBER_SIGNUP_REQUIRE_EMAIL_VERIFICATION: "true"
-  EMAIL_PROVIDER: "smtp"
   SMTP_HOST: "live.smtp.mailtrap.io"
   SMTP_PORT: "587"
+  SMTP_AUTH: "true"
+  SMTP_STARTTLS_ENABLE: "true"
   KAKAO_CLIENT_ID: "40bcc2744d37da5ed008a7a22fe45b7a"

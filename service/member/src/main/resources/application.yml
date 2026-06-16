@@ -35,12 +35,12 @@ spring:
     properties:
       mail:
         smtp:
-          auth: false
+          auth: ${SMTP_AUTH:false}
           starttls:
-            enable: false
-          connectiontimeout: 5000
-          timeout: 5000
-          writetimeout: 5000
+            enable: ${SMTP_STARTTLS_ENABLE:false}
+          connectiontimeout: ${SMTP_CONNECTION_TIMEOUT:5000}
+          timeout: ${SMTP_TIMEOUT:5000}
+          writetimeout: ${SMTP_WRITE_TIMEOUT:5000}
 
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:29092}
@@ -84,7 +84,6 @@ oauth:
     redirect-uri: ${API_GATEWAY_HOST:http://localhost:8080}/api/auth/oauth/kakao/callback
     frontend-callback-url: ${FRONTEND_BASE_URL:http://localhost:5173}/auth/kakao/callback
     state-ttl: 10m
-    result-ttl: 3m
   google:
     client-id: ${GOOGLE_CLIENT_ID:}
     client-secret: ${GOOGLE_CLIENT_SECRET:}
@@ -94,7 +93,6 @@ oauth:
     redirect-uri: ${API_GATEWAY_HOST:http://localhost:8080}/api/auth/oauth/google/callback
     frontend-callback-url: ${FRONTEND_BASE_URL:http://localhost:5173}/auth/google/callback
     state-ttl: 10m
-    result-ttl: 3m
 
 jwt:
   secret: ${JWT_SECRET_KEY}
@@ -124,8 +122,8 @@ member:
     require-email-verification: ${MEMBER_SIGNUP_REQUIRE_EMAIL_VERIFICATION:false}
   email:
     provider: ${EMAIL_PROVIDER:logging}
-    from-address: no-reply@todaylunch.local
-    from-name: TodayLunch
+    from-address: ${EMAIL_FROM_ADDRESS:no-reply@todaylunch.local}
+    from-name: ${EMAIL_FROM_NAME:Goods Mall}
   email-verification:
     expiration: 24h
     frontend-confirm-url: ${FRONTEND_BASE_URL:http://localhost:5173}/email-verification

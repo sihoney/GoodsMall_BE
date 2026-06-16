@@ -1,0 +1,19 @@
+spring:
+  mail:
+    host: ${SMTP_HOST}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME}
+    password: ${SMTP_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: ${SMTP_AUTH:true}
+          starttls:
+            enable: ${SMTP_STARTTLS_ENABLE:true}
+          connectiontimeout: ${SMTP_CONNECTION_TIMEOUT:5000}
+          timeout: ${SMTP_TIMEOUT:5000}
+          writetimeout: ${SMTP_WRITE_TIMEOUT:5000}
+
+member:
+  email:
+    provider: ${EMAIL_PROVIDER:smtp}
