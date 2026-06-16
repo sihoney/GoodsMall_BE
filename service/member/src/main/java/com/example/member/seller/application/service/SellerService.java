@@ -32,12 +32,15 @@ public class SellerService implements SellerUsecase {
     @Transactional
     @Override
     public AccountVerificationSendResult registerSeller(UUID memberId, SellerRegisterCommand command) {
+        // [1] 회원 존재 확인
         getMember(memberId);
 
+        // [2] 판매자 등록 중복 확인
         if (sellerPersistencePort.existsByMemberId(memberId)) {
             throw new BusinessException(SellerErrorCode.SELLER_ALREADY_REGISTERED);
         }
 
+        // [3] 계좌 인증 세션 생성
         return accountVerificationUsecase.createAccountVerification(
                 memberId,
                 new AccountVerificationCreateCommand(
@@ -49,10 +52,14 @@ public class SellerService implements SellerUsecase {
 
     @Override
     public SellerResult getCurrentSeller(UUID memberId) {
+        // [1] 회원 존재 확인
         getMember(memberId);
+
+        // [2] 판매자 정보 조회
         Seller seller = sellerPersistencePort.findByMemberId(memberId)
                 .orElseThrow(() -> new BusinessException(SellerErrorCode.SELLER_NOT_FOUND));
 
+        // [3] 판매자 응답 변환
         return new SellerResult(
                 seller.getSellerId(),
                 seller.getMemberId(),
@@ -63,6 +70,7 @@ public class SellerService implements SellerUsecase {
     }
 
     private Member getMember(UUID memberId) {
+        // [1] 회원 단건 조회
         return memberPersistencePort.findById(memberId)
                 .orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
     }

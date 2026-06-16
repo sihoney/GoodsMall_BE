@@ -25,6 +25,7 @@ import com.example.member.seller.infrastructure.crypto.AccountEncryptionService;
 import com.example.member.member.infrastructure.persistence.jpa.MemberJpaAdapter;
 import com.example.member.verification.infrastructure.redis.accountverification.AccountVerificationSession;
 import com.example.member.verification.infrastructure.redis.accountverification.AccountVerificationSessionStore;
+import com.example.member.auth.infrastructure.redis.auth.AuthSession;
 import com.example.member.auth.infrastructure.redis.auth.ParsedRefreshToken;
 import com.example.member.auth.infrastructure.redis.auth.RefreshTokenStore;
 import com.example.member.seller.infrastructure.redis.seller.SellerDraft;
@@ -251,13 +252,7 @@ class AccountVerificationServiceTest {
         assertEquals(authSessionId, response.auth().sessionId());
         verify(sessionStore).saveSession(any(AccountVerificationSession.class), any(Duration.class));
         verify(sellerPromotionService).promoteAfterAccountVerified(memberId, sessionId);
-        verify(refreshTokenStore).createSession(
-                memberId,
-                authSessionId,
-                "seller-refresh-token-id",
-                Duration.ofMillis(7200L),
-                AuthSessionMetadata.empty()
-        );
+        verify(refreshTokenStore).saveSession(any(AuthSession.class), eq(Duration.ofMillis(7200L)));
         verify(sessionStore).releaseLock(sessionId);
         verify(memberEventPort, never()).publishAccountVerificationExpired(any(UUID.class), anyString(), anyString());
         verify(memberEventPort, never()).publishAccountVerificationFailed(any(UUID.class), anyString(), anyString());

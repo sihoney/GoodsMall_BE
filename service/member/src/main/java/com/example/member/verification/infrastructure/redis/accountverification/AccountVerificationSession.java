@@ -1,8 +1,6 @@
 package com.example.member.verification.infrastructure.redis.accountverification;
 
 
-import com.example.member.common.exception.BusinessException;
-import com.example.member.verification.exception.VerificationErrorCode;
 import com.example.member.verification.domain.enumtype.AccountVerificationStatus;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -184,7 +182,7 @@ public class AccountVerificationSession {
     private static String stringValue(Map<Object, Object> entries, String fieldName) {
         Object value = entries.get(fieldName);
         if (value == null || value.toString().isBlank()) {
-            throw new IllegalArgumentException("Redis 필드가 누락되었습니다: " + fieldName);
+            throw new IllegalArgumentException("Redis 필드가 누락되었습니다. " + fieldName);
         }
         return value.toString();
     }

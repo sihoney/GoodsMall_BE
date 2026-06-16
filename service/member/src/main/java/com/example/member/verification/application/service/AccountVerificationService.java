@@ -22,6 +22,7 @@ import com.example.member.verification.domain.enumtype.AccountVerificationStatus
 import com.example.member.seller.infrastructure.crypto.AccountEncryptionService;
 import com.example.member.verification.infrastructure.redis.accountverification.AccountVerificationSession;
 import com.example.member.verification.infrastructure.redis.accountverification.AccountVerificationSessionStore;
+import com.example.member.auth.infrastructure.redis.auth.AuthSession;
 import com.example.member.auth.infrastructure.redis.auth.ParsedRefreshToken;
 import com.example.member.auth.infrastructure.redis.auth.RefreshTokenStore;
 import com.example.member.seller.infrastructure.redis.seller.SellerDraft;
@@ -65,10 +66,13 @@ public class AccountVerificationService implements AccountVerificationUsecase {
             UUID memberId,
             AccountVerificationCreateCommand command
     ) {
+        // [1] 회원 존재 확인
         Member member = getMember(memberId);
 
+        // [2] 기존 계좌 인증 세션 및 판매자 draft 정리
         cleanupExistingCurrentSession(memberId);
 
+        // [3] 인증 세션 기본값 생성
         LocalDateTime now = LocalDateTime.now();
         String draftId = generateDraftId();
         String sessionId = generateSessionId();
@@ -78,6 +82,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
         String maskedAccountNumber = maskAccountNumber(normalizedAccount);
         LocalDateTime expiresAt = now.plus(properties.expiration());
 
+        // [4] 계좌번호 암호화 및 판매자 draft 생성
         String encryptedAccountNumber = accountEncryptionService.encrypt(normalizedAccount);
         SellerDraft draft = SellerDraft.create(
                 draftId,
@@ -89,9 +94,11 @@ public class AccountVerificationService implements AccountVerificationUsecase {
                 now
         );
 
+        // [5] 판매자 draft Redis 저장
         sellerDraftStore.saveDraft(draft, properties.expiration());
         sellerDraftStore.saveCurrentDraft(memberId, draftId, properties.expiration());
 
+        // [6] 계좌 인증 세션 생성
         AccountVerificationSession session = AccountVerificationSession.create(
                 sessionId,
                 member.getMemberId(),
@@ -101,6 +108,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
                 expiresAt
         );
 
+        // [7] 인증 세션 저장 실패 시 draft 보상 삭제
         try {
             sessionStore.saveSession(session, properties.expiration());
             sessionStore.saveCurrentSession(memberId, sessionId, properties.expiration());
@@ -110,6 +118,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
             throw exception;
         }
 
+        // [8] 인증 코드 포함 응답 반환
         return new AccountVerificationSendResult(
                 sessionId,
                 session.getStatus().name(),
@@ -129,27 +138,33 @@ public class AccountVerificationService implements AccountVerificationUsecase {
             String sessionId,
             AccountVerificationConfirmCommand command
     ) {
+        // [1] 세션 ID 검증 및 중복 처리 방지 lock 획득
         validateSessionId(sessionId);
         acquireLockOrThrow(sessionId);
         try {
+            // [2] 회원 소유 세션 조회
             AccountVerificationSession session = getOwnedSession(memberId, sessionId);
             LocalDateTime now = LocalDateTime.now();
 
+            // [3] 만료 세션 처리
             if (session.isExpired(now)) {
                 expireSession(session, "SESSION_EXPIRED");
                 sessionStore.saveSession(session, Duration.ZERO);
                 throw new BusinessException(VerificationErrorCode.ACCOUNT_VERIFICATION_EXPIRED);
             }
 
+            // [4] 이미 인증 완료된 세션이면 판매자 승격 및 토큰 재발급
             if (session.isVerified()) {
                 sellerPromotionService.promoteAfterAccountVerified(memberId, sessionId);
                 return buildConfirmResponse(session, issuePromotedTokens(memberId, authSessionId));
             }
 
+            // [5] 인증 가능 상태 검증
             if (!session.canConfirm()) {
-                throw new BusinessException(VerificationErrorCode.ACCOUNT_VERIFICATION_NOT_ALLOWED, "계좌 인증 세션은 확인 처리할 수 없습니다.");
+                throw new BusinessException(VerificationErrorCode.ACCOUNT_VERIFICATION_NOT_ALLOWED, "계좌 인증 세션을 확인 처리할 수 없습니다.");
             }
 
+            // [6] 인증 코드 불일치 처리 및 시도 횟수 제한 확인
             String normalizedCode = command.code().trim();
             if (!session.getCodeHash().equals(hashCode(normalizedCode))) {
                 session.markFailed("계좌 인증 코드가 일치하지 않습니다.");
@@ -167,23 +182,31 @@ public class AccountVerificationService implements AccountVerificationUsecase {
                 throw new BusinessException(VerificationErrorCode.ACCOUNT_VERIFICATION_CODE_INVALID);
             }
 
+            // [7] 인증 완료 처리
             session.markVerified(now);
             sessionStore.saveSession(session, properties.expiration());
+
+            // [8] 판매자 승격 및 신규 토큰 발급
             sellerPromotionService.promoteAfterAccountVerified(memberId, sessionId);
             return buildConfirmResponse(session, issuePromotedTokens(memberId, authSessionId));
         } finally {
+            // [9] 세션 lock 해제
             sessionStore.releaseLock(sessionId);
         }
     }
 
     @Override
     public AccountVerificationCurrentResult getCurrentAccountVerification(UUID memberId) {
+        // [1] 회원 존재 확인
         getMember(memberId);
+
+        // [2] 현재 세션 ID 조회
         Optional<String> currentSessionId = sessionStore.findCurrentSessionId(memberId);
         if (currentSessionId.isEmpty()) {
             return emptyCurrentResponse();
         }
 
+        // [3] 세션 본문 조회 실패 시 현재 세션 및 draft 정리
         Optional<AccountVerificationSession> session = sessionStore.findSession(currentSessionId.get());
         if (session.isEmpty()) {
             sessionStore.deleteCurrentSession(memberId);
@@ -191,35 +214,43 @@ public class AccountVerificationService implements AccountVerificationUsecase {
             return emptyCurrentResponse();
         }
 
+        // [4] 만료된 pending 세션 종료 처리
         AccountVerificationSession current = session.get();
         if (current.isExpired(LocalDateTime.now()) && current.getStatus() == AccountVerificationStatus.PENDING) {
             expireSession(current, "SESSION_EXPIRED");
             sessionStore.saveSession(current, Duration.ZERO);
         }
 
+        // [5] 현재 세션 응답 변환
         return buildCurrentResponse(current);
     }
 
     @Override
     @Transactional
     public AccountVerificationSendResult resendAccountVerification(UUID memberId, String sessionId) {
+        // [1] 중복 재발송 방지 lock 획득
         acquireLockOrThrow(sessionId);
         try {
+            // [2] 회원 소유 세션 조회
             AccountVerificationSession session = getOwnedSession(memberId, sessionId);
             LocalDateTime now = LocalDateTime.now();
 
+            // [3] 만료 세션 처리
             if (session.isExpired(now)) {
                 expireSession(session, "SESSION_EXPIRED");
                 sessionStore.saveSession(session, Duration.ZERO);
                 throw new BusinessException(VerificationErrorCode.ACCOUNT_VERIFICATION_EXPIRED);
             }
+
+            // [4] 재발송 가능 상태 및 제한 횟수 검증
             if (!session.canResend()) {
-                throw new BusinessException(VerificationErrorCode.ACCOUNT_VERIFICATION_NOT_ALLOWED, "계좌 인증 세션은 재전송할 수 없습니다.");
+                throw new BusinessException(VerificationErrorCode.ACCOUNT_VERIFICATION_NOT_ALLOWED, "계좌 인증 세션을 재전송할 수 없습니다.");
             }
             if (session.getResendCount() >= properties.maxResendCount()) {
                 throw new BusinessException(VerificationErrorCode.ACCOUNT_VERIFICATION_RESEND_LIMIT_EXCEEDED);
             }
 
+            // [5] 새 인증 코드 생성 및 세션 갱신
             SellerDraft draft = getDraftBySession(session);
             String verificationCode = generateVerificationCode();
             String codeHash = hashCode(verificationCode);
@@ -228,6 +259,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
             sessionStore.saveSession(session, properties.expiration());
             sessionStore.saveCurrentSession(memberId, sessionId, properties.expiration());
 
+            // [6] 새 인증 코드 포함 응답 반환
             return new AccountVerificationSendResult(
                     session.getSessionId(),
                     session.getStatus().name(),
@@ -238,6 +270,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
                     session.getResendCount()
             );
         } finally {
+            // [7] 세션 lock 해제
             sessionStore.releaseLock(sessionId);
         }
     }
@@ -245,20 +278,29 @@ public class AccountVerificationService implements AccountVerificationUsecase {
     @Override
     @Transactional
     public AccountVerificationCancelResult cancelAccountVerification(UUID memberId, String sessionId) {
+        // [1] 중복 취소 방지 lock 획득
         acquireLockOrThrow(sessionId);
         try {
+            // [2] 회원 소유 세션 조회
             AccountVerificationSession session = getOwnedSession(memberId, sessionId);
+
+            // [3] 세션 취소 상태 저장
             LocalDateTime now = LocalDateTime.now();
             session.markCancelled(now);
             sessionStore.saveSession(session, properties.expiration());
+
+            // [4] 판매자 draft 정리
             sellerDraftStore.deleteDraft(session.getDraftId());
             sellerDraftStore.deleteCurrentDraft(memberId);
+
+            // [5] 취소 응답 반환
             return new AccountVerificationCancelResult(
                     session.getSessionId(),
                     session.getStatus().name(),
                     session.getCancelledAt()
             );
         } finally {
+            // [6] 세션 lock 해제
             sessionStore.releaseLock(sessionId);
         }
     }
@@ -267,7 +309,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
         Optional<String> currentSessionId = sessionStore.findCurrentSessionId(memberId);
         if (currentSessionId.isPresent()) {
             sessionStore.findSession(currentSessionId.get()).ifPresent(session ->
-                    sellerDraftStore.deleteDraft(session.getDraftId())
+                sellerDraftStore.deleteDraft(session.getDraftId())
             );
             sessionStore.deleteCurrentSession(memberId);
             sessionStore.deleteSession(currentSessionId.get());
@@ -338,22 +380,18 @@ public class AccountVerificationService implements AccountVerificationUsecase {
         ParsedRefreshToken parsedRefreshToken = jwtTokenProvider.parseRefreshToken(refreshToken);
         Duration refreshTtl = Duration.ofMillis(jwtTokenProvider.getRefreshExpiration());
 
-        if (refreshTokenStore.findBySessionId(authSessionId).isPresent()) {
-            refreshTokenStore.updateRefreshTokenId(
-                    authSessionId,
-                    parsedRefreshToken.refreshTokenId(),
-                    refreshTtl,
-                    AuthSessionMetadata.empty()
-            );
-        } else {
-            refreshTokenStore.createSession(
-                    memberId,
-                    authSessionId,
-                    parsedRefreshToken.refreshTokenId(),
-                    refreshTtl,
-                    AuthSessionMetadata.empty()
-            );
-        }
+        AuthSession authSession = refreshTokenStore.findBySessionId(authSessionId)
+                .map(session -> session.refresh(
+                        parsedRefreshToken.refreshTokenId(),
+                        AuthSessionMetadata.empty()
+                ))
+                .orElseGet(() -> AuthSession.create(
+                        memberId,
+                        authSessionId,
+                        parsedRefreshToken.refreshTokenId(),
+                        AuthSessionMetadata.empty()
+                ));
+        refreshTokenStore.saveSession(authSession, refreshTtl);
 
         return new AccountVerificationConfirmResult.AuthTokens(
                 accessToken,
@@ -375,7 +413,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
 
     private void validateSessionId(String sessionId) {
         if (sessionId == null || sessionId.trim().isEmpty()) {
-            // TODO: 이 서비스가 외부 호출 경계가 되면 중복 필수값 검증을 command validation으로 이동한다.
+            // TODO: 내부 호출 경계가 생기면 중복 필수값 검증을 command validation으로 이동
             throw new BusinessException(VerificationErrorCode.ACCOUNT_VERIFICATION_NOT_FOUND);
         }
     }
@@ -410,7 +448,7 @@ public class AccountVerificationService implements AccountVerificationUsecase {
 
     private String normalizeAccountNumber(String accountNumber) {
         if (accountNumber == null || accountNumber.trim().isEmpty()) {
-            // TODO: 이 서비스가 외부 호출 경계가 되면 중복 필수값 검증을 command validation으로 이동한다.
+            // TODO: 내부 호출 경계가 생기면 중복 필수값 검증을 command validation으로 이동
             throw new BusinessException(VerificationErrorCode.INVALID_ACCOUNT_NUMBER);
         }
         String normalized = accountNumber.trim().replace("-", "").replace(" ", "");
