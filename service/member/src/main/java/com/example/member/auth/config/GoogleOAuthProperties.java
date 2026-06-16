@@ -12,7 +12,6 @@ public record GoogleOAuthProperties(
         String userInfoUri,
         String redirectUri,
         String frontendCallbackUrl,
-        Duration stateTtl,
-        Duration resultTtl
+        Duration stateTtl
 ) implements OAuthProviderProperties {
 }

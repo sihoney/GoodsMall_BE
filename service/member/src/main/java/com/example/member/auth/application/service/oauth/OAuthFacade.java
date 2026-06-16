@@ -3,6 +3,7 @@ package com.example.member.auth.application.service.oauth;
 import com.example.member.auth.application.dto.OAuthUserProfile;
 import com.example.member.auth.application.dto.result.OAuthCallbackResult;
 import com.example.member.auth.application.dto.result.OAuthResult;
+import com.example.member.auth.application.dto.result.OAuthResultStatus;
 import com.example.member.auth.application.service.oauth.profile.OAuthProfileServiceRegistry;
 import com.example.member.auth.domain.enumtype.OAuthProvider;
 import com.example.member.common.application.dto.AuthSessionMetadata;
@@ -63,16 +64,11 @@ public class OAuthFacade {
             result = oauthErrorResultMapper.createErrorResult(provider, exception);
         }
 
-        // [4] Result 저장
-        String resultKey = oauthStateService.createOAuthResultKey(provider, result);
-
-        // [5] Callback Result 반환
-        return new OAuthCallbackResult(resultKey);
-    }
-
-    public OAuthResult consumeOAuthResult(OAuthProvider provider, String resultKey) {
-        // [1] 결과 조회
-        return oauthStateService.consumeOAuthResult(provider, resultKey);
+        // [4] Callback Result 반환
+        if (result.status() == OAuthResultStatus.SUCCESS) {
+            return OAuthCallbackResult.success(result);
+        }
+        return OAuthCallbackResult.error(result);
     }
 
     public String getFrontendCallbackUrl(OAuthProvider provider) {

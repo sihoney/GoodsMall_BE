@@ -1,11 +1,9 @@
 package com.example.member.auth.presentation.web;
 
 import com.example.member.auth.application.dto.result.OAuthCallbackResult;
-import com.example.member.auth.application.dto.result.OAuthResult;
 import com.example.member.auth.application.service.oauth.OAuthFacade;
 import com.example.member.auth.domain.enumtype.OAuthProvider;
 import com.example.member.auth.presentation.web.dto.OAuthAuthorizeUrlResponse;
-import com.example.member.auth.presentation.web.dto.OAuthResultResponse;
 import com.example.member.auth.presentation.web.support.RefreshTokenCookieWriter;
 import com.example.member.common.presentation.web.dto.ApiResponse;
 import com.example.member.common.presentation.web.support.AuthSessionMetadataExtractor;
@@ -43,7 +41,7 @@ public class KakaoOAuthController {
     }
 
     @GetMapping("/callback")
-    @Operation(summary = "카카오 OAuth 콜백", description = "카카오 OAuth 결과를 저장하고 프론트 콜백 URL로 리다이렉트합니다.")
+    @Operation(summary = "카카오 OAuth 콜백", description = "카카오 OAuth 결과를 처리하고 프론트 콜백 URL로 리다이렉트합니다.")
     public ResponseEntity<Void> kakaoCallback(
             @RequestParam(name = "code", required = false) String code,
             @RequestParam(name = "state", required = false) String state,
@@ -58,27 +56,26 @@ public class KakaoOAuthController {
                 errorDescription,
                 AuthSessionMetadataExtractor.extract(httpServletRequest)
         );
-        URI redirectUri = UriComponentsBuilder
-                .fromUriString(oauthFacade.getFrontendCallbackUrl(PROVIDER))
-                .queryParam("resultKey", callbackResult.resultKey())
-                .build(true)
-                .toUri();
 
-        return ResponseEntity.status(HttpStatus.FOUND).location(redirectUri).build();
-    }
-
-    @GetMapping("/result")
-    @Operation(summary = "카카오 OAuth 결과 조회", description = "resultKey로 1회용 카카오 OAuth 결과를 조회합니다.")
-    public ResponseEntity<ApiResponse<OAuthResultResponse>> getOAuthResult(
-            @RequestParam(name = "resultKey") String resultKey
-    ) {
-        OAuthResult result = oauthFacade.consumeOAuthResult(PROVIDER, resultKey);
-        ResponseEntity.BodyBuilder response = ResponseEntity.ok();
-        if (result.refreshToken() != null) {
+        URI redirectUri = buildRedirectUri(callbackResult);
+        ResponseEntity.BodyBuilder response = ResponseEntity.status(HttpStatus.FOUND).location(redirectUri);
+        if (callbackResult.success() && callbackResult.refreshToken() != null) {
             response.header(HttpHeaders.SET_COOKIE, refreshTokenCookieWriter
-                    .create(result.refreshToken(), result.refreshTokenExpiresIn())
+                    .create(callbackResult.refreshToken(), callbackResult.refreshTokenExpiresIn())
                     .toString());
         }
-        return response.body(ApiResponse.success(OAuthResultResponse.from(result)));
+        return response.build();
+    }
+
+    private URI buildRedirectUri(OAuthCallbackResult callbackResult) {
+        UriComponentsBuilder builder = UriComponentsBuilder
+                .fromUriString(oauthFacade.getFrontendCallbackUrl(PROVIDER))
+                .queryParam("success", callbackResult.success());
+
+        if (!callbackResult.success()) {
+            builder.queryParam("errorCode", callbackResult.errorCode());
+            builder.queryParam("errorMessage", callbackResult.errorMessage());
+        }
+        return builder.build().toUri();
     }
 }

@@ -15,13 +15,9 @@ gateway:
       - methods: [GET]
         pattern: /api/auth/oauth/kakao/callback
       - methods: [GET]
-        pattern: /api/auth/oauth/kakao/result
-      - methods: [GET]
         pattern: /api/auth/oauth/google/authorize
       - methods: [GET]
         pattern: /api/auth/oauth/google/callback
-      - methods: [GET]
-        pattern: /api/auth/oauth/google/result
       - methods: [POST]
         pattern: /api/auth/email-verifications
       - methods: [POST]
