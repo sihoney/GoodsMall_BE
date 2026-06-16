@@ -1,6 +1,7 @@
 package com.example.member.auth.application.service.session;
 
 import com.example.member.auth.application.dto.result.AuthTokenResult;
+import com.example.member.auth.infrastructure.redis.auth.AuthSession;
 import com.example.member.auth.infrastructure.redis.auth.ParsedRefreshToken;
 import com.example.member.auth.infrastructure.redis.auth.RefreshTokenStore;
 import com.example.member.auth.infrastructure.security.jwt.JwtTokenProvider;
@@ -31,14 +32,14 @@ public class AuthTokenIssuer {
         // [4] Refresh Token 파싱
         ParsedRefreshToken parsedRefreshToken = jwtTokenProvider.parseRefreshToken(refreshToken);
 
-        // [5] 세션 저장
-        refreshTokenStore.createSession(
+        // [5] 세션 생성 및 저장
+        AuthSession authSession = AuthSession.create(
                 member.getMemberId(),
                 sessionId,
                 parsedRefreshToken.refreshTokenId(),
-                Duration.ofMillis(jwtTokenProvider.getRefreshExpiration()),
                 metadataOrEmpty(metadata)
         );
+        refreshTokenStore.saveSession(authSession, Duration.ofMillis(jwtTokenProvider.getRefreshExpiration()));
 
         // [6] 토큰 결과 반환
         return new AuthTokenResult(

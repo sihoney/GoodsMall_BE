@@ -59,12 +59,11 @@ public class AuthTokenRefreshService implements AuthTokenRefreshUsecase {
         String newRefreshToken = jwtTokenProvider.createRefreshToken(member, parsedRefreshToken.sessionId());
         ParsedRefreshToken rotatedRefreshToken = jwtTokenProvider.parseRefreshToken(newRefreshToken);
 
-        refreshTokenStore.updateRefreshTokenId(
-                parsedRefreshToken.sessionId(),
+        AuthSession refreshedSession = authSession.refresh(
                 rotatedRefreshToken.refreshTokenId(),
-                Duration.ofMillis(jwtTokenProvider.getRefreshExpiration()),
                 metadataOrEmpty(command.authSessionMetadata())
         );
+        refreshTokenStore.saveSession(refreshedSession, Duration.ofMillis(jwtTokenProvider.getRefreshExpiration()));
 
         return new AuthTokenResult(
                 newAccessToken,

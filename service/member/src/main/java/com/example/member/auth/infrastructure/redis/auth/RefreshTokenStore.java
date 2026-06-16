@@ -1,6 +1,5 @@
 package com.example.member.auth.infrastructure.redis.auth;
 
-import com.example.member.common.application.dto.AuthSessionMetadata;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -9,24 +8,11 @@ import java.util.UUID;
 
 public interface RefreshTokenStore {
 
-    void createSession(
-            UUID memberId,
-            UUID sessionId,
-            String refreshTokenId,
-            Duration ttl,
-            AuthSessionMetadata metadata
-    );
+    void saveSession(AuthSession session, Duration ttl);
 
     Optional<AuthSession> findBySessionId(UUID sessionId);
 
     List<AuthSession> findSessionsByMemberId(UUID memberId);
-
-    void updateRefreshTokenId(
-        UUID sessionId, 
-        String refreshTokenId, 
-        Duration ttl, 
-        AuthSessionMetadata metadata
-    );
 
     void deleteSession(UUID memberId, UUID sessionId);
 

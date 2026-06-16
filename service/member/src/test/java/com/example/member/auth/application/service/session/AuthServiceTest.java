@@ -107,13 +107,7 @@ class AuthServiceTest {
 
         assertEquals("access-token", response.accessToken());
         assertEquals("refresh-token", response.refreshToken());
-        verify(refreshTokenStore).createSession(
-                eq(member.getMemberId()),
-                any(UUID.class),
-                eq("refresh-token-id"),
-                eq(Duration.ofMillis(7200L)),
-                any(AuthSessionMetadata.class)
-        );
+        verify(refreshTokenStore).saveSession(any(AuthSession.class), eq(Duration.ofMillis(7200L)));
     }
 
     @Test
@@ -139,7 +133,7 @@ class AuthServiceTest {
         assertEquals(RestrictionErrorCode.MEMBER_RESTRICTED, exception.getErrorCode());
 
         verify(jwtTokenProvider, never()).createAccessToken(eq(member), any(UUID.class));
-        verify(refreshTokenStore, never()).createSession(any(UUID.class), any(UUID.class), any(String.class), any(Duration.class), any(AuthSessionMetadata.class));
+        verify(refreshTokenStore, never()).saveSession(any(AuthSession.class), any(Duration.class));
     }
 
     @Test
@@ -166,7 +160,7 @@ class AuthServiceTest {
         assertEquals(VerificationErrorCode.EMAIL_VERIFICATION_REQUIRED, exception.getErrorCode());
 
         verify(jwtTokenProvider, never()).createAccessToken(eq(member), any(UUID.class));
-        verify(refreshTokenStore, never()).createSession(any(UUID.class), any(UUID.class), any(String.class), any(Duration.class), any(AuthSessionMetadata.class));
+        verify(refreshTokenStore, never()).saveSession(any(AuthSession.class), any(Duration.class));
     }
 
     @Test
@@ -181,7 +175,7 @@ class AuthServiceTest {
         assertEquals(MemberErrorCode.MEMBER_SUSPENDED, exception.getErrorCode());
 
         verify(jwtTokenProvider, never()).createAccessToken(eq(member), any(UUID.class));
-        verify(refreshTokenStore, never()).createSession(any(UUID.class), any(UUID.class), any(String.class), any(Duration.class), any(AuthSessionMetadata.class));
+        verify(refreshTokenStore, never()).saveSession(any(AuthSession.class), any(Duration.class));
     }
 
     @Test
@@ -210,12 +204,7 @@ class AuthServiceTest {
         assertEquals("new-access-token", response.accessToken());
         assertEquals("new-refresh-token", response.refreshToken());
         assertEquals(sessionId, response.sessionId());
-        verify(refreshTokenStore).updateRefreshTokenId(
-                eq(sessionId),
-                eq("new-refresh-token-id"),
-                eq(Duration.ofMillis(7200L)),
-                any(AuthSessionMetadata.class)
-        );
+        verify(refreshTokenStore).saveSession(any(AuthSession.class), eq(Duration.ofMillis(7200L)));
     }
 
     @Test

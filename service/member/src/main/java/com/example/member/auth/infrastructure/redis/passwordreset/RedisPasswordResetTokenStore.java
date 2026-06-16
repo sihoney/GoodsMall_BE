@@ -1,9 +1,8 @@
 package com.example.member.auth.infrastructure.redis.passwordreset;
 
 import java.time.Duration;
-import java.time.Instant;
+import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
@@ -13,19 +12,15 @@ import org.springframework.stereotype.Component;
 public class RedisPasswordResetTokenStore implements PasswordResetTokenStore {
 
     private static final String KEY_PREFIX = "auth:password-reset:";
-    
-    private static final String FIELD_MEMBER_ID = "memberId";
-    private static final String FIELD_EMAIL = "email";
-    private static final String FIELD_CREATED_AT = "createdAt";
 
     private final StringRedisTemplate stringRedisTemplate;
 
     @Override
     public Optional<String> create(PasswordResetToken passwordResetToken, Duration ttl) {
         String key = buildKey(passwordResetToken.token());
-        stringRedisTemplate.opsForHash().put(key, FIELD_MEMBER_ID, passwordResetToken.memberId().toString());
-        stringRedisTemplate.opsForHash().put(key, FIELD_EMAIL, passwordResetToken.email());
-        stringRedisTemplate.opsForHash().put(key, FIELD_CREATED_AT, passwordResetToken.createdAt().toString());
+        for (Map.Entry<String, String> entry : passwordResetToken.toMap().entrySet()) {
+            stringRedisTemplate.opsForHash().put(key, entry.getKey(), entry.getValue());
+        }
         stringRedisTemplate.expire(key, ttl);
         return Optional.of(passwordResetToken.token());
     }
@@ -38,12 +33,7 @@ public class RedisPasswordResetTokenStore implements PasswordResetTokenStore {
             return Optional.empty();
         }
 
-        return Optional.of(new PasswordResetToken(
-                token,
-                UUID.fromString((String) entries.get(FIELD_MEMBER_ID)),
-                (String) entries.get(FIELD_EMAIL),
-                Instant.parse((String) entries.get(FIELD_CREATED_AT))
-        ));
+        return Optional.of(PasswordResetToken.fromMap(token, entries));
     }
 
     @Override
