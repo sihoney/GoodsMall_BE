@@ -1,8 +1,6 @@
 package com.example.member.verification.infrastructure.redis.emailverification;
 
 
-import com.example.member.common.exception.BusinessException;
-import com.example.member.verification.exception.VerificationErrorCode;
 import com.example.member.verification.application.port.out.EmailVerificationAutoLoginTokenStore;
 import java.time.Duration;
 import java.time.Instant;

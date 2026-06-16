@@ -32,7 +32,7 @@ public class EmailVerificationAutoLoginService {
     public EmailVerificationAutoLoginTokenResult issueToken(Member member) {
         UUID memberId = member == null ? null : member.getMemberId();
         if (memberId == null) {
-            // TODO: 이 서비스가 외부 호출 경계가 되면 중복 필수값 검증을 command validation으로 이동한다.
+            // TODO: 내부 호출 경계가 생기면 중복 필수값 검증을 command validation으로 이동
             throw new BusinessException(VerificationErrorCode.EMAIL_VERIFICATION_NOT_ALLOWED);
         }
 
@@ -65,7 +65,7 @@ public class EmailVerificationAutoLoginService {
 
     private String normalizeRequired(String value, String fieldName) {
         if (value == null || value.trim().isEmpty()) {
-            // TODO: 이 서비스가 외부 호출 경계가 되면 중복 필수값 검증을 command validation으로 이동한다.
+            // TODO: 내부 호출 경계가 생기면 중복 필수값 검증을 command validation으로 이동
             throw new BusinessException(VerificationErrorCode.EMAIL_VERIFICATION_AUTO_LOGIN_TOKEN_INVALID);
         }
         return value.trim();

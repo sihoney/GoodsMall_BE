@@ -1,8 +1,6 @@
 package com.example.member.verification.presentation.web;
 
 
-import com.example.member.common.exception.BusinessException;
-import com.example.member.verification.exception.VerificationErrorCode;
 import com.example.member.auth.application.dto.result.AuthTokenResult;
 import com.example.member.auth.presentation.web.dto.EmailVerificationAutoLoginRequest;
 import com.example.member.auth.presentation.web.dto.EmailVerificationAutoLoginResponse;
@@ -44,10 +42,10 @@ public class EmailVerificationController {
     ) {
         var emailVerification = emailVerificationService.resendSignupVerification(request.email());
         return ResponseEntity.ok(ApiResponse.success(new EmailVerificationSendResponse(
-                emailVerification.getEmail(),
-                emailVerification.getPurpose().name(),
-                emailVerification.getStatus().name(),
-                emailVerification.getExpiresAt()
+                emailVerification.email(),
+                emailVerification.purpose(),
+                emailVerification.status(),
+                emailVerification.expiresAt()
         )));
     }
 

@@ -1,21 +1,19 @@
 package com.example.member.verification.application.service;
 
-
-import com.example.member.common.exception.BusinessException;
-import com.example.member.verification.exception.VerificationErrorCode;
 import com.example.member.auth.application.dto.result.EmailVerificationAutoLoginTokenResult;
-import com.example.member.verification.application.dto.result.EmailVerificationConfirmResult;
-import com.example.member.verification.application.port.out.EmailSenderPort;
-import com.example.member.verification.application.port.out.EmailVerificationPersistencePort;
+import com.example.member.common.exception.BusinessException;
 import com.example.member.member.application.port.out.MemberPersistencePort;
-import com.example.member.verification.config.EmailVerificationProperties;
-import com.example.member.verification.domain.entity.EmailVerification;
 import com.example.member.member.domain.entity.Member;
-import com.example.member.member.exception.MemberErrorCode;
-import com.example.member.verification.domain.enumtype.EmailVerificationPurpose;
 import com.example.member.member.domain.enumtype.MemberStatus;
+import com.example.member.member.exception.MemberErrorCode;
+import com.example.member.verification.application.dto.result.EmailVerificationConfirmResult;
+import com.example.member.verification.application.dto.result.EmailVerificationSendResult;
+import com.example.member.verification.application.port.out.EmailSenderPort;
+import com.example.member.verification.application.port.out.EmailVerificationTokenStore;
+import com.example.member.verification.config.EmailVerificationProperties;
+import com.example.member.verification.exception.VerificationErrorCode;
+import com.example.member.verification.infrastructure.redis.emailverification.SignupEmailVerificationToken;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -26,61 +24,77 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class EmailVerificationService {
 
-    private final EmailVerificationPersistencePort emailVerificationPersistencePort;
+    private static final String SIGNUP_PURPOSE = "SIGNUP";
+    private static final String PENDING_STATUS = "PENDING";
+
+    private final EmailVerificationTokenStore emailVerificationTokenStore;
     private final MemberPersistencePort memberPersistencePort;
     private final EmailSenderPort emailSender;
     private final EmailVerificationProperties emailVerificationProperties;
     private final EmailVerificationAutoLoginService emailVerificationAutoLoginService;
 
     @Transactional
-    public EmailVerification createSignupVerification(Member member) {
+    public EmailVerificationSendResult createSignupVerification(Member member) {
         Member targetMember = validateSignupTarget(member);
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime expiresAt = LocalDateTime.now().plus(emailVerificationProperties.expiration());
+        String token = UUID.randomUUID().toString();
 
-        cancelPendingSignupVerifications(targetMember.getMemberId(), now);
-
-        EmailVerification emailVerification = EmailVerification.create(
-                UUID.randomUUID(),
+        SignupEmailVerificationToken verificationToken = new SignupEmailVerificationToken(
+                token,
                 targetMember.getMemberId(),
                 targetMember.getEmail(),
-                UUID.randomUUID().toString(),
-                EmailVerificationPurpose.SIGNUP,
-                now,
-                now.plus(emailVerificationProperties.expiration())
+                expiresAt
         );
 
-        EmailVerification saved = emailVerificationPersistencePort.save(emailVerification);
-        emailSender.send(
-                targetMember.getEmail(),
-                buildSignupVerificationSubject(),
-                buildSignupVerificationBody(targetMember.getEmail(), saved.getToken()),
-                true
+        emailVerificationTokenStore.saveSignupToken(
+                verificationToken,
+                emailVerificationProperties.expiration()
         );
-        return saved;
+
+        try {
+            emailSender.send(
+                    targetMember.getEmail(),
+                    buildSignupVerificationSubject(),
+                    buildSignupVerificationBody(targetMember.getEmail(), token),
+                    true
+            );
+        } catch (RuntimeException exception) {
+            emailVerificationTokenStore.deleteByToken(token);
+            throw exception;
+        }
+
+        return new EmailVerificationSendResult(
+                targetMember.getEmail(),
+                SIGNUP_PURPOSE,
+                PENDING_STATUS,
+                expiresAt
+        );
     }
 
     @Transactional
     public EmailVerificationConfirmResult confirmSignupVerification(String token) {
         String normalizedToken = normalizeRequired(token, "token");
-        EmailVerification emailVerification = emailVerificationPersistencePort.findByToken(normalizedToken)
+        SignupEmailVerificationToken verificationToken = emailVerificationTokenStore.findSignupToken(normalizedToken)
                 .orElseThrow(() -> new BusinessException(VerificationErrorCode.EMAIL_VERIFICATION_TOKEN_INVALID));
 
-        LocalDateTime now = LocalDateTime.now();
-        if (emailVerification.isExpiredAt(now) && emailVerification.isPending()) { 
-            emailVerification.expire(now);
+        if (!verificationToken.expiresAt().isAfter(LocalDateTime.now())) {
+            emailVerificationTokenStore.deleteByToken(normalizedToken);
             throw new BusinessException(VerificationErrorCode.EMAIL_VERIFICATION_TOKEN_EXPIRED);
         }
 
-        Member member = memberPersistencePort.findById(emailVerification.getMemberId())
+        Member member = memberPersistencePort.findById(verificationToken.memberId())
                 .orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
 
         if (member.getStatus() == MemberStatus.PENDING_VERIFICATION) {
-            member.changeStatus(MemberStatus.ACTIVE, now);
+            member.changeStatus(MemberStatus.ACTIVE, LocalDateTime.now());
         } else if (member.getStatus() != MemberStatus.ACTIVE) {
-            throw new BusinessException(VerificationErrorCode.EMAIL_VERIFICATION_NOT_ALLOWED, "현재 회원 상태에서는 이메일 인증으로 활성화할 수 없습니다.");
+            throw new BusinessException(
+                    VerificationErrorCode.EMAIL_VERIFICATION_NOT_ALLOWED,
+                    "현재 회원 상태에서는 이메일 인증을 완료할 수 없습니다."
+            );
         }
 
-        emailVerification.verify(now);
+        emailVerificationTokenStore.deleteByToken(normalizedToken);
         EmailVerificationAutoLoginTokenResult autoLoginToken = emailVerificationAutoLoginService.issueToken(member);
         return new EmailVerificationConfirmResult(
                 member.getMemberId(),
@@ -92,38 +106,36 @@ public class EmailVerificationService {
     }
 
     @Transactional
-    public EmailVerification resendSignupVerification(String email) {
+    public EmailVerificationSendResult resendSignupVerification(String email) {
         String normalizedEmail = normalizeRequired(email, "email");
         Member member = memberPersistencePort.findByEmail(normalizedEmail)
                 .orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
 
         if (member.isActive()) {
-            throw new BusinessException(VerificationErrorCode.EMAIL_VERIFICATION_NOT_ALLOWED, "ACTIVE 상태의 회원은 이메일 인증이 필요하지 않습니다.");
+            throw new BusinessException(
+                    VerificationErrorCode.EMAIL_VERIFICATION_NOT_ALLOWED,
+                    "ACTIVE 상태의 회원은 이메일 인증을 재요청할 수 없습니다."
+            );
         }
         if (member.getStatus() != MemberStatus.PENDING_VERIFICATION) {
-            throw new BusinessException(VerificationErrorCode.EMAIL_VERIFICATION_NOT_ALLOWED, "현재 회원 상태에서는 이메일 인증을 요청할 수 없습니다.");
+            throw new BusinessException(
+                    VerificationErrorCode.EMAIL_VERIFICATION_NOT_ALLOWED,
+                    "현재 회원 상태에서는 이메일 인증을 재요청할 수 없습니다."
+            );
         }
 
         return createSignupVerification(member);
     }
 
-    private void cancelPendingSignupVerifications(UUID memberId, LocalDateTime now) {
-        List<EmailVerification> pendingVerifications = emailVerificationPersistencePort.findPendingByMemberIdAndPurpose(
-                memberId,
-                EmailVerificationPurpose.SIGNUP
-        );
-        for (EmailVerification pendingVerification : pendingVerifications) {
-            pendingVerification.cancel(now);
-        }
-    }
-
     private Member validateSignupTarget(Member member) {
         if (member == null) {
-            // TODO: 이 서비스가 외부 호출 경계가 되면 중복 필수값 검증을 command validation으로 이동한다.
             throw new BusinessException(VerificationErrorCode.EMAIL_VERIFICATION_NOT_ALLOWED);
         }
         if (member.getStatus() != MemberStatus.PENDING_VERIFICATION) {
-            throw new BusinessException(VerificationErrorCode.EMAIL_VERIFICATION_NOT_ALLOWED, "이메일 인증 대상은 PENDING_VERIFICATION 상태여야 합니다.");
+            throw new BusinessException(
+                    VerificationErrorCode.EMAIL_VERIFICATION_NOT_ALLOWED,
+                    "이메일 인증 대상은 PENDING_VERIFICATION 상태여야 합니다."
+            );
         }
         return member;
     }
@@ -158,7 +170,7 @@ public class EmailVerificationService {
                             </h1>
                             <p style="margin:0 0 16px; font-size:16px; line-height:1.7; color:#5a4a6a;">
                                 안녕하세요.<br />
-                                Goods Mall 회원가입을 완료하려면 아래 버튼을 눌러 이메일 인증을 진행해 주세요.
+                                Goods Mall 회원가입을 완료하려면 아래 버튼으로 이메일 인증을 진행해 주세요.
                             </p>
 
                             <div style="margin:24px 0; padding:18px 20px; border-radius:18px; background-color:#f7f3ff;">
@@ -177,14 +189,14 @@ public class EmailVerificationService {
                             </div>
 
                             <p style="margin:0 0 12px; font-size:14px; line-height:1.7; color:#5a4a6a;">
-                                버튼이 동작하지 않으면 아래 링크를 복사해 브라우저 주소창에 붙여 넣어 주세요.
+                                버튼이 동작하지 않으면 아래 주소를 브라우저에 직접 입력해 주세요.
                             </p>
                             <p style="margin:0 0 24px; font-size:14px; line-height:1.7; color:#6d28d9; word-break:break-all;">
                                 %s
                             </p>
 
                             <p style="margin:0; font-size:14px; line-height:1.7; color:#5a4a6a;">
-                                이 링크는 %d분 동안만 유효합니다.<br />
+                                인증 링크는 %d분 동안 유효합니다.<br />
                                 본인이 요청하지 않았다면 이 메일을 무시해 주세요.
                             </p>
                         </div>
@@ -196,7 +208,6 @@ public class EmailVerificationService {
 
     private String normalizeRequired(String value, String fieldName) {
         if (value == null || value.trim().isEmpty()) {
-            // TODO: 이 서비스가 외부 호출 경계가 되면 중복 필수값 검증을 command validation으로 이동한다.
             if ("token".equals(fieldName)) {
                 throw new BusinessException(VerificationErrorCode.EMAIL_VERIFICATION_TOKEN_INVALID);
             }
