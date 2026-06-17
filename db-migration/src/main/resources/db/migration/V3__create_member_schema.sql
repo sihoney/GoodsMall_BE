@@ -93,7 +93,6 @@ CREATE TABLE IF NOT EXISTS member.member_oauth_account (
 CREATE INDEX IF NOT EXISTS idx_member_oauth_member_id
     ON member.member_oauth_account (member_id);
 
--- TODO: 이메일 인증 Redis 이전 완료 후 별도 migration에서 member.email_verification 테이블 drop
 CREATE TABLE IF NOT EXISTS member.email_verification (
     verification_id  UUID         NOT NULL,
     member_id        UUID         NOT NULL,
