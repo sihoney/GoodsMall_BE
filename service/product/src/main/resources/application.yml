@@ -46,7 +46,7 @@ cloud:
     region:
       static: ap-northeast-2
     s3:
-      bucket: goodsmall-s3-bucket
+      bucket: ${AWS_S3_BUCKET:goodsmall-s3-bucket}
 
 # TODO: Split log levels by environment later (local dev can use DEBUG, production should default to INFO/WARN).
 logging:

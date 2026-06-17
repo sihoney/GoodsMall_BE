@@ -5,3 +5,4 @@ metadata:
   namespace: goods-mall
 data:
   ELASTICSEARCH_URI: "http://elasticsearch:9200"
+  AWS_S3_BUCKET: "goodsmall-s3-bucket"
