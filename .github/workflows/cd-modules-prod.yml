@@ -248,6 +248,8 @@ jobs:
             --from-literal=AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY }}" \
             --from-literal=AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_KEY }}" \
             --from-literal=KAKAO_CLIENT_SECRET="${{ secrets.KAKAO_CLIENT_SECRET }}" \
+            --from-literal=GOOGLE_CLIENT_ID="${{ secrets.GOOGLE_CLIENT_ID }}" \
+            --from-literal=GOOGLE_CLIENT_SECRET="${{ secrets.GOOGLE_CLIENT_SECRET }}" \
             --from-literal=SMTP_USERNAME="${{ secrets.SMTP_USERNAME }}" \
             --from-literal=SMTP_PASSWORD="${{ secrets.SMTP_PASSWORD }}" \
             --from-literal=ACCOUNT_VERIFICATION_SECRET_KEY="${{ secrets.ACCOUNT_VERIFICATION_SECRET_KEY }}" \
