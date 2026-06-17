@@ -6,6 +6,7 @@ metadata:
 data:
   SPRING_PROFILES_ACTIVE: "prod"
   API_GATEWAY_HOST: "http://gateway:8080"
+  OAUTH_REDIRECT_BASE_URL: "https://54.116.150.154.nip.io"
   SERVICES_ORDER_URL: "http://order:8084"
   SERVICES_PAYMENT_URL: "http://payment:8082"
   SERVICES_PRODUCT_URL: "http://product:8081"

@@ -81,7 +81,7 @@ oauth:
     authorize-uri: https://kauth.kakao.com/oauth/authorize
     token-uri: https://kauth.kakao.com/oauth/token
     user-info-uri: https://kapi.kakao.com/v2/user/me
-    redirect-uri: ${API_GATEWAY_HOST:http://localhost:8080}/api/auth/oauth/kakao/callback
+    redirect-uri: ${OAUTH_REDIRECT_BASE_URL:http://localhost:8080}/api/auth/oauth/kakao/callback
     frontend-callback-url: ${FRONTEND_BASE_URL:http://localhost:5173}/auth/kakao/callback
     state-ttl: 10m
   google:
@@ -90,7 +90,7 @@ oauth:
     authorize-uri: https://accounts.google.com/o/oauth2/v2/auth
     token-uri: https://oauth2.googleapis.com/token
     user-info-uri: https://openidconnect.googleapis.com/v1/userinfo
-    redirect-uri: ${API_GATEWAY_HOST:http://localhost:8080}/api/auth/oauth/google/callback
+    redirect-uri: ${OAUTH_REDIRECT_BASE_URL:http://localhost:8080}/api/auth/oauth/google/callback
     frontend-callback-url: ${FRONTEND_BASE_URL:http://localhost:5173}/auth/google/callback
     state-ttl: 10m
 
