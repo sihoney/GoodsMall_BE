@@ -13,6 +13,8 @@ data:
   SERVICES_AUCTION_URL: "http://auction:8090"
   SERVICES_SETTLEMENT_URL: "http://settlement:8085"
   FRONTEND_BASE_URL: "https://goods-mall-fe.vercel.app"
+  REFRESH_TOKEN_COOKIE_SAME_SITE: "None"
+  REFRESH_TOKEN_COOKIE_SECURE: "true"
   MEMBER_SIGNUP_REQUIRE_EMAIL_VERIFICATION: "true"
   SMTP_HOST: "live.smtp.mailtrap.io"
   SMTP_PORT: "587"
