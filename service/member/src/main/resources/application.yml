@@ -110,7 +110,7 @@ auth:
 
 aws:
   s3:
-    bucket: todaylunchmenu
+    bucket: ${AWS_S3_BUCKET:goodsmall-s3-bucket}
     region: ap-northeast-2
     access-key: ${AWS_ACCESS_KEY_ID}
     secret-key: ${AWS_SECRET_ACCESS_KEY}

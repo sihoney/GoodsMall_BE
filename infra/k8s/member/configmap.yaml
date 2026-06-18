@@ -15,6 +15,7 @@ data:
   FRONTEND_BASE_URL: "https://goods-mall-fe.vercel.app"
   REFRESH_TOKEN_COOKIE_SAME_SITE: "None"
   REFRESH_TOKEN_COOKIE_SECURE: "true"
+  AWS_S3_BUCKET: "goodsmall-s3-bucket"
   MEMBER_SIGNUP_REQUIRE_EMAIL_VERIFICATION: "true"
   SMTP_HOST: "live.smtp.mailtrap.io"
   SMTP_PORT: "587"
